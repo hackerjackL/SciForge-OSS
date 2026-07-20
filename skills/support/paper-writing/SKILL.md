@@ -68,6 +68,7 @@ The paper directory (default `paper/`):
 | `include_abstract` | bool | `true` | Whether to include the abstract |
 | `include_appendix` | bool | `false` | Whether to include a detailed appendix (long proofs, extended tables, code listings) |
 | `citation_style` | enum | `numeric` | `numeric` (default — `\cite{}`, `elsarticle-num.bst`) / `author-year` (if user requests — `\citep{}`/`\citet{}`, `elsarticle-harv.bst`). Never mix in one paper. |
+| `verification_type` | enum | `auto` | `auto` (auto-detect from idea-discovery), `theory_only` (pure theory, no experiments), `computational` (has numerical verification), `theory_experiment` (has experiments) |
 
 ## Workflow
 
@@ -103,7 +104,26 @@ The `main.tex` preamble is **frozen** — do NOT hand-edit it. The unified templ
 
 ### Step 1: Plan the Paper Structure
 
-Read all research artifacts and design the paper structure. Write `paper/PAPER_PLAN.md`:
+Read all research artifacts and design the paper structure. Write `paper/PAPER_PLAN.md`.
+
+**If `verification_type=theory_only`** (pure theory, no experiments):
+
+```
+1. **Title** — descriptive, specific to the problem
+2. **Abstract** — 150-250 words, summarizing problem / approach / key theorem / implication
+3. **Introduction** — background, motivation, gap, contribution
+4. **Preliminaries** — notation, assumptions, definitions
+5. **Main Results** — theorem statements with proof sketches
+6. **Proofs** — full derivations (short proofs inline, long proofs in Appendix)
+7. **Discussion** — implications, limitations, open problems
+8. **Conclusion** — contribution summary
+9. **References** — only verified citations
+10. **Appendix** — long proofs, lemmas, extended derivations
+```
+
+**If `verification_type=computational` or `theory_experiment`** (has numerical/experimental validation):
+
+```
 1. **Title** — descriptive, specific to the problem
 2. **Abstract** — 150-250 words, summarizing problem / approach / result / implication
 3. **Introduction** — background, motivation, gap, contribution
@@ -114,6 +134,9 @@ Read all research artifacts and design the paper structure. Write `paper/PAPER_P
 8. **Discussion** — implications, limitations, future work
 9. **Conclusion** — contribution summary
 10. **References** — only verified citations
+```
+
+**Default** (auto-detect): use the computational structure, omit the Results section if no numerical results exist.
 
 Reference the frozen Q-id in the plan header (INV-G1 problem anchor freeze).
 

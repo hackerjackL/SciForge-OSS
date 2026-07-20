@@ -47,10 +47,22 @@ The non-negotiable goals:
 | **Topology** | graph, network, tree, flow-chart | Relations, hierarchies, pipelines | JSON-spec OR AI-direct SVG |
 | **Architecture** | layered, hub-and-spoke, multi-plane | System architecture, workflow | JSON-spec OR AI-direct SVG |
 | **Scientific** | errorbar, filled-curve, quiver, streamplot | Error ranges, vector fields | Python (data) |
+| **Theoretical** | commutative-diagram, derivation-tree, concept-map, dependency-graph, counterexample-plot | Proof structures, concept relations, theorem dependencies | LaTeX tikz OR AI-direct SVG |
 
 **Pipeline rule**:
 - **Data plots** (the first 7 categories + Scientific) → Python pipeline mandatory (matplotlib/seaborn/numpy), render script + input data preserved
 - **Diagram plots** (Topology + Architecture) → JSON-spec deterministic renderer OR AI-direct SVG generation (when the diagram is simple enough that AI can hand-write the SVG); either way, the spec/source is preserved for reproducibility
+- **Theoretical plots** (Theoretical category) → LaTeX `tikz-cd` for commutative diagrams, or AI-direct SVG for concept maps and dependency graphs. No Python pipeline required — reproducibility is via the LaTeX source or SVG spec preserved.
+
+### Theoretical Chart Types Detail
+
+| Type | Description | Rendering method | Use case |
+|------|-------------|-----------------|----------|
+| **commutative-diagram** | Category-theoretic or algebraic commutative diagrams | LaTeX `tikz-cd` | Morphism relations, exact sequences, functoriality |
+| **derivation-tree** | Proof tree / derivation tree showing inference steps | LaTeX `tikz` or AI-direct SVG | Logical derivations, type inference, proof theory |
+| **concept-map** | Node-link diagram showing concept relationships | AI-direct SVG | Domain knowledge structure, terminology mapping |
+| **dependency-graph** | Directed graph showing theorem/lemma dependencies | AI-direct SVG | Structure of proofs, which results depend on which |
+| **counterexample-plot** | Numerical counterexample visualization | Python (data) | Showing a counterexample to a claim |
 
 ## Configuration
 

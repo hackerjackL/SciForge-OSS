@@ -4,13 +4,13 @@ type: support-skill
 role: logical-consistency-auditor
 ---
 
-# Logic Verification (SciForge-OSS — Merged proof-checker, Discipline-Agnostic)
+# Logic Verification (SciForge-OSS — Structured Proof Checking, Discipline-Agnostic)
 
-> **Status**: Rigorous logical verification of a derivation / argument / paper draft via cross-model adversarial review. **OSS merges main SciForge's `proof-checker`** (20-category issue taxonomy, 2-axis severity, side-condition checklists, acceptance gate) **into this skill**. **OSS is discipline-agnostic** — no LaTeX `align*` environment-specific checks, no physics SI-units enforcement, no economics estimator-verification. The universal 6-dimension logical consistency audit applies to every problem.
+> **Status**: Rigorous logical verification of a derivation / argument / paper draft via structured proof checking. **OSS merges main SciForge's `proof-checker`** (20-category issue taxonomy, 2-axis severity, side-condition checklists, acceptance gate) **into this skill**. **OSS is discipline-agnostic** — no LaTeX `align*` environment-specific checks, no physics SI-units enforcement, no economics estimator-verification. The universal 6-dimension logical consistency audit applies to every problem.
 
 ## Use When
 
-Use this skill when asked to rigorously verify a mathematical derivation, logical argument, or paper draft — identify gaps via cross-model adversarial review, fix each gap with full derivations, re-review until convergence, and generate a detailed audit report.
+Use this skill when asked to rigorously verify a mathematical derivation, logical argument, or paper draft — identify gaps via structured proof checking with the 20-category issue taxonomy, fix each gap with full derivations, re-check until convergence, and generate a detailed audit report.
 
 Typical prompts:
 - "检查证明" / "verify proof" / "proof check"
@@ -20,7 +20,7 @@ Typical prompts:
 
 ## Job
 
-Systematically verify a derivation / argument / paper draft via cross-model adversarial review, fix identified gaps, re-review until convergence, and generate a detailed audit report with proof-obligation accounting. The non-negotiable goal: **correctness matters more than declaring success.** Never silently pass an argument with open gaps; never fabricate a fix.
+Systematically verify a derivation / argument / paper draft via structured proof checking, fix identified gaps, re-check until convergence, and generate a detailed audit report with proof-obligation accounting. The non-negotiable goal: **correctness matters more than declaring success.** Never silently pass an argument with open gaps; never fabricate a fix.
 
 ## Required Workspace
 
@@ -34,7 +34,6 @@ The project directory containing:
 ## Configuration
 
 - **MAX_REVIEW_ROUNDS = 3** — maximum review → fix → re-review iterations before falling through to the Unrecoverable Argument Protocol.
-- **Reviewer model** — the cross-model reviewer used for adversarial review (xhigh reasoning effort; never downgrade). See [`shared-references/reviewer-routing.md`](../shared-references/reviewer-routing.md).
 - **AUDIT_DOC = `audit_report/LOGIC_VERIFICATION.md`** — cumulative log.
 - **STATE_FILE = `audit_report/LOGIC_CHECK_STATE.json`** — recovery state.
 - **RENDER_HTML = true** — auto-render the audit log to HTML at workflow end.
@@ -159,9 +158,9 @@ Create `audit_report/ARGUMENT_SKELETON.md`:
 
 ### Phase 1: First Review (Fresh Context)
 
-Send the argument + mandatory checklist to the cross-model reviewer with xhigh reasoning effort. The reviewer sees only the argument content; no prior critique.
+The agent switches to "proof auditor" role and applies the 20-category issue taxonomy systematically. Read the argument + mandatory checklist with maximum reasoning effort. The audit sees only the argument content; no prior context.
 
-The reviewer flags each issue with:
+The audit flags each issue with:
 - Category (from the 20-category taxonomy)
 - Axis A status
 - Axis B impact
@@ -175,7 +174,7 @@ For each FATAL/CRITICAL/MAJOR issue:
 1. Read the issue + minimal fix recommendation
 2. Apply the fix in the source document (derivation / paper draft)
 3. Record the fix in `audit_report/LOGIC_VERIFICATION.md`
-4. Re-verify the fix with SymPy (if mathematical) or with a cross-model check (if logical)
+4. Re-verify the fix with SymPy (if mathematical) or with a structured re-check (if logical)
 
 Never fabricate a fix. If a fix requires a new assumption, state it explicitly. If a fix requires weakening the claim, do so honestly.
 
@@ -259,7 +258,7 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../shar
 
 - **Never silently pass an argument with open gaps.** Correctness matters more than declaring success.
 - **Never fabricate a fix.** If a fix requires a new assumption, state it. If a fix requires weakening the claim, do so honestly.
-- **Cross-model adversarial review is mandatory.** The host agent never grades its own argument. The reviewer is a different model family with xhigh reasoning effort.
+- **Structured proof checking is mandatory.** The agent audits its own work using the 20-category taxonomy — never skips the systematic checklist.
 - **3-round limit.** Do not exceed MAX_REVIEW_ROUNDS. If exhausted, escalate to the Unrecoverable Argument Protocol — do NOT silently continue.
 - **Counterexample pass is mandatory** for key lemmas. Log candidates even if none found.
 - **No discipline-specific categories.** Do not reintroduce physics SI-units / economics estimator / cs-ml benchmark Group E categories. The universal 20-category taxonomy above is the complete set.
@@ -288,9 +287,8 @@ The final output is:
 ## See Also
 
 - [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
-- [`../shared-references/reviewer-routing.md`](../shared-references/reviewer-routing.md) — cross-model reviewer routing
-- [`../shared-references/review-tracing.md`](../shared-references/review-tracing.md) — forensic review trace policy
 - [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
 - [`../theory-derivation/SKILL.md`](../theory-derivation/SKILL.md) — produces the derivation this skill audits
-- [`../leakage-audit/SKILL.md`](../leakage-audit/SKILL.md) — Type I + Type IV audit (downstream)
+- [`../leakage-audit/SKILL.md`](../leakage-audit/SKILL.md) — complementary audit (Type I logic gaps + Type IV escape)
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate (downstream)
+- [`../auto-review-loop/SKILL.md`](../auto-review-loop/SKILL.md) — downstream structured self-review loop

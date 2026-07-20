@@ -1,0 +1,57 @@
+# SciForge-OSS .gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.pdf
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+
+# Build
+dist/
+build/
+*.egg
+
+# SciForge runtime
+.sciforge/
+review-stage/
+derivations/
+paper/
+figures/
+literature/
+methods/
+audit_report/
+refine-logs/
+results/
+output/
+tools/
+.KILL_ARGUMENT.md
+KILL_ARGUMENT.md
+KILL_ARGUMENT.json
+KILL_ARGUMENT.html

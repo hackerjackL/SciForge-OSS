@@ -2,7 +2,7 @@
 
 > **Status**: Contract for the OSS skill chain. **OSS is discipline-agnostic by design** — there are no 4 parallel pipelines, no per-discipline overlay, no `DISCIPLINE_CONTEXT` block. All 125 science problems are processed by the **same single pipeline** (`/125-problems-pipeline`) using the **same universal meta-skills**.
 
-> **Key difference from main SciForge**: Main SciForge has 4 parallel pipelines (economics / cs-ml / physics / general) each with its own discipline overlay, reviewer persona, and framework (AIM / SOTA / PNV / none). OSS has **none of these** — the 4 meta-skills (sandbox / tooling / retrieval / plotting) + 4 support skills (theory-derivation / logic-verification / paper-writing / cross-review) are universal and do NOT switch behavior by discipline. This file exists only to document that **no discipline dispatch is needed** and to point migrated skills (which may still reference `DISCIPLINE_CONTEXT` from their main-SciForge origin) at a canonical "no-op" stub.
+> **Key difference from main SciForge**: Main SciForge has 4 parallel pipelines (economics / cs-ml / physics / general) each with its own discipline overlay, reviewer persona, and framework (AIM / SOTA / PNV / none). OSS has **none of these** — the 4 meta-skills (sandbox / tooling / retrieval / plotting) + 4 support skills (theory-derivation / logic-verification / paper-writing / auto-review-loop) are universal and do NOT switch behavior by discipline. This file exists only to document that **no discipline dispatch is needed** and to point migrated skills (which may still reference `DISCIPLINE_CONTEXT` from their main-SciForge origin) at a canonical "no-op" stub.
 
 ---
 
@@ -43,7 +43,7 @@ There is **never** a silent fall-back to `cs-ml` (the main SciForge trap) becaus
 
 | Discipline | Framework | Reviewer Persona | Novelty Venues | Source Priorities | Problem Anchor Schema | Idea-Fit Overlay |
 |-----------|-----------|------------------|----------------|-------------------|----------------------|------------------|
-| `general` (always) | none (universal reasoning) | senior-reviewer-agnostic (inlined in `/cross-review`) | mixed (top venues across all domains + arXiv) | default priority 1-6 (arXiv → S2 → CrossRef → PubMed → Web → OpenAlex) | default (problem / hypothesis / method / claim) | none (base 6-dimensional profiling) |
+| `general` (always) | none (universal reasoning) | senior-reviewer-agnostic (inlined in `/auto-review-loop`) | mixed (top venues across all domains + arXiv) | default priority 1-6 (arXiv → S2 → CrossRef → PubMed → Web → OpenAlex) | default (problem / hypothesis / method / claim) | none (base 6-dimensional profiling) |
 
 This is a **single-row collapse** of main SciForge's 4-row table. Migrated skills that consumed specific columns (e.g., `/research-lit` consumed Source Priorities) now consume only the `general` row's values.
 

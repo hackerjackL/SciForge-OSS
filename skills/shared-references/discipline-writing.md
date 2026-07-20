@@ -8,7 +8,11 @@
 
 ## 1. Unified Section Structure
 
-Every OSS paper draft (via `/paper-writing`) follows this canonical skeleton, loaded from `skills/support/paper-writing/templates/default/main.tex`:
+The section structure depends on `verification_type` (set by the orchestrator based on the problem type).
+
+### 1a. Standard Structure (computational / theory_experiment)
+
+Every OSS paper draft with numerical or experimental verification follows this canonical skeleton:
 
 | Section | Purpose | Length hint |
 |---------|---------|-------------|
@@ -23,6 +27,29 @@ Every OSS paper draft (via `/paper-writing`) follows this canonical skeleton, lo
 | **7. Conclusion** | One-paragraph restatement of contribution + forward look | 0.25 page |
 | **References** | `.bib` only from `literature/references.bib` (3-layer-verified) | n/a |
 | **Appendix** (optional) | Long proofs, extended numerical tables, code listings | varies |
+
+### 1b. Theory-Only Structure (theory_only)
+
+For pure theory problems (no experiments, no numerical verification), use this structure:
+
+| Section | Purpose | Length hint |
+|---------|---------|-------------|
+| **Title** | Descriptive, theorem-focused (not clickbait) | 1 line |
+| **Abstract** | Problem → Approach → Key Theorem → Implication (4 sentences) | 150-250 words |
+| **1. Introduction** | Motivation, known gap, this paper's contribution, roadmap | 1-1.5 pages |
+| **2. Preliminaries** | Notation, assumptions, definitions, known results | 1-2 pages |
+| **3. Main Results** | Theorem/Proposition/Lemma statements with proof sketches | 2-4 pages |
+| **4. Proofs** | Full derivations (short proofs inline, long proofs in Appendix) | 2-6 pages |
+| **5. Discussion** | Implications, limitations, open problems, connections to related work | 0.5-1 page |
+| **6. Conclusion** | One-paragraph restatement of contribution + forward look | 0.25 page |
+| **References** | `.bib` only from `literature/references.bib` (3-layer-verified) | n/a |
+| **Appendix** (optional) | Long proofs, lemmas, extended derivations | varies |
+
+**Key differences from standard structure:**
+- No "Related Work" section — context is integrated into Introduction and Discussion
+- No "Results" section — replaced by "Main Results" (theorem statements) and "Proofs"
+- "Preliminaries" replaces "Problem Formalization" — sets up notation and assumptions
+- Proofs are the core contribution, not verification results
 
 ---
 

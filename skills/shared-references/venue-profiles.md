@@ -49,11 +49,12 @@ The agent **copies this skeleton** to the working directory and fills in the sec
 
 | Category | Page Target | Page Count Rule |
 |----------|-------------|----------------|
-| **OSS default** (all 125 problems) | **8-15 pages, flexible** | Main body only; refs/appx NOT counted |
+| **OSS default** (computational / theory_experiment) | **8-15 pages, flexible** | Main body only; refs/appx NOT counted |
+| **Theory-only** (pure theory, no experiments) | **4-8 pages** (short) or **15-25 pages** (with full proofs in appendix) | If the problem is a tight derivation, 4-8 pages suffice; if complete proofs are needed, expand to 15-25 |
 | Short theoretical note | 4-6 pages | If the problem's answer is a tight derivation |
 | Long survey-style | 15-25 pages | If the problem demands a literature-heavy treatment |
 
-The agent picks the length based on the problem's nature, not a hard venue limit. The `length` parameter on `/paper-writing` accepts `short` / `standard` / `long` and maps to 4-6 / 8-12 / 12-16 pages.
+The agent picks the length based on the problem's nature and `verification_type`. The `length` parameter on `/paper-writing` accepts `short` / `standard` / `long` and maps to 4-6 / 8-12 / 12-16 pages (standard) or 4-6 / 4-8 / 15-25 (theory-only).
 
 ---
 

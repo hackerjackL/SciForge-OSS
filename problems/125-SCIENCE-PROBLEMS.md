@@ -1,7 +1,9 @@
-# 125 Scientific Problems — 上海交通大学 (2023 Version)
+# 125 Scientific Problems — Demo Index (SciForge-OSS)
 
-> 上海交通大学发布的 125 个科学问题索引。
+> 125 个科学问题「AI for Scientist Anything」Demo 索引。
 > 每个问题包含：ID、领域分类、问题描述、已知背景、所需工具/方法。
+>
+> **注意**: 125 题是 Demo 展示，不是完整题库。框架支持任意数量、任意领域的问题。
 
 ---
 

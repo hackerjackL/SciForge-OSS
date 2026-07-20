@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+title: SciForge-OSS
+message: >-
+  If you use SciForge-OSS in your research, please cite it
+  as described below.
+type: software
+authors:
+  - given-names: SciForge
+    family-names: OSS Team
+    affiliation: SciForge Project
+identifiers:
+  - type: url
+    value: https://gitcode.com/GewisLab/SciForge-OSS
+repository-code: https://gitcode.com/GewisLab/SciForge-OSS.git
+abstract: >-
+  A pure Skill-driven AI Scientist framework for ANY scientific
+  domain. SciForge-OSS is a Markdown-based framework that enables
+  AI agents to conduct end-to-end scientific research across
+  physics, mathematics, computer science, medicine, economics,
+  education, materials science, earth science, and more.
+keywords:
+  - AI for Science
+  - AI Scientist
+  - Scientific Research Automation
+  - DAG-based Research
+  - Skill-driven Framework
+license: Apache-2.0

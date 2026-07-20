@@ -1,5 +1,11 @@
 # SciForge-OSS
 
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](CHANGELOG.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
+[![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
+
 > **AI for Scientist Anything** — 纯 Skill 驱动的通用科学智能框架。
 >
 > 继承 SciForge 的纯 skill 驱动精神：**没有 `.py` 脚本，没有 bash 代码块，没有 IDE 专属语法**。
@@ -8,6 +14,21 @@
 > 125 个科学问题是「AI for Scientist Anything」的 Demo 展示，全世界的问题远不止 125 个。
 
 ---
+
+## 目录
+
+- [这是什么](#这是什么)
+- [架构：DAG 驱动的科研闭环](#架构dag-驱动的科研闭环)
+- [快速开始](#快速开始)
+- [项目结构](#项目结构)
+- [全领域支持](#全领域支持)
+- [验证路径：三路可选](#验证路径三路可选)
+- [多领域示例](#多领域示例)
+- [核心设计原则](#核心设计原则)
+- [125 科学问题 Demo](#125-科学问题-demo)
+- [与 SciForge 的关系](#与-sciforge-的关系)
+- [常见问题 (FAQ)](#常见问题-faq)
+- [许可证](#许可证)
 
 ## 这是什么
 
@@ -142,7 +163,7 @@ SciForge-OSS/
 │   │   ├── logic-verification/SKILL.md     ← 6 维度逻辑审计（跨模型对抗）
 │   │   ├── paper-writing/SKILL.md          ← 统一 elsarticle 模板写作
 │   │   ├── paper-compile/SKILL.md          ← LaTeX 零警告零报错编译 + 反死循环阶梯
-│   │   ├── cross-review/SKILL.md           ← 跨模型评审
+│   │   ├── auto-review-loop/SKILL.md      ← 跨模型评审（自评审模式）
 │   │   ├── method-registry/SKILL.md        ← 方法 registry + hash 锁 + 强制人类审批
 │   │   ├── leakage-audit/SKILL.md          ← Type I 逻辑漏洞 + Type IV 逃逸审计（通用）
 │   │   ├── invariant-check/SKILL.md        ← INV-G1 问题锚点冻结验证
@@ -214,9 +235,49 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 
 5. **防幻觉优先** — 每篇引用通过 3 个独立学术 API（arXiv + CrossRef + Semantic Scholar）验证。没有论文凭记忆捏造。
 
-6. **跨模型对抗评审** — 评审者与执行者是不同模型，防止自我强化错误。
+6. **结构化自评审** — 评审使用角色切换模式（研究者→评审者→裁决者），无需跨模型协作。
 
 7. **可复现** — 每次计算、推导和图表都保留为可执行代码 + 输入数据，而不仅仅是输出文本。
+
+## 多领域示例
+
+以下是 SciForge-OSS 在不同领域的应用示例：
+
+### 物理学
+```
+/125-problems-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
+```
+→ 输出：宇宙学理论推导 + ΛCDM 模型验证
+
+### 数学
+```
+/125-problems-pipeline "证明：对于任意 n≥3，不存在正整数解满足 x^n + y^n = z^n"
+```
+→ 输出：Fermat 大定理的初等证明思路 + 文献综述
+
+### 经济学
+```
+/125-problems-pipeline "Analyze: general equilibrium under incomplete markets"
+```
+→ 输出：一般均衡存在性证明 + 数值验证
+
+### 教育学
+```
+/125-problems-pipeline "研究：基于认知负荷理论的教学设计优化"
+```
+→ 输出：理论模型 + 逻辑验证 + 实验设计建议
+
+### 材料科学
+```
+/125-problems-pipeline "Predict: band structure of MoS2 under strain"
+```
+→ 输出：能带结构推导 + 数值验证
+
+### 医学
+```
+/125-problems-pipeline "Study: AI-driven drug discovery for Alzheimer's disease"
+```
+→ 输出：药物靶点识别 + 分子动力学模拟验证
 
 ## 125 科学问题 Demo
 
@@ -238,6 +299,30 @@ SciForge-OSS 继承自 [SciForge](https://gitcode.com/GewisLab/SciForge.git) 的
 | 核心 skill 数 | 74 个学科特定 skill | **4 个元技能 + 6 个通用 skill** |
 | 问题 | N/A | **任意数量，125 题为 Demo** |
 | 验证 | 假设有代码/实验 | **理论-only / 计算 / 理论+实验 三路可选** |
+| 评审 | 跨模型评审 | **结构化自评审（角色切换）** |
+
+## 常见问题 (FAQ)
+
+### Q: SciForge-OSS 支持哪些学科？
+A: 所有学科。物理学、数学、计算机科学、医学、经济学、教育学、材料科学、地球科学、大气科学、天文学、化学、工程、传感器、光电——任何科学领域都可以使用。
+
+### Q: 125 个问题是必须的吗？
+A: 不是。125 个科学问题是「AI for Scientist Anything」的 Demo 展示。框架支持任意数量、任意领域的问题。
+
+### Q: 需要多个 AI 模型才能运行吗？
+A: 不需要。SciForge-OSS 使用**结构化自评审**模式——同一 agent 通过角色切换（研究者→评审者→裁决者）实现对抗性评审，无需跨模型协作。
+
+### Q: 如何运行一个完整的科学问题研究？
+A: 执行 `/125-problems-pipeline "Q001: 问题描述" — effort: max`，自动化完成 17 阶段 DAG 循环。
+
+### Q: 输出什么格式的论文？
+A: 统一 `elsarticle` LaTeX 格式，可编译为 PDF。理论论文使用"理论论文结构"（Main Results + Proofs），实验论文使用标准结构。
+
+### Q: 如何贡献新的 skill？
+A: 参考 [CONTRIBUTING.md](CONTRIBUTING.md)。所有 skill 是纯 Markdown 文件，遵循统一的 frontmatter 格式。
+
+### Q: 与主仓库 SciForge 的区别是什么？
+A: 见上方表格。核心区别：全领域、单 pipeline、DAG 架构、结构化自评审、125 题为 Demo。
 
 ## 许可证
 

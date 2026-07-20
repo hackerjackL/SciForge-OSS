@@ -19,7 +19,7 @@ This skill is NOT called during earlier phases (those are handled by `/invariant
 Verify three things before paper writing can begin:
 1. **Stagnation Gate** — Has the pipeline been stuck in a retry loop? If any phase has been retried beyond its maximum allowed rounds, the pipeline must stop and produce a stagnation report.
 2. **Quality Floor Gate** — Does the research meet the universal minimum quality bar? Objective, verifiable criteria only.
-3. **Self-Deception Guard** — Is the agent's own quality assessment reliable? Cross-model verification of key claims.
+3. **Self-Deception Guard** — Is the agent's own quality assessment reliable? Structured self-consistency check of key claims.
 
 This skill is a **hard gate** — if it fails, paper writing is blocked. The agent must either fix the underlying issues or explicitly acknowledge the quality limitations in the paper.
 
@@ -213,10 +213,10 @@ This is the most critical phase. The agent may produce results that look good on
 
 ### Mechanism
 
-The self-deception guard uses a **cross-model verification** approach:
+The self-deception guard uses a **structured self-consistency check** approach:
 1. **Extract claims**: Read `CLAIMS_FROM_RESULTS.md` (from `/result-to-claim`) to get the list of claims.
 2. **Re-verify evidence**: For each claim, trace back to the raw derivation/verification evidence.
-3. **Cross-model review**: Invoke a second reasoning pass (separate model from the host agent) to verify:
+3. **Self-consistency check**: Run a second reasoning pass on the same evidence to verify:
    - Does the evidence actually support the claim?
    - Are there unreported negative results (counterexamples found but not surfaced)?
    - Is the claim scope appropriate (regime qualification)?
@@ -296,7 +296,7 @@ quality_gate/FINAL_VERDICT.md:
     │     └: Produces QUALITY_FLOOR_REPORT.md
     └: Phase 3: Self-Deception Guard (Universal SD-G1~G5)
           └: No overlay — checks inlined in this SKILL.md
-          └: Cross-model verification of claims
+          └: Structured self-consistency check of claims
           └: Produces SELF_DECEPTION_REPORT.md
 ```
 
@@ -321,7 +321,7 @@ All quality-gate output files must follow the standard output protocols:
 - **No discipline overlays.** OSS has no `overlays/{economics,cs-ml,physics,general}.md`. Do not reintroduce discipline-specific QF-E*/QF-C*/QF-P* or SD-E*/SD-C*/SD-P* checks — they are discipline-specific and OSS is discipline-agnostic. If a problem seems to need a discipline-specific check, the agent's runtime reasoning handles it, NOT an overlay.
 - **Universal QF-G* and SD-G* only.** The 9 quality floor + 5 self-deception checks above are the complete set for every 125-problem run.
 - **Hard gate.** If FAIL, paper writing is blocked — no soft passes.
-- **Cross-model for self-deception.** The self-deception guard MUST use a different model family from the host agent. The host agent never grades its own work.
+- **Self-consistency check for self-deception.** The self-deception guard MUST use a structured re-verification pass — the agent re-reads claims and evidence from scratch, without relying on memory of having produced them.
 
 ## See Also
 
