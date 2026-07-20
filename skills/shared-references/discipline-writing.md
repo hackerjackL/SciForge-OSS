@@ -1,8 +1,63 @@
 # Discipline-Agnostic Writing Guide (SciForge-OSS)
 
-> **Status**: Universal section-by-section writing guidance for all 125 science problems. Used by `/paper-writing` (Section-Specific Guidelines).
+> **Status**: Universal section-by-section writing guidance for all science problems. **Domain-adaptive** — the writing style adapts based on the domain signature extracted by `/domain-signature`. Used by `/paper-writing` (Section-Specific Guidelines).
 >
-> **Key difference from main SciForge**: OSS has **no per-discipline writing guides** (no `discipline-writing/{physics,cs-ml,economics,general}.md`). All 125 problems use the **single unified guide below**. The agent's runtime reasoning handles domain-specific conventions (e.g., SI units for physics, regression tables for econ-flavored problems) — NOT a skill overlay.
+> **Key difference from main SciForge**: OSS has **no per-discipline writing guides** (no `discipline-writing/{physics,cs-ml,economics,general}.md`). Instead, the domain signature automatically selects the appropriate writing conventions. The agent's runtime reasoning handles domain-specific details (e.g., SI units for physics, regression tables for econ-flavored problems) — NOT a skill overlay.
+
+---
+
+## 0. Domain-Adaptive Writing
+
+The domain signature (from `/domain-signature`) automatically selects writing conventions. The table below shows how the signature affects writing:
+
+| Domain Signature Signal | Effect on Writing |
+|------------------------|-------------------|
+| `evidence_type: causal_inference` | Emphasis on identification strategy, robustness checks, endogeneity discussion |
+| `evidence_type: derivational` | Theorem-Lemma-Proof structure, formal notation, minimal prose |
+| `evidence_type: experimental` | Methods section with detailed protocol, results with statistical tests |
+| `evidence_type: simulational` | Model description, parameter choices, convergence analysis |
+| `evidence_type: interpretive` | Argument structure, counter-argument handling, evidence weighting |
+| `writing_style: empirical_economics` | AER-style: theory → empirical strategy → results → discussion |
+| `writing_style: physical_sciences` | PRL-style: concise, results-first, methods at end |
+| `writing_style: formal_math` | Theorem → Lemma → Proof → Corollary chain |
+| `citation_format: author_year` | Use `\citep{}`/`\citet{}` (elsarticle-harv) |
+| `citation_format: numeric` | Use `\cite{}` (elsarticle-num) |
+
+### Signature-Driven Writing Rules
+
+```markdown
+## Domain-Adaptive Rules
+
+### If evidence_type = "causal_inference" (经济学/社科/流行病学)
+- Section 4 must include "Identification Strategy" subsection
+- Section 5 must include "Robustness Checks" subsection
+- Discuss endogeneity, selection bias, and reverse causality
+- Use author-year citations (elsarticle-harv)
+
+### If evidence_type = "derivational" (数学/理论物理/理论CS)
+- Section 4 is "Main Results" with Theorem-Lemma-Proposition environments
+- Section 5 is "Proofs" (short proofs inline, long proofs in Appendix)
+- No "Results" section — replaced by theorem statements
+- Use numeric citations (elsarticle-num)
+
+### If evidence_type = "experimental" (医学/生物学/心理学)
+- Section 4 is "Methods" with detailed protocol
+- Section 5 is "Results" with statistical tests
+- Include power analysis, blinding status, exclusion criteria
+- Use numeric citations (elsarticle-num)
+
+### If evidence_type = "simulational" (物理/气候/工程)
+- Section 4 is "Model" with governing equations
+- Section 5 is "Simulation Results" with convergence analysis
+- Include parameter choices, grid resolution, uncertainty quantification
+- Use numeric citations (elsarticle-num)
+
+### If evidence_type = "interpretive" (人文/社科/法学)
+- Section 4 is "Argument" with claim-evidence-counterargument structure
+- Section 5 is "Analysis" with evidence weighting
+- Discuss alternative interpretations explicitly
+- Use author-year citations (elsarticle-harv)
+```
 
 ---
 

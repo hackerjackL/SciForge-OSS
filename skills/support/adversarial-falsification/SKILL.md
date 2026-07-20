@@ -115,6 +115,44 @@ Estimate minimum resources needed and whether OSS can provide them:
 **If no**: [recommendation to scope down or reject]
 ```
 
+### Phase 6: Data Availability Check
+
+Check whether the required data exists and is accessible. This prevents "data-less theories" — ideas that are theoretically sound but impossible to verify because no data exists.
+
+```markdown
+## Data Availability Check — IDEA-{id}
+
+### Required Data Inventory
+| Data Item | Type | Publicly Available? | Expected Source |
+|-----------|------|-------------------|-----------------|
+| D1: [data item] | [time series / matrix / text / ...] | yes / partial / no | [source] |
+| D2: [data item] | [time series / matrix / text / ...] | yes / partial / no | [source] |
+
+### Data Availability Score
+- **Publicly available**: [X]%
+- **Needs application**: [Y]%
+- **Not available**: [Z]%
+
+### Data Gap Impact
+- **If D1 unavailable**: fatal / severe / minor — [explanation]
+- **If D2 unavailable**: fatal / severe / minor — [explanation]
+
+### Recommendations
+- **If data availability < 50%**: Mark as HIGH RISK — theory may be unverifiable
+- **If any fatal data gap**: Suggest re-scoping to use only available data
+- **If all data available**: Proceed with confidence
+- **If no data needed (theory-only)**: N/A — theory-only problems skip this check
+```
+
+### Data Availability Verdict
+
+| Condition | Verdict |
+|-----------|---------|
+| Data availability ≥ 80% AND no fatal gaps | DATA_READY |
+| Data availability 50-80% OR 1-2 severe gaps | DATA_LIMITED — must scope down |
+| Data availability < 50% OR any fatal gap | DATA_BLOCKED — must find alternative data or reframe as theory-only |
+| Theory-only problem | N/A (skip check)
+
 ## Output
 
 ### Per-idea verdict

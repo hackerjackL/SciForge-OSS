@@ -73,22 +73,27 @@ MCTS iteration is optimized to avoid re-scoring already-clear ideas:
 ```
 Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
      │
-Phase  1: 问题理解与分解（内置推理）
+Phase  1: 问题理解与分解（内置推理）[MUST]
      │
      ├───────────────── DAG 分支 ─────────────────┐
      │                                             │
-Phase  2: /idea-discovery [DAG 分支] — 3 视角 idea
+Phase  1a: /domain-signature 领域特征提取 [MUST]   ← 新增
+     │  分析问题文本 → 提取领域签名                │
+     │  (evidence_type, methodology, writing style, │
+     │   failure_modes, data_availability)          │
+     │                                             │
+Phase  2: /idea-discovery [DAG 分支] [MUST] — 3 视角 idea
      │  (theoretical / computational / qualitative)   │
      │  + MCTS 迭代 (4 轮, 8-12 root nodes)           │
      │  + 输出 verification_type (理论-only / 计算 / 理论+实验)
      │                                             │
-Phase  2.5: /adversarial-falsification [证伪门控]   ← 新增
+Phase  2.5: /adversarial-falsification [证伪门控] [MUST]
      │  5 维度攻击: 假设评分 → 反例构造 → 文献对抗    │
-     │  → 类比映射 → 计算可行性                       │
+     │  → 类比映射 → 计算可行性 → 数据可用性          │
      │  SURVIVE → 继续; WEAKENED → 回退 Phase 2      │
      │  FALSIFIED → 淘汰 (记录原因, 不再进入推导)     │
      │                                             │
-Phase  3: /novelty-check [DAG 门控] — 3 维评估 + 淘汰
+Phase  3: /novelty-check [DAG 门控] [MUST] — 3 维评估 + 淘汰
      │  (新颖性×0.5 + 可行性×0.3 + 相关性×0.2)        │
      │                                             │
      └ Forced human checkpoint: pick the final idea ─┘
@@ -136,6 +141,49 @@ Phase 16: 最终组装 + 产物归档
 ```
 
 **回退契约**: 每阶段失败回退到最近的前置阶段（最多 3 轮）。3 轮失败升级到 BLOCKED + `reason_code`（复用主仓库 `paper-compile` E16 反死循环阶梯）。**永不静默重试到第 4 轮**——3 轮上限是硬约束。
+
+## Graceful Degradation Protocol
+
+Not all phases apply to all problems. Each phase has a **mode** that determines behavior on failure:
+
+| Mode | Meaning | On Failure |
+|------|---------|------------|
+| `[MUST]` | Required for all problems | 3-round fallback → BLOCKED |
+| `[OPTIONAL]` | Skipped if not applicable | Log WARN, continue pipeline |
+| `[CONDITIONAL]` | Depends on problem type | Check condition first; skip gracefully if not met |
+
+### Phase Mode Table
+
+| Phase | Mode | Condition |
+|-------|------|-----------|
+| 0: 加载问题 | MUST | — |
+| 1: 问题理解 | MUST | — |
+| 1a: domain-signature | MUST | — |
+| 2: idea-discovery | MUST | — |
+| 2.5: adversarial-falsification | MUST | — |
+| 3: novelty-check | MUST | — |
+| 4: universal-retrieval | MUST | — |
+| 5: method-registry | MUST | — |
+| 6: theory-derivation | MUST | — |
+| 7: leakage-audit | MUST | — |
+| 8: logic-verification | MUST | — |
+| 9: invariant-check | MUST | — |
+| 10: result-to-claim | MUST | — |
+| 11: unified-plotting | OPTIONAL | 无图需求时跳过 |
+| 12: paper-writing | MUST | — |
+| 13: paper-compile | CONDITIONAL | WARN 可降级（人类确认后） |
+| 14: auto-review-loop | OPTIONAL | 可用 grounding-check 替代 |
+| 15: citation-audit | MUST | — |
+| 16: 最终组装 | MUST | — |
+
+### Degradation Rules
+
+1. **OPTIONAL phase fails** → Log WARN with reason, skip to next phase, continue pipeline
+2. **MUST phase fails after 3 rounds** → BLOCKED, surface to human with complete failure trace
+3. **CONDITIONAL phase** → Check condition before running. If condition not met, skip with WARN
+4. **paper-compile WARN** → If user confirms "accept warnings", treat as PASS
+5. **auto-review-loop OPTIONAL** → If grounding-check passes (GROUNDED), skip auto-review-loop
+6. **unified-plotting OPTIONAL** → If no figures needed, skip entirely
 
 ## Quality Gates (Explicit Per-Phase)
 
