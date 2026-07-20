@@ -79,6 +79,110 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 - A **secondary** claim (mechanism/robustness) can be supported by `qualitative` fidelity — secondary claims do not gate the pipeline.
 - **Never** label a claim "proven" without `symbolic` fidelity. **Never** label a claim "supported" without at least `numerical` fidelity.
 
+## 4-Dimensional Joint Confidence (新增)
+
+The overall confidence is computed from 4 dimensions, not just theory fidelity:
+
+```json
+{
+  "joint_confidence": {
+    "theoretical": 0.85,
+    "data_availability": 0.85,
+    "domain_adaptation": 0.80,
+    "literature_support": 0.75,
+    "combined": 0.61
+  }
+}
+```
+
+### Dimension 1: Theoretical Confidence (T)
+
+| Source | Weight | How to compute |
+|--------|--------|---------------|
+| SymPy derivation status | 0.4 | PASS=1.0, PARTIAL=0.5, FAIL=0.0 |
+| Logic verification | 0.3 | PASS=1.0, WARN=0.7, FAIL=0.0 |
+| Falsification resistance | 0.3 | SURVIVE=1.0, WEAKENED=0.5, FALSIFIED=0.0 |
+
+### Dimension 2: Data Availability Confidence (D)
+
+| Source | Weight | How to compute |
+|--------|--------|---------------|
+| Ouroboros data report | 0.5 | overall_score from Ouroboros (0-1) |
+| OSS data availability check | 0.3 | DATA_READY=1.0, DATA_LIMITED=0.5, DATA_BLOCKED=0.0 |
+| Theory-only flag | 0.2 | theory_only=1.0 (no data needed) |
+
+### Dimension 3: Domain Adaptation Confidence (A)
+
+| Source | Weight | How to compute |
+|--------|--------|---------------|
+| Domain signature confidence | 0.4 | From domain-signature.json confidence field |
+| Domain learner confidence | 0.4 | From domain-learner output learning_confidence |
+| Seed paper match quality | 0.2 | How well the output matches domain expectations |
+
+### Dimension 4: Literature Support Confidence (L)
+
+| Source | Weight | How to compute |
+|--------|--------|---------------|
+| Supporting papers found | 0.5 | Ratio of supporting to total papers found |
+| Contradicting papers found | 0.3 | 1.0 - ratio of contradicting to total |
+| Gap papers (neither) | 0.2 | 1.0 - ratio of gap to total |
+
+### Combined Formula
+
+```
+joint_confidence = T × D × A × L
+
+where:
+  T = theoretical_confidence (0-1)
+  D = data_availability_confidence (0-1)
+  A = domain_adaptation_confidence (0-1)
+  L = literature_support_confidence (0-1)
+```
+
+### Thresholds
+
+| Joint Confidence | Verdict | Action |
+|-----------------|---------|--------|
+| ≥ 0.7 | STRONG | Publishable with high confidence |
+| 0.5 - 0.7 | MODERATE | Publishable with caveats |
+| 0.3 - 0.5 | WEAK | Needs strengthening before publication |
+| < 0.3 | UNSUPPORTED | Not publishable |
+
+### Per-Dimension Breakdown
+
+The confidence assessment MUST include a per-dimension breakdown:
+
+```markdown
+## Confidence Assessment
+
+### Theoretical Confidence: 0.85 (STRONG)
+- SymPy derivation: PASS (1.0)
+- Logic verification: PASS (1.0)
+- Falsification: SURVIVE (1.0)
+- Weighted: 0.4×1.0 + 0.3×1.0 + 0.3×1.0 = 0.85
+
+### Data Availability Confidence: 0.85 (STRONG)
+- Ouroboros report: 0.85
+- OSS data check: DATA_READY (1.0)
+- Weighted: 0.5×0.85 + 0.3×1.0 = 0.85
+
+### Domain Adaptation Confidence: 0.80 (STRONG)
+- Domain signature: 0.85
+- Domain learner: 0.80
+- Seed paper match: 0.70
+- Weighted: 0.4×0.85 + 0.4×0.80 + 0.2×0.70 = 0.80
+
+### Literature Support Confidence: 0.75 (MODERATE)
+- Supporting: 10/15 papers (0.67)
+- Contradicting: 2/15 papers (0.87)
+- Gap: 3/15 papers (0.80)
+- Weighted: 0.5×0.67 + 0.3×0.87 + 0.2×0.80 = 0.75
+
+### Joint Confidence: 0.85 × 0.85 × 0.80 × 0.75 = 0.43
+**Verdict**: WEAK — needs strengthening before publication
+**Weakest dimension**: Literature Support (0.75) — needs more supporting evidence
+```
+
 ## Workflow
 
 ### Step 0: Load DISCIPLINE_CONTEXT
