@@ -1,0 +1,273 @@
+---
+name: result-to-claim
+type: reference-skill
+role: result-to-claim-gate
+---
+
+# Result-to-Claim Gate (SciForge-OSS — Discipline-Agnostic, 3-Fidelity)
+
+> **Status**: Gate that decides what claims the derivation/verification results support. **OSS is discipline-agnostic** — there is no economics p-value significance gate, no cs-ml SOTA gate. The gate uses a universal **3-fidelity claim ladder** (symbolic / numerical / qualitative) adapted from main SciForge's 5-fidelity filter. Copied from main SciForge and trimmed to OSS's no-experiment, no-benchmark design.
+
+## Use When
+
+Use this skill when derivation/verification completes and you need to judge what claims the results support, what they don't, and what evidence is still missing.
+
+Typical prompts:
+- "What do these results actually show"
+- "Can I claim X from these numbers"
+- "结果支持什么 claim"
+- "Result-to-claim gate"
+- "Are my claims supported by the derivation"
+- "Before paper writing: check claim support"
+
+## Job
+
+Derivations and numerical sanity checks produce results; this gate decides what those results *mean*. Collect evidence from available sources, get an external reviewer judgment against intended claims, then auto-route based on the verdict (pivot, supplement, or confirm). The non-negotiable goal: **never inflate a claim beyond what the evidence supports — the external reviewer is the judge, the host agent only collects evidence and routes.**
+
+## When to Use
+
+- **MANDATORY**: After `/theory-derivation` + `/logic-verification` + `/dynamic-sandbox` complete (the OSS "results" phase).
+- **MANDATORY**: Before committing to claims in a paper or review response.
+- **MANDATORY**: Before invoking `/paper-writing`. If not invoked, `/paper-writing` will refuse to proceed.
+- When results are ambiguous and you need an objective second opinion.
+
+## Mandatory Invocation Check
+
+Before allowing `/paper-writing` to proceed, verify:
+1. `results/` directory exists with derivation/verification output files (symbolic proofs, numerical sanity checks).
+2. `result-to-claim` has been invoked (check for `CLAIMS_FROM_RESULTS.md`).
+3. If not invoked: **BLOCK paper writing** and require `/result-to-claim` first.
+4. If invoked but verdict is `no` or `partial`: **BLOCK paper writing** until claim is revised.
+5. **Problem anchor integrity**: `refine-logs/FINAL_PROPOSAL.md` exists with the frozen Q-id (verified at Step 0). This is the same check performed by `/invariant-check` INV-G1 at the phase boundary.
+
+This check is mandatory and cannot be skipped for any OSS output.
+
+## Required Workspace
+
+- `results/` — derivation/verification output files (SymPy proof logs, numerical sanity check JSON/CSV)
+- `refine-logs/DERIVATION_PLAN.md` — intended claims and derivation design (primary source for pre-specified claims)
+- `docs/research_contract.md` — optional project-level research contract (read if present; not produced by any skill)
+- `findings.md` — append postmortem / confirmed claims here
+- `refine-logs/RESULTS_ANALYSIS.md` — analysis report from `/logic-verification` (read if present)
+- `CLAIMS_FROM_RESULTS.md` — output: the structured verdict
+
+## Configuration
+
+- **External reviewer model** — the cross-model reviewer used for objective claim evaluation. Should be a different model family from the host agent.
+- **Fidelity threshold** — the minimum fidelity level required to support a **primary** claim. Default: `numerical` (a primary claim must have at least numerical sanity-check support; symbolic-only is "partial", qualitative-only is "no"). Configurable to `symbolic` (stricter — requires full proof) or `qualitative` (lenient — qualitative reasoning suffices).
+- **Outcome classification** — outcomes are classified as **primary** (pre-specified in `refine-logs/DERIVATION_PLAN.md`, directly testable predictions of the theoretical model) or **secondary** (mechanism tests, robustness checks, additional analyses). The fidelity gate operates on primary outcomes only.
+
+## The 3-Fidelity Claim Ladder (OSS Universal)
+
+OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empirical / full) to a **3-fidelity ladder** suited to no-experiment, no-benchmark problems:
+
+| Fidelity | What it means | Claim strength it supports | Label |
+|----------|---------------|----------------------------|-------|
+| **Symbolic** | Full SymPy derivation chain from assumptions to outcome, every step machine-verified | STRONG | "proven" / "established" |
+| **Numerical** | Numerical sanity check in `/dynamic-sandbox` (parameter sweeps, counterexample search, regime verification) confirms the symbolic result behaves as predicted | MODERATE | "supported" / "confirmed numerically" |
+| **Qualitative** | Only qualitative reasoning (the outcome "looks right", matches intuition, consistent with known results) — no symbolic proof, no numerical check | WEAK | "suggests" / "consistent with" |
+
+**Claim strength rule**:
+- A **primary** claim requires at least `numerical` fidelity (default; configurable). Symbolic-only → `partial`. Qualitative-only → `no`.
+- A **secondary** claim (mechanism/robustness) can be supported by `qualitative` fidelity — secondary claims do not gate the pipeline.
+- **Never** label a claim "proven" without `symbolic` fidelity. **Never** label a claim "supported" without at least `numerical` fidelity.
+
+## Workflow
+
+### Step 0: Load DISCIPLINE_CONTEXT
+
+Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../shared-references/discipline-context.md)). There is no economics/cs-ml/physics branch — the universal 3-fidelity ladder below applies to every 125-problem run.
+
+### Step 1: Collect Results
+
+Gather derivation/verification evidence from whatever sources are available in the project:
+
+1. **Symbolic derivation logs** (`results/sympy/*.log`): the SymPy proof chain from `/theory-derivation`.
+2. **Numerical sanity checks** (`results/sandbox/*.json`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
+3. **Logic verification audit** (`audit_report/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
+4. **refine-logs/DERIVATION_PLAN.md**: intended claims and derivation design (primary source).
+5. **docs/research_contract.md**: optional project-level contract (read if present).
+
+Assemble the key information:
+- What derivations were run (assumptions, target outcome, method).
+- What the symbolic chain produced (proof complete? gap? contradiction?).
+- What the numerical sanity check showed (consistent? divergent? counterexample found?).
+- The intended claim these derivations were designed to test.
+- Any known caveats or scope limits.
+
+### Step 2: External Reviewer Judgment
+
+Send the prompt to the external reviewer for objective evaluation:
+
+```text
+RESULT-TO-CLAIM EVALUATION (OSS — 3-fidelity ladder)
+
+I need you to judge whether derivation/verification results support the intended claim.
+
+Intended claim: [the claim these derivations test]
+
+Derivation run:
+[list: assumptions, target outcome, SymPy method]
+
+Symbolic result:
+[proof complete / gap / contradiction — paste key steps]
+
+Numerical sanity check:
+[parameter sweeps, counterexample search — paste key numbers]
+
+Known caveats:
+[any confounding factors, limited regimes, missing comparisons]
+
+Please evaluate:
+1. claim_supported: yes | partial | no
+2. fidelity_level: symbolic | numerical | qualitative (the highest fidelity the evidence reaches)
+3. what_results_support: what the evidence actually shows
+4. what_results_dont_support: where the evidence falls short of the claim
+5. missing_evidence: specific evidence gaps
+6. suggested_claim_revision: if the claim should be strengthened, weakened, or reframed
+7. next_analyses_needed: specific additional derivations/checks to fill gaps (if any)
+8. confidence: high | medium | low
+
+Be honest. Do not inflate claims beyond what the evidence supports.
+A qualitative "looks right" judgment does not support a "proven" claim.
+```
+
+### Step 3: Parse and Normalize
+
+Extract structured fields from the external reviewer's response:
+
+```markdown
+- claim_supported: yes | partial | no
+- fidelity_level: symbolic | numerical | qualitative
+- what_results_support: "..."
+- what_results_dont_support: "..."
+- missing_evidence: "..."
+- suggested_claim_revision: "..."
+- next_analyses_needed: "..."
+- confidence: high | medium | low
+```
+
+### Step 3.2: Fidelity Gate (Universal — replaces economics p-value gate and cs-ml SOTA gate)
+
+Apply the 3-fidelity gate to **primary** outcomes only:
+
+1. Parse the external reviewer's `fidelity_level` verdict.
+2. **Classify outcomes** (read `refine-logs/DERIVATION_PLAN.md` to determine pre-specification):
+   - **Primary outcomes**: pre-specified, directly testable predictions of the theoretical model.
+   - **Secondary outcomes**: mechanism tests, robustness checks, additional analyses (NOT pre-specified).
+3. **Apply fidelity gate (on PRIMARY outcomes only)**:
+   - `qualitative` only → **REJECT claim** — cannot label "supported"; reframe as "suggests" or "consistent with"
+   - `numerical` (default threshold) → **SUPPORT claim** — "supported" or "confirmed numerically" acceptable
+   - `symbolic` → **STRONG support** — "proven" or "established" acceptable
+4. **Handle secondary outcomes (NOT used in gate)**:
+   - Secondary outcomes at `qualitative` fidelity: report in mechanism/robustness section, explain why theory may not predict secondary outcomes directly.
+   - Secondary outcomes at `numerical`+ fidelity: report as supportive evidence.
+   - **NEVER** use secondary outcomes to reject a claim supported by primary outcomes.
+5. **Enforce scope transparency**:
+   - If the derivation only holds in a limited regime: MUST qualify the claim with the regime.
+   - If the numerical check used synthetic/example parameters: MUST NOT claim "general" — use "for the tested parameters" or "in the tested regime".
+   - If a counterexample was found: MUST flag — the claim is falsified for that regime, report honestly.
+
+**Example fidelity gate output:**
+```text
+FIDELITY GATE:
+- Classification of outcomes:
+  Primary (pre-specified in DERIVATION_PLAN.md):
+    - convergence_rate: symbolic (full SymPy proof) → STRONG
+    - stability_bound:   numerical (sweep confirms, no symbolic proof) → MODERATE
+    - general_formula:   qualitative (matches intuition, no proof) → WEAK
+  Secondary (mechanism tests):
+    - special_case_check: numerical (spot checks pass)
+    - limit_behavior:     qualitative (consistent with known result)
+
+- Primary outcomes: 3 (convergence_rate, stability_bound, general_formula)
+- Primary outcomes at ≥ numerical fidelity: 2/3
+- Fidelity gate: PARTIAL (general_formula is qualitative-only — must reframe or drop)
+- Claim strength: MODERATE EVIDENCE (for convergence_rate + stability_bound)
+- Scope: convergence_rate proven for compact operators; stability_bound confirmed for |λ|<1
+- Required claim framing: "We establish the convergence rate for compact operators (Theorem 1) and confirm the stability bound numerically for |λ|<1. The general formula remains a conjecture supported by qualitative consistency."
+```
+
+### Step 3.5: Check Logic Verification Audit
+
+Read `audit_report/LOGIC_VERIFICATION.json` (from `/logic-verification`):
+- `logic_status` from the file.
+- Attach to verdict output:
+  - `logic_status: pass | warn | fail`
+- If `fail`: append to verdict "[LOGIC CONCERN] — 6-dim audit found issues, see LOGIC_VERIFICATION.md" and downgrade confidence to `low` regardless of the external reviewer's judgment.
+- If `warn`: append to verdict "[LOGIC: WARN] — audit flagged potential issues".
+- If the file does not exist: `logic_status = "unavailable"`, verdict is labeled "provisional — no logic verification run". This does NOT block — the pipeline continues, but the claim is framed as "provisional".
+
+### Step 4: Route Based on Verdict
+
+#### `no` — Claim not supported
+1. Record postmortem in `findings.md` (Research Findings section):
+   - What was tested, what failed, hypotheses for why.
+   - Constraints for future attempts (what NOT to try again).
+2. Update `AGENT_DOC.md` Pipeline Status.
+3. Decide whether to pivot to next idea from `IDEA_CANDIDATES.md` or try an alternative approach.
+
+#### `partial` — Claim partially supported
+1. Update the working claim to reflect what IS supported (drop the qualitative-only primary outcomes, or reframe them as conjectures).
+2. Record the gap in `findings.md`.
+3. Design and run supplementary derivations/checks to fill evidence gaps (e.g., attempt the symbolic proof for the `general_formula` outcome).
+4. Re-run result-to-claim after supplementary derivations complete.
+5. **Multiple rounds of `partial` on the same claim** → record analysis in `findings.md`, consider whether to narrow the claim scope or switch ideas.
+
+#### `yes` — Claim supported
+1. Record confirmed claim in project notes.
+2. If secondary outcomes are incomplete → flag in Discussion section.
+3. If all evidence is in → ready for paper writing.
+
+### Step 5: Update Research Wiki (if active)
+
+Skip this step entirely if `research-wiki/` does not exist. (OSS does not provision a research wiki by default — this step is reserved for future use.)
+
+## Output Protocols
+
+> Follow these shared protocols for all output files:
+> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+
+## Boundaries
+
+**Never**:
+- Round `partial` up to `yes`. If the external reviewer says `partial`, do not inflate.
+- Let the host agent be the judge. The external reviewer evaluates; the host agent collects evidence and routes. This prevents post-hoc rationalization.
+- Generalize from a single numerical sanity check on one parameter set. Be honest about scope.
+- Label a claim "proven" without `symbolic` fidelity. Label a claim "supported" without at least `numerical` fidelity.
+- Block the pipeline if the external reviewer is unavailable. Make a host-agent judgment and mark it `[pending external review]`.
+
+**Always**:
+- Record the verdict and reasoning in `findings.md`, regardless of outcome.
+- If `confidence` is low, treat the judgment as inconclusive and add derivations/checks rather than committing to a claim.
+- Bind every claim to specific evidence (which derivation step, which numerical check, which regime).
+- Qualify claims with their regime of validity — never claim "general" when the derivation only holds in a limited regime.
+
+## Output Shape
+
+The final `CLAIMS_FROM_RESULTS.md` contains:
+1. **Intended claim** — what the derivations were designed to test
+2. **Derivations run** — assumptions, target outcome, SymPy method, numerical checks
+3. **External reviewer verdict** — `claim_supported`, `fidelity_level`, `what_results_support`, `what_results_dont_support`, `missing_evidence`, `suggested_claim_revision`, `next_analyses_needed`, `confidence`
+4. **Fidelity gate** — primary vs secondary outcome classification, fidelity levels, gate verdict, scope transparency
+5. **Logic status** — `pass | warn | fail | unavailable`
+6. **Routing decision** — pivot / supplement / confirm with next-step actions
+
+## Reviewer Routing
+
+External reviewer routing, backend selection, and per-CLI registration examples are documented in [`shared-references/reviewer-routing.md`](../shared-references/reviewer-routing.md).
+
+## Review Tracing
+
+After each external reviewer call, save the trace following [`shared-references/review-tracing.md`](../shared-references/review-tracing.md) (forensic policy; never silently skip). Respect the `trace` parameter (default: `full`).
+
+## See Also
+
+- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
+- [`../shared-references/reviewer-routing.md`](../shared-references/reviewer-routing.md) — cross-model reviewer routing
+- [`../theory-derivation/SKILL.md`](../theory-derivation/SKILL.md) — produces the symbolic derivation chain
+- [`../logic-verification/SKILL.md`](../logic-verification/SKILL.md) — produces the 6-dim logic audit
+- [`../invariant-check/SKILL.md`](../invariant-check/SKILL.md) — verifies INV-G1 problem anchor freeze
