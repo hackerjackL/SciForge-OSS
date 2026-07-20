@@ -34,6 +34,24 @@ For each candidate idea, execute 5 attack vectors to find its weakest point. The
 
 ## Workflow
 
+### Phase 0: Load Domain Signature & Failure Modes
+
+Read `refine-logs/domain-signature.json` (from Phase 1a `/domain-signature`) to auto-load domain-specific failure modes:
+
+1. Read the domain signature → extract `failure_mode_profile.common_failures`
+2. Query `shared-references/domain-failure-modes.md` for matching failure modes
+3. Add them to the attack vectors for this falsification run
+4. If no signature exists, use universal failure modes only
+
+```json
+{
+  "signature_loaded": true,
+  "domain_failure_modes": ["endogeneity", "omitted_variable_bias", "reverse_causality"],
+  "failure_mode_source": "domain-failure-modes.md#causal_inference",
+  "universal_failure_modes": ["hidden_assumption", "circular_reasoning", "quantifier_error"]
+}
+```
+
 ### Phase 1: Assumption Attack
 
 For each assumption the idea depends on, score its reasonability:

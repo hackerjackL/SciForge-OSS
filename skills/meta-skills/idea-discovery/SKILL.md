@@ -49,6 +49,7 @@ Create or maintain:
 
 Key artifacts consumed:
 - The frozen Q-id + problem statement (from the human user's prompt — NOT auto-searched from the 125-problem index)
+- `refine-logs/domain-signature.json` — from Phase 1a `/domain-signature` (for perspective weight adjustment)
 - `literature/references.bib` — from `/universal-retrieval` (for novelty pre-screen)
 - `data/` — from `/ouroboros-data-insight` if it has run (for data-readiness pre-screen)
 
@@ -58,6 +59,7 @@ Key artifacts consumed:
 - **Min root nodes** — 8 (default). The DAG starts with 8-12 root idea nodes; MCTS prunes to the best 3-5.
 - **Perspectives** — 3 universal: `theoretical` (symbolic derivation), `computational` (numerical sanity check), `qualitative` (mechanism reasoning). Main SciForge has a 4th `empirical` (experiment) which OSS removes.
 - **Promotion threshold** — score ≥ 0.6 on the 5-axis idea-fit (see below).
+- **Domain-adaptive perspectives** — If `refine-logs/domain-signature.json` exists, use the perspective weights from the signature instead of the default equal weights. See [`shared-references/domain-signature-consumer.md`](../shared-references/domain-signature-consumer.md).
 
 ## The 5-Axis Idea-Fit Pre-Screen (Universal)
 

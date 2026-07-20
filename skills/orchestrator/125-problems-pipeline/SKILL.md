@@ -37,6 +37,26 @@ Orchestrate a complete 17-phase DAG research loop. The non-negotiable goals:
 4. **Every conclusion is logic-verified** — no unsupported assertion survives to the final paper
 5. **The pipeline is self-correcting** — if any phase fails or produces WARN/FAIL, auto-fallback to the relevant prior phase (bounded 3 rounds)
 6. **INV-G1 PROBLEM_ANCHOR_FREEZE** — the Q-id supplied by the human is frozen at Phase 0 and referenced in every downstream phase (see [`../invariant-check/SKILL.md`](../support/invariant-check/SKILL.md))
+7. **Domain signature propagation** — the domain signature extracted in Phase 1a is written to `refine-logs/domain-signature.json` and consumed by all downstream phases. See [`../shared-references/domain-signature-consumer.md`](../shared-references/domain-signature-consumer.md).
+
+## Domain Signature Propagation
+
+The domain signature is the **central wiring mechanism** that makes domain adaptation automatic. Here's how it flows:
+
+```
+Phase 1a: /domain-signature
+    ↓ 写入 refine-logs/domain-signature.json
+    ↓
+Phase 2:  /idea-discovery        → 读取签名 → 调整视角权重
+Phase 2.5: /adversarial-falsification → 读取签名 → 加载领域失败模式
+Phase 3:  /novelty-check         → 读取签名 → 调整评估权重
+Phase 5:  /method-registry       → 读取签名 → 调整假设评分标准
+Phase 6:  /theory-derivation     → 读取签名 → 选择验证方法
+Phase 10: /result-to-claim       → 读取签名 → 校准置信度
+Phase 12: /paper-writing         → 读取签名 → 选择写作风格/引用格式
+```
+
+**Key design**: Each skill reads the signature independently at startup. No centralized routing needed. If the signature doesn't exist, all skills use default behavior.
 
 ## Performance Optimizations
 

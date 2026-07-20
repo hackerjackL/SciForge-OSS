@@ -79,7 +79,27 @@ The paper directory (default `paper/`):
 
 ## Workflow
 
-### Step 0: Load the Unified Template
+### Step 0: Load Domain Signature & Configure Style
+
+Read `refine-logs/domain-signature.json` (from Phase 1a `/domain-signature`) to auto-configure writing style:
+
+```json
+{
+  "signature_consumed": true,
+  "writing_style": "empirical_economics",
+  "citation_format": "author_year",
+  "section_structure": "theory → empirical_strategy → results → robustness"
+}
+```
+
+If the signature exists, the following parameters are auto-set (user can override):
+- `style` ← from `writing_profile.style`
+- `citation_style` ← from `writing_profile.citation_format`
+- `section_structure` ← from `evidence_type` (see consumer protocol)
+
+If no signature exists, use default behavior (no domain adaptation).
+
+### Step 0b: Load the Unified Template
 
 On first run, copy the unified template skeleton to the working directory:
 ```
