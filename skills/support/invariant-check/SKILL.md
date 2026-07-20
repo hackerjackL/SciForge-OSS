@@ -6,6 +6,13 @@ role: phase-boundary-verifier
 
 # Invariant Check (Phase-Boundary Verifier) — SciForge-OSS
 
+## Quick Reference
+
+- **Purpose**: 阶段边界结构性检查 — 验证文件存在、Q-id 冻结、verdict 有效
+- **Input**: refine-logs/FINAL_PROPOSAL.md + 当前阶段产物
+- **Output**: INVARIANT_CHECK.json + INVARIANT_CHECK.md
+- **Key**: 仅 INV-G1 (PROBLEM_ANCHOR_FREEZE) 活跃；不评估质量，只检查结构完整性
+
 > **Status**: Structural verifier invoked at OSS phase boundaries. **OSS is discipline-agnostic** — only the universal `INV-G1 PROBLEM_ANCHOR_FREEZE` invariant is active. There are no discipline overlays (no `INV-E*` economics, no `INV-C*` cs-ml, no `INV-P*` physics). Copied from main SciForge and trimmed to OSS's single-row design.
 
 ## Use When

@@ -6,6 +6,13 @@ role: result-to-claim-gate
 
 # Result-to-Claim Gate (SciForge-OSS — Discipline-Agnostic, 3-Fidelity)
 
+## Quick Reference
+
+- **Purpose**: 3 保真度 claim 门控 (symbolic/numerical/qualitative) + 置信度评估
+- **Input**: derivations/{problem_id}/ + audit_report/LOGIC_VERIFICATION.json
+- **Output**: CLAIMS_FROM_RESULTS.md (含置信度评估)
+- **Key**: 理论置信度 vs 落地置信度分离输出；primary outcome 需 ≥ numerical fidelity
+
 > **Status**: Gate that decides what claims the derivation/verification results support. **OSS is discipline-agnostic** — there is no economics p-value significance gate, no cs-ml SOTA gate. The gate uses a universal **3-fidelity claim ladder** (symbolic / numerical / qualitative) adapted from main SciForge's 5-fidelity filter. Copied from main SciForge and trimmed to OSS's no-experiment, no-benchmark design.
 
 ## Use When
@@ -253,7 +260,32 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 3. **External reviewer verdict** — `claim_supported`, `fidelity_level`, `what_results_support`, `what_results_dont_support`, `missing_evidence`, `suggested_claim_revision`, `next_analyses_needed`, `confidence`
 4. **Fidelity gate** — primary vs secondary outcome classification, fidelity levels, gate verdict, scope transparency
 5. **Logic status** — `pass | warn | fail | unavailable`
-6. **Routing decision** — pivot / supplement / confirm with next-step actions
+6. **Confidence Assessment** — theoretical confidence vs grounding confidence (separated)
+7. **Routing decision** — pivot / supplement / confirm with next-step actions
+
+### Confidence Assessment (新增)
+
+```markdown
+## Confidence Assessment
+
+### Theoretical Confidence
+- **Score**: [0-10]
+- **Basis**: SymPy derivation status, logic verification results, proof completeness
+- **Risks**: [remaining theoretical gaps]
+
+### Grounding Confidence (落地置信度)
+- **Score**: [0-10]
+- **Basis**: Assumption health score, adversarial falsification results, analogy mapping, prior probability
+- **Risks**: [assumptions that may not hold in practice, missing empirical validation]
+
+### Combined Assessment
+- **Overall confidence**: [0-10]
+- **Recommendation**: 
+  - If theoretical ≥ 7 AND grounding ≥ 7: "Strong — suitable for publication"
+  - If theoretical ≥ 7 AND grounding 4-6: "Theoretically sound, needs empirical validation"
+  - If theoretical ≥ 7 AND grounding < 4: "Interesting theory, high risk of non-transferability"
+  - If theoretical < 7: "Insufficient theoretical foundation — revisit derivation"
+```
 
 ## Reviewer Routing
 

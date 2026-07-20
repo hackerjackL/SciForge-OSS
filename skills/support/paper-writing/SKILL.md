@@ -6,6 +6,13 @@ role: paper-composer
 
 # Paper Writing (SciForge-OSS — Unified elsarticle Template, Discipline-Agnostic)
 
+## Quick Reference
+
+- **Purpose**: 从研究产物组装学术论文 (LaTeX)，统一 elsarticle 模板
+- **Input**: 研究产物 (derivation_output.md + CLAIMS_FROM_RESULTS.md + figures/)
+- **Output**: paper/main.tex + paper/sections/*.tex + paper/PAPER_PLAN.md
+- **Key**: theory_only 模式 (无实验)；双分支结构 (标准/理论)；verification_type 自动选择
+
 > **Status**: Composes the final academic paper from research artifacts. **OSS uses a single unified `elsarticle` template** (copied from main SciForge's `templates/default/`) — no venue-specific templates, no per-discipline writing guides. **OSS is discipline-agnostic** — the universal section-by-section writing guide in [`discipline-writing.md`](../shared-references/discipline-writing.md) applies to every 125-problem run.
 >
 > **Key OSS difference from main SciForge**: main SciForge has 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) each with its own page limit, bibliography style, anonymization rule. OSS has **one** template (`elsarticle [preprint,12pt]` + `elsarticle-num.bst`) applied to every output. Venue-specific adaptation is deferred to submission time (see [`venue-profiles.md`](../shared-references/venue-profiles.md)), not drafting.

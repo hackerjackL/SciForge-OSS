@@ -6,6 +6,13 @@ role: autonomous-review-loop-orchestrator
 
 # Auto Review Loop (SciForge-OSS — Structured Self-Review Mode)
 
+## Quick Reference
+
+- **Purpose**: 自动化迭代评审循环 (评审→修复→再评审)，使用角色切换自评审
+- **Input**: 研究产物 (derivation_output.md + CLAIMS_FROM_RESULTS.md)
+- **Output**: AUTO_REVIEW.md + REVIEW_STATE.json + 更新后的产物
+- **Key**: 单 agent 角色切换 (研究者→评审者→辩护者→裁决者)；3 轮上限；保真度门控
+
 > **Status**: Autonomous iterative improvement via structured self-review. **OSS uses single-agent self-review** — the same agent switches roles between "researcher" and "senior reviewer" to provide adversarial critique. There is no external cross-model reviewer requirement. **OSS is discipline-agnostic** — only the universal `senior-reviewer-agnostic` persona is active. No statistical gatekeeping (economics p-value), no SOTA gate (cs-ml), no PNV chain integrity (physics). Copied from main SciForge and adapted to OSS's single-agent architecture.
 
 ## Use When

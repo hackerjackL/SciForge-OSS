@@ -10,6 +10,13 @@ role: single-question-research-orchestrator
 >
 > **Key OSS difference from main SciForge**: main SciForge's research-pipeline branches by discipline (economics / cs-ml / physics / general) into 4 parallel pipelines each with its own framework (AIM / SOTA / PNV / none) + reviewer persona. OSS has **no discipline branch** — one universal pipeline, the universal `senior-reviewer-agnostic` persona, and the agent's runtime reasoning handles domain-specific methodology.
 
+## Quick Reference
+
+- **Entry point**: `/125-problems-pipeline "Q001: 问题描述" — effort: max`
+- **Scope**: 单题执行，17 阶段 DAG 循环，全领域通用
+- **Output**: 完整论文 (LaTeX/PDF) + 所有中间产物
+- **Key**: 不迭代 125 题，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
+
 ## Use When
 
 Use this skill when the AI scientist needs to fully solve **one** of the 125 science problems end-to-end. This is the **only entry orchestrator** — it does not branch by discipline; it uses the DAG architecture to handle any scientific domain via universal meta-skills.
@@ -31,7 +38,37 @@ Orchestrate a complete 17-phase DAG research loop. The non-negotiable goals:
 5. **The pipeline is self-correcting** — if any phase fails or produces WARN/FAIL, auto-fallback to the relevant prior phase (bounded 3 rounds)
 6. **INV-G1 PROBLEM_ANCHOR_FREEZE** — the Q-id supplied by the human is frozen at Phase 0 and referenced in every downstream phase (see [`../invariant-check/SKILL.md`](../support/invariant-check/SKILL.md))
 
-## The 17-Phase DAG Loop
+## Performance Optimizations
+
+### Parallelization
+
+Where possible, phases run in parallel to reduce wall-clock time:
+
+| Parallel Group | Phases | Rationale |
+|---------------|--------|-----------|
+| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output |
+| **Group B** | Phase 11 (unified-plotting) + Phase 12 (paper-writing) | Figures can be generated while the paper is being written |
+| **Group C** | Phase 7 (leakage-audit) + Phase 8 (logic-verification) | Both audits are independent |
+
+### Incremental MCTS
+
+MCTS iteration is optimized to avoid re-scoring already-clear ideas:
+
+- **Round 1**: Score all 8-12 root nodes on the 5-axis idea-fit
+- **Round 2**: Only re-score **borderline** ideas (0.4-0.6 score range). Clear PASS (≥ 0.6) and clear FAIL (< 0.4) are not re-scored
+- **Round 3**: Only re-score child nodes of borderline ideas
+- **Round 4**: Final selection from promoted ideas
+
+**Estimated savings**: 4 rounds → ~2.5 rounds equivalent (40% reduction in MCTS cost)
+
+### Early Exit Conditions
+
+| Phase | If condition met | Action |
+|-------|-----------------|--------|
+| Phase 2 | 5-axis pre-screen: all ideas BLOCKED | Return immediately, no MCTS |
+| Phase 3 | Highest score > 0.8 | Skip Phase 2.5 (adversarial falsification) — idea is clearly strong |
+| Phase 10 | All claims reach symbolic fidelity | Skip Phase 14 (auto-review-loop) — no improvement needed |
+| Phase 12 | No figures needed | Skip Phase 11 (unified-plotting)
 
 ```
 Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
@@ -44,6 +81,12 @@ Phase  2: /idea-discovery [DAG 分支] — 3 视角 idea
      │  (theoretical / computational / qualitative)   │
      │  + MCTS 迭代 (4 轮, 8-12 root nodes)           │
      │  + 输出 verification_type (理论-only / 计算 / 理论+实验)
+     │                                             │
+Phase  2.5: /adversarial-falsification [证伪门控]   ← 新增
+     │  5 维度攻击: 假设评分 → 反例构造 → 文献对抗    │
+     │  → 类比映射 → 计算可行性                       │
+     │  SURVIVE → 继续; WEAKENED → 回退 Phase 2      │
+     │  FALSIFIED → 淘汰 (记录原因, 不再进入推导)     │
      │                                             │
 Phase  3: /novelty-check [DAG 门控] — 3 维评估 + 淘汰
      │  (新颖性×0.5 + 可行性×0.3 + 相关性×0.2)        │
@@ -101,6 +144,7 @@ Phase 16: 最终组装 + 产物归档
 | 0 | Q-id 清晰可解、来自人类提示词 | 请求用户澄清 Q-id；**不**自动搜索 125 题索引 |
 | 1 | 问题可分解为形式化陈述 | 请求用户澄清问题边界 |
 | 2 | 至少生成 1 个 idea (MCTS 收敛) | 放宽 perspectives 重评；再失败升级 BLOCKED |
+| 2.5 | 证伪攻击: 假设健康度 ≥ 6 OR 无反例 | WEAKENED → 回退 Phase 2 重生成；FALSIFIED → 淘汰（记录原因） |
 | 3 | DAG 收敛到 1 个幸存者 (≥ 0.6 idea-fit) | 放宽 strictness 重评；再失败升级 BLOCKED |
 | — | **强制人类审批**：从幸存者中选最终 idea | 等待人类确认；agent 不能自选 |
 | 4 | 文献找到或问题是理论型 | 空则 WARN；理论型（theory-only）则跳至 Phase 8，无需实证文献 |
@@ -243,6 +287,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 
 - **Single-question execution only.** Each invocation processes exactly one Q-id supplied by the human user. Do NOT auto-iterate over all 125 questions. Do NOT auto-search the 125-problem index for "what to solve next" — the human decides.
 - **No discipline branch.** OSS has one universal pipeline. Do not reintroduce economics / cs-ml / physics / general parallel pipelines or their frameworks (AIM / SOTA / PNV). The agent's runtime reasoning in `/theory-derivation` + `/dynamic-sandbox` handles domain-specific methodology.
+- **Paradigm selection.** The agent selects the appropriate paradigm (formal/empirical/interpretive/design) in Phase 1 based on the problem's nature, not by domain label. See [`discipline-paradigm.md`](../shared-references/discipline-paradigm.md).
 - **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and must be referenced in every downstream phase. If any phase's output lacks the Q-id reference, Phase 9 (`/invariant-check`) BLOCKs.
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select the final idea (Phase 3) or self-approve the method registry (Phase 5). Wait for human confirmation.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.

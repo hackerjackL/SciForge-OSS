@@ -6,6 +6,13 @@ role: academic-retriever
 
 # Meta-Skill: Universal Academic Retrieval
 
+## Quick Reference
+
+- **Purpose**: 多源学术搜索 + 3 层防幻觉引用验证
+- **Input**: 搜索查询
+- **Output**: references.bib + landscape_report.md + VERIFICATION_LOG.md
+- **Key**: 6 源 (arXiv→S2→CrossRef→PubMed→Web→OpenAlex)；每篇引用必须通过验证
+
 ## Use When
 
 当 AI scientist 需要为任何科学问题查找、验证或检索真实的学术参考文献时——无论学科——使用此 skill。

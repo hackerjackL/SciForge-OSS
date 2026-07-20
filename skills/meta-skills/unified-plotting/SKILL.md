@@ -6,6 +6,13 @@ role: figure-renderer-and-spec-generator
 
 # Unified Plotting (SciForge-OSS — Merged figure-spec + paper-figure, Morandi-Enforced)
 
+## Quick Reference
+
+- **Purpose**: 从结构化数据或 JSON spec 渲染出版级矢量图
+- **Input**: 数据 (JSON/matrix) 或图表描述
+- **Output**: SVG/PDF 矢量图 + 渲染脚本
+- **Key**: 11 种图表类型 (含 4 种理论图)；莫兰迪色系强制；数据图 Python 管线，理论图 LaTeX tikz/AI-direct SVG
+
 > **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the morandi palette + Layer 2 data-encoding colormaps are universal contracts.
 >
 > **Key OSS relaxation**: main SciForge enforces Python pipeline (matplotlib/seaborn) for all figures. OSS **allows AI-direct SVG generation** when the figure is simple enough (architecture diagrams, flow charts, topology) — the morandi palette contract is still enforced, but the Python pipeline is not mandatory for non-data figures. For **data plots** (line/scatter/bar/heatmap/3D), the Python pipeline remains mandatory (reproducibility requires preserved render script + input data).

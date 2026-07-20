@@ -6,6 +6,13 @@ role: adversarial-attack-defense-reviewer
 
 # Kill Argument Exercise: Single-Agent Adversarial Attack-Defense Self-Review
 
+## Quick Reference
+
+- **Purpose**: 压力测试 — 找"如果审稿人要拒这篇，最致命的论点是什么"
+- **Input**: derivations/{problem_id}/ + CLAIMS_FROM_RESULTS.md
+- **Output**: KILL_ARGUMENT.md + KILL_ARGUMENT.json
+- **Key**: 双步自评审 (攻击者→裁决者角色切换)；200 字攻击 memo；3-7 个细化攻击点
+
 Stress-test the headline claims of a research output against the strongest possible rejection argument, then the same agent switches role to defend point-by-point and surface still-unresolved critical issues.
 
 ## Use When

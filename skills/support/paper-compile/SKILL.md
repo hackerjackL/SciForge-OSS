@@ -6,6 +6,13 @@ role: latex-compiler
 
 # Paper Compile: LaTeX to Submission-Ready PDF (SciForge-OSS)
 
+## Quick Reference
+
+- **Purpose**: LaTeX 编译 paper/main.tex → main.pdf，零警告零报错
+- **Input**: paper/main.tex + paper/sections/*.tex + literature/references.bib
+- **Output**: main.pdf + compile.log + COMPILE_REPORT.json
+- **Key**: 反死循环阶梯 (3 attempt per-warning → BLOCKED)；submission 级编译
+
 > **Status**: LaTeX compiler for the unified `elsarticle` template. Enforces zero-warnings zero-errors at submission level. Copied from main SciForge and trimmed to OSS's single-template, discipline-agnostic design.
 >
 > **Key OSS difference**: No per-venue page limit table. OSS uses a single unified page target (8-15 pages main body, flexible). No `TARGET_VENUE` switching — every output drafts in `elsarticle [preprint,12pt]` with `elsarticle-num.bst` (numeric default).

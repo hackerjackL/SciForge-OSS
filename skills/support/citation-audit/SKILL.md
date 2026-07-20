@@ -6,6 +6,13 @@ role: bibliographic-integrity-auditor
 
 # Citation Audit
 
+## Quick Reference
+
+- **Purpose**: 最终 3 层引用防幻觉验证 (arXiv→CrossRef→Semantic Scholar)
+- **Input**: paper/main.tex + literature/references.bib
+- **Output**: CITATION_AUDIT.md + CITATION_AUDIT.json
+- **Key**: 每篇 \cite{key} 必须可解析至已验证的 .bib 条目
+
 Verify every `\cite{...}` in a paper against three independent layers: existence, metadata correctness, and context appropriateness. This is the bibliographic-integrity layer of SciForge's evidence-and-claim assurance stack.
 
 ## Use When

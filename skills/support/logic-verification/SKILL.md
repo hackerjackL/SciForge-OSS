@@ -6,6 +6,13 @@ role: logical-consistency-auditor
 
 # Logic Verification (SciForge-OSS — Structured Proof Checking, Discipline-Agnostic)
 
+## Quick Reference
+
+- **Purpose**: 6 维度逻辑一致性审计 + 20 分类问题体系
+- **Input**: derivations/{problem_id}/derivation_output.md
+- **Output**: LOGIC_VERIFICATION.md + LOGIC_VERIFICATION.json
+- **Key**: 结构化证明检查 (非跨模型)；20 类问题；3 轮上限；验收门控 (零 FATAL/CRITICAL)
+
 > **Status**: Rigorous logical verification of a derivation / argument / paper draft via structured proof checking. **OSS merges main SciForge's `proof-checker`** (20-category issue taxonomy, 2-axis severity, side-condition checklists, acceptance gate) **into this skill**. **OSS is discipline-agnostic** — no LaTeX `align*` environment-specific checks, no physics SI-units enforcement, no economics estimator-verification. The universal 6-dimension logical consistency audit applies to every problem.
 
 ## Use When

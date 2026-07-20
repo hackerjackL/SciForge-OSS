@@ -6,6 +6,13 @@ role: structural-leakage-auditor
 
 # Leakage Audit (SciForge-OSS — Discipline-Agnostic)
 
+## Quick Reference
+
+- **Purpose**: 审计 Type I 逻辑漏洞 + Type IV 逃逸 (验证与前提矛盾)
+- **Input**: METHOD_REGISTRY.md + METHOD_BINDING.md
+- **Output**: LEAKAGE_AUDIT.json + LEAKAGE_AUDIT.md
+- **Key**: 无学科 overlay；Type I + Type IV 通用；3 轮 callback 到 method-registry
+
 > **Status**: Structural auditor for the canonical leakage types that cause desk rejects. **OSS is discipline-agnostic** — there are no discipline overlays (no economics 14-class, no cs-ml 14-class, no physics 10-class). Only the universal `Type I Logic Gap` + `Type IV Empirical Escape` (generalized beyond physics) are active. Copied from main SciForge and trimmed to OSS's discipline-agnostic design.
 
 ## Use When

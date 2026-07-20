@@ -6,6 +6,13 @@ role: theory-builder-and-symbolic-verifier
 
 # Theory Derivation (SciForge-OSS — Merged formula-derivation + theory-derivation)
 
+## Quick Reference
+
+- **Purpose**: SymPy 符号推导 + 逐步机器验证；理论-only 模式用 engine=manual
+- **Input**: refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
+- **Output**: derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
+- **Key**: 每步 SymPy 验证；3 种模式 (derive/verify/simplify)；理论-only 标记 [not machine-verified]
+
 > **Status**: Bridges verbal reasoning and mathematical rigor. **OSS merges main SciForge's `formula-derivation`** (research theory-line construction — build the derivation package, freeze the invariant object, classify steps) **into this skill** (SymPy symbolic verification — derive / verify / simplify / solve with machine-checked steps). **OSS is discipline-agnostic** — no physics SI-units enforcement, no economics estimator-verification, no cs-ml convergence-rate framing. The universal derivation package schema + SymPy verification applies to every problem.
 
 ## Use When

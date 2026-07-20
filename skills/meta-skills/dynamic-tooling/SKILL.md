@@ -6,6 +6,13 @@ role: tool-builder
 
 # Meta-Skill: Just-in-Time Dynamic Tooling
 
+## Quick Reference
+
+- **Purpose**: 运行时生成临时工具，填补能力缺口
+- **Input**: 工具描述 + 接口契约
+- **Output**: 可执行的 Python 模块 + 注册信息
+- **Key**: 7 种工具模板 (symbolic-reasoner/statistical-modeler/knowledge-graph/formal-verifier/code-synthesizer/data-transformer/text-analyzer)
+
 ## Use When
 
 当 AI scientist 遇到标准沙盒库无法处理的计算或数据处理任务时——需要特定领域的工具、适配器或管道——使用此 skill。

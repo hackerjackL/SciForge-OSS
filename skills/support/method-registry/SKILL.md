@@ -6,6 +6,13 @@ role: method-registry-builder
 
 # Method Registry (SciForge-OSS — Discipline-Agnostic)
 
+## Quick Reference
+
+- **Purpose**: 方法预注册 + hash 锁 + 强制人类审批，防止事后方法选择
+- **Input**: refine-logs/FINAL_PROPOSAL.md
+- **Output**: METHOD_REGISTRY.md + REGISTRY_HASH.txt + APPROVAL_LOG.txt
+- **Key**: 8 节 schema；Section 3 (Method Selection) 锁定；假设质量评分 (新增)；强制人类审批
+
 > **Status**: Builds a structured `METHOD_REGISTRY.md` that locks the method selection BEFORE derivations are run, preventing post-hoc method shopping and scope creep. **OSS is discipline-agnostic** — there are no discipline overlays (no economics AIM schema, no cs-ml SOTA schema, no physics PNV schema). Only the universal 8-section schema with a Type I Logic Gap self-audit is active. Copied from main SciForge and trimmed to OSS's single-row design.
 
 ## Use When
@@ -75,12 +82,24 @@ The frozen research question + boundary. Inherited from the orchestrator's Phase
 | Scope boundary | [what is in scope, what is out] |
 | Frozen hash | [SHA256 of Problem Anchor text] |
 
-## 2. Assumptions (Universal schema)
+## 2. Assumptions (Universal schema with quality scoring)
+
+Every assumption is scored for reasonability. This is the **assumption registry** — used by `/adversarial-falsification` for stress testing and by `/result-to-claim` for confidence calibration.
 
 | Field | Value |
 |-------|-------|
 | A1 | [assumption 1, formal statement + plain-language] |
+| A1_reasonability | [0-10] — how realistic is this assumption? 10 = universally true, 0 = never true in practice |
+| A1_impact_if_violated | fatal / severe / minor |
+| A1_evidence | [literature or reasoning supporting this score] |
 | A2 | [assumption 2, ...] |
+| A2_reasonability | [0-10] |
+| A2_impact_if_violated | fatal / severe / minor |
+| A2_evidence | [literature or reasoning supporting this score] |
+
+**Assumption Health Score**: [average of all reasonability scores]
+**Fatal assumptions with reasonability < 5**: [count] — if > 0, flag as HIGH RISK
+**Assumption quality verdict**: HEALTHY / MODERATE / WEAK
 | ... | ... |
 | Falsification signal | [what would invalidate the assumption set] |
 

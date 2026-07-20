@@ -6,6 +6,13 @@ role: pre-writing-quality-gate
 
 # Quality Gate (SciForge-OSS — Discipline-Agnostic)
 
+## Quick Reference
+
+- **Purpose**: 前置写作质量门 — 停滞检查 + 质量底线 + 反自欺检查
+- **Input**: 所有研究产物 (derivations/ + audit_report/ + CLAIMS_FROM_RESULTS.md)
+- **Output**: QUALITY_FLOOR_REPORT.md + SELF_DECEPTION_REPORT.md
+- **Key**: 硬门 (FAIL 则阻塞论文写作)；确定性检查 (Type D) + 语义检查 (Type S)
+
 > **Status**: Hard gate at the **final pre-writing boundary** — the last checkpoint before paper writing begins. **OSS is discipline-agnostic** — there are no discipline overlays (no economics QF-E*, no cs-ml QF-C*, no physics QF-P*). Only the universal QF-G* quality floor + SD-G* self-deception guard checks are active. Copied from main SciForge and trimmed to OSS's single-row design.
 
 ## Use When

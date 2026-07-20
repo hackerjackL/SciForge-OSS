@@ -8,6 +8,13 @@ role: research-idea-generation
 
 > **Status**: Generates and pre-screens research idea candidates for a given 125-problem question. OSS merges main SciForge's `idea-creator` (MCTS iterative idea refinement + DAG node expansion) into this meta-skill. **OSS is discipline-agnostic** — there is no economics DiD/IV/RDD framing, no cs-ml SOTA framing, no physics PNV framing. The universal 3-perspective ideation (theoretical / computational / qualitative) + MCTS iteration applies to every problem.
 
+## Quick Reference
+
+- **Purpose**: 生成 8-12 个 idea → MCTS 4 轮迭代 → 筛选最优 1-3 个
+- **Input**: 人类提供的 Q-id + 问题描述
+- **Output**: IDEA_DAG.json + FINAL_PROPOSAL.md + IDEA_DAG_VISUAL.md
+- **Key**: 3 视角 (theoretical/computational/qualitative), 5-axis pre-screen, 强制人类审批
+
 > **No legacy pilot fallback**: main SciForge's `idea-creator` has a legacy demo/pilot experimental fallback when MCTS produces 0 promoted ideas. OSS has **no experiments** — the fallback is instead "re-run ideation with broader perspectives" (not "fall back to a demo experiment").
 
 ## Use When

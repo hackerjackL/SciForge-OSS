@@ -6,6 +6,13 @@ role: novelty-verifier
 
 # DAG Skill: Novelty Check & Idea Elimination
 
+## Quick Reference
+
+- **Purpose**: 3 维评估 (新颖性×0.5 + 可行性×0.3 + 相关性×0.2) → 淘汰弱 idea
+- **Input**: IDEA_DAG.json (from /idea-discovery)
+- **Output**: novelty_report.json + survivor.md
+- **Key**: 最多 1 个 idea 存活到推导阶段；综合评分 < 0.6 淘汰
+
 ## Use When
 
 使用此 skill 当 idea 已由 `/idea-discovery` 生成后。每个 idea 被独立评估新颖性、可行性和相关性。弱或非新颖的 idea 被**淘汰**——只有最强的存活到推导阶段。

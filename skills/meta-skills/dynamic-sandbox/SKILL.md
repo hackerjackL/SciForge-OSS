@@ -6,6 +6,13 @@ role: computation-sandbox
 
 # Meta-Skill: Dynamic Execution Sandbox
 
+## Quick Reference
+
+- **Purpose**: 运行 Python/Julia 科学计算 (NumPy/SciPy/SymPy)
+- **Input**: 验证脚本 + 参数
+- **Output**: 结构化结果 (JSON/CSV) + 执行的代码
+- **Key**: 无 GPU，仅数值 sanity check；代码 + 随机种子保留
+
 ## Use When
 
 当 AI scientist 需要对任何科学问题进行数值计算、符号验证、仿真或数据分析时——无论学科——使用此 skill。
