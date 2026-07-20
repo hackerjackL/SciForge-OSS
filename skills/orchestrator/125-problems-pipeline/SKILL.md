@@ -43,6 +43,7 @@ Phase  1: 问题理解与分解（内置推理）
 Phase  2: /idea-discovery [DAG 分支] — 3 视角 idea
      │  (theoretical / computational / qualitative)   │
      │  + MCTS 迭代 (4 轮, 8-12 root nodes)           │
+     │  + 输出 verification_type (理论-only / 计算 / 理论+实验)
      │                                             │
 Phase  3: /novelty-check [DAG 门控] — 3 维评估 + 淘汰
      │  (新颖性×0.5 + 可行性×0.3 + 相关性×0.2)        │
@@ -51,12 +52,24 @@ Phase  3: /novelty-check [DAG 门控] — 3 维评估 + 淘汰
      │
 Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
      │
+     ├── 验证路径分支 (由 verification_type 决定) ────┐
+     │                                                 │
+     │  [理论-only]  → 跳至 Phase 8 (逻辑验证)         │
+     │  [计算]       → Phase 5 → 6 → 7 → 8            │
+     │  [理论+实验]  → Phase 5 → 6 → 7 → 8            │
+     │  (OSS 无实验环境，实验部分输出为可验证预测)      │
+     │                                                 │
 Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批       ← 新增
      │
 Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
      │          ↻ 失败回退 Phase 1（最多 3 轮）
+     │          (理论-only: engine=manual, 标记为 [not machine-verified])
 Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计        ← 新增
      │          ↻ CRITICAL 回退 Phase 5（3 轮 callback 上限）
+     │          (理论-only: Type IV = NOT_APPLICABLE)
+     │
+     └── 路径汇合 ─────────────────────────────────┘
+     │
 Phase  8: /logic-verification — 6 维度逻辑一致性审计
      │          ↻ FATAL/CRITICAL 回退 Phase 6（最多 3 轮）
 Phase  9: /invariant-check — INV-G1 问题锚点冻结验证                  ← 新增
@@ -90,7 +103,7 @@ Phase 16: 最终组装 + 产物归档
 | 2 | 至少生成 1 个 idea (MCTS 收敛) | 放宽 perspectives 重评；再失败升级 BLOCKED |
 | 3 | DAG 收敛到 1 个幸存者 (≥ 0.6 idea-fit) | 放宽 strictness 重评；再失败升级 BLOCKED |
 | — | **强制人类审批**：从幸存者中选最终 idea | 等待人类确认；agent 不能自选 |
-| 4 | 文献找到或问题是理论型 | 空则 WARN；实证型（OSS 无实验）则 BLOCK |
+| 4 | 文献找到或问题是理论型 | 空则 WARN；理论型（theory-only）则跳至 Phase 8，无需实证文献 |
 | 5 | 方法 registry 构建完成 + hash 锁 + **强制人类审批** | 请求用户审批 Section 3；agent 不能自批 |
 | 6 | SymPy 推导成功 + 逐步机器验证 PASS | 回退 Phase 1（最多 3 轮） |
 | 7 | Type I 无 CRITICAL + Type IV 无 ESCAPE | CRITICAL → callback Phase 5 (3 轮上限)；再失败升级 BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
@@ -130,9 +143,10 @@ On successful completion, the orchestrator produces the following structure unde
 ├── refine-logs/
 │   ├── FINAL_PROPOSAL.md        ← frozen Q-id + selected idea (Phase 2)
 │   ├── IDEA_CANDIDATES.md       ← ranked idea list (Phase 2)
-│   ├── IDEA_DAG.json            ← DAG structure (Phase 2)
+│   ├── IDEA_DAG.json            ← DAG structure (Phase 2) — 可渲染为 Mermaid 可视化
+│   ├── IDEA_DAG_VISUAL.md       ← DAG 可视化报告 (Mermaid 格式，Phase 2)  ← 新增
 │   └ MCTS_LOG.md                ← MCTS iteration log (Phase 2)
-├── dag/
+├── refine-logs/
 │   └ novelty_report.json        ← 3-axis evaluation (Phase 3)
 │   └ survivor.md                ← the surviving idea (Phase 3)
 ├── literature/
@@ -233,6 +247,10 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select the final idea (Phase 3) or self-approve the method registry (Phase 5). Wait for human confirmation.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
 - **The orchestrator never executes research.** It delegates to the corresponding skill. Do not inline derivation / verification / writing logic into this orchestrator.
+- **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no code/experiment):
+  - Phase 5 (method-registry) → Phase 6 (theory-derivation with `engine=manual`) → Phase 7 (Type IV = NOT_APPLICABLE) → Phase 8 (logic-verification)
+  - Phase 10 (result-to-claim): qualitative fidelity is the expected norm for theory-only problems
+  - The derivation output is marked `[not machine-verified]` and the claim strength is adjusted accordingly
 
 ## Output Protocols
 

@@ -1,0 +1,78 @@
+% Unified elsarticle template — SciForge-OSS (Discipline-Agnostic)
+% ALL 125 science problems (any domain) use this single document class.
+% Venue differences are deferred to submission time — see shared-references/venue-profiles.md.
+% OSS uses elsarticle [preprint,12pt] for all drafts.
+
+\documentclass[preprint,12pt]{elsarticle}
+
+% Math
+\usepackage{amsmath,amssymb,amsfonts,amsthm,mathtools}
+
+% Typography
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% cleveref must be loaded AFTER hyperref
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Theorems
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% cleveref names for custom theorem types
+\crefname{assumption}{Assumption}{Assumptions}
+\Crefname{assumption}{Assumption}{Assumptions}
+
+% Shared math commands
+\input{math_commands}
+
+\begin{document}
+
+% === elsarticle frontmatter ===
+\begin{frontmatter}
+  \title{Paper Title Here}
+  \author[1]{SciForge-OSS\corref{cor1}}
+  \cortext[cor1]{Corresponding author.}
+  \affiliation[1]{organization={SciForge-OSS}, city={City}, country={Country}}
+  \input{sections/0_abstract}
+  \begin{keyword}
+    keyword one \sep keyword two \sep keyword three
+  \end{keyword}
+\end{frontmatter}
+
+\input{sections/1_introduction}
+\input{sections/2_related_work}
+\input{sections/3_problem_formalization}
+\input{sections/4_theory}
+\input{sections/5_results}
+\input{sections/6_discussion}
+\input{sections/7_conclusion}
+
+% Bibliography style: elsarticle-num (numeric) default
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\newpage
+\appendix
+\input{sections/A_appendix}
+
+\end{document}

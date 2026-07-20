@@ -44,18 +44,18 @@ This check is mandatory and cannot be skipped for any OSS output.
 
 ## Required Workspace
 
-- `results/` — derivation/verification output files (SymPy proof logs, numerical sanity check JSON/CSV)
-- `refine-logs/DERIVATION_PLAN.md` — intended claims and derivation design (primary source for pre-specified claims)
+- `derivations/{problem_id}/` — derivation/verification output files (SymPy proof logs, numerical sanity check results)
+- `refine-logs/FINAL_PROPOSAL.md` — intended claims and derivation design (primary source for pre-specified claims)
 - `docs/research_contract.md` — optional project-level research contract (read if present; not produced by any skill)
 - `findings.md` — append postmortem / confirmed claims here
-- `refine-logs/RESULTS_ANALYSIS.md` — analysis report from `/logic-verification` (read if present)
+- `audit_report/LOGIC_VERIFICATION.md` — analysis report from `/logic-verification` (read if present)
 - `CLAIMS_FROM_RESULTS.md` — output: the structured verdict
 
 ## Configuration
 
 - **External reviewer model** — the cross-model reviewer used for objective claim evaluation. Should be a different model family from the host agent.
 - **Fidelity threshold** — the minimum fidelity level required to support a **primary** claim. Default: `numerical` (a primary claim must have at least numerical sanity-check support; symbolic-only is "partial", qualitative-only is "no"). Configurable to `symbolic` (stricter — requires full proof) or `qualitative` (lenient — qualitative reasoning suffices).
-- **Outcome classification** — outcomes are classified as **primary** (pre-specified in `refine-logs/DERIVATION_PLAN.md`, directly testable predictions of the theoretical model) or **secondary** (mechanism tests, robustness checks, additional analyses). The fidelity gate operates on primary outcomes only.
+- **Outcome classification** — outcomes are classified as **primary** (pre-specified in `refine-logs/FINAL_PROPOSAL.md`, directly testable predictions of the theoretical model) or **secondary** (mechanism tests, robustness checks, additional analyses). The fidelity gate operates on primary outcomes only.
 
 ## The 3-Fidelity Claim Ladder (OSS Universal)
 
@@ -82,10 +82,10 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 
 Gather derivation/verification evidence from whatever sources are available in the project:
 
-1. **Symbolic derivation logs** (`results/sympy/*.log`): the SymPy proof chain from `/theory-derivation`.
-2. **Numerical sanity checks** (`results/sandbox/*.json`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
+1. **Symbolic derivation logs** (`derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
+2. **Numerical sanity checks** (`derivations/{problem_id}/verification_report.md`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
 3. **Logic verification audit** (`audit_report/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
-4. **refine-logs/DERIVATION_PLAN.md**: intended claims and derivation design (primary source).
+4. **refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
 5. **docs/research_contract.md**: optional project-level contract (read if present).
 
 Assemble the key information:
@@ -152,7 +152,7 @@ Extract structured fields from the external reviewer's response:
 Apply the 3-fidelity gate to **primary** outcomes only:
 
 1. Parse the external reviewer's `fidelity_level` verdict.
-2. **Classify outcomes** (read `refine-logs/DERIVATION_PLAN.md` to determine pre-specification):
+2. **Classify outcomes** (read `refine-logs/FINAL_PROPOSAL.md` to determine pre-specification):
    - **Primary outcomes**: pre-specified, directly testable predictions of the theoretical model.
    - **Secondary outcomes**: mechanism tests, robustness checks, additional analyses (NOT pre-specified).
 3. **Apply fidelity gate (on PRIMARY outcomes only)**:
@@ -172,7 +172,7 @@ Apply the 3-fidelity gate to **primary** outcomes only:
 ```text
 FIDELITY GATE:
 - Classification of outcomes:
-  Primary (pre-specified in DERIVATION_PLAN.md):
+  Primary (pre-specified in FINAL_PROPOSAL.md):
     - convergence_rate: symbolic (full SymPy proof) → STRONG
     - stability_bound:   numerical (sweep confirms, no symbolic proof) → MODERATE
     - general_formula:   qualitative (matches intuition, no proof) → WEAK

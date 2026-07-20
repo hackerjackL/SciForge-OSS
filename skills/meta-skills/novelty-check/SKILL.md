@@ -99,13 +99,13 @@ score = novelty × 0.5 + feasibility × 0.3 + relevance × 0.2
 
 ### Step 1: 从 DAG 加载 Idea
 
-读取 `dag/ideas.json`——由 `/idea-discovery` 生成的所有 idea。
+读取 `refine-logs/IDEA_DAG.json`——由 `/idea-discovery` 生成的所有 idea（与 idea-discovery 的 DAG 路径对齐，OSS 统一存放于 `refine-logs/`）。
 每个 idea 有：
 - `id` — 唯一标识符
 - `title` — 简短描述
 - `hypothesis` — 核心主张
-- `methodology` — 如何测试/推导
-- `perspective` — 理论/计算/实证/交叉学科
+- `methodology` — 如何推导/验证
+- `perspective` — 理论 / 计算 / 定性 / 交叉学科（与 OSS 3-perspective 对齐：theoretical / computational / qualitative；OSS 无 empirical）
 
 ### Step 2: 对每个 Idea 运行 3 维评估
 
@@ -152,9 +152,9 @@ score = novelty × 0.5 + feasibility × 0.3 + relevance × 0.2
 
 ## 输出产物
 
-- `dag/novelty_report.json` — 所有 idea 的完整评估
-- `dag/novelty_{idea_id}.md` — 每个 idea 的详细评估
-- `dag/survivor.md` — 被选中的 idea
+- `refine-logs/novelty_report.json` — 所有 idea 的完整评估（与 idea-discovery 的 DAG 同目录）
+- `refine-logs/novelty_{idea_id}.md` — 每个 idea 的详细评估
+- `refine-logs/survivor.md` — 被选中的 idea
 
 ## 调用下游 skill
 

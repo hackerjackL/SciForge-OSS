@@ -163,12 +163,12 @@ role: cross-model-reviewer
 
 ## 调用方式
 
-本 skill 通常由 `/125-problems-pipeline` 在 Phase 9 调用：
+本 skill 通常由 `/125-problems-pipeline` 在 Phase 14（auto-review-loop）内部调用：
 ```
 /cross-review "review the paper at output/PAPER.md" — difficulty: hard
 ```
 
-如果分数不足，管线回退到 Phase 8（论文写作）修复问题，然后重新提交评审。
+如果分数不足，管线回退到 Phase 12（论文写作）修复问题，然后重新提交评审。
 
 ## 共享契约引用
 

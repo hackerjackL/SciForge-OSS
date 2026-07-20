@@ -1,26 +1,30 @@
 # SciForge-OSS Agent Guide
 
-> **Status**: The single entry orchestrator for OSS is `/125-problems-pipeline`. It executes a complete 17-phase DAG research loop on **one** 125-problem question supplied by the human user's prompt. **OSS does NOT auto-iterate over all 125 questions** — each invocation = one Q-id = one complete pipeline run end-to-end.
+> **Status**: The single entry orchestrator for OSS is `/125-problems-pipeline`. It executes a complete 17-phase DAG research loop on **one** problem supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation = one Q-id = one complete pipeline run end-to-end.
+>
+> **全领域支持**: SciForge-OSS 不限定任何学科领域。物理学、数学、计算机科学、医学、经济学、教育学、材料科学、地球科学、大气科学、天文学、化学、工程、传感器、光电——任何科学领域均可使用。
 
 ---
 
 ## Quick Start
 
-### Solve one 125-problem question
+### Solve one problem
 
 ```
 "帮我完整研究 Q015：宇宙的起源与演化"
 "Solve Q042"
 "run the full pipeline on Q001"
+"研究一个经济学模型：完全竞争市场下的福利最大化"
+"Analyze this material science problem: high-temperature superconductor mechanism"
 ```
 
-The human user supplies the specific Q-id. OSS does **not** auto-search the 125-problem index. Each invocation processes exactly one Q-id.
+The human user supplies the specific problem. OSS does **not** auto-search any problem index. Each invocation processes exactly one problem.
 
 ### Available skills
 
 | Type | Skill | Role |
 |------|-------|------|
-| **Orchestrator** | `/125-problems-pipeline` | Single entry — 17-phase DAG research loop on one Q-id |
+| **Orchestrator** | `/125-problems-pipeline` | Single entry — 17-phase DAG research loop on one problem |
 | **Meta-skill** | `/idea-discovery` | Generate + pre-screen 8-12 idea candidates via MCTS (4 rounds) |
 | **Meta-skill** | `/universal-retrieval` | Literature survey + 3-layer anti-hallucination citation verification |
 | **Meta-skill** | `/unified-plotting` | Render publication-quality figures (morandi palette + Layer 2 data colormaps) |
@@ -50,18 +54,18 @@ Phase  2: /idea-discovery [DAG 分支] — 3 视角 idea + MCTS 迭代
 Phase  3: /novelty-check [DAG 门控] — 3 维评估 + 淘汰
     ─── Forced human checkpoint: pick the final idea ───
 Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
-Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批       ← 新增
+Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批
     ─── Forced human checkpoint: approve the method registry ───
 Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
-Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计        ← 新增
+Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
 Phase  8: /logic-verification — 6 维度逻辑一致性审计
-Phase  9: /invariant-check — INV-G1 问题锚点冻结验证                  ← 新增
-Phase 10: /result-to-claim — 3 保真度 claim 门控                     ← 新增
+Phase  9: /invariant-check — INV-G1 问题锚点冻结验证
+Phase 10: /result-to-claim — 3 保真度 claim 门控
 Phase 11: /unified-plotting — 学术图表（可选，莫兰迪色系 + Layer 2）
 Phase 12: /paper-writing — elsarticle 单模板写作
-Phase 13: /paper-compile — LaTeX 零警告零报错编译                    ← 新增
-Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺      ← 新增
-Phase 15: /citation-audit — 最终引用 3 层验证                        ← 新增
+Phase 13: /paper-compile — LaTeX 零警告零报错编译
+Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺
+Phase 15: /citation-audit — 最终引用 3 层验证
 Phase 16: 最终组装 + 产物归档
 ```
 
@@ -89,7 +93,7 @@ These checkpoints are non-negotiable. The pipeline halts until the human confirm
 
 ## Key Contracts (OSS — discipline-agnostic, single-row)
 
-OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block with 4-level fallback (economics / cs-ml / physics / general). Every 125-problem run uses `discipline: general` unconditionally. See [`skills/shared-references/discipline-context.md`](skills/shared-references/discipline-context.md).
+OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block with 4-level fallback (economics / cs-ml / physics / general). Every invocation uses `discipline: general` unconditionally. See [`skills/shared-references/discipline-context.md`](skills/shared-references/discipline-context.md).
 
 | Contract | Purpose | OSS status |
 |----------|---------|------------|
@@ -124,13 +128,14 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 
 | Aspect | Main SciForge | SciForge-OSS |
 |--------|---------------|--------------|
-| **Disciplines** | 4 parallel pipelines (economics / cs-ml / physics / general) | 1 universal pipeline (always `general`) |
+| **Disciplines** | 4 parallel pipelines (economics / cs-ml / physics / general) | 1 universal pipeline (always `general`) — any domain |
 | **Frameworks** | AIM (econ) / SOTA (cs-ml) / PNV (physics) / none (general) | None — agent's runtime reasoning handles domain-specific methodology |
 | **Reviewer personas** | senior-econ-editor / senior-ml-reviewer / senior-physics-editor / senior-reviewer-agnostic | senior-reviewer-agnostic only |
 | **Overlays** | 16 overlay files (4 skills × 4 disciplines) | None — no discipline dispatch |
 | **Templates** | 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) | Single unified `elsarticle` template |
 | **Experiments** | Full empirical pipeline (GPU training, benchmark binding, SOTA gate) | No experiments — SymPy derivation + numerical sanity sandbox only |
-| **125-problem index** | N/A | Stub at `problems/125-SCIENCE-PROBLEMS.md` — NOT auto-searched; human supplies Q-id |
+| **Verification paths** | Implicit — assumes code/experiment available | Explicit — theory-only / computational / theory+experiment 三路可选 |
+| **Problem index** | N/A | Stub at `problems/125-SCIENCE-PROBLEMS.md` — NOT auto-searched; human supplies Q-id. 125 题为 Demo，非完整题库 |
 | **Figures** | Python pipeline mandatory (matplotlib/seaborn) | Python pipeline for data plots; AI-direct SVG allowed for simple diagrams (morandi palette still enforced) |
 | **Fidelity ladder** | 5-fidelity (text / symbolic / minimal / empirical / full) | 3-fidelity (symbolic / numerical / qualitative) — no empirical, no full |
 | **Invariants** | INV-E1~E5 (econ) + INV-C1~C4 (cs-ml) + INV-P1~P5 (physics) + INV-G1 (general) | INV-G1 only (PROBLEM_ANCHOR_FREEZE) — universal |
@@ -142,13 +147,15 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 
 ## Invocation Patterns
 
-### Solve one question (default)
+### Solve one problem (default)
 
 ```
 "帮我完整研究 Q015：宇宙的起源与演化"
+"Solve a math problem: prove the Riemann Hypothesis implications"
+"Analyze this economics model: general equilibrium under incomplete markets"
 ```
 
-The orchestrator runs the full 17-phase loop on Q015. Forced human checkpoints at Phase 3→4 (pick final idea) and Phase 5→6 (approve method registry).
+The orchestrator runs the full 17-phase loop. Forced human checkpoints at Phase 3→4 (pick final idea) and Phase 5→6 (approve method registry).
 
 ### Resume from checkpoint
 
@@ -175,18 +182,19 @@ But the **canonical** workflow is the full 17-phase orchestrator loop — partia
 
 ## Boundaries
 
-- **Single-question execution only.** Each invocation = one Q-id. Do NOT auto-iterate over all 125.
+- **Single-question execution only.** Each invocation = one problem. Do NOT auto-iterate over all problems.
 - **No discipline branch.** One universal pipeline. The agent's runtime reasoning handles domain-specific methodology.
-- **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and referenced in every downstream phase.
+- **INV-G1 is non-negotiable.** The problem anchor is frozen at Phase 0 and referenced in every downstream phase.
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select or self-approve.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type.
 - **The orchestrator never executes research.** It delegates to the corresponding skill.
+- **125 problems are a Demo.** The framework supports any number of problems, any domain. The 125 problems index is a demonstration only.
 
 ---
 
 ## See Also
 
 - [`README.md`](README.md) — project overview + skill catalog + comparison with main SciForge
-- [`problems/125-SCIENCE-PROBLEMS.md`](problems/125-SCIENCE-PROBLEMS.md) — 125 problem index stub (NOT auto-searched; human supplies Q-id)
+- [`problems/125-SCIENCE-PROBLEMS.md`](problems/125-SCIENCE-PROBLEMS.md) — 125 problem demo index (NOT auto-searched; human supplies Q-id)
 - [`skills/orchestrator/125-problems-pipeline/SKILL.md`](skills/orchestrator/125-problems-pipeline/SKILL.md) — the 17-phase DAG loop orchestrator
 - [`skills/shared-references/`](skills/shared-references/) — the shared contract layer (discipline-agnostic)

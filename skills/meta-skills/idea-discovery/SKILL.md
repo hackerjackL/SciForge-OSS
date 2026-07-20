@@ -113,6 +113,23 @@ Encode dependencies in `IDEA_DAG.json`:
 - Edges = "depends on" relationships
 - The DAG is acyclic by construction (no idea depends on itself)
 
+### Step 3b: DAG Visualization (Mermaid)
+
+After constructing `IDEA_DAG.json`, generate a Mermaid-format visualization in `IDEA_DAG_VISUAL.md`:
+
+```mermaid
+graph TD
+    Q[Problem: {Q-id}] --> T[Idea 1: theoretical]
+    Q --> C[Idea 2: computational]
+    Q --> QL[Idea 3: qualitative]
+    C --> T
+    T --> M[MCTS promoted]
+    QL --> E[Eliminated]
+    M --> F[Final proposal]
+```
+
+This file is updated after each MCTS round to reflect the current DAG state. The final visualization shows the complete idea evolution path, including which ideas were eliminated and why. This is the **"show"** of the DAG architecture — the user can see the full reasoning graph at a glance.
+
 ### Step 4: MCTS Iteration (4 rounds)
 
 Follow the MCTS protocol above. Log each round in `MCTS_LOG.md`:
@@ -161,8 +178,9 @@ The human picks the final idea. Record in `FINAL_PROPOSAL.md`:
 The final output is:
 1. `refine-logs/IDEA_CANDIDATES.md` — ranked list of 8-12 idea candidates with 5-axis scores
 2. `refine-logs/IDEA_DAG.json` — DAG structure (nodes + edges)
-3. `refine-logs/MCTS_LOG.md` — round-by-round MCTS iteration log
-4. `refine-logs/FINAL_PROPOSAL.md` — selected idea (frozen for downstream) with Problem Anchor + MCTS convergence evidence
+3. `refine-logs/IDEA_DAG_VISUAL.md` — DAG visualization in Mermaid format (for human-readable graph)
+4. `refine-logs/MCTS_LOG.md` — round-by-round MCTS iteration log
+5. `refine-logs/FINAL_PROPOSAL.md` — selected idea (frozen for downstream) with Problem Anchor + MCTS convergence evidence
 
 ## See Also
 
