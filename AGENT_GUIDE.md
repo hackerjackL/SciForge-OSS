@@ -52,7 +52,7 @@ Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
 Phase  1: 问题理解与分解（内置推理）
 Phase  2: /idea-discovery [DAG 分支] — 3 视角 idea + MCTS 迭代
 Phase  2.5: /adversarial-falsification [证伪门控] — 假设评分 + 反例构造 + 文献对抗
-Phase  3: /novelty-check [DAG 门控] — 3 维评估 + 淘汰
+Phase  3: /novelty-check [DAG 门控] — 4 维评估 + 淘汰
     ─── Forced human checkpoint: pick the final idea ───
 Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
 Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批

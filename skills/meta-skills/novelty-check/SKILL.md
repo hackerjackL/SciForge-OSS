@@ -116,9 +116,9 @@ score = novelty × 0.45 + feasibility × 0.25 + relevance × 0.15 + engineering_
 - `methodology` — 如何推导/验证
 - `perspective` — 理论 / 计算 / 定性 / 交叉学科（与 OSS 3-perspective 对齐：theoretical / computational / qualitative；OSS 无 empirical）
 
-### Step 2: 对每个 Idea 运行 3 维评估
+### Step 2: 对每个 Idea 运行 4 维评估
 
-对每个 idea，按上述标准执行 3 维评估。
+对每个 idea，按上述标准执行 4 维评估（新颖性 + 可行性 + 相关性 + 工程落地 EG）。
 
 ### Step 3: 计算综合判定
 
