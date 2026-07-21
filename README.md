@@ -1,6 +1,6 @@
 # SciForge-OSS
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.9.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -340,7 +340,7 @@ A: 见上方表格。核心区别：全领域、单 pipeline、DAG 架构、结�
 
 ## 许可证
 
-本项目基于 SciForge 的原有许可证。详见 [LICENSE](LICENSE)。
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE)。
 
 ---
 
