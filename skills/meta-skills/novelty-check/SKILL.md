@@ -8,7 +8,7 @@ role: novelty-verifier
 
 ## Quick Reference
 
-- **Purpose**: 3 维评估 (新颖性×0.5 + 可行性×0.3 + 相关性×0.2) → 淘汰弱 idea
+- **Purpose**: 4 维评估 (新颖性×0.45 + 可行性×0.25 + 相关性×0.15 + 工程落地×0.15) → 淘汰弱 idea
 - **Input**: IDEA_DAG.json (from /idea-discovery)
 - **Output**: novelty_report.json + survivor.md
 - **Key**: 最多 1 个 idea 存活到推导阶段；综合评分 < 0.6 淘汰
@@ -90,8 +90,10 @@ role: novelty-verifier
 幸存者选择基于加权复合分数：
 
 ```
-score = novelty × 0.5 + feasibility × 0.3 + relevance × 0.2
+score = novelty × 0.45 + feasibility × 0.25 + relevance × 0.15 + engineering_grounding × 0.15
 ```
+
+**Engineering Grounding 归一化**: EG score 取自 `IDEA_DAG.json` 中 `engineering_grounding.eg_average`，归一化为 0-1 尺度（除以 10）。如果所有 EG 子维均为 N/A（纯人文学科），EG = 1.0（无惩罚）。
 
 ## 配置
 
@@ -125,9 +127,10 @@ score = novelty × 0.5 + feasibility × 0.3 + relevance × 0.2
 ### Step 4: 选择幸存者
 
 如果多个 idea 通过：
-1. 按复合分数排名（新颖性 × 0.5 + 可行性 × 0.3 + 相关性 × 0.2）
+1. 按复合分数排名（新颖性 × 0.45 + 可行性 × 0.25 + 相关性 × 0.15 + 工程落地 × 0.15）
 2. 选择最高分 idea
 3. 记录被淘汰的 idea 及其原因
+4. 在 `survivor.md` 中**附加** Engineering Grounding 标签（不参与排名但人类可见）
 
 如果没有 idea 通过：
 1. 放松 strictness 一级
@@ -151,7 +154,9 @@ score = novelty × 0.5 + feasibility × 0.3 + relevance × 0.2
     "title": "A First-Principles Derivation...",
     "novelty_score": 8,
     "feasibility_score": 7,
-    "relevance_score": 9
+    "relevance_score": 9,
+    "engineering_grounding_score": 4.2,
+    "eg_tier": "CONSTRAINED"
   },
   "next_skill": "theory-derivation"
 }

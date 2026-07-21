@@ -347,12 +347,18 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 - **Basis**: SymPy derivation status, logic verification results, proof completeness
 - **Risks**: [remaining theoretical gaps]
 
-### Grounding Confidence (落地置信度)
+### OSS Sandbox Grounding (来自 Phase 5a, 重算)
 - **Score**: [0-10]
-- **Basis**: Assumption health score, adversarial falsification results, analogy mapping, prior probability
-- **Risks**: [assumptions that may not hold in practice, missing empirical validation]
+- **Basis**: OSS sandbox feasibility, adversarial falsification results, analogy mapping, prior probability
+- **Risks**: [assumptions that may not hold in OSS sandbox]
+
+### Engineering Grounding (来自 Phase 5b, 继承, 不重算)
+- **Score**: [0-10] (inherited from `refine-logs/ENGINEERING_GROUNDING.md` eg_average)
+- **Report**: See `refine-logs/ENGINEERING_GROUNDING.md` for full 5-dim breakdown + downside protection
+- **Risks**: [engineering risks from Phase 5b — compute, deps, team-year, reproducibility, capital]
 
 ### Combined Assessment
+- **Grounding confidence**: 0.6 × OSS_sandbox_grounding + 0.4 × engineering_grounding
 - **Overall confidence**: [0-10]
 - **Recommendation**: 
   - If theoretical ≥ 7 AND grounding ≥ 7: "Strong — suitable for publication"
