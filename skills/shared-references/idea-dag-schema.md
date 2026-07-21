@@ -57,10 +57,13 @@ The DAG is persisted as `idea-stage/IDEA_DAG.json` with the following structure:
         "engineering_grounding": {
           "compute_footprint": {"score": 2, "tier": "HEAVY", "notes": "> 1000 GPU-h estimated"},
           "dependency_chain": {"score": 4, "tier": "CONSTRAINED", "notes": "2 deps not ready: proprietary dataset D3, custom ASIC"},
-          "team_year_estimate": {"score": 3, "tier": "HEAVY", "notes": "≈ 18 person-months"},
-          "reproducibility_risk": {"score": 4, "tier": "CONSTRAINED", "notes": "≈ 35% chance trick false"},
+          "ai_dev_cycle": {"score": 3, "tier": "HEAVY", "notes": "≈ 18 AI interaction rounds estimated"},
+          "reproducibility_risk": {"score": 4, "tier": "CONSTRAINED", "notes": "≈ 35% chance trick false → partial rewrite"},
           "capital_cost": {"score": 8, "tier": "READY", "notes": "uses existing cluster"},
-          "eg_average": 4.2,
+          "code_complexity": {"score": 5, "tier": "CONSTRAINED", "notes": "≈ 2000 lines, 3 modules"},
+          "temporal_maturity": {"score": 7, "tier": "READY", "notes": "AI capability ready now"},
+          "regulatory_readiness": {"score": 10, "tier": "READY", "notes": "no regulatory constraints"},
+          "eg_average": 4.6,
           "eg_tier": "CONSTRAINED"
         },
         "children": ["idea_005", "idea_008"],
@@ -235,4 +238,4 @@ The `schema_version` field in `IDEA_DAG.json` follows semantic versioning:
 | Add required field or change field semantics | Major (1.x → 2.0) | Breaking — requires migration; old DAGs are treated as corrupted (fallback to legacy flow) |
 | Remove field | Major | Breaking — never remove fields in minor versions |
 
-**Current version**: 1.0. The `data_fit_flags` field added in this revision is **optional** — existing v1.0 DAGs without it remain valid. Consumers check `schema_version` and apply the appropriate parsing rules.
+**Current version**: 1.1 (v1.1 added `engineering_grounding` with 8 sub-dimensions, replacing the original 5-sub-dimension version).

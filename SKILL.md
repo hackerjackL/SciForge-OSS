@@ -2,8 +2,8 @@
 name: sciforge-oss
 type: skill-package
 role: ai-scientist-framework
-version: 1.0.0
-description: 纯 Skill 驱动的通用 AI Scientist 框架 — 全领域 (Domain-Agnostic) 科学推理引擎
+version: 1.1.0
+description: 纯 Skill 驱动的通用 AI Scientist 框架 — 全领域 (Domain-Agnostic) 科学推理引擎，v3.0 新增 AI 视角工程落地评判
 entry: skills/orchestrator/auto-pipeline/SKILL.md
 license: MIT
 tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
@@ -18,15 +18,15 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 
 | 类型 | 数量 | 说明 |
 |------|------|------|
-| **Orchestrator** | 1 | `/auto-pipeline` — 单入口，21 阶段 DAG 科研循环（v2.9 新增 Phase 5b EG） |
-| **Meta-Skills** | 7 | 通用元技能：idea-discovery, universal-retrieval, unified-plotting, dynamic-sandbox, dynamic-tooling, domain-learner, domain-signature |
+| **Orchestrator** | 1 | `/auto-pipeline` — 单入口，21 阶段 DAG 科研循环（v3.0 Phase 5b 新增 AI 8 维 EG 评估） |
+| **Meta-Skills** | 8 | 通用元技能：idea-discovery, universal-retrieval, unified-plotting, dynamic-sandbox, dynamic-tooling, domain-learner, domain-signature, novelty-check |
 | **Support Skills** | 13 | 支撑技能：paper-writing, paper-compile, quality-gate, auto-review-loop, theory-derivation, logic-verification, result-to-claim, leakage-audit, citation-audit, invariant-check, kill-argument, method-registry, adversarial-falsification |
 | **Shared References** | 31+ | 共享配置：skill-config, assurance-contract, effort-contract, color-themes, venue-profiles, **engineering-grounding-contract** 等 |
 
 ## 包含的子技能
 
 ### Orchestrator
-- `/auto-pipeline` — 单题 21 阶段 DAG 科研循环（唯一入口，v2.9 新增 Phase 5b EG）
+- `/auto-pipeline` — 单题 21 阶段 DAG 科研循环（唯一入口，v3.0 Phase 5b AI 8 维 EG 评估 + Extreme Protocol）
 
 ### Meta-Skills
 - `/idea-discovery` — MCTS 增强的研究想法生成
