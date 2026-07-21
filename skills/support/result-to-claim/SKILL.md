@@ -354,8 +354,8 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 
 ### Engineering Grounding (来自 Phase 5b, 继承, 不重算)
 - **Score**: [0-10] (inherited from `refine-logs/ENGINEERING_GROUNDING.md` eg_average)
-- **Report**: See `refine-logs/ENGINEERING_GROUNDING.md` for full 5-dim breakdown + downside protection
-- **Risks**: [engineering risks from Phase 5b — compute, deps, team-year, reproducibility, capital]
+- **Report**: See `refine-logs/ENGINEERING_GROUNDING.md` for full 8-dim breakdown + downside protection
+- **Risks**: [engineering risks from Phase 5b — compute, deps, ai_dev_cycle, reproducibility, capital, code_complexity, temporal_maturity, regulatory]
 
 ### Combined Assessment
 - **Grounding confidence**: 0.6 × OSS_sandbox_grounding + 0.4 × engineering_grounding

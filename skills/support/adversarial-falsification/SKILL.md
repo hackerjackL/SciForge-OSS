@@ -145,23 +145,26 @@ The agent computes the 8 sub-dimensions per the [Engineering Grounding Contract]
 ### 8-Dimension Scores
 | Sub-dimension | Score (0-10) | Tier | Notes |
 |---------------|-------------|------|-------|
-| Compute Footprint | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. GPU/CPU-h or N/A] |
+| Compute Footprint | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. GPU/CPU-h or N/A reason] |
 | Dependency Chain | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [list of unready deps] |
-| Team-Year Estimate | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. person-months] |
+| AI Dev Cycle | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. AI interaction rounds] |
 | Reproducibility Risk | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [risk % + key assumption] |
-| Capital Cost | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. cost or N/A] |
+| Capital Cost | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. cost or N/A reason] |
+| Code Complexity | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. lines of code + modules] |
+| Temporal Maturity | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [AI capability readiness] |
+| Regulatory Readiness | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [regulatory status] |
 | **EG Average** | **[avg]** | **[OVERALL TIER]** | |
 
-### Engineering Path
-- Stage 1 ([person-months]): [cheapest falsification step]
-- Stage 2 ([person-months]): [scaled verification step]
-- Stage 3 ([person-months]): [full prototype]
+### AI Engineering Path (AI 开发路线)
+- Stage 1 ([rounds range]): [cheapest falsification step — write minimal code to test trick]
+- Stage 2 ([rounds range]): [scaled verification step — 10% compute, partial code]
+- Stage 3 ([rounds range]): [full prototype — complete code, full experiment]
 
-### Downside Protection
-- Falsified at Stage 1 → loss: [person-months] (bounded)
-- Falsified at Stage 2 → loss: [person-months] + [compute cost]
-- Falsified at Stage 3 → loss: [person-months] + [full cost]
-- **Recommendation**: [e.g., "Allocate Stage 1 budget first; do not commit Stage 2-3 until Stage 1 passes"]
+### Downside Protection (trick 假的下行保护)
+- Falsified at Stage 1 → loss: [rounds] (bounded, minimal)
+- Falsified at Stage 2 → loss: [rounds] + [compute cost]
+- Falsified at Stage 3 → loss: [rounds] + [full cost]
+- **Recommendation**: [e.g., "Allocate Stage 1 rounds first; do not commit Stage 2-3 until Stage 1 passes."]
 ```
 
 ### Phase 6: Data Availability Check
