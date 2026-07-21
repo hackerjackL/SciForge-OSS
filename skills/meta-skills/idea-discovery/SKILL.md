@@ -72,9 +72,9 @@ Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 | Relevance | Does this approach address the frozen Q-id's core question? | Tangential to the core question | Solves a different problem |
 | Tractability | Is the derivation chain tractable within the OSS sandbox (SymPy + numpy)? | Requires non-standard compute | Requires GPU / long-running experiments OSS cannot run |
 | Data-readiness | Are the required parameters / data available? | Requires data not in `data/` | Requires data that does not exist |
-| **Engineering Grounding** | **Can a real engineering team build this? (see [EG contract](../../shared-references/engineering-grounding-contract.md))** | **EG average 3.0-5.9 (CONSTRAINED tier)** | **Any EG sub-dimension = 0** |
+| **Engineering Grounding** | **AI agent 能否实现此 idea？(see [EG contract](../../shared-references/engineering-grounding-contract.md))** | **EG average 3.0-5.9 (CONSTRAINED tier)** | **≥ 3 EG sub-dimensions = 0** |
 
-**Hard filter**: any axis `BLOCKED` → idea is rejected before MCTS. `CONSTRAINED` axes are flagged but the idea proceeds to MCTS. The Engineering Grounding axis follows the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) — HEAVY and CONSTRAINED ideas proceed to MCTS with labels; only sub-dimension = 0 BLOCKED eliminates.
+**Hard filter**: any axis `BLOCKED` → idea is rejected before MCTS. `CONSTRAINED` axes are flagged but the idea proceeds to MCTS. The Engineering Grounding axis follows the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) — HEAVY and CONSTRAINED ideas proceed to MCTS with labels; only **≥ 3 sub-dimensions = 0** triggers BLOCKED (v3.0 stricter rule: 1-2 sub-dimensions = 0 does NOT eliminate, instead produces an AI Mitigation Plan).
 
 ## MCTS Iteration Protocol
 

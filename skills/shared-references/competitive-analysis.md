@@ -54,7 +54,7 @@ Phase 3: 长尾 50+ 领域（小众领域）
 
 **实施路径**：
 ```
-1. ✅ 增加"实施复杂度"维度 → 5 维 EG 子评分 (Compute/Dependency/Team-Year/Repro Risk/Capital)
+1. ✅ 增加"实施复杂度"维度 → 8 维 EG 子评分 (Compute/Dependency/AI Dev Cycle/Repro Risk/Capital/Code Complexity/Temporal Maturity/Regulatory)
 2. ✅ 三路联合置信度:
    final_confidence = theoretical × data_availability × implementation_feasibility
    → 实现为: grounding_confidence = 0.6 × OSS_sandbox_grounding + 0.4 × engineering_grounding
