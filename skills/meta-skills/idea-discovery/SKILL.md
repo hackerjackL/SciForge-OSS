@@ -58,12 +58,12 @@ Key artifacts consumed:
 - **Max MCTS iterations** — 4 (default). Main SciForge uses 6; OSS uses 4 because the no-experiment setting means each iteration is cheaper (no pilot to run). Configurable.
 - **Min root nodes** — 8 (default). The DAG starts with 8-12 root idea nodes; MCTS prunes to the best 3-5.
 - **Perspectives** — 3 universal: `theoretical` (symbolic derivation), `computational` (numerical sanity check), `qualitative` (mechanism reasoning). Main SciForge has a 4th `empirical` (experiment) which OSS removes.
-- **Promotion threshold** — score ≥ 0.6 on the 5-axis idea-fit (see below).
+- **Promotion threshold** — score ≥ 0.6 on the 6-axis idea-fit (see below).
 - **Domain-adaptive perspectives** — If `refine-logs/domain-signature.json` exists, use the perspective weights from the signature instead of the default equal weights. See [`shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
 
-## The 5-Axis Idea-Fit Pre-Screen (Universal)
+## The 6-Axis Idea-Fit Pre-Screen (Universal)
 
-Every idea candidate is pre-screened against 5 axes before MCTS promotion:
+Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 
 | Axis | What it checks | CONSTRAINED | BLOCKED |
 |------|----------------|-------------|---------|
@@ -72,15 +72,16 @@ Every idea candidate is pre-screened against 5 axes before MCTS promotion:
 | Relevance | Does this approach address the frozen Q-id's core question? | Tangential to the core question | Solves a different problem |
 | Tractability | Is the derivation chain tractable within the OSS sandbox (SymPy + numpy)? | Requires non-standard compute | Requires GPU / long-running experiments OSS cannot run |
 | Data-readiness | Are the required parameters / data available? | Requires data not in `data/` | Requires data that does not exist |
+| **Engineering Grounding** | **Can a real engineering team build this? (see [EG contract](../../shared-references/engineering-grounding-contract.md))** | **EG average 3.0-5.9 (CONSTRAINED tier)** | **Any EG sub-dimension = 0** |
 
-**Hard filter**: any axis `BLOCKED` → idea is rejected before MCTS. `CONSTRAINED` axes are flagged but the idea proceeds to MCTS.
+**Hard filter**: any axis `BLOCKED` → idea is rejected before MCTS. `CONSTRAINED` axes are flagged but the idea proceeds to MCTS. The Engineering Grounding axis follows the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) — HEAVY and CONSTRAINED ideas proceed to MCTS with labels; only sub-dimension = 0 BLOCKED eliminates.
 
 ## MCTS Iteration Protocol
 
 Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) for the full contract. Summary:
 
 1. **Round 1 (Expansion)**: Generate 8-12 root idea nodes across the 3 perspectives.
-2. **Round 2 (Selection + Simulation)**: Score each node on the 5-axis idea-fit. Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?).
+2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?).
 3. **Round 3 (Backpropagation)**: Promote ideas with simulation score ≥ 0.6. Reject ideas with simulation score < 0.4. For borderline (0.4-0.6), generate 2-3 child nodes (refined variants) and re-score.
 4. **Round 4 (Final selection)**: From promoted ideas, select the top 1-3 for `FINAL_PROPOSAL.md`. The human user picks the final one (forced checkpoint).
 
@@ -113,7 +114,7 @@ Generate 8-12 root nodes across these 3 perspectives. Record each in `IDEA_CANDI
 - ID (e.g., `IDEA-001`)
 - Perspective
 - Framing (1-2 sentences)
-- 5-axis idea-fit pre-screen verdict
+- 6-axis idea-fit pre-screen verdict (including Engineering Grounding tier)
 
 ### Step 3: DAG Construction
 
@@ -180,12 +181,12 @@ The human picks the final idea. Record in `FINAL_PROPOSAL.md`:
 - **No discipline-specific framing.** Do not reintroduce economics DiD/IV/RDD, cs-ml SOTA, or physics PNV framings. The universal 3-perspective (theoretical / computational / qualitative) applies to every problem.
 - **Forced human checkpoint at final selection.** The agent cannot self-select the final idea.
 - **MCTS iteration is mandatory.** Do not commit to the first idea generated — the first idea is rarely the best. Always run ≥ 4 MCTS rounds.
-- **5-axis hard filter is non-negotiable.** Any axis `BLOCKED` → idea rejected before MCTS, no exceptions.
+- **6-axis hard filter is non-negotiable.** Any axis `BLOCKED` → idea rejected before MCTS, no exceptions. Engineering Grounding BLOCKED = any sub-dimension = 0 (see [EG contract](../../shared-references/engineering-grounding-contract.md)).
 
 ## Output Shape
 
 The final output is:
-1. `refine-logs/IDEA_CANDIDATES.md` — ranked list of 8-12 idea candidates with 5-axis scores
+1. `refine-logs/IDEA_CANDIDATES.md` — ranked list of 8-12 idea candidates with 6-axis scores
 2. `refine-logs/IDEA_DAG.json` — DAG structure (nodes + edges)
 3. `refine-logs/IDEA_DAG_VISUAL.md` — DAG visualization in Mermaid format (for human-readable graph)
 4. `refine-logs/MCTS_LOG.md` — round-by-round MCTS iteration log

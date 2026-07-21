@@ -8,7 +8,7 @@ role: idea-falsification-auditor
 
 ## Quick Reference
 
-- **Purpose**: 5 维度证伪攻击 (假设评分→反例→文献对抗→类比→可行性) 确保 idea 不是"假 trick"
+- **Purpose**: 6 维度证伪攻击 (假设评分→反例→文献对抗→类比→沙盒可行性→工程落地) 确保 idea 不是"假 trick"
 - **Input**: IDEA_CANDIDATES.md (from /idea-discovery)
 - **Output**: 每个 idea 的 SURVIVE/WEAKENED/FALSIFIED 判定
 - **Key**: 强制证伪 — 先试图杀死 idea，再试图证明它
@@ -119,18 +119,49 @@ Map the idea to analogous problems in other domains and estimate prior success p
 **Adjusted prior**: [low/medium/high]
 ```
 
-### Phase 5: Computational Feasibility
+### Phase 5a: OSS Sandbox Feasibility (unchanged)
 
-Estimate minimum resources needed and whether OSS can provide them:
+Estimate minimum resources needed for the OSS sandbox and whether OSS can provide them:
 
 ```markdown
-## Computational Feasibility — IDEA-{id}
+## OSS Sandbox Feasibility — IDEA-{id}
 
 **Min compute needed**: [CPU-hours / GPU-hours / none]
 **Min data needed**: [size / type]
 **Available in OSS sandbox?**: yes/partial/no
 **If partial**: [workaround]
 **If no**: [recommendation to scope down or reject]
+```
+
+### Phase 5b: Engineering Grounding Estimate (NEW)
+
+Estimate real-world engineering feasibility using the 5-dimension EG axis. This phase runs AFTER Phase 5a. If Phase 5a BLOCKED the idea, Phase 5b is skipped (NOT_APPLICABLE).
+
+The agent computes the 5 sub-dimensions per the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) and produces `refine-logs/ENGINEERING_GROUNDING.md`:
+
+```markdown
+## Engineering Grounding Estimate — IDEA-{id}
+
+### 5-Dimension Scores
+| Sub-dimension | Score (0-10) | Tier | Notes |
+|---------------|-------------|------|-------|
+| Compute Footprint | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. GPU/CPU-h or N/A] |
+| Dependency Chain | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [list of unready deps] |
+| Team-Year Estimate | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. person-months] |
+| Reproducibility Risk | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [risk % + key assumption] |
+| Capital Cost | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [est. cost or N/A] |
+| **EG Average** | **[avg]** | **[OVERALL TIER]** | |
+
+### Engineering Path
+- Stage 1 ([person-months]): [cheapest falsification step]
+- Stage 2 ([person-months]): [scaled verification step]
+- Stage 3 ([person-months]): [full prototype]
+
+### Downside Protection
+- Falsified at Stage 1 → loss: [person-months] (bounded)
+- Falsified at Stage 2 → loss: [person-months] + [compute cost]
+- Falsified at Stage 3 → loss: [person-months] + [full cost]
+- **Recommendation**: [e.g., "Allocate Stage 1 budget first; do not commit Stage 2-3 until Stage 1 passes"]
 ```
 
 ### Phase 6: Data Availability Check
@@ -183,6 +214,8 @@ Check whether the required data exists and is accessible. This prevents "data-le
   "evidence_balance": "supports",
   "prior_probability": "medium",
   "oss_feasible": true,
+  "engineering_grounding_tier": "CONSTRAINED",
+  "engineering_grounding_avg": 4.2,
   "overall_verdict": "SURVIVE",
   "remaining_risk": "Assumption A3 is weak (score 4/10) — if violated, result may not hold"
 }
@@ -217,3 +250,4 @@ Check whether the required data exists and is accessible. This prevents "data-le
 - [`../novelty-check/SKILL.md`](../../meta-skills/novelty-check/SKILL.md) — downstream filter after falsification
 - [`../method-registry/SKILL.md`](../method-registry/SKILL.md) — consumes falsification results for assumption registry
 - [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — complementary adversarial exercise (post-paper, not pre-idea)
+- [`../../shared-references/engineering-grounding-contract.md`](../../shared-references/engineering-grounding-contract.md) — EG axis contract consumed by Phase 5b
