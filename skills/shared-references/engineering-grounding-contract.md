@@ -111,6 +111,18 @@ Every idea with EG tier CONSTRAINED or HEAVY produces a report. READY ideas may 
 - If falsified at Stage 2 → loss = {rounds} + {compute cost}
 - If falsified at Stage 3 → loss = {rounds} + {full cost}
 - **Recommendation**: {e.g., "Allocate Stage 1 rounds first. Do not commit Stage 2-3 until Stage 1 passes."}
+
+### AI Engineering Path 自动出图
+
+Phase 5b 完成后，自动调用 `/unified-plotting` 以 `ai-dev-path` 图表类型产出一张 **PDF 矢量图** `figures/engineering-path/ENGINEERING_GROUNDING_PATH.pdf`，内容为三段式 AI 开发路线时间轴：
+
+```
+Stage 1 (0-3 rounds) ───[risk: trick falsified]─── Stage 2 (3-9 rounds) ───[risk: scaled gate fail]─── Stage 3 (9-18 rounds)
+       ↓ loss: 3 rounds                                   ↓ loss: 9 rounds + compute                              ↓ loss: 18 rounds + full
+       [invest first]                                      [only if Stage 1 passes]                                [only if Stage 2 passes]
+```
+
+输出格式：**PDF**（矢量图，质量高于 SVG）。LaTeX 源码保留以支持可复现。
 ```
 
 ### 4.1 AI Mitigation Plan (for 1-2 sub-dimensions = 0)
