@@ -146,6 +146,17 @@ This adaptive pipeline is **structurally different**:
 2. **Intensity is data-driven** — the learner (Phase 1b) writes the signature; the orchestrator reads it and applies the override table. No human pre-classifies the discipline.
 3. **The override table is evidence-type-based, not discipline-based** — `derivational` covers math + theoretical CS + logic; `experimental` covers medicine + bio + psychology; `interpretive` covers humanities + law + education. Adding a new discipline that fits an existing evidence_type requires ZERO orchestrator changes.
 4. **Unknown evidence_types default to STANDARD** — the pipeline does not break on a novel domain; it runs the v2.7 default behavior and flags for community contribution.
+5. **Phase 2.5b (EG) sub-dimension N/A is domain-adaptive.** The EG axis's 8 sub-dimensions have domain-specific N/A rules that are driven by the same evidence_type signature:
+
+| evidence_type | Compute Footprint | AI Dev Cycle | Code Complexity | Capital Cost | Dependency Chain | Repro Risk | Temporal Maturity | Regulatory |
+|--------------|-----------------|-------------|----------------|-------------|-----------------|-----------|------------------|-----------|
+| derivational | N/A (theory-only) | N/A (no code) | N/A (no code) | N/A | always | always | always | always |
+| correlational | always | always | always | depends | always | always | always | depends |
+| experimental | always | always | always | always | always | always | always | always |
+| simulational | always | always | always | always | always | always | always | depends |
+| interpretive | N/A (no compute) | depends | depends | N/A | always | always | always | always |
+
+**N/A = automatic 10/10 (no penalty).** The EG sub-dimension is marked NOT_APPLICABLE and does not penalize the EG average. This ensures humanities/theory problems are not unfairly penalized on dimensions that don't apply.
 
 The override table is therefore a **small finite alphabet** (5 evidence_types × 3 phases = 15 cells) that covers all scientific domains via the learner's runtime classification. This is the structural sense in which OSS is "通用" (universal) without "硬编码" (hardcoding).
 

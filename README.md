@@ -154,8 +154,8 @@ Problem → Discover ─┼→ Idea 2 (computational) ─┼→ MCTS 4 轮迭代
 
 1. **分支（Branch）**：从问题出发，并行生成 3 个不同方法论视角的 idea（理论/计算/定性）
 2. **MCTS 迭代**：每个 idea 经 4 轮 MCTS 迭代（UCB1 选择 → expand → rollout → backprop），弱 idea 在迭代中被淘汰
-3. **证伪门控（Falsification Gate, Phase 2.5）**：存活的 idea 接受 adversarial-falsification 攻击（假设评分 + 反例构造 + 文献对抗），被证伪的 idea 淘汰
-4. **新颖性门控（Novelty Gate, Phase 3）**：通过证伪的 idea 经新颖性 × 可行性 × 相关性 3 维评估，只有最优 idea 存活进入后续推导、验证、写作阶段
+3. **证伪门控（Falsification Gate, Phase 2.5）**：存活的 idea 接受 6 维度 adversarial-falsification 攻击（假设评分 + 反例构造 + 文献对抗 + 类比映射 + 沙盒可行性 + AI 工程落地），被证伪的 idea 淘汰。Phase 5b 同时产出 **AI 工程落地评估报告**，含 8 维子评分（Compute/Dev Cycle/Code Complexity/Repro Risk/Dependency/Capital/Temporal Maturity/Regulatory）和 AI 开发路线图
+4. **新颖性门控（Novelty Gate, Phase 3）**：通过证伪的 idea 经 4 维评估（新颖性 × 0.45 + 可行性 × 0.25 + 相关性 × 0.15 + 工程落地 × 0.15），只有最优 idea 存活进入后续推导、验证、写作阶段
 5. **追踪（Trace）**：整条链路的 DAG 结构保存在 `refine-logs/IDEA_DAG.json`，可生成 Mermaid 可视化
 
 ### 21 阶段 DAG 循环
