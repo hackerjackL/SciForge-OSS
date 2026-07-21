@@ -1,6 +1,6 @@
 # Domain Failure Mode Catalog (SciForge-OSS — Reference)
 
-> **Status**: Reference catalog of domain-specific failure modes. This is NOT a hard-coded classification — the agent uses the domain signature (from `/domain-signature`) to query this catalog and select relevant failure modes.
+> **Status (v2.2 — reference catalog, v2.8 — query contract via domain-signature-consumer.md)**: Reference catalog of domain-specific failure modes. This is NOT a hard-coded classification — the agent uses the domain signature (from `/domain-signature` Phase 1a OPTIONAL hint, or `/domain-learner` Phase 1b MUST source) to query this catalog and select relevant failure modes.
 >
 > **Core principle**: Every domain knows how it fails. Economics knows about endogeneity, physics knows about unit mismatch, medicine knows about confounding. This catalog makes that knowledge available to the agent.
 

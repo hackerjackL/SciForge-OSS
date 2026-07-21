@@ -87,13 +87,13 @@ The overall confidence is computed from 4 dimensions (T × D × A × L), not jus
 {
   "tdal": {
     "schema_version": "1.0",
-    "theoretical": {"value": 0.0, "components": {"sympy_derivation": {...}, "logic_verification": {...}, "falsification_resistance": {...}},
-    "data_availability": {"value": 0.0, "components": {"ouroboros_report": {...}, "oss_data_check": {...}, "theory_only_flag": {...}},
-    "domain_adaptation": {"value": 0.0, "components": {"domain_learner": {...}, "seed_paper_match": {...}},
-    "literature_support": {"value": 0.0, "components": {"supporting_ratio": {...}, "non_contradicting_ratio": {...}, "non_gap_ratio": {...}},
+    "theoretical": {"value": 0.0, "components": {"sympy_derivation": {}, "logic_verification": {}, "falsification_resistance": {}}},
+    "data_availability": {"value": 0.0, "components": {"ouroboros_report": {}, "oss_data_check": {}, "theory_only_flag": {}}},
+    "domain_adaptation": {"value": 0.0, "components": {"domain_learner": {}, "seed_paper_match": {}}},
+    "literature_support": {"value": 0.0, "components": {"supporting_ratio": {}, "non_contradicting_ratio": {}, "non_gap_ratio": {}}},
     "joint": 0.0,
-    "verdict": "STRONG|MODERATE|WEAK|UNSUPPORTED",
-    "weakest_dimension": "...",
+    "verdict": "one of: STRONG | MODERATE | WEAK | UNSUPPORTED",
+    "weakest_dimension": "one of: theoretical | data_availability | domain_adaptation | literature_support",
     "missing_inputs": []
   }
 }

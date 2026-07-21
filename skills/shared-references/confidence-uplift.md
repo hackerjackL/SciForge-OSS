@@ -252,9 +252,9 @@ Human checkpoint: human may waive further (the 3-round cap is hard; only human c
   "uplift_plan": {
     "schema_version": "1.0",
     "invoked_at": "ISO-8601",
-    "trigger_verdict": "WEAK|UNSUPPORTED|MODERATE",
-    "initial_tdal": { ... },
-    "weakest_dimension": "theoretical|data_availability|domain_adaptation|literature_support",
+    "trigger_verdict": "one of: WEAK | UNSUPPORTED | MODERATE",
+    "initial_tdal": {},
+    "weakest_dimension": "one of: theoretical | data_availability | domain_adaptation | literature_support",
     "rounds": [
       {
         "round": 1,
@@ -270,12 +270,12 @@ Human checkpoint: human may waive further (the 3-round cap is hard; only human c
             "adopted": true
           }
         ],
-        "tdal_after": { /* recomputed tdal */ },
+        "tdal_after": {},
         "verdict_after": "MODERATE",
         "stopped": true
       }
     ],
-    "final_tdal": { /* final tdal after all rounds run */ },
+    "final_tdal": {},
     "final_verdict": "MODERATE",
     "total_uplift": "+0.20",
     "human_waived": false,

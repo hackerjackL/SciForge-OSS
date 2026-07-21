@@ -168,4 +168,4 @@ for better domain adaptation.
 
 - [`../shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md) — how downstream skills consume the learned profile
 - [`../shared-references/domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) — pre-defined failure mode catalog (used when learner fails)
-- [`../shared-references/domain-adaptation-examples.md`](../../shared-references/domain-adaptation-examples.md) — worked examples for verification
+- [`../shared-references/domain-adaptation-guide.md`](../../shared-references/domain-adaptation-guide.md) — Section B worked examples + Section C acceptance tests for verification

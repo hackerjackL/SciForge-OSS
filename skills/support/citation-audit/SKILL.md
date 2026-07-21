@@ -152,8 +152,7 @@ Build `CITATION_AUDIT.json` following the schema in "Submission Artifact Emissio
         "verdict": "FIX",
         "axis_failures": ["CONTEXT"],
         "uses": [
-          {"file": "sections/2.overview.tex", "line": 42, "verdict": "WRONG",
-           "note": "Self-Refine demonstrates iterative improvement, not correlated errors"},
+          {"file": "sections/2.overview.tex", "line": 42, "verdict": "WRONG", "note": "Self-Refine demonstrates iterative improvement, not correlated errors"},
           {"file": "sections/6.related.tex", "line": 13, "verdict": "SUPPORTS"}
         ]
       }
@@ -286,7 +285,7 @@ The artifact conforms to the schema in [`shared-references/assurance-contract.md
 ```json
 {
   "audit_skill":      "citation-audit",
-  "verdict":          "PASS | WARN | FAIL | NOT_APPLICABLE | BLOCKED | ERROR",
+  "verdict":          "one of: PASS | WARN | FAIL | NOT_APPLICABLE | BLOCKED | ERROR",
   "reason_code":      "all_entries_keep | metadata_drift | wrong_context | hallucinated | working_paper_superseded | venue_canonicalization | ...",
   "summary":          "One-line human-readable verdict summary.",
   "audited_input_hashes": {
@@ -300,11 +299,11 @@ The artifact conforms to the schema in [`shared-references/assurance-contract.md
   "reviewer_reasoning": "xhigh",
   "generated_at":     "<UTC ISO-8601>",
   "details": {
-    "total_entries":  <int>,
+    "total_entries":  29,
     "per_entry":      [ { "key": "madaan2023selfrefine",
-                          "verdict": "KEEP | FIX | REPLACE | REMOVE",
-                          "axis_failures": [ "CONTEXT" | "METADATA" | "EXISTENCE" ],
-                          "note": "..." }, ... ]
+                          "verdict": "one of: KEEP | FIX | REPLACE | REMOVE",
+                          "axis_failures": [ "one of: CONTEXT | METADATA | EXISTENCE" ],
+                          "note": "..." } ]
   }
 }
 ```

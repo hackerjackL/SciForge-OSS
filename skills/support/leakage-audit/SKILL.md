@@ -224,10 +224,10 @@ Write to `audit_report/LEAKAGE_AUDIT.json`:
 {
   "verdict": "FAIL",
   "discipline_context": "general",
-  "type_i": {"n_leaky": 1, "n_total": 5, "items": [...]},
+  "type_i": {"n_leaky": 1, "n_total": 5, "items": []},
   "type_ii": "NOT_APPLICABLE",
   "type_iii": "NOT_APPLICABLE",
-  "type_iv": {"n_escape": 0, "n_total": 3, "items": [...]},
+  "type_iv": {"n_escape": 0, "n_total": 3, "items": []},
   "callback": {
     "target": "/method-registry",
     "reason": "Type I LEAKY on primary outcome: implication does not follow from stated assumptions",
