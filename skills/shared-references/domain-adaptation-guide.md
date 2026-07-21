@@ -1,11 +1,11 @@
 # Domain Adaptation Guide (SciForge-OSS — Execution + Examples + Acceptance Tests)
 
-> **Status (v2.9 — consolidated)**: Single-entry guide merging three v2.2-v2.6 documents:
+> **Status (v1.0.0 — consolidated)**: Single-entry guide merging three v2.2-v2.6 documents:
 > - v2.6 `domain-adaptation-execution.md` (7-step execution) → **Section A**
 > - v2.4 `domain-adaptation-examples.md` (5 domain examples) → **Section B**
 > - v2.5 `domain-adaptation-test.md` (6 acceptance tests) → **Section C**
 >
-> The three originals were deleted in v2.9; their content is preserved here in three clearly-delineated sections. The previous cross-references between the three files (each cited the other two in "See Also") are collapsed into the unified guide below.
+> The three originals were deleted in v1.0.0; their content is preserved here in three clearly-delineated sections. The previous cross-references between the three files (each cited the other two in "See Also") are collapsed into the unified guide below.
 >
 > **Core principle**: Domain adaptation is a wiring layer, not a discipline branch. Every skill reads `refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. This guide is the **concrete mechanism** — follow the steps exactly to ensure domain adaptation works correctly.
 
