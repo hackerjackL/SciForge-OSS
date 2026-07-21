@@ -173,10 +173,10 @@ The EG component is **inherited** from the idea stage, not re-computed. This pre
 
 ## 10. See Also
 
-- [`idea-discovery/SKILL.md`](../../meta-skills/idea-discovery/SKILL.md) — consumes EG axis at pre-screen
+- [`idea-discovery/SKILL.md`](../meta-skills/idea-discovery/SKILL.md) — consumes EG axis at pre-screen
 - [`idea-dag-schema.md`](idea-dag-schema.md) — node schema with EG fields
-- [`novelty-check/SKILL.md`](../../meta-skills/novelty-check/SKILL.md) — composite score with EG weight
-- [`adversarial-falsification/SKILL.md`](../../support/adversarial-falsification/SKILL.md) — Phase 5b EG estimate
-- [`result-to-claim/SKILL.md`](../../support/result-to-claim/SKILL.md) — inherits EG from Phase 5b
-- [`auto-pipeline/SKILL.md`](../../orchestrator/auto-pipeline/SKILL.md) — orchestrator quality gate
+- [`novelty-check/SKILL.md`](../meta-skills/novelty-check/SKILL.md) — composite score with EG weight
+- [`adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — Phase 5b EG estimate
+- [`result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — inherits EG from Phase 5b
+- [`auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — orchestrator quality gate
 - [`competitive-analysis.md`](competitive-analysis.md) — marks EG as "已实施"
