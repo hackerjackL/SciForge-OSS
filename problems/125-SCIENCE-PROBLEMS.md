@@ -6,14 +6,14 @@
 
 1. **Demo of the framework's scope**: 125 problems spanning physics, mathematics, computer science, medicine, economics, education, materials, earth science, astronomy, chemistry, engineering — to illustrate that SciForge-OSS is discipline-agnostic.
 2. **Q-id format reference**: shows the `Q001`-style identifier convention (but the framework accepts any Q-id format, or even no Q-id for ad-hoc problems).
-3. **Invocation examples**: each problem below is a valid input to `/125-problems-pipeline`.
+3. **Invocation examples**: each problem below is a valid input to `/auto-pipeline`.
 
 ## How to use
 
 ### Solve one problem (canonical)
 
 ```
-/125-problems-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
+/auto-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
 ```
 
 The human supplies the specific Q-id. OSS processes exactly one problem end-to-end per invocation.
@@ -21,7 +21,7 @@ The human supplies the specific Q-id. OSS processes exactly one problem end-to-e
 ### Free-form problem (no Q-id needed)
 
 ```
-/125-problems-pipeline "Prove that the Riemann zeta function has no zeros for Re(s) > 1"
+/auto-pipeline "Prove that the Riemann zeta function has no zeros for Re(s) > 1"
 ```
 
 The framework does NOT require a Q-id from this index — any scientific problem text is a valid input.
@@ -130,4 +130,4 @@ The framework does NOT require a Q-id from this index — any scientific problem
 
 - [`README.md`](../README.md) — project overview + 125 题 Demo 说明
 - [`AGENT_GUIDE.md`](../AGENT_GUIDE.md) — invocation patterns + Q-id format
-- [`skills/orchestrator/125-problems-pipeline/SKILL.md`](../skills/orchestrator/125-problems-pipeline/SKILL.md) — the 20-phase DAG loop orchestrator
+- [`skills/orchestrator/auto-pipeline/SKILL.md`](../skills/orchestrator/auto-pipeline/SKILL.md) — the 20-phase DAG loop orchestrator

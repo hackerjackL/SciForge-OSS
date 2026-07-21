@@ -25,7 +25,7 @@ Typical prompts:
 - "build method registry"
 - "锁定方法选择"
 
-**MANDATORY** at the start of the OSS pre-writing phase (Phase 5 of `/125-problems-pipeline`, between `/universal-retrieval` and `/theory-derivation`).
+**MANDATORY** at the start of the OSS pre-writing phase (Phase 5 of `/auto-pipeline`, between `/universal-retrieval` and `/theory-derivation`).
 
 **Do NOT invoke for**:
 - After derivations are run (post-hoc registration is research fraud)
@@ -347,7 +347,7 @@ The final output is:
 ## Composing With Other Skills
 
 ```
-/125-problems-pipeline (Phase 1: Problem understanding, Q-id freeze)
+/auto-pipeline (Phase 1: Problem understanding, Q-id freeze)
     → /method-registry                   ← you are here (Phase 5)
         → /theory-derivation (executes METHOD_BINDING)
         → /leakage-audit (audits the registry)

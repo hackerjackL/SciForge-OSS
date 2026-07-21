@@ -1,21 +1,21 @@
 ---
-name: 125-problems-pipeline
+name: auto-pipeline
 type: orchestrator
 role: single-question-research-orchestrator
 ---
 
-# 125 Problems Pipeline (SciForge-OSS — Single-Question, 20-Phase DAG Loop)
+# Auto Pipeline (SciForge-OSS — Single-Question, 20-Phase DAG Loop)
 
-> **Status**: The **single entry orchestrator** for OSS. Executes a complete 20-phase DAG research loop on **one** 125-problem question supplied by the human user's prompt. **OSS does NOT auto-iterate over all 125 questions** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
+> **Status**: The **single entry orchestrator** for OSS. Executes a complete 20-phase DAG research loop on **one** question supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
 >
 > **Key OSS difference from main SciForge**: main SciForge's research-pipeline branches by discipline (economics / cs-ml / physics / general) into 4 parallel pipelines each with its own framework (AIM / SOTA / PNV / none) + reviewer persona. OSS has **no discipline branch** — one universal pipeline, the universal `senior-reviewer-agnostic` persona, and the agent's runtime reasoning handles domain-specific methodology.
 
 ## Quick Reference
 
-- **Entry point**: `/125-problems-pipeline "Q001: 问题描述" — effort: max`
+- **Entry point**: `/auto-pipeline "Q001: 问题描述" — effort: max`
 - **Scope**: 单题执行，20 阶段 DAG 循环，全领域通用
 - **Output**: 完整论文 (LaTeX/PDF) + 所有中间产物
-- **Key**: 不迭代 125 题，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
+- **Key**: 单题执行，不迭代问题索引，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
 
 ## Use When
 
@@ -26,7 +26,7 @@ Typical prompts:
 - "run the full pipeline on Q042"
 - "帮我完整研究 Q015"
 
-**The human user supplies the specific Q-id** in the prompt. OSS does **not** auto-search the 125-problem index or iterate over all 125. Each invocation = one Q-id = one complete pipeline run.
+**The human user supplies the specific Q-id** in the prompt. OSS does **not** auto-search the problem index or iterate over all questions. Each invocation = one Q-id = one complete pipeline run.
 
 ## Job
 
@@ -226,7 +226,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 
 | 阶段 | 门控条件 | 失败处理 |
 |------|---------|---------|
-| 0 | Q-id 清晰可解、来自人类提示词 | 请求用户澄清 Q-id；**不**自动搜索 125 题索引 |
+| 0 | Q-id 清晰可解、来自人类提示词 | 请求用户澄清 Q-id；**不**自动搜索问题索引 |
 | 1 | 问题可分解为形式化陈述 | 请求用户澄清问题边界 |
 | 2 | 至少生成 1 个 idea (MCTS 收敛) | 放宽 perspectives 重评；再失败升级 BLOCKED |
 | 2.5 | 证伪攻击: 假设健康度 ≥ 6 OR 无反例 | WEAKENED → 回退 Phase 2 重生成；FALSIFIED → 淘汰（记录原因） |
@@ -370,7 +370,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 
 ## Boundaries
 
-- **Single-question execution only.** Each invocation processes exactly one Q-id supplied by the human user. Do NOT auto-iterate over all 125 questions. Do NOT auto-search the 125-problem index for "what to solve next" — the human decides.
+- **Single-question execution only.** Each invocation processes exactly one Q-id supplied by the human user. Do NOT auto-iterate over all questions. Do NOT auto-search the problem index for "what to solve next" — the human decides.
 - **No discipline branch.** OSS has one universal pipeline. Do not reintroduce economics / cs-ml / physics / general parallel pipelines or their frameworks (AIM / SOTA / PNV). The agent's runtime reasoning in `/theory-derivation` + `/dynamic-sandbox` handles domain-specific methodology.
 - **Paradigm selection.** The agent selects the appropriate paradigm (formal/empirical/interpretive/design) in Phase 1 based on the problem's nature, not by domain label. See [`discipline-paradigm.md`](../../shared-references/discipline-paradigm.md).
 - **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and must be referenced in every downstream phase. If any phase's output lacks the Q-id reference, Phase 9 (`/invariant-check`) BLOCKs.

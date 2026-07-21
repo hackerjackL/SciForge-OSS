@@ -288,6 +288,6 @@ The orchestrator (Phase 10 boundary) MUST:
 
 - [`../support/result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — producer (Phase 10)
 - [`../support/paper-writing/SKILL.md`](../support/paper-writing/SKILL.md) — consumer (Phase 12)
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — orchestrator contract
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — orchestrator contract
 - [`ouroboros-integration.md`](ouroboros-integration.md) — § A D dimension basic call source + § B T dimension `theory_data_validation` deep call source (consolidated v1.0.0)
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — A dimension source (learner-written signature)

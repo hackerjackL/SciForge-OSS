@@ -1,6 +1,6 @@
 # Discipline Context Contract (SciForge-OSS — Discipline-Agnostic)
 
-> **Status**: Contract for the OSS skill chain. **OSS is discipline-agnostic by design** — there are no 4 parallel pipelines, no per-discipline overlay, no `DISCIPLINE_CONTEXT` block. All 125 science problems are processed by the **same single pipeline** (`/125-problems-pipeline`) using the **same universal meta-skills**.
+> **Status**: Contract for the OSS skill chain. **OSS is discipline-agnostic by design** — there are no 4 parallel pipelines, no per-discipline overlay, no `DISCIPLINE_CONTEXT` block. All 125 science problems are processed by the **same single pipeline** (`/auto-pipeline`) using the **same universal meta-skills**.
 
 > **Key difference from main SciForge**: Main SciForge has 4 parallel pipelines (economics / cs-ml / physics / general) each with its own discipline overlay, reviewer persona, and framework (AIM / SOTA / PNV / none). OSS has **none of these** — the 4 meta-skills (sandbox / tooling / retrieval / plotting) + 4 support skills (theory-derivation / logic-verification / paper-writing / auto-review-loop) are universal and do NOT switch behavior by discipline. This file exists only to document that **no discipline dispatch is needed** and to point migrated skills (which may still reference `DISCIPLINE_CONTEXT` from their main-SciForge origin) at a canonical "no-op" stub.
 

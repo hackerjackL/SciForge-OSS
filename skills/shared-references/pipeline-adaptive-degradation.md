@@ -184,7 +184,7 @@ Adding a new discipline that fits an existing signature (e.g., a new empirical s
 
 ## See Also
 
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — the 20-phase pipeline (this file replaces the v2.7 static Phase Mode Table)
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 20-phase pipeline (this file replaces the v2.7 static Phase Mode Table)
 - [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) — M1 intensity adaptation (orthogonal to this M3 mode adaptation)
 - [`confidence-uplift.md`](confidence-uplift.md) — M2 verdict uplift (orthogonal to mode/intensity)
 - [`domain-adaptation-contract.md`](domain-adaptation-contract.md) — TDAL schema (signature-absent fallback flags A dimension)

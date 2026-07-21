@@ -128,7 +128,7 @@ Phase 16: 最终组装 + 产物归档
 AI agent 读取 `AGENT_GUIDE.md` 后，直接调用：
 
 ```
-/125-problems-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
+/auto-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
 ```
 
 或手动逐步执行：
@@ -187,7 +187,7 @@ SciForge-OSS/
 │   │   ├── citation-audit/SKILL.md         ← 最终 3 层引用防幻觉验证
 │   │   └ kill-argument/SKILL.md           ← 反自欺练习（kill your own argument）
 │   ├── orchestrator/                       ← 1 个编排器
-│   │   └ 125-problems-pipeline/SKILL.md  ← 20 阶段 DAG 闭环（单题执行）
+│   │   └ auto-pipeline/SKILL.md  ← 20 阶段 DAG 闭环（单题执行）
 │   └ shared-references/                  ← 共享契约（学科无关）
 │       ├── idea-dag-schema.md              ← DAG 节点 schema
 │       ├── mcts-search-protocol.md         ← MCTS 迭代协议（UCB1 + 有界轮次）
@@ -259,37 +259,37 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 
 ### 物理学
 ```
-/125-problems-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
+/auto-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
 ```
 → 输出：宇宙学理论推导 + ΛCDM 模型验证
 
 ### 数学
 ```
-/125-problems-pipeline "证明：对于任意 n≥3，不存在正整数解满足 x^n + y^n = z^n"
+/auto-pipeline "证明：对于任意 n≥3，不存在正整数解满足 x^n + y^n = z^n"
 ```
 → 输出：Fermat 大定理的初等证明思路 + 文献综述
 
 ### 经济学
 ```
-/125-problems-pipeline "Analyze: general equilibrium under incomplete markets"
+/auto-pipeline "Analyze: general equilibrium under incomplete markets"
 ```
 → 输出：一般均衡存在性证明 + 数值验证
 
 ### 教育学
 ```
-/125-problems-pipeline "研究：基于认知负荷理论的教学设计优化"
+/auto-pipeline "研究：基于认知负荷理论的教学设计优化"
 ```
 → 输出：理论模型 + 逻辑验证 + 实验设计建议
 
 ### 材料科学
 ```
-/125-problems-pipeline "Predict: band structure of MoS2 under strain"
+/auto-pipeline "Predict: band structure of MoS2 under strain"
 ```
 → 输出：能带结构推导 + 数值验证
 
 ### 医学
 ```
-/125-problems-pipeline "Study: AI-driven drug discovery for Alzheimer's disease"
+/auto-pipeline "Study: AI-driven drug discovery for Alzheimer's disease"
 ```
 → 输出：药物靶点识别 + 分子动力学模拟验证
 
@@ -327,7 +327,7 @@ A: 不是。125 个科学问题是「AI for Scientist Anything」的 Demo 展示
 A: 不需要。SciForge-OSS 使用**结构化自评审**模式——同一 agent 通过角色切换（研究者→评审者→裁决者）实现对抗性评审，无需跨模型协作。
 
 ### Q: 如何运行一个完整的科学问题研究？
-A: 执行 `/125-problems-pipeline "Q001: 问题描述" — effort: max`，自动化完成 20 阶段 DAG 循环。
+A: 执行 `/auto-pipeline "Q001: 问题描述" — effort: max`，自动化完成 20 阶段 DAG 循环。
 
 ### Q: 输出什么格式的论文？
 A: 统一 `elsarticle` LaTeX 格式，可编译为 PDF。理论论文使用"理论论文结构"（Main Results + Proofs），实验论文使用标准结构。

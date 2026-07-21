@@ -121,6 +121,6 @@ If condition met but execution fails: apply MUST rules
 
 ## See Also
 
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — graceful degradation protocol
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — graceful degradation protocol
 - [`startup-protocol.md`](startup-protocol.md) — mandatory startup protocol
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — domain signature consumption

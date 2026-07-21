@@ -151,7 +151,7 @@ The override table is therefore a **small finite alphabet** (5 evidence_types ×
 
 ## See Also
 
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — the 20-phase pipeline (Phase 5/6/11 boundaries)
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 20-phase pipeline (Phase 5/6/11 boundaries)
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — how Phase 1b's signature is consumed downstream
 - [`domain-adaptation-contract.md`](domain-adaptation-contract.md) — TDAL A dimension (domain adaptation confidence)
 - [`discipline-paradigm.md`](discipline-paradigm.md) — 4 research paradigms (formal/empirical/interpretive/design)
