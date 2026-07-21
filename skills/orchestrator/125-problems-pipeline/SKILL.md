@@ -4,16 +4,16 @@ type: orchestrator
 role: single-question-research-orchestrator
 ---
 
-# 125 Problems Pipeline (SciForge-OSS — Single-Question, 17-Phase DAG Loop)
+# 125 Problems Pipeline (SciForge-OSS — Single-Question, 20-Phase DAG Loop)
 
-> **Status**: The **single entry orchestrator** for OSS. Executes a complete 17-phase DAG research loop on **one** 125-problem question supplied by the human user's prompt. **OSS does NOT auto-iterate over all 125 questions** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
+> **Status**: The **single entry orchestrator** for OSS. Executes a complete 20-phase DAG research loop on **one** 125-problem question supplied by the human user's prompt. **OSS does NOT auto-iterate over all 125 questions** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
 >
 > **Key OSS difference from main SciForge**: main SciForge's research-pipeline branches by discipline (economics / cs-ml / physics / general) into 4 parallel pipelines each with its own framework (AIM / SOTA / PNV / none) + reviewer persona. OSS has **no discipline branch** — one universal pipeline, the universal `senior-reviewer-agnostic` persona, and the agent's runtime reasoning handles domain-specific methodology.
 
 ## Quick Reference
 
 - **Entry point**: `/125-problems-pipeline "Q001: 问题描述" — effort: max`
-- **Scope**: 单题执行，17 阶段 DAG 循环，全领域通用
+- **Scope**: 单题执行，20 阶段 DAG 循环，全领域通用
 - **Output**: 完整论文 (LaTeX/PDF) + 所有中间产物
 - **Key**: 不迭代 125 题，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
 
@@ -30,27 +30,32 @@ Typical prompts:
 
 ## Job
 
-Orchestrate a complete 17-phase DAG research loop. The non-negotiable goals:
+Orchestrate a complete 20-phase DAG research loop. The non-negotiable goals:
 1. **Each question runs the complete loop** — no phase skipped, regardless of how simple the problem seems
 2. **Each phase produces a verifiable artifact** — the pipeline is documented by output files, not promises
-3. **Every citation is real** — the 3-layer anti-hallucination protocol is mandatory (see [`citation-discipline.md`](../shared-references/citation-discipline.md))
+3. **Every citation is real** — the 3-layer anti-hallucination protocol is mandatory (see [`citation-discipline.md`](../../shared-references/citation-discipline.md))
 4. **Every conclusion is logic-verified** — no unsupported assertion survives to the final paper
 5. **The pipeline is self-correcting** — if any phase fails or produces WARN/FAIL, auto-fallback to the relevant prior phase (bounded 3 rounds)
-6. **INV-G1 PROBLEM_ANCHOR_FREEZE** — the Q-id supplied by the human is frozen at Phase 0 and referenced in every downstream phase (see [`../invariant-check/SKILL.md`](../support/invariant-check/SKILL.md))
-7. **Domain signature propagation** — the domain signature extracted in Phase 1a is written to `refine-logs/domain-signature.json` and consumed by all downstream phases. See [`../shared-references/domain-signature-consumer.md`](../shared-references/domain-signature-consumer.md).
-8. **Domain learning fallback** — if Phase 1a (domain-signature) produces low-confidence results, the system falls back to Phase 1b (domain-learner) which learns from literature. This ensures domain adaptation even for unknown domains.
+6. **INV-G1 PROBLEM_ANCHOR_FREEZE** — the Q-id supplied by the human is frozen at Phase 0 and referenced in every downstream phase (see [`../invariant-check/SKILL.md`](../../support/invariant-check/SKILL.md))
+7. **Domain signature propagation** — the domain signature is produced ONLY by Phase 1b (`/domain-learner`) and written to `refine-logs/domain-signature.json`, consumed by all downstream phases. See [`../shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
+8. **Domain learner is the source of truth** (v2.8) — Phase 1a (`/domain-signature`) is downgraded to OPTIONAL fast-path hint writing `domain-signature-hint.json`, consumed only by the learner as a prior. Phase 1b (`/domain-learner`) is MUST and the sole writer of `domain-signature.json`. This eliminates the rule-hardcoded signature failure mode.
 
 ## Domain Signature Propagation
 
-The domain signature is the **central wiring mechanism** that makes domain adaptation automatic. Two sources produce it:
+The domain signature is the **central wiring mechanism** that makes domain adaptation automatic. **The learner (Phase 1b) is the single source of truth** — Phase 1a is an optional fast-path hint that the learner may consume as a prior, never the final signature.
 
 ```
-Phase 1a: /domain-signature (rule-based, fast)
-  ↓ If confidence < 0.7:
-Phase 1b: /domain-learner (literature-based, thorough)
-  ↓
-refine-logs/domain-signature.json (written by whichever source ran)
-  ↓
+Phase 1a: /domain-signature (OPTIONAL fast-path, rule-based hint)
+     │  → 输出 refine-logs/domain-signature-hint.json (临时 hint，置信度可能 < 0.7)
+     │  → 仅用作 learner 的 prior / 冷启动种子；不直接被下游消费
+     ↓
+Phase 1b: /domain-learner (MUST, literature-based learning)  ← 唯一真相源
+     │  → 从文献 + 种子论文从零学习领域特性
+     │  → 读取 hint.json 作为 prior（若存在）+ 自主文献检索修正
+     │  → 输出覆盖 refine-logs/domain-signature.json (下游唯一消费源)
+     ↓
+refine-logs/domain-signature.json (written ONLY by Phase 1b)
+     ↓
 Phase 2:  /idea-discovery        → 读取签名 → 调整视角权重
 Phase 2.5: /adversarial-falsification → 读取签名 → 加载领域失败模式
 Phase 3:  /novelty-check         → 读取签名 → 调整评估权重
@@ -60,7 +65,7 @@ Phase 10: /result-to-claim       → 读取签名 → 校准置信度
 Phase 12: /paper-writing         → 读取签名 → 选择写作风格/引用格式
 ```
 
-**Key design**: Each skill reads the signature independently at startup. No centralized routing needed. If the signature doesn't exist, all skills use default behavior. If the rule-based signature has low confidence, the learner automatically refines it.
+**Key design (v2.8 — learner-first)**: Phase 1b is **mandatory** and is the only writer of `domain-signature.json`. Phase 1a is **optional** and writes a separate `domain-signature-hint.json` consumed only by the learner as a prior. This eliminates the "rule-hardcoded signature" failure mode: even when 1a's rules match cleanly, the learner still re-derives the signature from literature to catch rule mismatches. Each downstream skill reads `domain-signature.json` independently at startup. If the signature doesn't exist (learner failed), all skills use default behavior — the pipeline continues but flags reduced domain adaptation.
 
 ## Performance Optimizations
 
@@ -101,10 +106,17 @@ Phase  1: 问题理解与分解（内置推理）[MUST]
      │
      ├───────────────── DAG 分支 ─────────────────┐
      │                                             │
-Phase  1a: /domain-signature 领域特征提取 [MUST]   ← 新增
-     │  分析问题文本 → 提取领域签名                │
-     │  (evidence_type, methodology, writing style, │
-     │   failure_modes, data_availability)          │
+Phase  1a: /domain-signature 领域特征提取 [OPTIONAL] ← v2.8 降级为快路径 hint
+     │  分析问题文本 → 提取领域 hint (rule-based)    │
+     │  输出 refine-logs/domain-signature-hint.json  │
+     │  (不直接被下游消费，仅供 Phase 1b 作 prior)    │
+     │                                             │
+Phase  1b: /domain-learner 领域学习 [MUST] ← v2.8 升为唯一真相源
+     │  从文献 + 种子论文从零学习领域特性           │
+     │  (literature search + seed paper analysis)   │
+     │  读取 hint.json 作 prior + 自主检索修正      │
+     │  输出 refine-logs/domain-signature.json      │
+     │  (下游唯一消费源；learner confidence 阈值 0.7)│
      │                                             │
 Phase  2: /idea-discovery [DAG 分支] [MUST] — 3 视角 idea
      │  (theoretical / computational / qualitative)   │
@@ -182,7 +194,8 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 |-------|------|-----------|
 | 0: 加载问题 | MUST | — |
 | 1: 问题理解 | MUST | — |
-| 1a: domain-signature | MUST | — |
+| 1a: domain-signature | OPTIONAL | v2.8 降级为快路径 hint，输出 domain-signature-hint.json；learner 不可用时禁用 |
+| 1b: domain-learner | MUST | v2.8 升为唯一真相源；读取 hint.json 作 prior，输出 domain-signature.json |
 | 2: idea-discovery | MUST | — |
 | 2.5: adversarial-falsification | MUST | — |
 | 3: novelty-check | MUST | — |
@@ -251,11 +264,11 @@ Only the human user can waive a failure past round 3; the orchestrator never sel
 
 ## Required Workspace
 
-On successful completion, the orchestrator produces the following structure under `{problem_id}/`:
+On successful completion, the orchestrator produces the following structure under `{problem_id}/` (20-phase trail):
 
 ```
 {problem_id}/
-├── PIPELINE_STATUS.md           ← execution report (17-phase trail)
+├── PIPELINE_STATUS.md           ← execution report (20-phase trail)
 ├── refine-logs/
 │   ├── FINAL_PROPOSAL.md        ← frozen Q-id + selected idea (Phase 2)
 │   ├── IDEA_CANDIDATES.md       ← ranked idea list (Phase 2)
@@ -330,7 +343,7 @@ The orchestrator DOES:
 
 ## 6-State Verdict Schema
 
-The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](../shared-references/assurance-contract.md) for each phase boundary:
+The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md) for each phase boundary:
 
 | State | Meaning | Orchestrator action |
 |-------|---------|---------------------|
@@ -341,7 +354,7 @@ The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](.
 | `BLOCKED` | Prerequisite missing OR fallback exhausted | Halt + surface to human |
 | `ERROR` | Skill itself failed | Halt + surface to human |
 
-The overall pipeline verdict = the **worst** verdict across all 17 phases: `ERROR > BLOCKED > FAIL > WARN > NOT_APPLICABLE > PASS`.
+The overall pipeline verdict = the **worst** verdict across all 20 phases: `ERROR > BLOCKED > FAIL > WARN > NOT_APPLICABLE > PASS`.
 
 ## Anti-Deadloop Escalation (Universal, reused from paper-compile E16)
 
@@ -359,7 +372,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 
 - **Single-question execution only.** Each invocation processes exactly one Q-id supplied by the human user. Do NOT auto-iterate over all 125 questions. Do NOT auto-search the 125-problem index for "what to solve next" — the human decides.
 - **No discipline branch.** OSS has one universal pipeline. Do not reintroduce economics / cs-ml / physics / general parallel pipelines or their frameworks (AIM / SOTA / PNV). The agent's runtime reasoning in `/theory-derivation` + `/dynamic-sandbox` handles domain-specific methodology.
-- **Paradigm selection.** The agent selects the appropriate paradigm (formal/empirical/interpretive/design) in Phase 1 based on the problem's nature, not by domain label. See [`discipline-paradigm.md`](../shared-references/discipline-paradigm.md).
+- **Paradigm selection.** The agent selects the appropriate paradigm (formal/empirical/interpretive/design) in Phase 1 based on the problem's nature, not by domain label. See [`discipline-paradigm.md`](../../shared-references/discipline-paradigm.md).
 - **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and must be referenced in every downstream phase. If any phase's output lacks the Q-id reference, Phase 9 (`/invariant-check`) BLOCKs.
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select the final idea (Phase 3) or self-approve the method registry (Phase 5). Wait for human confirmation.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
@@ -372,30 +385,40 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## See Also
 
-- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
-- [`../shared-references/idea-dag-schema.md`](../shared-references/idea-dag-schema.md) — DAG node schema (Phase 2)
-- [`../shared-references/mcts-search-protocol.md`](../shared-references/mcts-search-protocol.md) — MCTS iteration protocol (Phase 2)
-- [`../shared-references/multi-fidelity-evaluation.md`](../shared-references/multi-fidelity-evaluation.md) — 3-fidelity filter (Phase 10)
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
-- [`../shared-references/effort-contract.md`](../shared-references/effort-contract.md) — effort level definitions
-- [`../meta-skills/idea-discovery/SKILL.md`](../meta-skills/idea-discovery/SKILL.md) — Phase 2
-- [`../meta-skills/universal-retrieval/SKILL.md`](../meta-skills/universal-retrieval/SKILL.md) — Phase 4
-- [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — Phase 11
-- [`../support/method-registry/SKILL.md`](../support/method-registry/SKILL.md) — Phase 5
-- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6
-- [`../support/leakage-audit/SKILL.md`](../support/leakage-audit/SKILL.md) — Phase 7
-- [`../support/logic-verification/SKILL.md`](../support/logic-verification/SKILL.md) — Phase 8
-- [`../support/invariant-check/SKILL.md`](../support/invariant-check/SKILL.md) — Phase 9
-- [`../support/result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — Phase 10
-- [`../support/paper-writing/SKILL.md`](../support/paper-writing/SKILL.md) — Phase 12
-- [`../support/paper-compile/SKILL.md`](../support/paper-compile/SKILL.md) — Phase 13
-- [`../support/auto-review-loop/SKILL.md`](../support/auto-review-loop/SKILL.md) — Phase 14
-- [`../support/citation-audit/SKILL.md`](../support/citation-audit/SKILL.md) — Phase 15
-- [`../support/quality-gate/SKILL.md`](../support/quality-gate/SKILL.md) — final pre-writing gate (Phase 12 boundary)
-- [`../support/kill-argument/SKILL.md`](../support/kill-argument/SKILL.md) — Phase 14 anti-self-deception
+- [`../shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md) — 6-state verdict schema
+- [`../shared-references/idea-dag-schema.md`](../../shared-references/idea-dag-schema.md) — DAG node schema (Phase 2)
+- [`../shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) — MCTS iteration protocol (Phase 2)
+- [`../shared-references/multi-fidelity-evaluation.md`](../../shared-references/multi-fidelity-evaluation.md) — 3-fidelity filter (Phase 10)
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/effort-contract.md`](../../shared-references/effort-contract.md) — effort level definitions
+- [`../shared-references/domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md) — TDAL 4-dim joint confidence locked schema (Phase 10 boundary)
+- [`../shared-references/ouroboros-integration.md`](../../shared-references/ouroboros-integration.md) — Ouroboros Phase 1 seed + Phase 2.5 spec + Phase 10 TDAL D-dim wiring
+- [`../shared-references/ouroboros-deep-integration.md`](../../shared-references/ouroboros-deep-integration.md) — Ouroboros deep call (Phase 6 prediction → Phase 10 validation → TDAL T-dim uplift, long-term L2)
+- [`../shared-references/domain-adaptive-pipeline.md`](../../shared-references/domain-adaptive-pipeline.md) — Phase 5/6/11 intensity override by evidence_type/paradigm (mid-term M1)
+- [`../shared-references/confidence-uplift.md`](../../shared-references/confidence-uplift.md) — 3-mechanism bounded uplift loop when TDAL verdict ≤ WEAK (mid-term M2)
+- [`../shared-references/pipeline-adaptive-degradation.md`](../../shared-references/pipeline-adaptive-degradation.md) — signature-driven phase mode override, replaces v2.7 static Phase Mode Table (mid-term M3)
+- [`../shared-references/domain-contribution-protocol.md`](../../shared-references/domain-contribution-protocol.md) — open community PR channel for new evidence_types (long-term L1)
+- [`../shared-references/competitive-drift-monitor.md`](../../shared-references/competitive-drift-monitor.md) — automated quarterly competitor drift tracking, keeps competitive-analysis.md current (long-term L3)
+- [`../meta-skills/idea-discovery/SKILL.md`](../../meta-skills/idea-discovery/SKILL.md) — Phase 2
+- [`../meta-skills/domain-signature/SKILL.md`](../../meta-skills/domain-signature/SKILL.md) — Phase 1a (rule-based signature)
+- [`../meta-skills/domain-learner/SKILL.md`](../../meta-skills/domain-learner/SKILL.md) — Phase 1b (literature-based learning fallback)
+- [`../meta-skills/universal-retrieval/SKILL.md`](../../meta-skills/universal-retrieval/SKILL.md) — Phase 4
+- [`../meta-skills/unified-plotting/SKILL.md`](../../meta-skills/unified-plotting/SKILL.md) — Phase 11
+- [`../support/method-registry/SKILL.md`](../../support/method-registry/SKILL.md) — Phase 5
+- [`../support/theory-derivation/SKILL.md`](../../support/theory-derivation/SKILL.md) — Phase 6
+- [`../support/leakage-audit/SKILL.md`](../../support/leakage-audit/SKILL.md) — Phase 7
+- [`../support/logic-verification/SKILL.md`](../../support/logic-verification/SKILL.md) — Phase 8
+- [`../support/invariant-check/SKILL.md`](../../support/invariant-check/SKILL.md) — Phase 9
+- [`../support/result-to-claim/SKILL.md`](../../support/result-to-claim/SKILL.md) — Phase 10
+- [`../support/paper-writing/SKILL.md`](../../support/paper-writing/SKILL.md) — Phase 12
+- [`../support/paper-compile/SKILL.md`](../../support/paper-compile/SKILL.md) — Phase 13
+- [`../support/auto-review-loop/SKILL.md`](../../support/auto-review-loop/SKILL.md) — Phase 14
+- [`../support/citation-audit/SKILL.md`](../../support/citation-audit/SKILL.md) — Phase 15
+- [`../support/quality-gate/SKILL.md`](../../support/quality-gate/SKILL.md) — final pre-writing gate (Phase 12 boundary)
+- [`../support/kill-argument/SKILL.md`](../../support/kill-argument/SKILL.md) — Phase 14 anti-self-deception

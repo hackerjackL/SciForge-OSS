@@ -1,19 +1,19 @@
 # Domain Signature Consumer Protocol (SciForge-OSS)
 
-> **Status**: Defines how every downstream skill consumes the domain signature extracted by `/domain-signature`. This is the **wiring layer** that makes domain adaptation automatic.
+> **Status (v2.8 — learner-first)**: Defines how every downstream skill consumes the domain signature produced by `/domain-learner` (Phase 1b). This is the **wiring layer** that makes domain adaptation automatic. `/domain-signature` (Phase 1a) is downgraded to an OPTIONAL hint file consumed only by the learner as a prior — downstream skills never read it.
 >
 > **Core principle**: Every skill reads `refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. No skill hard-codes domain-specific logic.
 
 ## Quick Reference
 
 - **Purpose**: 定义所有下游 skill 如何自动消费领域签名
-- **Input**: refine-logs/domain-signature.json (from /domain-signature)
+- **Input**: refine-logs/domain-signature.json (from /domain-learner — 唯一真相源)
 - **Output**: 各 skill 自适应行为 (无需手动配置)
-- **Key**: 每个 skill 在启动时读取签名，自动适配
+- **Key**: 每个 skill 在启动时读取签名，自动适配；不读 hint 文件
 
 ## Signature Location
 
-The domain signature is written to `refine-logs/domain-signature.json` by Phase 1a (`/domain-signature`). Every downstream skill reads this file at startup.
+The domain signature is written to `refine-logs/domain-signature.json` by Phase 1b (`/domain-learner`) — the sole writer. Every downstream skill reads this file at startup. Phase 1a (`/domain-signature`) writes a separate `refine-logs/domain-signature-hint.json` consumed ONLY by the learner as a prior; downstream skills MUST NOT read the hint.
 
 ## Consumption Rules by Skill
 

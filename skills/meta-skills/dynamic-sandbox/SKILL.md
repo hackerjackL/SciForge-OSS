@@ -145,5 +145,5 @@ biopython, rdkit, astropy, qiskit, tensorflow, torch, transformers
 
 ## 共享契约引用
 
-- [effort-contract](../shared-references/effort-contract.md) — 努力等级定义
-- [output-manifest](../shared-references/output-manifest.md) — 产物结构契约
+- [effort-contract](../../shared-references/effort-contract.md) — 努力等级定义
+- [output-manifest](../../shared-references/output-manifest.md) — 产物结构契约

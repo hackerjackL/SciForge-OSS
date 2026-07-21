@@ -49,7 +49,7 @@ Key artifacts consumed (read from upstream):
 
 ## Configuration
 
-These knobs shape loop behavior. Treat them as defaults; the user may override any of them in natural language. See [`shared-references/skill-config.md`](../shared-references/skill-config.md) for centralized knob definitions.
+These knobs shape loop behavior. Treat them as defaults; the user may override any of them in natural language. See [`shared-references/skill-config.md`](../../shared-references/skill-config.md) for centralized knob definitions.
 
 - **Max rounds** — 4. Stop after 4 rounds even if not positive.
 - **Positive threshold** — score ≥ 6/10, or verdict contains "accept", "sufficient", "ready for submission".
@@ -87,9 +87,9 @@ State fields:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Workflow
 
@@ -511,8 +511,8 @@ The self-review output is the primary record. No external routing or tracing is 
 
 ## See Also
 
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
-- [`../shared-references/reviewer-routing.md`](../shared-references/reviewer-routing.md) — cross-model reviewer routing
-- [`../shared-references/review-tracing.md`](../shared-references/review-tracing.md) — forensic review trace policy
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/reviewer-routing.md`](../../shared-references/reviewer-routing.md) — cross-model reviewer routing
+- [`../shared-references/review-tracing.md`](../../shared-references/review-tracing.md) — forensic review trace policy
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate (consumed at termination)
 - [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — anti-self-deception exercise (complementary)

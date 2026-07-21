@@ -196,7 +196,7 @@ it as a known open problem in the conclusion / limitations. If it is
 writing-level, queue for next /auto-paper-improvement-loop round.
 ```
 
-Compose the machine-readable `KILL_ARGUMENT.json` following the SciForge Audit Artifact Schema ([`shared-references/assurance-contract.md`](../shared-references/assurance-contract.md)):
+Compose the machine-readable `KILL_ARGUMENT.json` following the SciForge Audit Artifact Schema ([`shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md)):
 
 ```json
 {
@@ -290,9 +290,9 @@ To the user:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 

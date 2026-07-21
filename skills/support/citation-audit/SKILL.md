@@ -66,7 +66,7 @@ The dangerous citation problems are **not** wildly fake citations — those are 
 - **ECON_VENUES** (optional, default: empty) — explicit allowlist of economics venues the paper targets, in canonical form. When non-empty, enables the economics-specific failure modes (NBER-vs-published, AER P&P vs main, etc.) and triggers the EconLit / RePEc / JSTOR fallback chain when DBLP returns no result. Auto-detected from the paper's `\journal{}` field or `AGENT_DOC.md` when not set explicitly. Canonical keys: `AER`, `AER_PP`, `QJE`, `JPE`, `ECONOMETRICA`, `RES`, `RESTUD`, `JFE`, `JF`, `RFS`, `NBER`, `SSRN`, `CEPR`, `IZA`.
 - **PREFER_PUBLISHED_OVER_WORKING_PAPER** (default: `true`) — when both an NBER / SSRN working paper and a published version exist, emit a `FIX` verdict pointing to the published version. Set to `false` only when the user explicitly wants to cite the working paper (e.g., for the working paper's unique content).
 
-> **OSS discipline-agnostic note**: OSS has no per-discipline venue allowlists (no `CS_VENUES` / `PHYSICS_VENUES` / `ECON_VENUES`). The reviewer's per-axis logic (existence / metadata / context) is applied universally — the canonical venue map and fallback bibliography are loaded from `universal-retrieval`'s default OpenAlex/arXiv/CrossRef sources, NOT discipline-specific. See [`shared-references/discipline-context.md`](../shared-references/discipline-context.md) for the OSS single-row (`general`) discipline contract.
+> **OSS discipline-agnostic note**: OSS has no per-discipline venue allowlists (no `CS_VENUES` / `PHYSICS_VENUES` / `ECON_VENUES`). The reviewer's per-axis logic (existence / metadata / context) is applied universally — the canonical venue map and fallback bibliography are loaded from `universal-retrieval`'s default OpenAlex/arXiv/CrossRef sources, NOT discipline-specific. See [`shared-references/discipline-context.md`](../../shared-references/discipline-context.md) for the OSS single-row (`general`) discipline contract.
 
 ## Workflow
 
@@ -133,30 +133,32 @@ Save traces per the review-tracing protocol.
 Build `CITATION_AUDIT.json` following the schema in "Submission Artifact Emission" below. Per-entry ledger data goes under `details.per_entry`. The top-level `verdict` is a single overall value (PASS / WARN / FAIL / NOT_APPLICABLE / BLOCKED / ERROR) derived from per-entry verdicts per the decision table; the top-level `summary` is a one-line human-readable string.
 
 ```json
-"details": {
-  "total_entries": 29,
-  "counts": { "KEEP": 11, "FIX": 14, "REPLACE": 3, "REMOVE": 1 },
-  "per_entry": [
-    {
-      "key": "lu2024aiscientist",
-      "verdict": "KEEP",
-      "axis_failures": [],
-      "uses": [
-        {"file": "sections/1.intro.tex", "line": 11, "verdict": "SUPPORTS"},
-        {"file": "sections/6.related.tex", "line": 8, "verdict": "SUPPORTS"}
-      ]
-    },
-    {
-      "key": "madaan2023selfrefine",
-      "verdict": "FIX",
-      "axis_failures": ["CONTEXT"],
-      "uses": [
-        {"file": "sections/2.overview.tex", "line": 42, "verdict": "WRONG",
-         "note": "Self-Refine demonstrates iterative improvement, not correlated errors"},
-        {"file": "sections/6.related.tex", "line": 13, "verdict": "SUPPORTS"}
-      ]
-    }
-  ]
+{
+  "details": {
+    "total_entries": 29,
+    "counts": { "KEEP": 11, "FIX": 14, "REPLACE": 3, "REMOVE": 1 },
+    "per_entry": [
+      {
+        "key": "lu2024aiscientist",
+        "verdict": "KEEP",
+        "axis_failures": [],
+        "uses": [
+          {"file": "sections/1.intro.tex", "line": 11, "verdict": "SUPPORTS"},
+          {"file": "sections/6.related.tex", "line": 8, "verdict": "SUPPORTS"}
+        ]
+      },
+      {
+        "key": "madaan2023selfrefine",
+        "verdict": "FIX",
+        "axis_failures": ["CONTEXT"],
+        "uses": [
+          {"file": "sections/2.overview.tex", "line": 42, "verdict": "WRONG",
+           "note": "Self-Refine demonstrates iterative improvement, not correlated errors"},
+          {"file": "sections/6.related.tex", "line": 13, "verdict": "SUPPORTS"}
+        ]
+      }
+    ]
+  }
 }
 ```
 
@@ -279,7 +281,7 @@ The audit semantics are **unchanged**: existence + metadata + context-appropriat
 
 This skill **always** writes `paper/CITATION_AUDIT.json`, regardless of caller or detector outcome. A paper with no `.bib` file or no `\cite{...}` usage emits verdict `NOT_APPLICABLE`; silent skip is forbidden. `paper-writing` Phase 6 and the verifier both rely on this artifact existing at a predictable path.
 
-The artifact conforms to the schema in [`shared-references/assurance-contract.md`](../shared-references/assurance-contract.md):
+The artifact conforms to the schema in [`shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md):
 
 ```json
 {
@@ -334,9 +336,9 @@ The `--uncited` flag does **not** appear in this table: uncited entries are advi
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -409,6 +411,6 @@ Together: code → result → numerical claim → cited claim. Each layer has cr
 - `/paper-claim-audit` — sibling skill for numerical claim verification
 - `/experiment-audit` — sibling skill for evaluation code integrity
 - `/result-to-claim` — claim verdict assignment from results
-- [`shared-references/citation-discipline.md`](../shared-references/citation-discipline.md) — protocol document for citation hygiene
-- [`shared-references/reviewer-independence.md`](../shared-references/reviewer-independence.md) — cross-model review constraints
-- [`shared-references/integration-contract.md`](../shared-references/integration-contract.md) — reserved overlay rows for other discipline venue allowlists (CS-ML / Physics / General)
+- [`shared-references/citation-discipline.md`](../../shared-references/citation-discipline.md) — protocol document for citation hygiene
+- [`shared-references/reviewer-independence.md`](../../shared-references/reviewer-independence.md) — cross-model review constraints
+- [`shared-references/integration-contract.md`](../../shared-references/integration-contract.md) — reserved overlay rows for other discipline venue allowlists (CS-ML / Physics / General)

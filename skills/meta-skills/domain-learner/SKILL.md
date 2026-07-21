@@ -14,8 +14,8 @@ role: domain-characteristic-learner
 
 - **Purpose**: 从文献中自动学习领域特性，替代硬编码签名
 - **Input**: 问题描述 + 种子文献
-- **Output**: refine-logs/domain-profile.json (学习到的领域特征)
-- **Key**: 每次运行从零学习，不依赖预定义规则
+- **Output**: refine-logs/domain-signature.json (覆盖规则签名，供下游统一消费)
+- **Key**: 每次运行从零学习，不依赖预定义规则；输出路径与 /domain-signature 一致以保证下游无缝消费
 
 ## How It Works
 
@@ -154,7 +154,7 @@ for better domain adaptation.
 
 ## Output Shape
 
-- `refine-logs/domain-profile.json` — learned domain profile (consumed by all downstream skills)
+- `refine-logs/domain-signature.json` — learned domain profile (覆盖 /domain-signature 的低置信输出，被所有下游 skill 统一消费；schema 与 /domain-signature 兼容)
 - `refine-logs/domain-learning-log.md` — detailed learning log (searches, analyses, synthesis)
 
 ## Boundaries
@@ -162,10 +162,10 @@ for better domain adaptation.
 - **Never hardcode domain characteristics.** The learner starts from zero every time.
 - **Learning confidence < 0.7** → Use defaults, do NOT apply learned characteristics.
 - **Seed papers > literature search** when both are available. The most reliable signal.
-- **The learner is not a replacement for the domain signature.** It's a complement. The signature provides the starting point; the learner refines it.
+- **The learner is the single source of truth (v2.8).** Phase 1a (`/domain-signature`) only writes a hint file (`domain-signature-hint.json`) consumed as a prior; the learner is the sole writer of `domain-signature.json` and the only signature downstream skills consume. If the learner fails entirely, downstream skills use default behavior — the hint is never consumed directly.
 
 ## See Also
 
-- [`../shared-references/domain-signature-consumer.md`](../shared-references/domain-signature-consumer.md) — how downstream skills consume the learned profile
-- [`../shared-references/domain-failure-modes.md`](../shared-references/domain-failure-modes.md) — pre-defined failure mode catalog (used when learner fails)
-- [`../shared-references/domain-adaptation-examples.md`](../shared-references/domain-adaptation-examples.md) — worked examples for verification
+- [`../shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md) — how downstream skills consume the learned profile
+- [`../shared-references/domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) — pre-defined failure mode catalog (used when learner fails)
+- [`../shared-references/domain-adaptation-examples.md`](../../shared-references/domain-adaptation-examples.md) — worked examples for verification

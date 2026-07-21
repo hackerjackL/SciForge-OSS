@@ -213,7 +213,7 @@ Check whether the required data exists and is accessible. This prevents "data-le
 
 ## See Also
 
-- [`../idea-discovery/SKILL.md`](../meta-skills/idea-discovery/SKILL.md) — produces the ideas this skill tests
-- [`../novelty-check/SKILL.md`](../meta-skills/novelty-check/SKILL.md) — downstream filter after falsification
+- [`../idea-discovery/SKILL.md`](../../meta-skills/idea-discovery/SKILL.md) — produces the ideas this skill tests
+- [`../novelty-check/SKILL.md`](../../meta-skills/novelty-check/SKILL.md) — downstream filter after falsification
 - [`../method-registry/SKILL.md`](../method-registry/SKILL.md) — consumes falsification results for assumption registry
 - [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — complementary adversarial exercise (post-paper, not pre-idea)

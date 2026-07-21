@@ -156,11 +156,11 @@ Error Modes: {可能出错的地方及如何报告}
 
 ```json
 {
-  "status": "created" | "updated" | "failed",
+  "status": "one of: created | updated | failed",
   "tool_name": "custom_parser",
   "path": "tools/custom_parser/custom_parser.py",
   "entry_point": "custom_parser.parse(input_data)",
-  "smoke_test": "passed" | "failed",
+  "smoke_test": "one of: passed | failed",
   "usage": "from tools.custom_parser import parse; result = parse(data)"
 }
 ```
@@ -172,6 +172,6 @@ Error Modes: {可能出错的地方及如何报告}
 
 ## 共享契约引用
 
-- [integration-contract](../shared-references/integration-contract.md) — skill 集成协议
-- [skill-config](../shared-references/skill-config.md) — skill 配置契约
-- [output-manifest](../shared-references/output-manifest.md) — 产物结构契约
+- [integration-contract](../../shared-references/integration-contract.md) — skill 集成协议
+- [skill-config](../../shared-references/skill-config.md) — skill 配置契约
+- [output-manifest](../../shared-references/output-manifest.md) — 产物结构契约

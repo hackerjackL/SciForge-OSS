@@ -79,78 +79,48 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 - A **secondary** claim (mechanism/robustness) can be supported by `qualitative` fidelity — secondary claims do not gate the pipeline.
 - **Never** label a claim "proven" without `symbolic` fidelity. **Never** label a claim "supported" without at least `numerical` fidelity.
 
-## 4-Dimensional Joint Confidence (新增)
+## 4-Dimensional Joint Confidence (TDAL — locked schema)
 
-The overall confidence is computed from 4 dimensions, not just theory fidelity:
+The overall confidence is computed from 4 dimensions (T × D × A × L), not just theory fidelity. **The full schema, weights, thresholds, producer/consumer contracts, and floor constraints are locked in [`../shared-references/domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md).** This section is the **producer contract** — what `/result-to-claim` MUST emit.
 
 ```json
 {
-  "joint_confidence": {
-    "theoretical": 0.85,
-    "data_availability": 0.85,
-    "domain_adaptation": 0.80,
-    "literature_support": 0.75,
-    "combined": 0.61
+  "tdal": {
+    "schema_version": "1.0",
+    "theoretical": {"value": 0.0, "components": {"sympy_derivation": {...}, "logic_verification": {...}, "falsification_resistance": {...}},
+    "data_availability": {"value": 0.0, "components": {"ouroboros_report": {...}, "oss_data_check": {...}, "theory_only_flag": {...}},
+    "domain_adaptation": {"value": 0.0, "components": {"domain_learner": {...}, "seed_paper_match": {...}},
+    "literature_support": {"value": 0.0, "components": {"supporting_ratio": {...}, "non_contradicting_ratio": {...}, "non_gap_ratio": {...}},
+    "joint": 0.0,
+    "verdict": "STRONG|MODERATE|WEAK|UNSUPPORTED",
+    "weakest_dimension": "...",
+    "missing_inputs": []
   }
 }
 ```
 
-### Dimension 1: Theoretical Confidence (T)
+### Producer Contract (/result-to-claim MUST)
 
-| Source | Weight | How to compute |
-|--------|--------|---------------|
-| SymPy derivation status | 0.4 | PASS=1.0, PARTIAL=0.5, FAIL=0.0 |
-| Logic verification | 0.3 | PASS=1.0, WARN=0.7, FAIL=0.0 |
-| Falsification resistance | 0.3 | SURVIVE=1.0, WEAKENED=0.5, FALSIFIED=0.0 |
+1. **Compute all 4 dimensions**; if any input is missing, set that component to 0.0 and append the dimension to `missing_inputs`. Never silently drop a dimension.
+2. **Emit the full machine-readable `tdal` JSON** as a fenced ```json block in `CLAIMS_FROM_RESULTS.md` (in addition to the human-readable per-dimension breakdown).
+3. **Compute `joint = T × D × A × L` exactly** — no rounding, no clamping, no weighted-average substitution. The product formula is the strictness contract: a zero in any dimension drives the joint to 0.
+4. **Apply verdict thresholds AND floor constraints** (any dimension = 0 → verdict at most WEAK; `missing_inputs` non-empty → verdict at most MODERATE). See [`domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md) § Verdict Thresholds.
+5. **Report `weakest_dimension`** as the dimension with the lowest `value` — this MUST be named explicitly in the paper's Limitations section (forwarded to `/paper-writing`).
+6. **Never inflate** a dimension to dodge a WEAK/UNSUPPORTED verdict. Missing inputs are reported transparently, not papered over.
+7. **UNSUPPORTED verdict → BLOCK** the orchestrator: emit `verdict: BLOCKED, reason_code: unsupported_claim_<weakest_dimension>`, do NOT advance to Phase 11. Paper-writing cannot proceed on an UNSUPPORTED claim.
 
-### Dimension 2: Data Availability Confidence (D)
+### Per-Dimension Quick Reference (full weights in contract)
 
-| Source | Weight | How to compute |
-|--------|--------|---------------|
-| Ouroboros data report | 0.5 | overall_score from Ouroboros (0-1) |
-| OSS data availability check | 0.3 | DATA_READY=1.0, DATA_LIMITED=0.5, DATA_BLOCKED=0.0 |
-| Theory-only flag | 0.2 | theory_only=1.0 (no data needed) |
+| Dim | Components | Joint role |
+|-----|-----------|-----------|
+| **T** (Theoretical) | SymPy derivation (0.4) + Logic verification (0.3) + Falsification resistance (0.3) | Multiplier |
+| **D** (Data Availability) | Ouroboros report (0.5) + OSS data check (0.3) + Theory-only flag (0.2) | Multiplier |
+| **A** (Domain Adaptation) | Domain learner (0.8) + Seed paper match (0.2) — **v2.8**: signature sub-source removed after S1 learner-first | Multiplier |
+| **L** (Literature Support) | Supporting ratio (0.5) + Non-contradicting (0.3) + Non-gap (0.2) | Multiplier |
 
-### Dimension 3: Domain Adaptation Confidence (A)
+### Per-Dimension Breakdown (MUST emit in CLAIMS_FROM_RESULTS.md)
 
-| Source | Weight | How to compute |
-|--------|--------|---------------|
-| Domain signature confidence | 0.4 | From domain-signature.json confidence field |
-| Domain learner confidence | 0.4 | From domain-learner output learning_confidence |
-| Seed paper match quality | 0.2 | How well the output matches domain expectations |
-
-### Dimension 4: Literature Support Confidence (L)
-
-| Source | Weight | How to compute |
-|--------|--------|---------------|
-| Supporting papers found | 0.5 | Ratio of supporting to total papers found |
-| Contradicting papers found | 0.3 | 1.0 - ratio of contradicting to total |
-| Gap papers (neither) | 0.2 | 1.0 - ratio of gap to total |
-
-### Combined Formula
-
-```
-joint_confidence = T × D × A × L
-
-where:
-  T = theoretical_confidence (0-1)
-  D = data_availability_confidence (0-1)
-  A = domain_adaptation_confidence (0-1)
-  L = literature_support_confidence (0-1)
-```
-
-### Thresholds
-
-| Joint Confidence | Verdict | Action |
-|-----------------|---------|--------|
-| ≥ 0.7 | STRONG | Publishable with high confidence |
-| 0.5 - 0.7 | MODERATE | Publishable with caveats |
-| 0.3 - 0.5 | WEAK | Needs strengthening before publication |
-| < 0.3 | UNSUPPORTED | Not publishable |
-
-### Per-Dimension Breakdown
-
-The confidence assessment MUST include a per-dimension breakdown:
+The confidence assessment MUST include a per-dimension breakdown. Example (full worked example in [`domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md) § Worked Example):
 
 ```markdown
 ## Confidence Assessment
@@ -161,33 +131,33 @@ The confidence assessment MUST include a per-dimension breakdown:
 - Falsification: SURVIVE (1.0)
 - Weighted: 0.4×1.0 + 0.3×1.0 + 0.3×1.0 = 0.85
 
-### Data Availability Confidence: 0.85 (STRONG)
+### Data Availability Confidence: 0.725 (MODERATE)
 - Ouroboros report: 0.85
 - OSS data check: DATA_READY (1.0)
-- Weighted: 0.5×0.85 + 0.3×1.0 = 0.85
+- Theory-only flag: 0.0 (非 theory-only 问题，需要真实数据)
+- Weighted: 0.5×0.85 + 0.3×1.0 + 0.2×0.0 = 0.725
 
 ### Domain Adaptation Confidence: 0.80 (STRONG)
-- Domain signature: 0.85
 - Domain learner: 0.80
-- Seed paper match: 0.70
-- Weighted: 0.4×0.85 + 0.4×0.80 + 0.2×0.70 = 0.80
+- Seed paper match: 0.80
+- Weighted: 0.8×0.80 + 0.2×0.80 = 0.80
 
-### Literature Support Confidence: 0.75 (MODERATE)
+### Literature Support Confidence: 0.755 (MODERATE)
 - Supporting: 10/15 papers (0.67)
-- Contradicting: 2/15 papers (0.87)
-- Gap: 3/15 papers (0.80)
-- Weighted: 0.5×0.67 + 0.3×0.87 + 0.2×0.80 = 0.75
+- Non-contradicting: 13/15 papers (0.87)
+- Non-gap: 12/15 papers (0.80)
+- Weighted: 0.5×0.67 + 0.3×0.87 + 0.2×0.80 = 0.755
 
-### Joint Confidence: 0.85 × 0.85 × 0.80 × 0.75 = 0.43
+### Joint Confidence: 0.85 × 0.725 × 0.80 × 0.755 = 0.37
 **Verdict**: WEAK — needs strengthening before publication
-**Weakest dimension**: Literature Support (0.75) — needs more supporting evidence
+**Weakest dimension**: Data Availability (0.725) — Ouroboros 数据得分偏低且非 theory-only，需更可靠数据源或补充 theory-only 限定
 ```
 
 ## Workflow
 
 ### Step 0: Load DISCIPLINE_CONTEXT
 
-Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../shared-references/discipline-context.md)). There is no economics/cs-ml/physics branch — the universal 3-fidelity ladder below applies to every 125-problem run.
+Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../../shared-references/discipline-context.md)). There is no economics/cs-ml/physics branch — the universal 3-fidelity ladder below applies to every 125-problem run.
 
 ### Step 1: Collect Results
 
@@ -337,9 +307,9 @@ Skip this step entirely if `research-wiki/` does not exist. (OSS does not provis
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -367,7 +337,7 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 6. **Confidence Assessment** — theoretical confidence vs grounding confidence (separated)
 7. **Routing decision** — pivot / supplement / confirm with next-step actions
 
-### Confidence Assessment (新增)
+### Confidence Assessment (TDAL — emitted per Phase 10 producer contract)
 
 ```markdown
 ## Confidence Assessment
@@ -393,17 +363,17 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 
 ## Reviewer Routing
 
-External reviewer routing, backend selection, and per-CLI registration examples are documented in [`shared-references/reviewer-routing.md`](../shared-references/reviewer-routing.md).
+External reviewer routing, backend selection, and per-CLI registration examples are documented in [`shared-references/reviewer-routing.md`](../../shared-references/reviewer-routing.md).
 
 ## Review Tracing
 
-After each external reviewer call, save the trace following [`shared-references/review-tracing.md`](../shared-references/review-tracing.md) (forensic policy; never silently skip). Respect the `trace` parameter (default: `full`).
+After each external reviewer call, save the trace following [`shared-references/review-tracing.md`](../../shared-references/review-tracing.md) (forensic policy; never silently skip). Respect the `trace` parameter (default: `full`).
 
 ## See Also
 
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
-- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
-- [`../shared-references/reviewer-routing.md`](../shared-references/reviewer-routing.md) — cross-model reviewer routing
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md) — 6-state verdict schema
+- [`../shared-references/reviewer-routing.md`](../../shared-references/reviewer-routing.md) — cross-model reviewer routing
 - [`../theory-derivation/SKILL.md`](../theory-derivation/SKILL.md) — produces the symbolic derivation chain
 - [`../logic-verification/SKILL.md`](../logic-verification/SKILL.md) — produces the 6-dim logic audit
 - [`../invariant-check/SKILL.md`](../invariant-check/SKILL.md) — verifies INV-G1 problem anchor freeze

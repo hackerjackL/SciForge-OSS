@@ -75,6 +75,6 @@
 
 ## See Also
 
-- [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — produces the claims this checklist validates
+- [`../support/result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — produces the claims this checklist validates
 - [`../adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — upstream falsification stress test
 - [`../method-registry/SKILL.md`](../support/method-registry/SKILL.md) — assumption registry with quality scores

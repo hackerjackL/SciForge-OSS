@@ -265,9 +265,9 @@ Write:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -295,8 +295,8 @@ The chat response after writing is brief: status, whether the target survived un
 
 ## See Also
 
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
-- [`../shared-references/output-manifest.md`](../shared-references/output-manifest.md) — product structure contract
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/output-manifest.md`](../../shared-references/output-manifest.md) — product structure contract
 - [`../logic-verification/SKILL.md`](../logic-verification/SKILL.md) — 6-dim logical consistency audit (downstream)
 - [`../leakage-audit/SKILL.md`](../leakage-audit/SKILL.md) — Type I + Type IV audit (downstream)
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate (downstream)

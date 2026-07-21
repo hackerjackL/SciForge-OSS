@@ -170,6 +170,6 @@ score = novelty × 0.5 + feasibility × 0.3 + relevance × 0.2
 
 ## 共享契约引用
 
-- [assurance-contract](../shared-references/assurance-contract.md) — PASS/FAIL/REVISE 判定 schema
-- [citation-discipline](../shared-references/citation-discipline.md) — 新颖性检查的文献验证
-- [output-manifest](../shared-references/output-manifest.md) — 产物结构契约
+- [assurance-contract](../../shared-references/assurance-contract.md) — PASS/FAIL/REVISE 判定 schema
+- [citation-discipline](../../shared-references/citation-discipline.md) — 新颖性检查的文献验证
+- [output-manifest](../../shared-references/output-manifest.md) — 产物结构契约

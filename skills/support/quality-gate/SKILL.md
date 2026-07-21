@@ -114,7 +114,7 @@ If any RETRY_COUNTERS field is missing, default to 0.
 
 ## Step 0: Load DISCIPLINE_CONTEXT
 
-Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../shared-references/discipline-context.md)). There is no overlay to load — the universal QF-G* and SD-G* checks are inlined below.
+Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../../shared-references/discipline-context.md)). There is no overlay to load — the universal QF-G* and SD-G* checks are inlined below.
 
 ## Phase 1: Stagnation Gate
 
@@ -332,9 +332,9 @@ All quality-gate output files must follow the standard output protocols:
 
 ## See Also
 
-- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
-- [`../shared-references/skill-config.md`](../shared-references/skill-config.md) — RETRY_COUNTERS and MAX_RETRIES config schema
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md) — 6-state verdict schema
+- [`../shared-references/skill-config.md`](../../shared-references/skill-config.md) — RETRY_COUNTERS and MAX_RETRIES config schema
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
 - [`../invariant-check/SKILL.md`](../invariant-check/SKILL.md) — structural invariants (INV-G1 problem anchor freeze)
 - [`../leakage-audit/SKILL.md`](../leakage-audit/SKILL.md) — Type I logic gap + Type IV escape audit
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate

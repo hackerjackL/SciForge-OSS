@@ -80,14 +80,14 @@ The non-negotiable goals:
 | `width` | string | `6in` | Figure width (inches or cm) |
 | `height` | string | `4in` | Figure height (inches or cm) |
 | `dpi` | int | `300` | Raster output resolution |
-| `color_scheme` | string | `morandi` | Palette — **default is `morandi`** (house default, chroma C* ≤ 25). See [`color-themes.md`](../shared-references/color-themes.md). Switch to `colorblind-safe` only when the venue explicitly requires it OR the human user explicitly requests it. |
+| `color_scheme` | string | `morandi` | Palette — **default is `morandi`** (house default, chroma C* ≤ 25). See [`color-themes.md`](../../shared-references/color-themes.md). Switch to `colorblind-safe` only when the venue explicitly requires it OR the human user explicitly requests it. |
 | `renderer` | enum | `auto` | `auto` (pick based on chart type — Python for data, JSON-spec for diagrams), `python` (force Python pipeline), `json-spec` (force deterministic JSON → SVG), `ai-direct` (force AI hand-written SVG — only for simple diagrams) |
 
 **Hard prohibition on `theme: modern`**: the modern theme uses high-saturation Tailwind colors that violate the morandi chroma C* ≤ 25 principle. If the user requests `theme: modern`, override to `theme: academic` and log a warning.
 
 ## Morandi Palette Contract (Layer 1 — Universal)
 
-All categorical/semantic colors use the **morandi** house palette. See [`color-themes.md`](../shared-references/color-themes.md) Layer 1 for the full contract. Summary:
+All categorical/semantic colors use the **morandi** house palette. See [`color-themes.md`](../../shared-references/color-themes.md) Layer 1 for the full contract. Summary:
 
 | Slot | Color | Hex | Use |
 |------|-------|-----|-----|
@@ -104,7 +104,7 @@ All categorical/semantic colors use the **morandi** house palette. See [`color-t
 
 ## Layer 2 — Data-Encoding Colormaps (Continuous Scalar Fields)
 
-For **continuous scalar fields** (heatmaps, 3D surfaces, contour plots, correlation matrices), use perceptually-uniform colormaps — NOT morandi. See [`color-themes.md`](../shared-references/color-themes.md) Layer 2 for the full contract.
+For **continuous scalar fields** (heatmaps, 3D surfaces, contour plots, correlation matrices), use perceptually-uniform colormaps — NOT morandi. See [`color-themes.md`](../../shared-references/color-themes.md) Layer 2 for the full contract.
 
 | Discipline (OSS — always `general`) | Colormap | Why |
 |--------------------------------------|----------|-----|
@@ -251,9 +251,9 @@ Append to `figures/FIGURE_INDEX.md`:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -285,7 +285,7 @@ The final output is:
 
 ## See Also
 
-- [`../shared-references/color-themes.md`](../shared-references/color-themes.md) — morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2)
-- [`../shared-references/writing-principles.md`](../shared-references/writing-principles.md) — figure caption style
-- [`../shared-references/output-manifest.md`](../shared-references/output-manifest.md) — product structure contract
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/color-themes.md`](../../shared-references/color-themes.md) — morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2)
+- [`../shared-references/writing-principles.md`](../../shared-references/writing-principles.md) — figure caption style
+- [`../shared-references/output-manifest.md`](../../shared-references/output-manifest.md) — product structure contract
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract

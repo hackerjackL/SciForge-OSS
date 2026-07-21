@@ -69,7 +69,7 @@ The verifier reads from the project root. It does not modify any files except it
 
 ## Verdict Schema
 
-Each invariant check produces a verdict from the 6-state machine defined in [`assurance-contract.md`](../shared-references/assurance-contract.md):
+Each invariant check produces a verdict from the 6-state machine defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md):
 
 | State | Meaning | Orchestrator action |
 |-------|---------|---------------------|
@@ -110,7 +110,7 @@ Write to `audit_report/INVARIANT_CHECK.md` — a human-readable summary with one
 
 ### Step 0: Load DISCIPLINE_CONTEXT
 
-Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../shared-references/discipline-context.md)). There is no 4-level fallback — there is only one level. Record `discipline_context: general` in the output JSON for traceability.
+Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../../shared-references/discipline-context.md)). There is no 4-level fallback — there is only one level. Record `discipline_context: general` in the output JSON for traceability.
 
 ### Step 1: Determine Phase Boundary
 
@@ -141,9 +141,9 @@ The orchestrator reads `overall_verdict`:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -151,11 +151,11 @@ The orchestrator reads `overall_verdict`:
 - **No discipline overlays.** OSS has only INV-G1. Do not reintroduce `INV-E*`/`INV-C*`/`INV-P*` invariants — they are discipline-specific and OSS is discipline-agnostic. If a problem seems to need a discipline-specific invariant (e.g., a physics problem wants PNV_SKETCH_HASH), that's handled by the agent's runtime reasoning in `/theory-derivation` + `/dynamic-sandbox`, NOT by an invariant overlay.
 - **Never user-invoked.** Users do not call `/invariant-check`. The orchestrator calls it as a gate. If a user asks for an invariant check, direct them to `/125-problems-pipeline`.
 - **No side effects.** The verifier reads artifacts and writes its own output. It never modifies the artifacts it checks.
-- **6-state verdict only.** Do not invent new verdict states. The 6-state machine is defined in [`assurance-contract.md`](../shared-references/assurance-contract.md) and is the contract with the orchestrator.
+- **6-state verdict only.** Do not invent new verdict states. The 6-state machine is defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md) and is the contract with the orchestrator.
 
 ## See Also
 
-- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema (PASS/WARN/FAIL/NOT_APPLICABLE/BLOCKED/ERROR)
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md) — 6-state verdict schema (PASS/WARN/FAIL/NOT_APPLICABLE/BLOCKED/ERROR)
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
 - [`../leakage-audit/SKILL.md`](../leakage-audit/SKILL.md) — produces LEAKAGE_AUDIT.json (consumed by the pre-paper-writing gate)
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — consumes the INV-G1 freeze before claim gating

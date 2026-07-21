@@ -116,7 +116,7 @@ If `methods/METHOD_REGISTRY.md` does not exist, **ABORT and tell the user to run
 
 ### Step 0: Load DISCIPLINE_CONTEXT
 
-Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../shared-references/discipline-context.md)). There is no overlay to load — the universal Type I + Type IV checks are inlined below.
+Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../../shared-references/discipline-context.md)). There is no overlay to load — the universal Type I + Type IV checks are inlined below.
 
 ### Step 1: Locate the Artifacts
 
@@ -247,7 +247,7 @@ This JSON is consumed by:
 
 ## 6-State Verdict Schema
 
-This skill uses the 6-state machine defined in [`assurance-contract.md`](../shared-references/assurance-contract.md):
+This skill uses the 6-state machine defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md):
 
 | State | Meaning | When this skill emits it |
 |-------|---------|--------------------------|
@@ -296,9 +296,9 @@ The audit REJECTS the project (returns FAIL) if any of:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -335,5 +335,5 @@ This skill is the **quality gate** for the pre-writing boundary. It runs after t
 
 - [`../method-registry/SKILL.md`](../method-registry/SKILL.md) — produces the registry this skill audits
 - [`../invariant-check/SKILL.md`](../invariant-check/SKILL.md) — verifies verdict at the pre-paper-writing gate
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
-- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md) — 6-state verdict schema

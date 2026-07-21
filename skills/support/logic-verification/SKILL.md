@@ -243,7 +243,7 @@ Auto-render `audit_report/LOGIC_VERIFICATION.md` to HTML via `/render-html`. Non
 
 ## 6-State Verdict Schema
 
-This skill uses the 6-state machine defined in [`assurance-contract.md`](../shared-references/assurance-contract.md):
+This skill uses the 6-state machine defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md):
 
 | State | Meaning | When this skill emits it |
 |-------|---------|--------------------------|
@@ -257,9 +257,9 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../shar
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -293,8 +293,8 @@ The final output is:
 
 ## See Also
 
-- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md) — 6-state verdict schema
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
 - [`../theory-derivation/SKILL.md`](../theory-derivation/SKILL.md) — produces the derivation this skill audits
 - [`../leakage-audit/SKILL.md`](../leakage-audit/SKILL.md) — complementary audit (Type I logic gaps + Type IV escape)
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate (downstream)

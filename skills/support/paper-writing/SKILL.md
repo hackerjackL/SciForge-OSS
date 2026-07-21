@@ -13,9 +13,9 @@ role: paper-composer
 - **Output**: paper/main.tex + paper/sections/*.tex + paper/PAPER_PLAN.md
 - **Key**: theory_only 模式 (无实验)；双分支结构 (标准/理论)；verification_type 自动选择
 
-> **Status**: Composes the final academic paper from research artifacts. **OSS uses a single unified `elsarticle` template** (copied from main SciForge's `templates/default/`) — no venue-specific templates, no per-discipline writing guides. **OSS is discipline-agnostic** — the universal section-by-section writing guide in [`discipline-writing.md`](../shared-references/discipline-writing.md) applies to every 125-problem run.
+> **Status**: Composes the final academic paper from research artifacts. **OSS uses a single unified `elsarticle` template** (copied from main SciForge's `templates/default/`) — no venue-specific templates, no per-discipline writing guides. **OSS is discipline-agnostic** — the universal section-by-section writing guide in [`discipline-writing.md`](../../shared-references/discipline-writing.md) applies to every 125-problem run.
 >
-> **Key OSS difference from main SciForge**: main SciForge has 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) each with its own page limit, bibliography style, anonymization rule. OSS has **one** template (`elsarticle [preprint,12pt]` + `elsarticle-num.bst`) applied to every output. Venue-specific adaptation is deferred to submission time (see [`venue-profiles.md`](../shared-references/venue-profiles.md)), not drafting.
+> **Key OSS difference from main SciForge**: main SciForge has 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) each with its own page limit, bibliography style, anonymization rule. OSS has **one** template (`elsarticle [preprint,12pt]` + `elsarticle-num.bst`) applied to every output. Venue-specific adaptation is deferred to submission time (see [`venue-profiles.md`](../../shared-references/venue-profiles.md)), not drafting.
 
 ## Use When
 
@@ -70,7 +70,7 @@ The paper directory (default `paper/`):
 |-----------|------|---------|-------------|
 | `format` | enum | `latex` | `latex` (unified elsarticle template) / `markdown` (plain markdown, if LaTeX unavailable) / `both` |
 | `style` | enum | `academic` | `academic` (standard), `report` (technical report), `review` (survey) |
-| `length` | enum | `standard` | `short` (4-6 pages main body), `standard` (8-12 pages), `long` (12-16 pages) — see [`venue-profiles.md`](../shared-references/venue-profiles.md) |
+| `length` | enum | `standard` | `short` (4-6 pages main body), `standard` (8-12 pages), `long` (12-16 pages) — see [`venue-profiles.md`](../../shared-references/venue-profiles.md) |
 | `language` | enum | `english` | `english` or `chinese` (equations + citations stay in standard LaTeX/math notation either way) |
 | `include_abstract` | bool | `true` | Whether to include the abstract |
 | `include_appendix` | bool | `false` | Whether to include a detailed appendix (long proofs, extended tables, code listings) |
@@ -169,7 +169,7 @@ Reference the frozen Q-id in the plan header (INV-G1 problem anchor freeze).
 
 ### Step 2: Write Each Section
 
-Follow [`discipline-writing.md`](../shared-references/discipline-writing.md) for the universal section-by-section writing guide. Summary:
+Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) for the universal section-by-section writing guide. Summary:
 
 **Title:**
 - Descriptive, not flashy
@@ -259,19 +259,19 @@ Before declaring the draft ready, perform a self-review:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
 - **Always load the unified `elsarticle` template.** Never hand-write the preamble. Never use `revtex`/`optica`/`IEEEtran`/`iclr`/`icml`/`neurips` document classes — OSS has one template only.
 - **Never mix citation styles.** Pick numeric (`\cite{}`) OR author-year (`\citep{}`/`\citet{}`) at the start and keep it throughout.
-- **Only verified citations.** Every `\cite{key}` must resolve to a `references.bib` entry that passed the 3-layer verification (see [`citation-discipline.md`](../shared-references/citation-discipline.md)). No `\cite{TODO}`, no `\cite{forthcoming}`, no fabricated references.
+- **Only verified citations.** Every `\cite{key}` must resolve to a `references.bib` entry that passed the 3-layer verification (see [`citation-discipline.md`](../../shared-references/citation-discipline.md)). No `\cite{TODO}`, no `\cite{forthcoming}`, no fabricated references.
 - **Every claim has support.** Either a `\cite{}` to verified literature OR a `\cref{eq:}`/`\cref{fig:}` to a derivation/verification artifact. No unsupported assertions.
-- **No venue-specific adaptation during drafting.** Venue adaptation (page limit trim, bibliography style switch, cover letter) is deferred to submission time per [`venue-profiles.md`](../shared-references/venue-profiles.md). During drafting, use the unified template with the unified page target.
+- **No venue-specific adaptation during drafting.** Venue adaptation (page limit trim, bibliography style switch, cover letter) is deferred to submission time per [`venue-profiles.md`](../../shared-references/venue-profiles.md). During drafting, use the unified template with the unified page target.
 - **This skill does NOT compile.** Producing the PDF is `/paper-compile`'s job. This skill only produces the LaTeX source.
-- **No discipline-specific writing guide.** Do not reintroduce physics SI-units / economics regression-table / cs-ml ablation-table specific guides. The universal guide in [`discipline-writing.md`](../shared-references/discipline-writing.md) applies to every problem; the agent's runtime reasoning handles domain-specific conventions.
+- **No discipline-specific writing guide.** Do not reintroduce physics SI-units / economics regression-table / cs-ml ablation-table specific guides. The universal guide in [`discipline-writing.md`](../../shared-references/discipline-writing.md) applies to every problem; the agent's runtime reasoning handles domain-specific conventions.
 
 ## Output Shape
 
@@ -302,10 +302,10 @@ The final output is:
 
 ## See Also
 
-- [`../shared-references/venue-profiles.md`](../shared-references/venue-profiles.md) — the single elsarticle template spec (no venue families)
-- [`../shared-references/discipline-writing.md`](../shared-references/discipline-writing.md) — universal section-by-section writing guide
-- [`../shared-references/writing-principles.md`](../shared-references/writing-principles.md) — academic writing style (universal)
-- [`../shared-references/citation-discipline.md`](../shared-references/citation-discipline.md) — 3-layer anti-hallucination citation verification
-- [`../shared-references/color-themes.md`](../shared-references/color-themes.md) — morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2)
+- [`../shared-references/venue-profiles.md`](../../shared-references/venue-profiles.md) — the single elsarticle template spec (no venue families)
+- [`../shared-references/discipline-writing.md`](../../shared-references/discipline-writing.md) — universal section-by-section writing guide
+- [`../shared-references/writing-principles.md`](../../shared-references/writing-principles.md) — academic writing style (universal)
+- [`../shared-references/citation-discipline.md`](../../shared-references/citation-discipline.md) — 3-layer anti-hallucination citation verification
+- [`../shared-references/color-themes.md`](../../shared-references/color-themes.md) — morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2)
 - [`../paper-compile/SKILL.md`](../paper-compile/SKILL.md) — compiles the LaTeX source this skill produces
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract

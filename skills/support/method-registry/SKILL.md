@@ -55,7 +55,7 @@ The registry lives at `methods/METHOD_REGISTRY.md`. The structure is rigid; each
 
 ## Configuration
 
-- **Target venue** — OSS outputs to the unified `elsarticle` preprint (see [`venue-profiles.md`](../shared-references/venue-profiles.md)). No venue-specific robustness checks; the universal checks below apply.
+- **Target venue** — OSS outputs to the unified `elsarticle` preprint (see [`venue-profiles.md`](../../shared-references/venue-profiles.md)). No venue-specific robustness checks; the universal checks below apply.
 - **Fidelity threshold** — the minimum fidelity level required to support a primary claim (default: `numerical`). Drives the gate in `/result-to-claim`. Configurable to `symbolic` (stricter) or `qualitative` (lenient).
 
 ## METHOD_REGISTRY.md Structure (Universal — no discipline overlay)
@@ -177,7 +177,7 @@ This is a **forced human checkpoint**. The agent cannot self-approve. The agent 
 
 ### Step 0: Load DISCIPLINE_CONTEXT
 
-Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../shared-references/discipline-context.md)). There is no overlay to load — the universal schema above is the complete template.
+Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../../shared-references/discipline-context.md)). There is no overlay to load — the universal schema above is the complete template.
 
 ### Step 1: Locate Existing Artifacts
 
@@ -294,7 +294,7 @@ The hash lock is the cryptographic pre-registration. Once `REGISTRY_HASH.txt` is
 
 ## 6-State Verdict Schema
 
-This skill uses the 6-state machine defined in [`assurance-contract.md`](../shared-references/assurance-contract.md):
+This skill uses the 6-state machine defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md):
 
 | State | Meaning | When this skill emits it |
 |-------|---------|--------------------------|
@@ -323,9 +323,9 @@ When `/leakage-audit` finds CRITICAL Type I leakage (LEAKY on a primary outcome)
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -363,6 +363,6 @@ This skill is the **entry point** for the pre-writing boundary. Without it, no d
 - [`../leakage-audit/SKILL.md`](../leakage-audit/SKILL.md) — audits the registry this skill produces (Type I + Type IV universal)
 - [`../invariant-check/SKILL.md`](../invariant-check/SKILL.md) — verifies hash lock + INV-G1 problem anchor freeze
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
-- [`../shared-references/assurance-contract.md`](../shared-references/assurance-contract.md) — 6-state verdict schema
-- [`../shared-references/venue-profiles.md`](../shared-references/venue-profiles.md) — OSS unified elsarticle template spec
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../shared-references/assurance-contract.md`](../../shared-references/assurance-contract.md) — 6-state verdict schema
+- [`../shared-references/venue-profiles.md`](../../shared-references/venue-profiles.md) — OSS unified elsarticle template spec

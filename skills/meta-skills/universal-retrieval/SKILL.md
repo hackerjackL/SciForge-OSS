@@ -87,7 +87,7 @@ OSS 是学科无关的，125 问题跨 10+ 領域，**不能按学科硬切换�
 - **统一检索条数** `max_papers=30`（主仓库按学科变；OSS 统一）
 - **统一验证级别** `verification_level=full`（3 层防幻觉是强制的，无学科降级路径）
 
-**OSS 没有 `discipline-context` 的源优先级覆盖**——见 [`discipline-context.md`](../shared-references/discipline-context.md) OSS 单行契约：所有 125 问题用 `general` 行，即上表的统一优先级。如果你看到迁移自主仓库的旧代码引用 `DISCIPLINE_CONTEXT.source_priorities`，**删除该分支**——OSS 没有这种按学科切换的逻辑。
+**OSS 没有 `discipline-context` 的源优先级覆盖**——见 [`discipline-context.md`](../../shared-references/discipline-context.md) OSS 单行契约：所有 125 问题用 `general` 行，即上表的统一优先级。如果你看到迁移自主仓库的旧代码引用 `DISCIPLINE_CONTEXT.source_priorities`，**删除该分支**——OSS 没有这种按学科切换的逻辑。
 
 ## 配置
 
@@ -162,6 +162,6 @@ OSS 是学科无关的，125 问题跨 10+ 領域，**不能按学科硬切换�
 
 ## 共享契约引用
 
-- [citation-discipline](../shared-references/citation-discipline.md) — 3 层防幻觉验证协议
-- [discipline-context](../shared-references/discipline-context.md) — 学科感知搜索路由
-- [output-manifest](../shared-references/output-manifest.md) — 产物结构契约
+- [citation-discipline](../../shared-references/citation-discipline.md) — 3 层防幻觉验证协议
+- [discipline-context](../../shared-references/discipline-context.md) — 学科感知搜索路由
+- [output-manifest](../../shared-references/output-manifest.md) — 产物结构契约

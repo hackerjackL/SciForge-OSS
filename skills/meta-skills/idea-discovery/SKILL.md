@@ -59,7 +59,7 @@ Key artifacts consumed:
 - **Min root nodes** — 8 (default). The DAG starts with 8-12 root idea nodes; MCTS prunes to the best 3-5.
 - **Perspectives** — 3 universal: `theoretical` (symbolic derivation), `computational` (numerical sanity check), `qualitative` (mechanism reasoning). Main SciForge has a 4th `empirical` (experiment) which OSS removes.
 - **Promotion threshold** — score ≥ 0.6 on the 5-axis idea-fit (see below).
-- **Domain-adaptive perspectives** — If `refine-logs/domain-signature.json` exists, use the perspective weights from the signature instead of the default equal weights. See [`shared-references/domain-signature-consumer.md`](../shared-references/domain-signature-consumer.md).
+- **Domain-adaptive perspectives** — If `refine-logs/domain-signature.json` exists, use the perspective weights from the signature instead of the default equal weights. See [`shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
 
 ## The 5-Axis Idea-Fit Pre-Screen (Universal)
 
@@ -77,7 +77,7 @@ Every idea candidate is pre-screened against 5 axes before MCTS promotion:
 
 ## MCTS Iteration Protocol
 
-Follow [`shared-references/mcts-search-protocol.md`](../shared-references/mcts-search-protocol.md) for the full contract. Summary:
+Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) for the full contract. Summary:
 
 1. **Round 1 (Expansion)**: Generate 8-12 root idea nodes across the 3 perspectives.
 2. **Round 2 (Selection + Simulation)**: Score each node on the 5-axis idea-fit. Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?).
@@ -170,9 +170,9 @@ The human picks the final idea. Record in `FINAL_PROPOSAL.md`:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
+> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 
 ## Boundaries
 
@@ -193,9 +193,9 @@ The final output is:
 
 ## See Also
 
-- [`../shared-references/idea-dag-schema.md`](../shared-references/idea-dag-schema.md) — DAG node schema (universal, copied from main SciForge)
-- [`../shared-references/mcts-search-protocol.md`](../shared-references/mcts-search-protocol.md) — MCTS iteration protocol (UCB1 + bounded rounds)
-- [`../shared-references/multi-fidelity-evaluation.md`](../shared-references/multi-fidelity-evaluation.md) — 3-fidelity filter (OSS uses `general` row only)
-- [`../shared-references/discipline-context.md`](../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
-- [`../method-registry/SKILL.md`](../method-registry/SKILL.md) — consumes FINAL_PROPOSAL.md to build the method registry
-- [`../theory-derivation/SKILL.md`](../theory-derivation/SKILL.md) — consumes FINAL_PROPOSAL.md for the selected idea's framing
+- [`../shared-references/idea-dag-schema.md`](../../shared-references/idea-dag-schema.md) — DAG node schema (universal, copied from main SciForge)
+- [`../shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) — MCTS iteration protocol (UCB1 + bounded rounds)
+- [`../shared-references/multi-fidelity-evaluation.md`](../../shared-references/multi-fidelity-evaluation.md) — 3-fidelity filter (OSS uses `general` row only)
+- [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
+- [`../../support/method-registry/SKILL.md`](../../support/method-registry/SKILL.md) — consumes FINAL_PROPOSAL.md to build the method registry
+- [`../../support/theory-derivation/SKILL.md`](../../support/theory-derivation/SKILL.md) — consumes FINAL_PROPOSAL.md for the selected idea's framing

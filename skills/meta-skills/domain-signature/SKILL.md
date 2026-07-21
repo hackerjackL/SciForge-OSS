@@ -6,16 +6,16 @@ role: domain-characteristic-extractor
 
 # Domain Signature Extraction (SciForge-OSS — Automatic Domain Characteristic Discovery)
 
-> **Status**: Automatically extracts domain characteristics from the problem statement, seed literature, and query context. The output is a **domain signature** — a structured JSON object that all downstream skills consume to adapt their behavior.
+> **Status (v2.8 — downgraded to OPTIONAL hint)**: Automatically extracts domain characteristics from the problem statement via **rule-based** matching. Output is a **hint file** (`domain-signature-hint.json`) consumed ONLY by `/domain-learner` as a prior — NOT directly by downstream skills. The learner (`/domain-learner`, Phase 1b) is the sole source of truth writing `domain-signature.json`. This skill runs as an OPTIONAL fast-path to seed the learner; if the learner is unavailable or confidence is low, downstream skills use defaults (the hint is never a fallback signature).
 >
 > **Core philosophy**: Do NOT hard-code domain classification. Let the agent discover domain characteristics at runtime from the problem's own language, literature, and structure.
 
 ## Quick Reference
 
-- **Purpose**: 自动提取领域特征 → 生成领域签名 → 下游 skill 自适应
+- **Purpose**: 自动提取领域 hint (rule-based) → 仅供 learner 作 prior
 - **Input**: 问题描述 + 种子文献 + 用户提示词
-- **Output**: domain-signature.json (JSON 签名)
-- **Key**: 不硬编码领域分类，运行时从问题文本自动提取
+- **Output**: refine-logs/domain-signature-hint.json (hint 文件，非下游消费源)
+- **Key**: v2.8 降级为 OPTIONAL 快路径；下游 skill 不直接读 hint，只读 learner 输出的 domain-signature.json
 
 ## Use When
 
@@ -155,6 +155,6 @@ The domain signature is written to `refine-logs/domain-signature.json` and consu
 
 ## See Also
 
-- [`../shared-references/domain-failure-modes.md`](../shared-references/domain-failure-modes.md) — domain-specific failure mode catalog
-- [`../shared-references/discipline-paradigm.md`](../shared-references/discipline-paradigm.md) — 4 research paradigms
-- [`../shared-references/discipline-writing.md`](../shared-references/discipline-writing.md) — writing guide consumed by signature
+- [`../shared-references/domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) — domain-specific failure mode catalog
+- [`../shared-references/discipline-paradigm.md`](../../shared-references/discipline-paradigm.md) — 4 research paradigms
+- [`../shared-references/discipline-writing.md`](../../shared-references/discipline-writing.md) — writing guide consumed by signature
