@@ -1,6 +1,6 @@
 # 125 Science Problems Demo Index
 
-> **Status (v2.9 — stub补建)**: This file is a **Demo-only** index of 125 representative science problems. It is referenced by [`README.md`](../README.md) and [`AGENT_GUIDE.md`](../AGENT_GUIDE.md) as the canonical "what does a Q-id look like" example. **NOT auto-searched**: the human user supplies the Q-id (or free-form problem text) at invocation; the orchestrator does NOT iterate this index.
+> **Status (v1.0.0 — stub)**: This file is a **Demo-only** index of 125 representative science problems. It is referenced by [`README.md`](../README.md) and [`AGENT_GUIDE.md`](../AGENT_GUIDE.md) as the canonical "what does a Q-id look like" example. **NOT auto-searched**: the human user supplies the Q-id (or free-form problem text) at invocation; the orchestrator does NOT iterate this index.
 
 ## Purpose
 

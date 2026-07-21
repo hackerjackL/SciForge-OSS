@@ -1,6 +1,6 @@
 # Domain Adaptation Contract (SciForge-OSS — TDAL 4-Dimensional Joint Confidence Schema)
 
-> **Status (v2.8 — locked schema, v2.9 — weights hierarchy clarified)**: The single authoritative schema for the 4-dimensional joint confidence score (TDAL) consumed by `/result-to-claim` (Phase 10), reported in `CLAIMS_FROM_RESULTS.md`, and surfaced to `/paper-writing` (Phase 12) for the paper's Confidence & Limitations section. This file is the **contract** — every producer/consumer of TDAL MUST conform to the schema, weights, and thresholds defined here.
+> **Status (v2.8 — locked schema, v1.0.0 — weights hierarchy clarified)**: The single authoritative schema for the 4-dimensional joint confidence score (TDAL) consumed by `/result-to-claim` (Phase 10), reported in `CLAIMS_FROM_RESULTS.md`, and surfaced to `/paper-writing` (Phase 12) for the paper's Confidence & Limitations section. This file is the **contract** — every producer/consumer of TDAL MUST conform to the schema, weights, and thresholds defined here.
 >
 > **Core principle**: Confidence is not a single number. It decomposes into 4 independent dimensions; the joint is their product. No single dimension may be silently inflated or dropped.
 
@@ -61,7 +61,7 @@
 
 **v2.8 schema change**: `domain_adaptation` previously split into `domain_signature` (0.4) + `domain_learner` (0.4) + `seed_paper_match` (0.2). After S1 (learner-first, Phase 1a downgraded to OPTIONAL hint), the signature is no longer an independent confidence source — only the learner writes the signature. So `domain_adaptation` now collapses to `domain_learner` (0.8) + `seed_paper_match` (0.2). This avoids double-counting the learner's output under two labels.
 
-## TDAL 权重层级表（v2.9 澄清）
+## TDAL 权重层级表（v1.0.0 澄清）
 
 > **为什么要这一节**: v2.8 引入 L2 deep integration 后，CHANGELOG 第 20 行写 "T 维新增 0.2 权重 `theory_data_validation` 组件（T 权重重分布 0.3/0.25/0.25/0.2）"——这一表述里 `0.3/0.25/0.25/0.2` 既可被读作 "T 维在 TDAL 四维中的占比"，也可被读作 "T 维内部 4 子组件的分布"。两种读法都自洽但意义完全不同。本节显式区分两个层级，消除歧义。
 
@@ -289,5 +289,5 @@ The orchestrator (Phase 10 boundary) MUST:
 - [`../support/result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — producer (Phase 10)
 - [`../support/paper-writing/SKILL.md`](../support/paper-writing/SKILL.md) — consumer (Phase 12)
 - [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — orchestrator contract
-- [`ouroboros-integration.md`](ouroboros-integration.md) — § A D dimension basic call source + § B T dimension `theory_data_validation` deep call source (consolidated v2.9)
+- [`ouroboros-integration.md`](ouroboros-integration.md) — § A D dimension basic call source + § B T dimension `theory_data_validation` deep call source (consolidated v1.0.0)
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — A dimension source (learner-written signature)

@@ -1,6 +1,6 @@
 # Ouroboros Data-Insight Integration (SciForge-OSS — Basic S3 + Deep L2)
 
-> **Status (v2.9 — consolidated)**: Single-entry integration protocol between SciForge-OSS (theory verification) and Ouroboros Data-Insight (data availability & quality assessment). This file merges two v2.8 documents:
+> **Status (v1.0.0 — consolidated)**: Single-entry integration protocol between SciForge-OSS (theory verification) and Ouroboros Data-Insight (data availability & quality assessment). This file merges two v2.8 documents:
 > - v2.5/v2.8 `ouroboros-integration.md` (basic S3 — D dimension availability) → **Section A**
 > - v2.8 `ouroboros-deep-integration.md` (deep L2 — T dimension theory↔data validation loop) → **Section B**
 >
