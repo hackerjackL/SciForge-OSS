@@ -81,7 +81,7 @@ Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) for the full contract. Summary:
 
 1. **Round 1 (Expansion)**: Generate 8-12 root idea nodes across the 3 perspectives.
-2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?).
+2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
 3. **Round 3 (Backpropagation)**: Promote ideas with simulation score ≥ 0.6. Reject ideas with simulation score < 0.4. For borderline (0.4-0.6), generate 2-3 child nodes (refined variants) and re-score.
 4. **Round 4 (Final selection)**: From promoted ideas, select the top 1-3 for `FINAL_PROPOSAL.md`. The human user picks the final one (forced checkpoint).
 
