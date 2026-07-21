@@ -248,5 +248,5 @@ The protocol is **not** automated in the sense of auto-merge or auto-reframe —
 - [`competitive-analysis.md`](competitive-analysis.md) — v2.5 static snapshot; this L3 monitor keeps it current
 - [`domain-contribution-protocol.md`](domain-contribution-protocol.md) — PR SLA contract reused here (14-day review, 30-day revise)
 - [`../meta-skills/universal-retrieval/SKILL.md`](../meta-skills/universal-retrieval/SKILL.md) — Phase 4 retrieval (Step 2 competitor scan uses this)
-- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — pipeline integration (the monitor is OUTSIDE the 20-phase; it's a recurring meta-process)
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — pipeline integration (the monitor is OUTSIDE the 21-phase; it's a recurring meta-process)
 - [`../CONTRIBUTING.md`](../../CONTRIBUTING.md) — repo-wide contribution guide (this file is the competitive-monitoring supplement)
