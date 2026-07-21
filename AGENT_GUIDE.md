@@ -106,6 +106,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | `output-manifest.md` + `output-versioning.md` | Product structure + versioning | Copied from main SciForge (universal) |
 | `reviewer-independence.md` + `reviewer-routing.md` + `review-tracing.md` | Cross-model reviewer contracts | Copied from main SciForge (universal) |
 | `effort-contract.md` | Effort level definitions (lite/balanced/max/beast) | Copied from main SciForge (universal) |
+| `engineering-grounding-contract.md` | **NEW v2.9** — 5-dimension EG axis for real-world engineering feasibility | OSS new (discipline-agnostic) |
 | `writing-principles.md` | Academic writing style | Copied from main SciForge (universal) |
 | `skill-config.md` | Skill metadata schema | Copied from main SciForge (universal) |
 | `venue-profiles.md` | **Single** unified `elsarticle` template spec (no venue families) | OSS rewritten (discipline-agnostic) |

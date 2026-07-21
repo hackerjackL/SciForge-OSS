@@ -24,7 +24,7 @@ The DAG is persisted as `idea-stage/IDEA_DAG.json` with the following structure:
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "idea_dag": {
     "nodes": [
       {
@@ -53,6 +53,15 @@ The DAG is persisted as `idea-stage/IDEA_DAG.json` with the following structure:
           "drift_risk": "constrained",
           "density": "supported",
           "structure": "supported"
+        },
+        "engineering_grounding": {
+          "compute_footprint": {"score": 2, "tier": "HEAVY", "notes": "> 1000 GPU-h estimated"},
+          "dependency_chain": {"score": 4, "tier": "CONSTRAINED", "notes": "2 deps not ready: proprietary dataset D3, custom ASIC"},
+          "team_year_estimate": {"score": 3, "tier": "HEAVY", "notes": "≈ 18 person-months"},
+          "reproducibility_risk": {"score": 4, "tier": "CONSTRAINED", "notes": "≈ 35% chance trick false"},
+          "capital_cost": {"score": 8, "tier": "READY", "notes": "uses existing cluster"},
+          "eg_average": 4.2,
+          "eg_tier": "CONSTRAINED"
         },
         "children": ["idea_005", "idea_008"],
         "edge_types": {

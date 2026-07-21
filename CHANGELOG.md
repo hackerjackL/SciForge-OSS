@@ -48,6 +48,26 @@ SciForge-OSS 第一个正式发行版，涵盖从初始架构到完整功能的�
 
 以下条目记录了从初始原型到正式版之前的演进过程。
 
+### [2.9.0] - 2026-07-21
+
+#### 核心转变
+- **v2.8→v2.9**: 新增 Engineering Grounding (EG) 轴，解决"工程落地评判"盲区。6th pre-screen axis + 5 维子评分 + Phase 5b 工程落地估计 + 复合评分 0.15 权重 + 三段式下行保护。
+
+#### 新增
+- **EG 契约**: 新建 `shared-references/engineering-grounding-contract.md`，定义 5 维子评分 (Compute/Dependency/Team-Year/Repro Risk/Capital)、N/A 处理、BLOCKED 规则、三段式 Engineering Path。
+- **6th pre-screen axis**: `idea-discovery/SKILL.md` 5-axis → 6-axis，新增 Engineering Grounding 列。
+- **Phase 5b**: `adversarial-falsification/SKILL.md` 拆分 Phase 5a (OSS Sandbox) + Phase 5b (EG Estimate)，产生 `ENGINEERING_GROUNDING.md` 报告。
+- **复合评分权重**: `novelty-check/SKILL.md` 公式更新为 `novelty×0.45 + feasibility×0.25 + relevance×0.15 + EG×0.15`。
+- **DAG schema**: `idea-dag-schema.md` v1.0→v1.1，新增 `engineering_grounding` 节点字段。
+- **置信度拆分**: `result-to-claim/SKILL.md` Grounding Confidence 拆为 OSS Sandbox Grounding (重算) + Engineering Grounding (继承)。
+- **Orchestrator**: `auto-pipeline/SKILL.md` 20→21 阶段，新增 Phase 2.5b 质量门控 + `ENGINEERING_GROUNDING.md` workspace。
+- **竞争分析**: `competitive-analysis.md` 方案 2 标记为 ✅ 已实施。
+- **包结构**: `SKILL.md` + `AGENT_GUIDE.md` shared references 30+ → 31+。
+
+#### 修复
+- EG1: competitive-analysis.md 方案 2 "实施复杂度" roadmap 从未落地 → 已实施
+- EG2: 多阶段 "20-phase" 残留 → 21-phase
+
 ### [2.8.0] - 2026-07-21
 
 #### 核心转变

@@ -4,16 +4,16 @@ type: orchestrator
 role: single-question-research-orchestrator
 ---
 
-# Auto Pipeline (SciForge-OSS — Single-Question, 20-Phase DAG Loop)
+# Auto Pipeline (SciForge-OSS — Single-Question, 21-Phase DAG Loop)
 
-> **Status**: The **single entry orchestrator** for OSS. Executes a complete 20-phase DAG research loop on **one** question supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
+> **Status**: The **single entry orchestrator** for OSS. Executes a complete 21-phase DAG research loop on **one** question supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
 >
 > **Key OSS difference from main SciForge**: main SciForge's research-pipeline branches by discipline (economics / cs-ml / physics / general) into 4 parallel pipelines each with its own framework (AIM / SOTA / PNV / none) + reviewer persona. OSS has **no discipline branch** — one universal pipeline, the universal `senior-reviewer-agnostic` persona, and the agent's runtime reasoning handles domain-specific methodology.
 
 ## Quick Reference
 
 - **Entry point**: `/auto-pipeline "Q001: 问题描述" — effort: max`
-- **Scope**: 单题执行，20 阶段 DAG 循环，全领域通用
+- **Scope**: 单题执行，21 阶段 DAG 循环，全领域通用
 - **Output**: 完整论文 (LaTeX/PDF) + 所有中间产物
 - **Key**: 单题执行，不迭代问题索引，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
 
@@ -30,7 +30,7 @@ Typical prompts:
 
 ## Job
 
-Orchestrate a complete 20-phase DAG research loop. The non-negotiable goals:
+Orchestrate a complete 21-phase DAG research loop. The non-negotiable goals:
 1. **Each question runs the complete loop** — no phase skipped, regardless of how simple the problem seems
 2. **Each phase produces a verifiable artifact** — the pipeline is documented by output files, not promises
 3. **Every citation is real** — the 3-layer anti-hallucination protocol is mandatory (see [`citation-discipline.md`](../../shared-references/citation-discipline.md))
@@ -230,6 +230,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 1 | 问题可分解为形式化陈述 | 请求用户澄清问题边界 |
 | 2 | 至少生成 1 个 idea (MCTS 收敛) | 放宽 perspectives 重评；再失败升级 BLOCKED |
 | 2.5 | 证伪攻击: 假设健康度 ≥ 6 OR 无反例 | WEAKENED → 回退 Phase 2 重生成；FALSIFIED → 淘汰（记录原因） |
+| 2.5b | Engineering Grounding 报告输出（Phase 5b）: ENGINEERING_GROUNDING.md 生成 | 仅 HEAVY/CONSTRAINED 必需输出；BLOCKED 淘汰（子维 = 0）
 | 3 | DAG 收敛到 1 个幸存者 (≥ 0.6 idea-fit) | 放宽 strictness 重评；再失败升级 BLOCKED |
 | — | **强制人类审批**：从幸存者中选最终 idea | 等待人类确认；agent 不能自选 |
 | 4 | 文献找到或问题是理论型 | 空则 WARN；理论型（theory-only）则跳至 Phase 8，无需实证文献 |
@@ -264,16 +265,17 @@ Only the human user can waive a failure past round 3; the orchestrator never sel
 
 ## Required Workspace
 
-On successful completion, the orchestrator produces the following structure under `{problem_id}/` (20-phase trail):
+On successful completion, the orchestrator produces the following structure under `{problem_id}/` (21-phase trail):
 
 ```
 {problem_id}/
-├── PIPELINE_STATUS.md           ← execution report (20-phase trail)
+├── PIPELINE_STATUS.md           ← execution report (21-phase trail)
 ├── refine-logs/
 │   ├── FINAL_PROPOSAL.md        ← frozen Q-id + selected idea (Phase 2)
 │   ├── IDEA_CANDIDATES.md       ← ranked idea list (Phase 2)
 │   ├── IDEA_DAG.json            ← DAG structure (Phase 2) — 可渲染为 Mermaid 可视化
 │   ├── IDEA_DAG_VISUAL.md       ← DAG 可视化报告 (Mermaid 格式，Phase 2)  ← 新增
+│   ├── ENGINEERING_GROUNDING.md ← Engineering Grounding report (Phase 5b)  ← 新增 v2.9
 │   └ MCTS_LOG.md                ← MCTS iteration log (Phase 2)
 ├── refine-logs/
 │   └ novelty_report.json        ← 3-axis evaluation (Phase 3)
