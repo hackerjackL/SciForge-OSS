@@ -130,4 +130,4 @@ The framework does NOT require a Q-id from this index — any scientific problem
 
 - [`README.md`](../README.md) — project overview + 125 题 Demo 说明
 - [`AGENT_GUIDE.md`](../AGENT_GUIDE.md) — invocation patterns + Q-id format
-- [`skills/orchestrator/auto-pipeline/SKILL.md`](../skills/orchestrator/auto-pipeline/SKILL.md) — the 20-phase DAG loop orchestrator
+- [`skills/orchestrator/auto-pipeline/SKILL.md`](../skills/orchestrator/auto-pipeline/SKILL.md) — the 21-phase DAG loop orchestrator

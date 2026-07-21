@@ -2,7 +2,7 @@
 
 > **Status (v2.8 — mid-term M3, v1.0.0 — cross-link to M1)**: Defines how the orchestrator **automatically** downgrades phase mode (MUST→CONDITIONAL→OPTIONAL→SKIP) based on the `evidence_type` + `reasoning_paradigm` + `theory_only` flag in `refine-logs/domain-signature.json` (Phase 1b). Replaces v2.7's **hardcoded** Phase Mode Table (20 rows of manually-assigned MUST/OPTIONAL/CONDITIONAL) with a **signature-driven** degradation matrix. The orchestrator now reads the signature at pipeline start and computes the per-phase mode table at runtime — no human pre-assignment. This file adapts **mode**; the orthogonal companion [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) (M1) adapts **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED). The two files are independent — read either depending on which axis the orchestrator is configuring.
 >
-> **Core principle**: The pipeline structure (20-phase order, fallback contract, 3-round cap) is invariant; only the **mode per phase** adapts. v2.7 asked the human to pre-mark which phases are OPTIONAL; v2.8 asks the signature. This is the third leg of the v2.8 adaptive trio: [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) adapts **intensity**, this file adapts **mode**, [`confidence-uplift.md`](confidence-uplift.md) adapts **verdict ceiling**.
+> **Core principle**: The pipeline structure (21-phase order, fallback contract, 3-round cap) is invariant; only the **mode per phase** adapts. v2.7 asked the human to pre-mark which phases are OPTIONAL; v2.8 asks the signature. This is the third leg of the v2.8 adaptive trio: [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) adapts **intensity**, this file adapts **mode**, [`confidence-uplift.md`](confidence-uplift.md) adapts **verdict ceiling**.
 
 ## Quick Reference
 
@@ -184,7 +184,7 @@ Adding a new discipline that fits an existing signature (e.g., a new empirical s
 
 ## See Also
 
-- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 20-phase pipeline (this file replaces the v2.7 static Phase Mode Table)
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 21-phase pipeline (this file replaces the v2.7 static Phase Mode Table)
 - [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) — M1 intensity adaptation (orthogonal to this M3 mode adaptation)
 - [`confidence-uplift.md`](confidence-uplift.md) — M2 verdict uplift (orthogonal to mode/intensity)
 - [`domain-adaptation-contract.md`](domain-adaptation-contract.md) — TDAL schema (signature-absent fallback flags A dimension)

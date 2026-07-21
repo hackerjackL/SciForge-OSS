@@ -528,7 +528,7 @@ The new `theory_data_validation` component (weight 0.2) is fed by the deep integ
 
 **Floor**: `theory_data_validation` component cannot push T above 1.0 — the bonus is bounded by the cap. FALSIFIED_SIGN escalates to TDAL UNSUPPORTED regardless of other components (a theory with wrong direction is not publishable).
 
-### Phase Wiring (L2 integration into the 20-phase pipeline)
+### Phase Wiring (L2 integration into the 21-phase pipeline)
 
 ```
 Phase 6: /theory-derivation
