@@ -45,18 +45,21 @@ Phase 3: 长尾 50+ 领域（小众领域）
   3. 领域写作风格（论文结构、引用格式、论证风格）
 ```
 
-### 方案 2：落地置信度提升
+### 方案 2：落地置信度提升 [已实施 v2.9]
+
+**状态**: ✅ **已实施** — 详见 [`engineering-grounding-contract.md`](engineering-grounding-contract.md)
 
 当前：理论置信度 × 数据置信度
 目标：**90%+ 落地率**
 
 **实施路径**：
 ```
-1. 增加"假设强度"维度：假设越强（限制越多），落地越容易
-2. 增加"类比成功率"维度：类似问题在类似领域的成功率
-3. 增加"实施复杂度"维度：从理论到实施需要多少步
-4. 三路联合置信度：
+1. ✅ 增加"实施复杂度"维度 → 5 维 EG 子评分 (Compute/Dependency/Team-Year/Repro Risk/Capital)
+2. ✅ 三路联合置信度:
    final_confidence = theoretical × data_availability × implementation_feasibility
+   → 实现为: grounding_confidence = 0.6 × OSS_sandbox_grounding + 0.4 × engineering_grounding
+3. ✅ 落地分阶段路线 (Engineering Path with 3-stage downside protection)
+4. ✅ 复合评分公式: novelty×0.45 + feasibility×0.25 + relevance×0.15 + EG×0.15
 ```
 
 ### 方案 3：多框架输出兼容

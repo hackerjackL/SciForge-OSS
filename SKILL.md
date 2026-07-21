@@ -18,15 +18,15 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 
 | 类型 | 数量 | 说明 |
 |------|------|------|
-| **Orchestrator** | 1 | `/auto-pipeline` — 单入口，20 阶段 DAG 科研循环 |
+| **Orchestrator** | 1 | `/auto-pipeline` — 单入口，21 阶段 DAG 科研循环（v2.9 新增 Phase 5b EG） |
 | **Meta-Skills** | 7 | 通用元技能：idea-discovery, universal-retrieval, unified-plotting, dynamic-sandbox, dynamic-tooling, domain-learner, domain-signature |
 | **Support Skills** | 13 | 支撑技能：paper-writing, paper-compile, quality-gate, auto-review-loop, theory-derivation, logic-verification, result-to-claim, leakage-audit, citation-audit, invariant-check, kill-argument, method-registry, adversarial-falsification |
-| **Shared References** | 30+ | 共享配置：skill-config, assurance-contract, effort-contract, color-themes, venue-profiles 等 |
+| **Shared References** | 31+ | 共享配置：skill-config, assurance-contract, effort-contract, color-themes, venue-profiles, **engineering-grounding-contract** 等 |
 
 ## 包含的子技能
 
 ### Orchestrator
-- `/auto-pipeline` — 单题 20 阶段 DAG 科研循环（唯一入口）
+- `/auto-pipeline` — 单题 21 阶段 DAG 科研循环（唯一入口，v2.9 新增 Phase 5b EG）
 
 ### Meta-Skills
 - `/idea-discovery` — MCTS 增强的研究想法生成

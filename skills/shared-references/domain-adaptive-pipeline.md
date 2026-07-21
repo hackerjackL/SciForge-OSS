@@ -2,14 +2,14 @@
 
 > **Status (v2.8 — mid-term M1, v1.0.0 — cross-link to M3)**: Defines how the orchestrator dynamically adjusts **Phase 5 (method-registry) / Phase 6 (theory-derivation) / Phase 11 (unified-plotting)** **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED) based on the `evidence_type` + `reasoning_paradigm` written to `refine-logs/domain-signature.json` by `/domain-learner` (Phase 1b). This file adapts **intensity**; the orthogonal companion [`pipeline-adaptive-degradation.md`](pipeline-adaptive-degradation.md) (M3) adapts **mode** (MUST/CONDITIONAL/OPTIONAL/SKIP). The two files are independent — read either depending on which axis the orchestrator is configuring.
 >
-> **Core principle**: One universal 20-phase pipeline shape; **intensity** adapts per signature. The pipeline structure (phase order, fallback contract, 3-round cap) is invariant — only the per-phase emphasis, budget, and gate strictness adapt. This avoids both the "hardcoded discipline branch" anti-pattern (main SciForge's 4 parallel pipelines) and the "uniform strength" anti-pattern (v2.7's all-MUST).
+> **Core principle**: One universal 21-phase pipeline shape; **intensity** adapts per signature. The pipeline structure (phase order, fallback contract, 3-round cap) is invariant — only the per-phase emphasis, budget, and gate strictness adapt. This avoids both the "hardcoded discipline branch" anti-pattern (main SciForge's 4 parallel pipelines) and the "uniform strength" anti-pattern (v2.7's all-MUST).
 
 ## Quick Reference
 
 - **Purpose**: Phase 5/6/11 强度按 evidence_type/paradigm 动态调整，实现真通用而非硬编码分支
 - **Input**: refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`) from Phase 1b
 - **Output**: per-phase `intensity_override` block written to PIPELINE_STATUS.md before Phase 5 starts
-- **Key**: 结构不变（20-phase 顺序锁、3 轮回退、契约都保留），只调强度/emphasis/budget/gate strictness
+- **Key**: 结构不变（21-phase 顺序锁、3 轮回退、契约都保留），只调强度/emphasis/budget/gate strictness
 
 ## Adaptive Override Table (locked)
 
@@ -130,7 +130,7 @@ Step 7: Log the override in PIPELINE_STATUS.md (transparency — the intensity c
 
 ## Boundaries
 
-- **Pipeline structure is invariant.** The 20-phase order, the 3-round fallback cap, the human checkpoints (Phase 3→4, Phase 5→6), the INV-G1 freeze — NONE of these change with intensity. Only per-phase emphasis/budget/gate-strictness adapts.
+- **Pipeline structure is invariant.** The 21-phase order, the 3-round fallback cap, the human checkpoints (Phase 3→4, Phase 5→6), the INV-G1 freeze — NONE of these change with intensity. Only per-phase emphasis/budget/gate-strictness adapts.
 - **REDUCED never means SKIPPED for Phase 5/6.** Even `derivational` problems run Phase 5 (hash-lock + human checkpoint on proof strategy) and Phase 6 (SymPy attempt; `manual` only on SymPy fail). Only Phase 11 can be `SKIPPED` (derivational) or `REPLACED` (interpretive).
 - **INTENSIFIED never removes the 3-round cap.** More sections and stricter gates yes; more retry rounds no — the anti-deadloop ladder is universal.
 - **The override is auditable.** `pipeline-intensity-override.json` is a required artifact; the orchestrator MUST NOT silently apply intensity without emitting it. Phase 14 (`/auto-review-loop`) reads it to check whether the intensity choice was justified by the signature.
@@ -151,7 +151,7 @@ The override table is therefore a **small finite alphabet** (5 evidence_types ×
 
 ## See Also
 
-- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 20-phase pipeline (Phase 5/6/11 boundaries)
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 21-phase pipeline (Phase 5/6/11 boundaries)
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — how Phase 1b's signature is consumed downstream
 - [`domain-adaptation-contract.md`](domain-adaptation-contract.md) — TDAL A dimension (domain adaptation confidence)
 - [`discipline-paradigm.md`](discipline-paradigm.md) — 4 research paradigms (formal/empirical/interpretive/design)
