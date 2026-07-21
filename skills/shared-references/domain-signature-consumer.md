@@ -188,4 +188,4 @@ sequenceDiagram
 - [`../meta-skills/domain-signature/SKILL.md`](../meta-skills/domain-signature/SKILL.md) — produces the signature
 - [`../shared-references/domain-failure-modes.md`](../shared-references/domain-failure-modes.md) — failure mode catalog
 - [`../shared-references/discipline-writing.md`](../shared-references/discipline-writing.md) — writing conventions
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — graceful degradation protocol
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — graceful degradation protocol

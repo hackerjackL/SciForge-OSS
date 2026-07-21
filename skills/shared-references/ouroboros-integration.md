@@ -605,5 +605,5 @@ This is distinct from "AutoML runs experiments for you" (competitor positioning)
 - [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6 producer of `theoretical-prediction.json` (deep call trigger)
 - [`../support/result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — Phase 10 producer of `theory-data-validation-report.json` + T uplift application
 - [`../support/paper-writing/SKILL.md`](../support/paper-writing/SKILL.md) — Phase 12 consumer of validation report → paper Validation section
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — phase wiring integration
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — phase wiring integration
 - [`fantasy-prevention.md`](fantasy-prevention.md) — Gate 5: Data Availability (complementary anti-hallucination gate)

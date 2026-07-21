@@ -311,4 +311,4 @@ Human checkpoint: human may waive further (the 3-round cap is hard; only human c
 - [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6 (re-run by Mechanism 1 and 3)
 - [`../meta-skills/universal-retrieval/SKILL.md`](../meta-skills/universal-retrieval/SKILL.md) — Phase 4 (re-run by Mechanism 2 alternative-path)
 - [`../support/adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — Phase 2.5 (alternative path survival check)
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — uplift loop integration into the 20-phase pipeline
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — uplift loop integration into the 20-phase pipeline

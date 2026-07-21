@@ -151,4 +151,4 @@ If the startup protocol fails at any step:
 
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — consumption rules per skill
 - [`../meta-skills/domain-signature/SKILL.md`](../meta-skills/domain-signature/SKILL.md) — produces the signature
-- [`../orchestrator/125-problems-pipeline/SKILL.md`](../orchestrator/125-problems-pipeline/SKILL.md) — graceful degradation protocol
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — graceful degradation protocol

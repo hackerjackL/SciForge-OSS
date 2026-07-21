@@ -156,7 +156,7 @@ SciForge-OSS 第一个正式发行版，涵盖从初始架构到完整功能的�
 ### [1.0.0] - 2026-07-19
 
 #### 初始版本
-- 单编排器架构 (125-problems-pipeline)
+- 单编排器架构 (auto-pipeline)
 - 6 个元技能 + 13 个支持技能
 - 16 个共享契约
 - 17 阶段 DAG 循环（v2.8 升级为 20-phase：补 Phase 1a/1b domain signature + Phase 2.5 adversarial falsification）

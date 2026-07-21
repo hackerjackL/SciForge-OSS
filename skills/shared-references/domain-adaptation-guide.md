@@ -27,7 +27,7 @@ Before starting, verify:
 
 The user provides a problem. Example:
 ```
-/125-problems-pipeline "Does minimum wage increase unemployment? Use DiD"
+/auto-pipeline "Does minimum wage increase unemployment? Use DiD"
 ```
 
 **Agent action**: Read the problem statement and identify:
@@ -224,7 +224,7 @@ DOMAIN ADAPTATION EXECUTION
 
 **Input**:
 ```
-/125-problems-pipeline "Does minimum wage increase unemployment? Use DiD"
+/auto-pipeline "Does minimum wage increase unemployment? Use DiD"
 ```
 
 **Phase 1a — Domain Signature Extraction**:
@@ -285,7 +285,7 @@ Output: Economics-style paper with DiD identification strategy
 
 **Input**:
 ```
-/125-problems-pipeline "Prove that the Riemann zeta function has no zeros for Re(s) > 1"
+/auto-pipeline "Prove that the Riemann zeta function has no zeros for Re(s) > 1"
 ```
 
 **Phase 1a — Domain Signature Extraction**:
@@ -342,7 +342,7 @@ Output: Formal mathematics paper with theorem-proof structure
 
 **Input**:
 ```
-/125-problems-pipeline "Does drug X reduce blood pressure? Design a clinical trial"
+/auto-pipeline "Does drug X reduce blood pressure? Design a clinical trial"
 ```
 
 **Phase 1a — Domain Signature Extraction**:
@@ -400,7 +400,7 @@ Output: Clinical trial paper with IMRaD structure
 
 **Input**:
 ```
-/125-problems-pipeline "Simulate the heat equation on a 2D domain"
+/auto-pipeline "Simulate the heat equation on a 2D domain"
 ```
 
 **Phase 1a — Domain Signature Extraction**:
@@ -456,7 +456,7 @@ Output: Physics-style paper with model equations and numerical results
 
 **Input**:
 ```
-/125-problems-pipeline "Analyze the concept of justice in Plato's Republic"
+/auto-pipeline "Analyze the concept of justice in Plato's Republic"
 ```
 
 **Phase 1a — Domain Signature Extraction**:
@@ -528,7 +528,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input**:
 ```
-/125-problems-pipeline "Does minimum wage increase unemployment? Use DiD"
+/auto-pipeline "Does minimum wage increase unemployment? Use DiD"
 ```
 
 **Expected Phase 1a Output**:
@@ -558,7 +558,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input**:
 ```
-/125-problems-pipeline "Prove that the Riemann zeta function converges for Re(s) > 1"
+/auto-pipeline "Prove that the Riemann zeta function converges for Re(s) > 1"
 ```
 
 **Expected Phase 1a Output**:
@@ -588,7 +588,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input**:
 ```
-/125-problems-pipeline "Design a clinical trial for drug X efficacy"
+/auto-pipeline "Design a clinical trial for drug X efficacy"
 ```
 
 **Expected Phase 1a Output**:
@@ -618,7 +618,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input (should be FANTASY)**:
 ```
-/125-problems-pipeline "Prove P = NP using a simple algorithm"
+/auto-pipeline "Prove P = NP using a simple algorithm"
 ```
 
 **Expected Behavior**:
@@ -637,7 +637,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input**:
 ```
-/125-problems-pipeline "Q001: 宇宙的起源与演化"
+/auto-pipeline "Q001: 宇宙的起源与演化"
 ```
 
 **Expected Behavior**:
@@ -670,7 +670,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input**:
 ```
-/125-problems-pipeline "Q001: 宇宙的起源与演化" — ouroboros
+/auto-pipeline "Q001: 宇宙的起源与演化" — ouroboros
 ```
 
 **Expected Behavior**:

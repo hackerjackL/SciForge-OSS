@@ -180,7 +180,7 @@ The agent applies these conventions at runtime based on the problem's domain —
 ## 4. Language
 
 - Default: **English** (universal scientific lingua)
-- If the human user passes `language: chinese` to `/125-problems-pipeline`, the entire draft is in Chinese (abstract + body); equations and citations remain in standard LaTeX/math notation
+- If the human user passes `language: chinese` to `/auto-pipeline`, the entire draft is in Chinese (abstract + body); equations and citations remain in standard LaTeX/math notation
 - Never mix languages within a paper
 
 ---

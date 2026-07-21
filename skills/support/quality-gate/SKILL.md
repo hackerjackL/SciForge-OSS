@@ -17,7 +17,7 @@ role: pre-writing-quality-gate
 
 ## Use When
 
-Called by the OSS orchestrator (`/125-problems-pipeline`) at the **final pre-writing boundary** — the last checkpoint before `/paper-writing` begins. This is the gate that prevents the pipeline from entering the writing phase when the underlying research is not ready.
+Called by the OSS orchestrator (`/auto-pipeline`) at the **final pre-writing boundary** — the last checkpoint before `/paper-writing` begins. This is the gate that prevents the pipeline from entering the writing phase when the underlying research is not ready.
 
 This skill is NOT called during earlier phases (those are handled by `/invariant-check`). It is exclusively the pre-writing quality gate.
 

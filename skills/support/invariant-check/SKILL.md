@@ -17,7 +17,7 @@ role: phase-boundary-verifier
 
 ## Use When
 
-This skill is invoked by the OSS orchestrator (`/125-problems-pipeline`) at phase boundaries to verify that load-bearing invariants hold before the next phase begins. It is **not** a user-facing skill — users never invoke `/invariant-check` directly. The orchestrator calls it as a gate between phases.
+This skill is invoked by the OSS orchestrator (`/auto-pipeline`) at phase boundaries to verify that load-bearing invariants hold before the next phase begins. It is **not** a user-facing skill — users never invoke `/invariant-check` directly. The orchestrator calls it as a gate between phases.
 
 Typical invocation context (by the orchestrator, not a user):
 
@@ -149,7 +149,7 @@ The orchestrator reads `overall_verdict`:
 
 - **Structural, not substantive.** This skill checks file existence, Q-id matching, and verdict parsing. It never assesses methodology quality, claim validity, or paper writing quality.
 - **No discipline overlays.** OSS has only INV-G1. Do not reintroduce `INV-E*`/`INV-C*`/`INV-P*` invariants — they are discipline-specific and OSS is discipline-agnostic. If a problem seems to need a discipline-specific invariant (e.g., a physics problem wants PNV_SKETCH_HASH), that's handled by the agent's runtime reasoning in `/theory-derivation` + `/dynamic-sandbox`, NOT by an invariant overlay.
-- **Never user-invoked.** Users do not call `/invariant-check`. The orchestrator calls it as a gate. If a user asks for an invariant check, direct them to `/125-problems-pipeline`.
+- **Never user-invoked.** Users do not call `/invariant-check`. The orchestrator calls it as a gate. If a user asks for an invariant check, direct them to `/auto-pipeline`.
 - **No side effects.** The verifier reads artifacts and writes its own output. It never modifies the artifacts it checks.
 - **6-state verdict only.** Do not invent new verdict states. The 6-state machine is defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md) and is the contract with the orchestrator.
 
