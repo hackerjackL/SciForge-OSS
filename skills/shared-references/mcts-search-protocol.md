@@ -19,7 +19,7 @@ This protocol defines how the agent searches the idea DAG using **Monte Carlo Tr
 
 ## 2. UCB Formula
 
-$$UCB(n) = V_{idea}(n) + c \cdot \sqrt{\frac{\ln N_{total}}{n_{visits}(n)}}$$
+$$UCB(n) = V_{idea}(n) + c \cdot \sqrt{\frac{\ln N_{total}}{n_{visits}(n)}} + \beta_{EG}(n)$$
 
 | Symbol | Meaning | Source |
 |--------|---------|--------|
@@ -27,6 +27,21 @@ $$UCB(n) = V_{idea}(n) + c \cdot \sqrt{\frac{\ln N_{total}}{n_{visits}(n)}}$$
 | $c$ | Exploration constant. Controls how aggressively the agent explores under-visited ideas. Default: $\sqrt{2} \approx 1.414$. Configurable in `search_metadata.exploration_constant_c`. | `search_metadata.exploration_constant_c` |
 | $N_{total}$ | Total visits across all nodes in the DAG. | `search_metadata.total_visits` |
 | $n_{visits}(n)$ | Number of times node $n$ has been visited (selected for expansion or evaluation). | Node's `visits` field |
+| $\beta_{EG}(n)$ | **EG exploration bonus (v3.0 NEW)**. Small bonus/penalty based on the idea's Engineering Grounding tier, encouraging exploration of implementable ideas while still permitting HEAVY/extreme ideas to be explored. | Node's `engineering_grounding.eg_tier` |
+
+### EG Exploration Bonus Table (v3.0)
+
+| EG tier | $\beta_{EG}$ | Rationale |
+|---------|--------------|-----------|
+| READY | +0.05 | Slightly favor implementable ideas — they can be falsified cheaply, so exploring them first is efficient |
+| CONSTRAINED | 0.00 | Neutral — let UCB exploitation/exploration terms decide |
+| HEAVY | -0.05 | Slightly penalize — but NOT enough to eliminate; the exploitation term can easily overcome this if the idea is genuinely promising |
+| Extreme (1-2 sub-dim = 0) | -0.10 | Moderate penalty — these are the hardest to implement, but the penalty is still bounded so a highly novel idea ($V_{idea}$ high) will be explored |
+| BLOCKED (≥3 sub-dim = 0) | exclude | BLOCKED nodes are already excluded from selection per Phase 1 rule |
+
+**Design principle**: The $\beta_{EG}$ range is ±0.10 — deliberately small compared to the $V_{idea}$ range (0-1) and the exploration term (which grows with $\sqrt{\ln N_{total}}$). This ensures EG only affects **marginal** selection decisions (when two ideas have similar UCB), not the overall search trajectory. A highly novel HEAVY idea will still be selected over a mediocre READY idea.
+
+**Anti-simplification guarantee**: The penalty for HEAVY/Extreme ideas is **small and bounded** — it never scales to eliminate them. A HEAVY idea with $V_{idea} = 0.9$ will always beat a READY idea with $V_{idea} = 0.7$, because $0.9 - 0.05 > 0.7 + 0.05$. This preserves the "do not simplify innovation" principle — EG only nudges, never eliminates.
 
 ### UCB Behavior
 
