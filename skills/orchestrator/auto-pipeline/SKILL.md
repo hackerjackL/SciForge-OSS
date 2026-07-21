@@ -57,7 +57,8 @@ Phase 1b: /domain-learner (MUST, literature-based learning)  ← 唯一真相源
 refine-logs/domain-signature.json (written ONLY by Phase 1b)
      ↓
 Phase 2:  /idea-discovery        → 读取签名 → 调整视角权重
-Phase 2.5: /adversarial-falsification → 读取签名 → 加载领域失败模式
+Phase 2.5: /adversarial-falsification → 读取签名 → 加载领域失败模式 + 校准 EG 子维 N/A 判定
+Phase 2.5b: (Phase 5b EG) → 读取签名 → 领域特定 EG 子维加权（Compute/N/A 判定）
 Phase 3:  /novelty-check         → 读取签名 → 调整评估权重
 Phase 5:  /method-registry       → 读取签名 → 调整假设评分标准
 Phase 6:  /theory-derivation     → 读取签名 → 选择验证方法
@@ -75,7 +76,7 @@ Where possible, phases run in parallel to reduce wall-clock time:
 
 | Parallel Group | Phases | Rationale |
 |---------------|--------|-----------|
-| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output |
+| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output. **Caution**: Phase 2's novelty pre-screen depends on Phase 4's literature. If Phase 2 runs first, it uses cached literature; if parallel, Phase 4 must complete before Phase 2's novelty evaluation. Recommend: Phase 2 Round 1 (idea generation) runs in parallel with Phase 4 literature search; Phase 2 Round 2-4 (novelty evaluation) waits for Phase 4 to complete. |
 | **Group B** | Phase 11 (unified-plotting) + Phase 12 (paper-writing) | Figures can be generated while the paper is being written |
 | **Group C** | Phase 7 (leakage-audit) + Phase 8 (logic-verification) | Both audits are independent |
 
@@ -83,7 +84,7 @@ Where possible, phases run in parallel to reduce wall-clock time:
 
 MCTS iteration is optimized to avoid re-scoring already-clear ideas:
 
-- **Round 1**: Score all 8-12 root nodes on the 5-axis idea-fit
+- **Round 1**: Score all 8-12 root nodes on the 6-axis idea-fit
 - **Round 2**: Only re-score **borderline** ideas (0.4-0.6 score range). Clear PASS (≥ 0.6) and clear FAIL (< 0.4) are not re-scored
 - **Round 3**: Only re-score child nodes of borderline ideas
 - **Round 4**: Final selection from promoted ideas
@@ -94,8 +95,8 @@ MCTS iteration is optimized to avoid re-scoring already-clear ideas:
 
 | Phase | If condition met | Action |
 |-------|-----------------|--------|
-| Phase 2 | 5-axis pre-screen: all ideas BLOCKED | Return immediately, no MCTS |
-| Phase 3 | Highest score > 0.8 | Skip Phase 2.5 (adversarial falsification) — idea is clearly strong |
+| Phase 2 | 6-axis pre-screen: all ideas BLOCKED | Return immediately, no MCTS |
+| Phase 3 | — | Adversarial falsification is MANDATORY — never skipped |
 | Phase 10 | All claims reach symbolic fidelity | Skip Phase 14 (auto-review-loop) — no improvement needed |
 | Phase 12 | No figures needed | Skip Phase 11 (unified-plotting)
 
@@ -124,13 +125,16 @@ Phase  2: /idea-discovery [DAG 分支] [MUST] — 3 视角 idea
      │  + 输出 verification_type (理论-only / 计算 / 理论+实验)
      │                                             │
 Phase  2.5: /adversarial-falsification [证伪门控] [MUST]
-     │  5 维度攻击: 假设评分 → 反例构造 → 文献对抗    │
-     │  → 类比映射 → 计算可行性 → 数据可用性          │
+     │  6 维度攻击: 假设评分 → 反例构造 → 文献对抗    │
+     │  → 类比映射 → 沙盒可行性 → 工程落地 → 数据可用性 │
      │  SURVIVE → 继续; WEAKENED → 回退 Phase 2      │
      │  FALSIFIED → 淘汰 (记录原因, 不再进入推导)     │
      │                                             │
-Phase  3: /novelty-check [DAG 门控] [MUST] — 3 维评估 + 淘汰
-     │  (新颖性×0.5 + 可行性×0.3 + 相关性×0.2)        │
+     │  Phase 5a: OSS Sandbox Feasibility (沙盒能否跑)│
+     │  Phase 5b: AI Engineering Grounding (AI 能否落地)│
+     │                                             │
+Phase  3: /novelty-check [DAG 门控] [MUST] — 4 维评估 + 淘汰
+     │  (新颖性×0.45 + 可行性×0.25 + 相关性×0.15 + 工程落地×0.15)│
      │                                             │
      └ Forced human checkpoint: pick the final idea ─┘
      │
@@ -198,6 +202,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 1b: domain-learner | MUST | v2.8 升为唯一真相源；读取 hint.json 作 prior，输出 domain-signature.json |
 | 2: idea-discovery | MUST | — |
 | 2.5: adversarial-falsification | MUST | — |
+| 2.5b: adversarial-falsification Phase 5b (EG) | MUST | ENGINEERING_GROUNDING.md 必产；HEAVY/CONSTRAINED 全量输出，READY 简化版 |
 | 3: novelty-check | MUST | — |
 | 4: universal-retrieval | MUST | — |
 | 5: method-registry | MUST | — |

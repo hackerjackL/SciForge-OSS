@@ -55,11 +55,13 @@ The non-negotiable goals:
 | **Architecture** | layered, hub-and-spoke, multi-plane | System architecture, workflow | JSON-spec OR AI-direct SVG |
 | **Scientific** | errorbar, filled-curve, quiver, streamplot | Error ranges, vector fields | Python (data) |
 | **Theoretical** | commutative-diagram, derivation-tree, concept-map, dependency-graph, counterexample-plot | Proof structures, concept relations, theorem dependencies | LaTeX tikz OR AI-direct SVG |
+| **Engineering Path** | ai-dev-path | AI 开发路线三段式时间轴（Stage 1/2/3 轮次+投资+风险节点+downside protection） | AI-direct PDF (tikz/pgfplots) |
 
 **Pipeline rule**:
 - **Data plots** (the first 7 categories + Scientific) → Python pipeline mandatory (matplotlib/seaborn/numpy), render script + input data preserved
 - **Diagram plots** (Topology + Architecture) → JSON-spec deterministic renderer OR AI-direct SVG generation (when the diagram is simple enough that AI can hand-write the SVG); either way, the spec/source is preserved for reproducibility
 - **Theoretical plots** (Theoretical category) → LaTeX `tikz-cd` for commutative diagrams, or AI-direct SVG for concept maps and dependency graphs. No Python pipeline required — reproducibility is via the LaTeX source or SVG spec preserved.
+- **Engineering Path plots** (Engineering Path category) → AI-direct PDF via LaTeX `tikz`/`pgfplots`. The `ai-dev-path` chart renders a 3-stage timeline with rounds, compute cost, risk nodes, and downside protection annotations. The LaTeX source is preserved for reproducibility.
 
 ### Theoretical Chart Types Detail
 
