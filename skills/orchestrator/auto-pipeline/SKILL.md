@@ -283,7 +283,7 @@ On successful completion, the orchestrator produces the following structure unde
 │   ├── ENGINEERING_GROUNDING.md ← Engineering Grounding report (Phase 5b)  ← 新增 v2.9
 │   └ MCTS_LOG.md                ← MCTS iteration log (Phase 2)
 ├── refine-logs/
-│   └ novelty_report.json        ← 3-axis evaluation (Phase 3)
+│   └ novelty_report.json        ← 4-axis evaluation (Phase 3)
 │   └ survivor.md                ← the surviving idea (Phase 3)
 ├── literature/
 │   ├── landscape_report.md      ← literature survey (Phase 4)
