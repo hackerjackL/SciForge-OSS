@@ -91,23 +91,21 @@ human-readable Markdown sibling). The JSON must contain at minimum:
 
 ```json
 {
-  "audit_skill": "paper-claim-audit",       // citation-audit, proof-checker, etc.
-  "verdict": "PASS",                         // one of the 6 above
-  "reason_code": "all_numbers_match",        // skill-specific short string
+  "audit_skill": "paper-claim-audit",
+  "verdict": "PASS",
+  "reason_code": "all_numbers_match",
   "summary": "Verified 23 numeric claims against 4 result files; no mismatches.",
   "audited_input_hashes": {
-    "main.tex":                          "sha256:a3f8...",
-    "sections/5.evidence.tex":           "sha256:b2d1...",
+    "main.tex": "sha256:a3f8...",
+    "sections/5.evidence.tex": "sha256:b2d1...",
     "results/run_2026_04_19.json": "sha256:c9e4..."
   },
   "trace_path": ".sciforge/traces/paper-claim-audit/2026-04-21_run01/",
-  "thread_id":  "019dae73-fc12-4ab8-...",
+  "thread_id": "019dae73-fc12-4ab8-...",
   "reviewer_model": "gpt-5.5",
   "reviewer_reasoning": "xhigh",
   "generated_at": "2026-04-21T14:23:01Z",
-  "details": {
-    // skill-specific structured data
-  }
+  "details": {}
 }
 ```
 

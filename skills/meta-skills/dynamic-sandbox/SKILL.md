@@ -122,13 +122,13 @@ biopython, rdkit, astropy, qiskit, tensorflow, torch, transformers
 
 ```json
 {
-  "status": "success" | "error" | "partial",
+  "status": "one of: success | error | partial",
   "session_id": "session_20260719_120000",
-  "output": { ... },
+  "output": {},
   "artifacts": ["artifacts/plot.svg"],
   "code_hash": "sha256:...",
   "execution_time_ms": 1234,
-  "error": null | { "type": "...", "traceback": "..." }
+  "error": null
 }
 ```
 
