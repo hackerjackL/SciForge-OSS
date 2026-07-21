@@ -18,6 +18,7 @@
 ## 目录
 
 - [这是什么](#这是什么)
+- [安装指南](#安装指南)
 - [架构：DAG 驱动的科研闭环](#架构dag-驱动的科研闭环)
 - [快速开始](#快速开始)
 - [项目结构](#项目结构)
@@ -59,6 +60,64 @@
 | **Dynamic Tooling** | 工具工厂 | 运行时发现工具不足时，动态编写并注册临时工具 |
 | **Universal Retrieval** | 文献检索 | 多源学术搜索（arXiv/S2/CrossRef/PubMed/Web/OpenAlex）+ 3 层防幻觉验证 |
 | **Unified Plotting** | 图表渲染 | 结构化数据 → 出版级矢量图（SVG/PDF）；莫兰迪色系（Layer 1）+ viridis/magma 数据热图（Layer 2） |
+
+## 安装指南
+
+SciForge-OSS 不是 Python 包，而是一套纯 Markdown 技能文件。**任何能读 Markdown 的 AI agent 都能直接消费这些 skill**，无需 pip install、无需编译、无需依赖管理。
+
+### 方式一：克隆仓库（推荐）
+
+```bash
+git clone https://gitcode.com/GewisLab/SciForge-OSS.git
+cd SciForge-OSS
+```
+
+然后在 AI agent 中打开项目目录，agent 会自动读取 `AGENT_GUIDE.md` 作为入口。
+
+### 方式二：将技能文件加入已有项目
+
+如果已有研究项目，只需将 `skills/` 目录复制到项目根目录：
+
+```bash
+cp -r SciForge-OSS/skills/ /your-project/
+cp SciForge-OSS/AGENT_GUIDE.md /your-project/
+```
+
+### 方式三：AI agent 配置
+
+#### Claude Code
+
+```bash
+# 在项目目录中启动
+cd SciForge-OSS
+claude
+# 然后直接输入：/auto-pipeline "Q001: 宇宙的起源与演化"
+```
+
+#### Cursor / Trae
+
+1. 用 Cursor/Trae 打开 `SciForge-OSS/` 目录
+2. 在对话中引用 `AGENT_GUIDE.md` 作为系统提示：
+   > "请阅读 AGENT_GUIDE.md，然后执行 /auto-pipeline 研究 Q001"
+3. 或直接在项目设置中将 `AGENT_GUIDE.md` 设为 AI 上下文文件
+
+#### 其他 AI agent
+
+任何支持 Markdown 上下文或自定义技能集的 AI agent 均可使用：
+
+1. 将 `AGENT_GUIDE.md` 提供给 agent 作为系统提示/初始上下文
+2. agent 读取后会自动理解 20-phase DAG 循环和所有可用 skill
+3. 直接输入 `/auto-pipeline "你的科学问题"` 即可启动完整研究
+
+### 验证安装
+
+完成后，在 AI agent 中测试：
+
+```
+/auto-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
+```
+
+如果 agent 正确识别并启动了 20-phase 研究流程，说明安装成功。
 
 ## 架构：DAG 驱动的科研闭环
 
