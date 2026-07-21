@@ -398,8 +398,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
 - [`../shared-references/effort-contract.md`](../../shared-references/effort-contract.md) — effort level definitions
 - [`../shared-references/domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md) — TDAL 4-dim joint confidence locked schema (Phase 10 boundary)
-- [`../shared-references/ouroboros-integration.md`](../../shared-references/ouroboros-integration.md) — Ouroboros Phase 1 seed + Phase 2.5 spec + Phase 10 TDAL D-dim wiring
-- [`../shared-references/ouroboros-deep-integration.md`](../../shared-references/ouroboros-deep-integration.md) — Ouroboros deep call (Phase 6 prediction → Phase 10 validation → TDAL T-dim uplift, long-term L2)
+- [`../shared-references/ouroboros-integration.md`](../../shared-references/ouroboros-integration.md) — Ouroboros basic (Phase 2.5 → D dim) + deep (Phase 6/10 → T dim uplift) integration
 - [`../shared-references/domain-adaptive-pipeline.md`](../../shared-references/domain-adaptive-pipeline.md) — Phase 5/6/11 intensity override by evidence_type/paradigm (mid-term M1)
 - [`../shared-references/confidence-uplift.md`](../../shared-references/confidence-uplift.md) — 3-mechanism bounded uplift loop when TDAL verdict ≤ WEAK (mid-term M2)
 - [`../shared-references/pipeline-adaptive-degradation.md`](../../shared-references/pipeline-adaptive-degradation.md) — signature-driven phase mode override, replaces v2.7 static Phase Mode Table (mid-term M3)

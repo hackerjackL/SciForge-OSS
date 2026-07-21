@@ -1,6 +1,6 @@
 # SciForge-OSS Agent Guide
 
-> **Status**: The single entry orchestrator for OSS is `/125-problems-pipeline`. It executes a complete 17-phase DAG research loop on **one** problem supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation = one Q-id = one complete pipeline run end-to-end.
+> **Status**: The single entry orchestrator for OSS is `/125-problems-pipeline`. It executes a complete 20-phase DAG research loop on **one** problem supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation = one Q-id = one complete pipeline run end-to-end.
 >
 > **全领域支持**: SciForge-OSS 不限定任何学科领域。物理学、数学、计算机科学、医学、经济学、教育学、材料科学、地球科学、大气科学、天文学、化学、工程、传感器、光电——任何科学领域均可使用。
 
@@ -24,7 +24,7 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 
 | Type | Skill | Role |
 |------|-------|------|
-| **Orchestrator** | `/125-problems-pipeline` | Single entry — 17-phase DAG research loop on one problem |
+| **Orchestrator** | `/125-problems-pipeline` | Single entry — 20-phase DAG research loop on one problem |
 | **Meta-skill** | `/idea-discovery` | Generate + pre-screen 8-12 idea candidates via MCTS (4 rounds) |
 | **Meta-skill** | `/universal-retrieval` | Literature survey + 3-layer anti-hallucination citation verification |
 | **Meta-skill** | `/unified-plotting` | Render publication-quality figures (morandi palette + Layer 2 data colormaps) |
@@ -156,7 +156,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 "Analyze this economics model: general equilibrium under incomplete markets"
 ```
 
-The orchestrator runs the full 17-phase loop. Forced human checkpoints at Phase 3→4 (pick final idea) and Phase 5→6 (approve method registry).
+The orchestrator runs the full 20-phase loop. Forced human checkpoints at Phase 3→4 (pick final idea) and Phase 5→6 (approve method registry).
 
 ### Resume from checkpoint
 
@@ -177,7 +177,7 @@ The user can invoke individual skills directly for debugging (bypassing the orch
 "/paper-compile paper/main.tex"
 ```
 
-But the **canonical** workflow is the full 17-phase orchestrator loop — partial runs are for debugging only and do not produce a complete artifact chain.
+But the **canonical** workflow is the full 20-phase orchestrator loop — partial runs are for debugging only and do not produce a complete artifact chain.
 
 ---
 
@@ -197,5 +197,5 @@ But the **canonical** workflow is the full 17-phase orchestrator loop — partia
 
 - [`README.md`](README.md) — project overview + skill catalog + comparison with main SciForge
 - [`problems/125-SCIENCE-PROBLEMS.md`](problems/125-SCIENCE-PROBLEMS.md) — 125 problem demo index (NOT auto-searched; human supplies Q-id)
-- [`skills/orchestrator/125-problems-pipeline/SKILL.md`](skills/orchestrator/125-problems-pipeline/SKILL.md) — the 17-phase DAG loop orchestrator
+- [`skills/orchestrator/125-problems-pipeline/SKILL.md`](skills/orchestrator/125-problems-pipeline/SKILL.md) — the 20-phase DAG loop orchestrator
 - [`skills/shared-references/`](skills/shared-references/) — the shared contract layer (discipline-agnostic)

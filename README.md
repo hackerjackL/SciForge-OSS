@@ -1,7 +1,7 @@
 # SciForge-OSS
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.9.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -65,26 +65,41 @@
 SciForge-OSS 采用 **DAG（有向无环图）** 架构，而非简单的线性管线。这是整个框架最核心的"show"：
 
 ```
-                    ┌→ Idea 1 (theoretical)   ─→ novelty check ─→ eliminated ┐
-                    │                                                         │
-Problem → Discover ─┼→ Idea 2 (computational) ─→ novelty check ─→ selected  ──┼→ Derive → Verify
-                    │                                                         │
-                    └→ Idea 3 (qualitative)   ─→ novelty check ─→ eliminated ┘
-                                                                              │
-                                                                              └→ Write → Review → Output
-                                                                                    │
-                                                                                    └→ DAG 可视化追踪
-                                                                                      (refine-logs/IDEA_DAG.json)
+                    ┌→ Idea 1 (theoretical)   ─┐
+                    │                           │
+Problem → Discover ─┼→ Idea 2 (computational) ─┼→ MCTS 4 轮迭代 (UCB1 选择 × expand × rollout × backprop)
+                    │                           │   ↓ 每轮淘汰弱 idea
+                    └→ Idea 3 (qualitative)   ─┘   ↓
+                                                  survivors
+                                                     │
+                                                     ▼
+                                              Phase 2.5: adversarial-falsification (证伪门控)
+                                                  ↓ 假设评分 + 反例构造 + 文献对抗
+                                                  ↓ falsified ideas eliminated
+                                                     │
+                                                     ▼
+                                              Phase 3: novelty-check (3 维门控)
+                                                  ↓ 新颖性 × 可行性 × 相关性
+                                                  ↓ only strongest idea survives
+                                                     │
+                                                     ▼
+                                          Derive (Phase 6) → Verify (Phase 7-10)
+                                                     │
+                                                     ▼
+                                          Write (Phase 12) → Review (Phase 14) → Output (Phase 16)
+                                                     │
+                                                     └→ DAG 可视化追踪 (refine-logs/IDEA_DAG.json)
 ```
 
 ### DAG 原理
 
 1. **分支（Branch）**：从问题出发，并行生成 3 个不同方法论视角的 idea（理论/计算/定性）
-2. **门控（Gate）**：每个 idea 经过新颖性 × 可行性 × 相关性 3 维评估，弱被淘汰
-3. **收敛（Converge）**：只有最优 idea 存活，进入后续推导、验证、写作阶段
-4. **追踪（Trace）**：整条链路的 DAG 结构保存在 `refine-logs/IDEA_DAG.json`，可生成 Mermaid 可视化
+2. **MCTS 迭代**：每个 idea 经 4 轮 MCTS 迭代（UCB1 选择 → expand → rollout → backprop），弱 idea 在迭代中被淘汰
+3. **证伪门控（Falsification Gate, Phase 2.5）**：存活的 idea 接受 adversarial-falsification 攻击（假设评分 + 反例构造 + 文献对抗），被证伪的 idea 淘汰
+4. **新颖性门控（Novelty Gate, Phase 3）**：通过证伪的 idea 经新颖性 × 可行性 × 相关性 3 维评估，只有最优 idea 存活进入后续推导、验证、写作阶段
+5. **追踪（Trace）**：整条链路的 DAG 结构保存在 `refine-logs/IDEA_DAG.json`，可生成 Mermaid 可视化
 
-### 17 阶段 DAG 循环
+### 20 阶段 DAG 循环
 
 ```
 Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
@@ -163,7 +178,6 @@ SciForge-OSS/
 │   │   ├── logic-verification/SKILL.md     ← 6 维度逻辑审计（跨模型对抗）
 │   │   ├── paper-writing/SKILL.md          ← 统一 elsarticle 模板写作
 │   │   ├── paper-compile/SKILL.md          ← LaTeX 零警告零报错编译 + 反死循环阶梯
-│   │   ├── auto-review-loop/SKILL.md      ← 跨模型评审（自评审模式）
 │   │   ├── method-registry/SKILL.md        ← 方法 registry + hash 锁 + 强制人类审批
 │   │   ├── leakage-audit/SKILL.md          ← Type I 逻辑漏洞 + Type IV 逃逸审计（通用）
 │   │   ├── invariant-check/SKILL.md        ← INV-G1 问题锚点冻结验证
@@ -173,7 +187,7 @@ SciForge-OSS/
 │   │   ├── citation-audit/SKILL.md         ← 最终 3 层引用防幻觉验证
 │   │   └ kill-argument/SKILL.md           ← 反自欺练习（kill your own argument）
 │   ├── orchestrator/                       ← 1 个编排器
-│   │   └ 125-problems-pipeline/SKILL.md  ← 17 阶段 DAG 闭环（单题执行）
+│   │   └ 125-problems-pipeline/SKILL.md  ← 20 阶段 DAG 闭环（单题执行）
 │   └ shared-references/                  ← 共享契约（学科无关）
 │       ├── idea-dag-schema.md              ← DAG 节点 schema
 │       ├── mcts-search-protocol.md         ← MCTS 迭代协议（UCB1 + 有界轮次）
@@ -313,7 +327,7 @@ A: 不是。125 个科学问题是「AI for Scientist Anything」的 Demo 展示
 A: 不需要。SciForge-OSS 使用**结构化自评审**模式——同一 agent 通过角色切换（研究者→评审者→裁决者）实现对抗性评审，无需跨模型协作。
 
 ### Q: 如何运行一个完整的科学问题研究？
-A: 执行 `/125-problems-pipeline "Q001: 问题描述" — effort: max`，自动化完成 17 阶段 DAG 循环。
+A: 执行 `/125-problems-pipeline "Q001: 问题描述" — effort: max`，自动化完成 20 阶段 DAG 循环。
 
 ### Q: 输出什么格式的论文？
 A: 统一 `elsarticle` LaTeX 格式，可编译为 PDF。理论论文使用"理论论文结构"（Main Results + Proofs），实验论文使用标准结构。

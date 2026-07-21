@@ -217,16 +217,16 @@ If after MAX_REVIEW_ROUNDS the argument still has open FATAL/CRITICAL issues →
 Write `audit_report/LOGIC_VERIFICATION.json`:
 ```json
 {
-  "verdict": "PASS | WARN | FAIL | BLOCKED | ERROR",
+  "verdict": "one of: PASS | WARN | FAIL | BLOCKED | ERROR",
   "q_id": "[frozen — from document header]",
   "n_fatal": 0,
   "n_critical": 0,
   "n_major": 2,
   "n_minor": 5,
-  "issues": [...],
-  "counterexample_pass": "executed | skipped",
+  "issues": [],
+  "counterexample_pass": "one of: executed | skipped",
   "review_rounds": 3,
-  "argument_status": "COHERENT AS STATED | COHERENT AFTER REFRAMING | NOT YET COHERENT"
+  "argument_status": "one of: COHERENT AS STATED | COHERENT AFTER REFRAMING | NOT YET COHERENT"
 }
 ```
 

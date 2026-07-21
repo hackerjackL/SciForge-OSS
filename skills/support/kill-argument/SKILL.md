@@ -201,13 +201,13 @@ Compose the machine-readable `KILL_ARGUMENT.json` following the SciForge Audit A
 ```json
 {
   "audit_skill": "kill-argument",
-  "verdict": "PASS | WARN | FAIL | NOT_APPLICABLE | BLOCKED | ERROR",
-  "reason_code": "<see verdict mapping below>",
-  "summary": "<one-line summary, ~80 chars>",
+  "verdict": "one of: PASS | WARN | FAIL | NOT_APPLICABLE | BLOCKED | ERROR",
+  "reason_code": "see verdict mapping below",
+  "summary": "one-line summary, ~80 chars",
   "audited_input_hashes": {
-    "derivation_output.md":                 "sha256:<...>",
-    "CLAIMS_FROM_RESULTS.md":               "sha256:<...>",
-    "derivation.py":                        "sha256:<...>"
+    "derivation_output.md": "sha256:<...>",
+    "CLAIMS_FROM_RESULTS.md": "sha256:<...>",
+    "derivation.py": "sha256:<...>"
   },
   "trace_path": ".sciforge/traces/kill-argument/<date>_run<NN>/",
   "reviewer_model": "<model>",
@@ -220,16 +220,16 @@ Compose the machine-readable `KILL_ARGUMENT.json` following the SciForge Audit A
         "id": "P_1",
         "label": "<short label>",
         "attack_claim": "<...>",
-        "verdict": "answered_by_current_text | partially_answered | still_unresolved",
+        "verdict": "one of: answered_by_current_text | partially_answered | still_unresolved",
         "evidence": "<file:line citation>",
-        "severity_if_unresolved": "critical | major | minor",
+        "severity_if_unresolved": "one of: critical | major | minor",
         "recommended_fix": "<...>"
       }
     ],
     "counts": {
-      "answered_by_current_text": <int>,
-      "partially_answered":       <int>,
-      "still_unresolved":         <int>
+      "answered_by_current_text": 0,
+      "partially_answered": 0,
+      "still_unresolved": 0
     },
     "net_assessment": "<adjudicator memo's net assessment>",
     "top_action_items": ["...", "...", "..."]
