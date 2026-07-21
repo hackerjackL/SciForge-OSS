@@ -106,7 +106,7 @@ claude
 任何支持 Markdown 上下文或自定义技能集的 AI agent 均可使用：
 
 1. 将 `AGENT_GUIDE.md` 提供给 agent 作为系统提示/初始上下文
-2. agent 读取后会自动理解 20-phase DAG 循环和所有可用 skill
+2. agent 读取后会自动理解 21-phase DAG 循环和所有可用 skill
 3. 直接输入 `/auto-pipeline "你的科学问题"` 即可启动完整研究
 
 ### 验证安装
@@ -117,7 +117,7 @@ claude
 /auto-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
 ```
 
-如果 agent 正确识别并启动了 20-phase 研究流程，说明安装成功。
+如果 agent 正确识别并启动了 21-phase 研究流程，说明安装成功。
 
 ## 架构：DAG 驱动的科研闭环
 
@@ -158,7 +158,7 @@ Problem → Discover ─┼→ Idea 2 (computational) ─┼→ MCTS 4 轮迭代
 4. **新颖性门控（Novelty Gate, Phase 3）**：通过证伪的 idea 经新颖性 × 可行性 × 相关性 3 维评估，只有最优 idea 存活进入后续推导、验证、写作阶段
 5. **追踪（Trace）**：整条链路的 DAG 结构保存在 `refine-logs/IDEA_DAG.json`，可生成 Mermaid 可视化
 
-### 20 阶段 DAG 循环
+### 21 阶段 DAG 循环
 
 ```
 Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
@@ -246,7 +246,7 @@ SciForge-OSS/
 │   │   ├── citation-audit/SKILL.md         ← 最终 3 层引用防幻觉验证
 │   │   └ kill-argument/SKILL.md           ← 反自欺练习（kill your own argument）
 │   ├── orchestrator/                       ← 1 个编排器
-│   │   └ auto-pipeline/SKILL.md  ← 20 阶段 DAG 闭环（单题执行）
+│   │   └ auto-pipeline/SKILL.md  ← 21 阶段 DAG 闭环（单题执行，v2.9 新增 Phase 5b EG）
 │   └ shared-references/                  ← 共享契约（学科无关）
 │       ├── idea-dag-schema.md              ← DAG 节点 schema
 │       ├── mcts-search-protocol.md         ← MCTS 迭代协议（UCB1 + 有界轮次）
@@ -386,7 +386,7 @@ A: 不是。125 个科学问题是「AI for Scientist Anything」的 Demo 展示
 A: 不需要。SciForge-OSS 使用**结构化自评审**模式——同一 agent 通过角色切换（研究者→评审者→裁决者）实现对抗性评审，无需跨模型协作。
 
 ### Q: 如何运行一个完整的科学问题研究？
-A: 执行 `/auto-pipeline "Q001: 问题描述" — effort: max`，自动化完成 20 阶段 DAG 循环。
+A: 执行 `/auto-pipeline "Q001: 问题描述" — effort: max`，自动化完成 21 阶段 DAG 循环。
 
 ### Q: 输出什么格式的论文？
 A: 统一 `elsarticle` LaTeX 格式，可编译为 PDF。理论论文使用"理论论文结构"（Main Results + Proofs），实验论文使用标准结构。
