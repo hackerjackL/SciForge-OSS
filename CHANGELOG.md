@@ -1,5 +1,49 @@
 # Changelog
 
+## [1.1.0] - 2026-07-22
+
+### Engineering Grounding + 全仓统一
+
+v1.1.0 是 v1.0.0 的稳定性增强和工程落地评估（Engineering Grounding, EG）正式发布版。**v1.1.0 = 之前 v3.0 系列全部工作的总和。**
+
+### 核心变化
+
+- **EG 第 6 维预筛轴**：idea-discovery 5-axis → 6-axis，新增 Engineering Grounding 列
+- **Phase 5b EG 评估**：adversarial-falsification 新增 Phase 5b，产出 ENGINEERING_GROUNDING.md 报告（8 维子评分：Compute/Dev Cycle/Code Complexity/Repro Risk/Dependency/Capital/Temporal Maturity/Regulatory）
+- **EG 复合评分权重**：novelty-check 公式更新为 `novelty×0.45 + feasibility×0.25 + relevance×0.15 + EG×0.15`
+- **DAG schema**：idea-dag-schema.md v1.0→v1.1，新增 `engineering_grounding` 节点字段
+- **21-phase 全仓统一**：20-phase → 21-phase（AGENT_GUIDE + 7 个契约文件 + orchestrator + problems）
+- **EG 报告 AI 开发路线图**：支持 ai-dev-path PDF 图类型，自动出图
+- **EG 领域 N/A 规则**：纯理论领域可标记 EG 为 N/A，跳过工程落地评估
+- **competitive-analysis 5维→8维**：方案评估矩阵扩建
+- **全仓 3维→4维**：novelty、feasibility、relevance + EG 新增
+- **MCTS EG exploration bonus**：EG 低的 idea 在 MCTS 中获得额外探索奖励
+- **根级 SKILL.md**：新增包描述文件
+- **README 安装指南**：新增 3 种安装方式 + AI agent 配置说明
+
+### 文件清单
+
+- **文件总数**：74 个文件（22 SKILL.md + 36 shared-references + 1 orchestrator + 13 支持 + 文档 + 问题索引）
+- **新增**：根 SKILL.md、competitive-analysis 8 维评估
+- **删除**：临时方案文档（v3.0 清理）
+- **修复**：EG 契约 5 处坏链、README 5 处 20-phase 残留、全仓 20→21 phase 统一
+
+### 关键指标
+
+| 指标 | 值 |
+|------|------|
+| 链接完整性 | 400+ 链接，0 坏链 |
+| JSON 块 (strict) | 46 块，0 invalid |
+| Skill 文件 | 22 个 SKILL.md |
+| 共享契约 | 36 个 shared-references |
+| Pipeline 阶段 | 21-phase DAG 闭环 |
+| 学科覆盖 | 全领域 |
+| 工程落地评估 | 8 维 EG 子评分 |
+| Team 大小 | 1 人（全员） |
+| 许可证 | MIT |
+
+---
+
 ## [1.0.0] - 2026-07-21
 
 ### 首个正式发行版
