@@ -30,24 +30,40 @@ The skeleton's `\input{sections/...}` chain is **rewritten per mode** by the age
 | `survey` | `evidence_type=interpretive` AND literature is the primary artifact (review/synthesis problem) | Taxonomy→Detailed Survey→Open Problems | 15-25 |
 | `hybrid` | `verification_type=theory+experiment` OR ambiguous/fallback | Theory section + Experiment section combined | 10-18 |
 
+### 2a. Canonical `verification_type` Tokens (cross-skill contract)
+
+To eliminate cross-skill string-matching failures, `verification_type` uses **exactly these three canonical tokens**, written verbatim (lowercase, hyphenated), in every file that reads or writes it:
+
+| Token | Meaning | Phase 6b/6c behavior |
+|-------|---------|---------------------|
+| `theory-only` | Pure theory, no code, no numerical/experimental verification | Phase 6b/6c SKIP |
+| `computational` | Has numerical/simulation verification, no separate theory derivation chain | Phase 6b/6c MUST |
+| `theory+experiment` | Has BOTH a theory derivation AND experiments | Phase 6b/6c MUST |
+
+**Forbidden aliases** (do not use — they break string matching): `theory_only`, `theory-experiment`, `experiment`, `theoretical`, `computational-only`, `theory+expt`. If a legacy file still uses an alias, treat it as a bug. Phase 2 (`/idea-discovery`) MUST emit one of the three canonical tokens; downstream skills MUST compare against the canonical tokens only.
+
 ### Mode Selection Logic (deterministic, signal-driven)
 
 The mode is selected at the `/paper-writing` entry from already-frozen signals produced upstream:
 
 ```
 inputs:
-  verification_type   ← from Phase 1 problem decomposition (frozen at Phase 0)
-  evidence_type      ← from domain-signature.json (Phase 1b, sole writer)
+  verification_type   ← determined in Phase 1 (problem decomposition), refined/confirmed by
+                        Phase 2 (/idea-discovery), FROZEN at Phase 2 exit. Canonical tokens:
+                        "theory-only" | "computational" | "theory+experiment"  (see §2a below)
+  evidence_type      ← from domain-signature.json (Phase 1b /domain-learner — SOLE writer)
   literature_is_primary  ← heuristic: literature/references.bib entries ≥ 40 AND idea is synthesis-flavored
 
-mode selection (first match wins):
-  if verification_type == theory-only AND evidence_type == derivational       → theory
+mode selection (first match wins — verification_type is the PRIMARY axis):
+  if verification_type == theory-only                                        → theory
+  elif verification_type == theory+experiment                                → hybrid
   elif evidence_type == experimental                                          → experiment
   elif verification_type == computational OR evidence_type == simulational   → computational
   elif evidence_type == interpretive AND literature_is_primary                → survey
-  elif verification_type == theory+experiment                                 → hybrid
   else                                                                        → hybrid   (fallback: most general)
 ```
+
+**Ordering rationale**: `verification_type` (does the problem have theory / numerical-only / theory+experiment) is the primary axis and is checked first; `evidence_type` refines within the non-theory-only, non-hybrid cases. This prevents the old bug where `evidence_type=simulational` forced `computational` even for a problem that also has a theory derivation (which should be `hybrid`). A pure-simulation problem (`verification_type=computational` or `theory-only` excluded) still correctly lands in `computational`.
 
 **Why `hybrid` is the fallback**: it is the most general shape (theory + experiment both present), so when signals are ambiguous it produces a complete paper rather than forcing a premature theory-only or experiment-only cut. The agent may also accept an explicit `mode=` override from the human user; an explicit override wins over the heuristic.
 

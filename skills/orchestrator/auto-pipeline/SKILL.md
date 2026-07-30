@@ -16,6 +16,7 @@ role: single-question-research-orchestrator
 - **Scope**: 单题执行，21 阶段 DAG 循环，全领域通用
 - **Output**: 完整论文 (LaTeX/PDF) + 所有中间产物
 - **Key**: 单题执行，不迭代问题索引，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
+- **Optional flags**: `test_mode=true` (auto-waive the 2 human checkpoints for end-to-end stress testing — see TEST_MODE exemption below); `language=chinese`; `effort=lite|balanced|max|beast`
 
 ## Use When
 
@@ -423,7 +424,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
   - The derivation output is marked `[not machine-verified]` and the claim strength is adjusted accordingly
 - **Experiment execution path (v2.0).** When `verification_type` is NOT `theory-only`:
   - Phase 6 (theory-derivation) → Phase 6b (toy experiment) → Phase 6c (full experiment, **background dispatch mandatory**) → Phase 7+ (pipeline continues, experiment runs async)
-  - **Toy dispatch rule (v2.1)**: estimate toy wall-clock first. `≤ 5 min` → run foreground. `> 5 min` → dispatch to background as `toy_bg` (same dispatch protocol as full), continue pipeline, gate-check `RESULT.json` only after `toy_bg` completes (do not block foreground). The toy gate verdict is read at the appropriate downstream gate — never busy-wait.
+  - **Toy dispatch rule (v2.1)**: estimate toy wall-clock first. `≤ 5 min` → run foreground. `> 5 min` → dispatch to background as `toy_bg` (same dispatch protocol as full), continue pipeline. The toy gate verdict (PASS/FAIL from `RESULT.json`) is read **at the Phase 6c dispatch boundary** — if `toy_bg` is still running when the pipeline reaches 6c, the orchestrator **skips 6c** (no full experiment dispatched yet) and continues with Phase 7+ for non-experiment work; the toy verdict is re-checked at Phase 10 alongside other live background jobs. Never busy-wait at 6c for `toy_bg`.
   - Toy experiment FAIL → **kill the idea** (BLOCKED, do not proceed to full experiment). This holds whether toy ran foreground or background.
   - Full experiment dispatched to background → pipeline continues with Phase 7-16 while experiment runs
   - At Phase 10 (result-to-claim): check STATUS.json for whichever background jobs are live (toy_bg if still running, full if still running); if still running, use whatever completed results exist + note "experiment pending"

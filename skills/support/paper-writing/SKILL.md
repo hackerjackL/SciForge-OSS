@@ -11,7 +11,7 @@ role: paper-composer
 - **Purpose**: 从研究产物组装学术论文 (LaTeX)，统一 elsarticle 模板
 - **Input**: 研究产物 (derivation_output.md + CLAIMS_FROM_RESULTS.md + figures/)
 - **Output**: paper/main.tex + paper/sections/*.tex + paper/PAPER_PLAN.md
-- **Key**: theory_only 模式 (无实验)；双分支结构 (标准/理论)；verification_type 自动选择
+- **Key**: v2.1 五模式选择器 (theory/experiment/computational/survey/hybrid)；verification_type 驱动（见 [paper-modes.md](../../shared-references/paper-modes.md)）
 
 > **Status**: Composes the final academic paper from research artifacts. **OSS uses a single unified `elsarticle` template** (copied from main SciForge's `templates/default/`) — no venue-specific templates, no per-discipline writing guides. **OSS is discipline-agnostic** — the universal section-by-section writing guide in [`discipline-writing.md`](../../shared-references/discipline-writing.md) applies to every run.
 >
@@ -77,13 +77,13 @@ The paper directory (default `paper/`):
 | `include_abstract` | bool | `true` | Whether to include the abstract |
 | `include_appendix` | bool | `false` | Whether to include a detailed appendix (long proofs, extended tables, code listings) |
 | `citation_style` | enum | `numeric` | `numeric` (default — `\cite{}`, `elsarticle-num.bst`) / `author-year` (if user requests — `\citep{}`/`\citet{}`, `elsarticle-harv.bst`). Never mix in one paper. |
-| `verification_type` | enum | `auto` | `auto` (auto-detect from idea-discovery), `theory_only` (pure theory, no experiments), `computational` (has numerical verification), `theory_experiment` (has experiments) |
+| `verification_type` | enum | `auto` | `auto` (auto-detect from idea-discovery) OR one of the **canonical tokens** from [paper-modes.md §2a](../../shared-references/paper-modes.md): `theory-only` / `computational` / `theory+experiment`. The mode selector reads this token verbatim — do NOT use legacy aliases (`theory_only`, `theory_experiment`). |
 
 ## Workflow
 
 ### Step 0: Load Domain Signature & Configure Style
 
-Read `refine-logs/domain-signature.json` (from Phase 1a `/domain-signature`) to auto-configure writing style:
+Read `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner` — the SOLE writer; Phase 1a `/domain-signature` only writes the optional `domain-signature-hint.json` prior, see [auto-pipeline §Domain Signature Propagation](../../orchestrator/auto-pipeline/SKILL.md)) to auto-configure writing style:
 
 ```json
 {
@@ -135,7 +135,11 @@ The `main.tex` preamble is **frozen** — do NOT hand-edit it. The unified templ
 
 Read all research artifacts and design the paper structure. Write `paper/PAPER_PLAN.md`.
 
-**If `verification_type=theory_only`** (pure theory, no experiments):
+**v2.1 — Mode-selected section set.** Determine the mode first per [`paper-modes.md`](../../shared-references/paper-modes.md) §2 (read the canonical `verification_type` token + `evidence_type` from `domain-signature.json`). Then use the section set for that mode from `paper-modes.md` §3. Do NOT hand-pick sections here — the mode fully determines which `sections/*.tex` files to write.
+
+For reference, the two legacy layouts below map onto modes as: `theory` mode (§3.1) covers the old `theory-only` case; `experiment` / `computational` / `hybrid` modes (§3.2/§3.3/§3.5) cover the old `computational`/`theory_experiment` cases. The `survey` mode (§3.4) has no legacy counterpart — it was previously collapsed into the standard layout. Prefer the mode-aware sets.
+
+**Legacy `theory` shape** (now `theory` mode, §3.1) — theorem→lemma→proof, no Results section:
 
 ```
 1. **Title** — descriptive, specific to the problem
@@ -150,7 +154,7 @@ Read all research artifacts and design the paper structure. Write `paper/PAPER_P
 10. **Appendix** — long proofs, lemmas, extended derivations
 ```
 
-**If `verification_type=computational` or `theory_experiment`** (has numerical/experimental validation):
+**Legacy standard shape** (now `experiment`/`computational`/`hybrid` modes, §3.2-§3.5) — with Results/Experiments:
 
 ```
 1. **Title** — descriptive, specific to the problem
@@ -165,7 +169,7 @@ Read all research artifacts and design the paper structure. Write `paper/PAPER_P
 10. **References** — only verified citations
 ```
 
-**Default** (auto-detect): use the computational structure, omit the Results section if no numerical results exist.
+**Default** (`verification_type=auto`): run the mode selector — when ambiguous it returns `hybrid` (the most general shape), per `paper-modes.md` §2.
 
 Reference the frozen Q-id in the plan header (INV-G1 problem anchor freeze).
 
