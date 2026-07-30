@@ -354,6 +354,7 @@ The skill auto-selects experiment templates based on `evidence_type`:
 | `causal_inference` | DiD/IV on synthetic known-effect data | Full identification + placebo + sensitivity | ATE, first-stage F, parallel trends p |
 | `experimental` | Power analysis + pilot effect size | Full protocol + pre-registration spec | Effect size, CI, power, p-value |
 | `simulational` (physics/PDE) | Coarse mesh simulation | Fine mesh + convergence + benchmark | CFL number, residual norm, mesh-independence |
+| `simulational` (eigenvalue/band-structure) | Coarse k-grid diagonalization; compare gap vs analytical/derived expression | Fine k-grid + k-point convergence study + benchmark | k-grid convergence, relative error vs analytical gap, eigenvalue residual |
 | `simulational` (ML/training) | Train 2 small models (idea vs baseline) on 10% data, 3-10 epochs | Full training + ablation sweep (remove novel component) | idea_val_loss vs baseline_val_loss, gradient_health |
 | `interpretive` | Argument coherence on 3 claims | Full textual analysis + counter-evidence survey | Coherence score, counter-evidence count |
 
