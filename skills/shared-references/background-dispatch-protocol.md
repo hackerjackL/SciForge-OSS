@@ -1,8 +1,10 @@
 # Background Dispatch Protocol
 
-> **Status (v2.0)**: Protocol for dispatching long-running tasks (experiments, compilations, simulations) to background execution. Prevents front-end timeouts in Claude Code, Codex, Cursor, and other AI development tools.
+> **Status (v2.1)**: Protocol for dispatching long-running tasks (experiments, compilations, simulations) to background execution. Prevents front-end timeouts in Claude Code, Codex, Cursor, and other AI development tools.
 >
 > **Core principle**: The agent must NEVER block the foreground on a task whose wall-clock time may exceed the tool's session timeout. Dispatch to background, continue pipeline, check results later.
+>
+> **v2.1 addition — toy_bg**: the background-dispatch contract is no longer full-experiment-only. A **toy experiment estimated > 5 min** is also dispatched to background (`toy_bg`), using the same dispatch methods and STATUS.json contract. This closes the gap where a "toy" that happens to be slow would still block the foreground. The toy gate verdict is read from `RESULT.json` only after `toy_bg` completes — never busy-waited.
 
 ## When to Background-Dispatch
 
@@ -14,7 +16,7 @@
 | Task is idempotent and resumable | Background-dispatch preferred |
 | Task produces critical gating artifact | Run in foreground if < 5 min; background + poll otherwise |
 
-**Hard rule**: Any full-scale experiment, any multi-hour simulation, any GPU training run — these MUST be background-dispatched. The agent must not `subprocess.run()` with a 4-hour timeout and block the session.
+**Hard rule**: Any full-scale experiment, any multi-hour simulation, any GPU training run — these MUST be background-dispatched. The agent must not `subprocess.run()` with a 4-hour timeout and block the session. **Likewise, a toy experiment estimated > 5 min MUST be dispatched as `toy_bg`** — "toy" status does not grant a foreground-blocking exemption.
 
 ## Dispatch Methods
 

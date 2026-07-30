@@ -33,7 +33,7 @@ Typical invocation from orchestrator:
 
 Execute experiments in two stages with a gate between them:
 
-1. **Toy experiment** — minimal-scale validation of the idea's core claim. Fast, cheap, runs in foreground. Goal: validate or kill the reasoning chain.
+1. **Toy experiment** — minimal-scale validation of the idea's core claim. Fast, cheap. Runs in foreground **if estimated ≤ 5 min**, otherwise dispatched to background (`toy_bg`). Goal: validate or kill the reasoning chain.
 2. **Full experiment** — complete-scale execution. Runs in **background** (nohup/tmux/systemd). Goal: produce publishable results.
 
 The non-negotiable goal: **the toy experiment must validate the idea's core reasoning chain before any full-scale compute is committed.**
@@ -45,15 +45,25 @@ FINAL_PROPOSAL.md (selected idea)
         │
         ▼
 ┌─────────────────────────────────────────────────────┐
-│  STAGE 1: TOY EXPERIMENT (foreground, fast)         │
-│  • Scope: 1-10% of full scale                       │
-│  • Timeout: 5 minutes hard cap                      │
-│  • Goal: validate core reasoning chain              │
-│  • Gate: PASS → proceed to Stage 2                  │
-│  • Gate: FAIL → kill idea, return BLOCKED           │
-└──────────────────────────┬──────────────────────────┘
-                           │ TOY_GATE: PASS
-                           ▼
+│  STAGE 0: TOY DISPATCH DECISION                     │
+│  • estimate toy wall-clock                          │
+│  • ≤ 5 min → foreground (fast path)                 │
+│  • > 5 min → background (toy_bg) — do NOT block     │
+└──────────────────┬──────────────────────────────────┘
+                   │
+        ┌──────────┴──────────┐
+        ▼                     ▼
+┌──────────────────┐  ┌──────────────────────────────┐
+│ STAGE 1a: TOY   │  │ STAGE 1b: TOY_BG (background)│
+│  (foreground)   │  │  • Dispatch: nohup/tmux/sys  │
+│  • Scope: 1-10% │  │  • Writes STATUS.json        │
+│  • Timeout:5min │  │  • Gate read after completion│
+│  • Goal: valid. │  │  • Goal: same as foreground  │
+│  • Gate: PASS→2 │  │  • Gate: PASS→2 FAIL→BLOCKED │
+│  • Gate:FAIL→BLK│  │  • Never block foreground    │
+└────────┬─────────┘  └───────────────┬──────────────┘
+         │ TOY_GATE: PASS              │ TOY_GATE: PASS
+         ▼                             ▼
 ┌─────────────────────────────────────────────────────┐
 │  STAGE 2: FULL EXPERIMENT (background, async)       │
 │  • Scope: 100% scale                                │
@@ -73,11 +83,13 @@ FINAL_PROPOSAL.md (selected idea)
 |-----------|------|---------|-------------|
 | `stage` | enum | `toy` | `toy` or `full` |
 | `background` | bool | `false` | If true, dispatch to background (mandatory for `full` stage) |
-| `timeout_toy` | int | `300` | Toy experiment max seconds (hard cap) |
+| `toy_bg_threshold` | int | `300` | Toy estimated wall-clock (sec) above which the toy is auto-dispatched to background as `toy_bg` (v2.1) |
+| `toy_bg` | bool | `false` | Set true by the dispatch decision (Stage 0) when toy runs in background (v2.1) |
+| `timeout_toy` | int | `300` | Toy experiment max seconds (hard cap, foreground path) |
 | `timeout_full` | int | `86400` | Full experiment max seconds (24h default) |
 | `scale_ratio` | float | `0.1` | Toy experiment scale (fraction of full) |
 | `dispatch_method` | enum | `auto` | `nohup` / `tmux` / `systemd` / `auto` (auto-detect) |
-| `checkpoint_interval` | int | `600` | Seconds between checkpoints for full experiment |
+| `checkpoint_interval` | int | `600` | Seconds between checkpoints for full experiment (and toy_bg if long) |
 | `language` | enum | `python` | Primary execution language |
 
 ## Workflow
@@ -333,12 +345,14 @@ The skill auto-selects experiment templates based on `evidence_type`:
 ## Boundaries
 
 - **Toy experiment is MANDATORY for non-theory-only problems.** Never skip toy and go straight to full.
+- **Toy dispatch decision is load-bearing (v2.1).** Estimate toy wall-clock BEFORE running. If estimated > `toy_bg_threshold` (default 300s), dispatch the toy to background as `toy_bg` — do NOT block the foreground. The toy gate verdict is read from `RESULT.json` after `toy_bg` completes, at the appropriate downstream gate (never busy-wait). The same gate semantics (PASS→full, FAIL→kill idea) apply whether toy ran foreground or background.
 - **Full experiment MUST run in background.** The agent must not wait in the foreground.
-- **FAIL toy = kill the idea.** Do not rationalize, do not retry with a different toy test (except the bounded 1 retry for INCONCLUSIVE/TIMEOUT/ERROR).
+- **FAIL toy = kill the idea.** Do not rationalize, do not retry with a different toy test (except the bounded 1 retry for INCONCLUSIVE/TIMEOUT/ERROR). This holds for both foreground toy and `toy_bg`.
 - **Domain-agnostic by design.** The experiment template is selected by evidence_type, not by discipline label.
 - **One core claim, one toy test.** Do not bundle multiple hypotheses into the toy experiment.
 - **The experiment script is written by the agent, not pre-coded.** This is dynamic-tooling-style: the agent writes the script, tests it, and runs it.
-- **Background dispatch is non-negotiable.** If no background method is available (no tmux, no nohup, no systemd), the full experiment is BLOCKED — the agent does NOT wait in foreground.
+- **Background dispatch is non-negotiable.** If no background method is available (no tmux, no nohup, no systemd), BOTH the full experiment AND a `toy_bg` are BLOCKED — the agent does NOT wait in foreground. A foreground toy (≤ threshold) may still run if the dispatch stack is unavailable, since it stays within the 5-min foreground budget.
+- **STATUS.json polling feeds Phase 10.** Both `toy_bg` and full background jobs write `STATUS.json`. The orchestrator does NOT poll; it reads `STATUS.json` once at Phase 10 (`/result-to-claim`). If a background job is still `running`, use whatever completed results exist (foreground toy, or partial) + note "experiment pending". This is the single integration seam between background experiments and the claim gate.
 
 ## Output Protocols
 
