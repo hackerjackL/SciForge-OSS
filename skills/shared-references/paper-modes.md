@@ -115,14 +115,14 @@ Each mode defines its section set. The agent writes exactly these `sections/*.te
 | `sections/0_abstract.tex` | Abstract (Problem→Model→Key Numerical Finding→Implication) | Convergence-flavored |
 | `sections/1_introduction.tex` | Introduction | Motivation + gap + contribution |
 | `sections/2_related_work.tex` | Related Work | Prior numerical/sim work |
-| `sections/3_problem_formalization.tex` | Problem Formalization (governing equations, boundary conditions) | Model stated |
-| `sections/4_model.tex` | Model / Numerical Method (discretization, solver, parameters) | Method + parameter choices |
-| `sections/5_numerical_results.tex` | Numerical Results (convergence study, mesh/resolution independence, benchmarks) | Convergence tables + field plots |
+| `sections/3_problem_formalization.tex` | Problem Formalization (governing equations OR ML hypothesis + architecture) | Model stated |
+| `sections/4_model.tex` | Model / Numerical Method (discretization, solver, parameters) — **for ML/training: architecture diagram early here + complexity analysis (time/space)** | Method + parameter choices + complexity |
+| `sections/5_numerical_results.tex` | Numerical Results (convergence study, mesh/resolution independence, benchmarks) — **for ML/training: ablation table (remove novel component, verify drop) goes here** | Convergence/ablation tables + field plots |
 | `sections/6_discussion.tex` | Discussion (uncertainty quantification, limitations) | UQ stated |
 | `sections/7_conclusion.tex` | Conclusion | One paragraph |
-| `sections/A_appendix.tex` | Appendix (extended grids, solver details) | Optional |
+| `sections/A_appendix.tex` | Appendix (extended grids, solver details, **reproducibility statement: code + seed + hardware for ML**) | Optional |
 
-**Mandatory**: convergence/mesh-independence statement; benchmark against analytical or reference solution when available.
+**Mandatory**: convergence/mesh-independence statement; benchmark against analytical or reference solution when available. **For ML/training problems specifically** (per `discipline-writing.md` §3): an **ablation table in Section 5** (remove the novel component, verify performance drop) and a **reproducibility statement in the Appendix** (code + seed + hardware) are MANDATORY, not optional runtime judgment — they are the load-bearing artifacts of an ML ablation paper.
 
 ### 3.4 `survey` mode
 
