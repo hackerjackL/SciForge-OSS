@@ -73,10 +73,6 @@ This means: out of 8-12 candidate ideas, only 1-2 survive to full novelty check.
 
 ---
 
-## 3. Discipline-Specific Evaluation
-
-Each discipline has its own evaluation method at each fidelity level. The **DAG + MCTS framework is universal**, but the **evaluation content is discipline-specific**.
-
 ## 3. Universal Discipline-Agnostic Evaluation
 
 OSS does not hardcode discipline-specific evaluation formulas. The three-layer filter structure (Low → Mid → High) is universal; the **content** of each layer is driven by the `evidence_type` from `domain-signature.json` (Phase 1b). The agent designs the evaluation method at runtime based on the idea's nature.
@@ -133,33 +129,16 @@ The agent adapts the evaluation content based on `domain-signature.json`:
 | `derivational` | Proof structure check | Numerical verification of symbolic result on small instance | Full convergence study + machine-verified proof |
 | `correlational` / `causal_inference` | Identification strategy feasibility | 10% sample regression, check sign + F-stat | Full estimation + robustness + sensitivity |
 | `experimental` | Protocol + power analysis feasibility | Pilot sample effect size check | Full protocol execution + preregistration |
-| `simulational` | Physical assumption validity | Coarse mesh simulation | Fine mesh + mesh-independence study |
+| `simulational` (physics/PDE) | Physical assumption validity | Coarse mesh simulation | Fine mesh + mesh-independence study |
+| `simulational` (ML/training) | Hypothesis + architecture feasibility | Train on 10% data / 3-10 epochs, compare val-loss trend vs baseline | Full training + ablation (remove novel component, verify drop) |
 | `interpretive` | Argument coherence check | 3-claim consistency check | Full textual analysis + counter-evidence survey |
 
----
-| **Mid** | **Proxy experiment: train for 3-10 epochs on 10% data subset.** Compare convergence trend against baseline at the same point. If the idea's validation loss is lower than baseline's at epoch 10, it's promising. If higher, it's a false trick. | Moderate (code generation + 10% training) | ~0.5-2 GPU-hours | `score ≥ 0.65` |
-| **High** | Full training: complete training run with all epochs, full dataset, proper hyperparameter tuning. Ablation study: remove the novel component and verify performance drops. | Full (complete training + ablation) | ~4-24 GPU-hours | `score ≥ 0.75` |
+**ML-specific mid-fidelity signals** (when `evidence_type=simulational` ML/training): the universal `core_claim_support` should be operationalized as `trend_score = 1.0 if idea_val_loss < baseline_val_loss at the proxy epoch, 0.5 if within 5%, 0.0 if worse by >5%`; and `reproducibility` should additionally check `gradient_health` (1.0 if gradients stable, no NaN/explosion; 0.5 if mild instability correctable with clipping; 0.0 if severe). These are not a separate cs-ml formula — they are the concrete instantiation of the universal `core_claim_support`/`reproducibility` axes for the ML/training row. Use the universal `mid_score = 0.4*core_claim_support + 0.3*reproducibility + 0.3*resource_efficiency` with these instantiations.
 
-**Mid-fidelity scoring formula (cs-ml)**:
-```
-mid_score = 0.5 * trend_score + 0.3 * gradient_health + 0.2 * resource_efficiency
-
-trend_score = 1.0 if idea_val_loss < baseline_val_loss at epoch 10
-            = 0.5 if idea_val_loss ≈ baseline (within 5%)
-            = 0.0 if idea_val_loss > baseline by >5%
-
-gradient_health = 1.0 if gradients are stable (no NaN, no explosion)
-                = 0.5 if mild instability (correctable with gradient clipping)
-                = 0.0 if severe instability (NaN, explosion)
-
-resource_efficiency = 1.0 if GPU memory < 80% of baseline
-                   = 0.5 if ≈ baseline
-                   = 0.0 if >120% of baseline (too expensive)
-```
-
-**False-trick detection**: If `mid_score < low_score * 0.7`, flag as suspected false trick. Retry once with different 10% subset. If still fails, prune.
+**False-trick detection**: If `mid_score < low_score * 0.7`, flag as suspected false trick. Retry once with different proxy config (or different 10% subset for ML). If still fails, prune.
 
 ---
+
 
 ## 4. Promotion Gates Summary
 

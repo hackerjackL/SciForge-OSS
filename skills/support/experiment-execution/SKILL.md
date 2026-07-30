@@ -353,7 +353,8 @@ The skill auto-selects experiment templates based on `evidence_type`:
 | `correlational` | OLS on 10% sample | Full regression + robustness checks | Coefficient, p-value, R², Oster bound |
 | `causal_inference` | DiD/IV on synthetic known-effect data | Full identification + placebo + sensitivity | ATE, first-stage F, parallel trends p |
 | `experimental` | Power analysis + pilot effect size | Full protocol + pre-registration spec | Effect size, CI, power, p-value |
-| `simulational` | Coarse mesh simulation | Fine mesh + convergence + benchmark | CFL number, residual norm, mesh-independence |
+| `simulational` (physics/PDE) | Coarse mesh simulation | Fine mesh + convergence + benchmark | CFL number, residual norm, mesh-independence |
+| `simulational` (ML/training) | Train 2 small models (idea vs baseline) on 10% data, 3-10 epochs | Full training + ablation sweep (remove novel component) | idea_val_loss vs baseline_val_loss, gradient_health |
 | `interpretive` | Argument coherence on 3 claims | Full textual analysis + counter-evidence survey | Coherence score, counter-evidence count |
 
 ## Boundaries
