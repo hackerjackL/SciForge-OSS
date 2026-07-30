@@ -13,9 +13,11 @@ role: paper-composer
 - **Output**: paper/main.tex + paper/sections/*.tex + paper/PAPER_PLAN.md
 - **Key**: theory_only 模式 (无实验)；双分支结构 (标准/理论)；verification_type 自动选择
 
-> **Status**: Composes the final academic paper from research artifacts. **OSS uses a single unified `elsarticle` template** (copied from main SciForge's `templates/default/`) — no venue-specific templates, no per-discipline writing guides. **OSS is discipline-agnostic** — the universal section-by-section writing guide in [`discipline-writing.md`](../../shared-references/discipline-writing.md) applies to every 125-problem run.
+> **Status**: Composes the final academic paper from research artifacts. **OSS uses a single unified `elsarticle` template** (copied from main SciForge's `templates/default/`) — no venue-specific templates, no per-discipline writing guides. **OSS is discipline-agnostic** — the universal section-by-section writing guide in [`discipline-writing.md`](../../shared-references/discipline-writing.md) applies to every run.
 >
 > **Key OSS difference from main SciForge**: main SciForge has 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) each with its own page limit, bibliography style, anonymization rule. OSS has **one** template (`elsarticle [preprint,12pt]` + `elsarticle-num.bst`) applied to every output. Venue-specific adaptation is deferred to submission time (see [`venue-profiles.md`](../../shared-references/venue-profiles.md)), not drafting.
+>
+> **v2.1 — Mode selector on top of the single skeleton**: instead of the old binary `theory-only vs standard` branch, `/paper-writing` now selects one of **five section-layout modes** (`theory` / `experiment` / `computational` / `survey` / `hybrid`) at entry, driven by the `verification_type` + `evidence_type` signals already produced upstream. One skeleton, one document class, five section sets, zero discipline hardcode. See [`paper-modes.md`](../../shared-references/paper-modes.md).
 
 ## Use When
 

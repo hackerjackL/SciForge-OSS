@@ -158,7 +158,9 @@ Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
 Phase  6b: /experiment-execution --stage=toy [CONDITIONAL]            ← v2.0
      │  玩具实验：最小规模验证核心思维链
      │  (theory-only → SKIP; computational/experiment → MUST)
+     │  前台硬上限 5 分钟；预计 > 5 分钟 → 也挂后台 (toy_bg)
      │  Gate: PASS → Phase 6c; FAIL → BLOCKED (kill idea)
+     │  (toy_bg 完成后再判 Gate，不等前台)
      │
 Phase  6c: /experiment-execution --stage=full --background [CONDITIONAL] ← v2.0
      │  全量实验：后台调度 (tmux/nohup/systemd)
@@ -412,6 +414,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - **Paradigm selection.** The agent selects the appropriate paradigm (formal/empirical/interpretive/design) in Phase 1 based on the problem's nature, not by domain label. See [`discipline-paradigm.md`](../../shared-references/discipline-paradigm.md).
 - **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and must be referenced in every downstream phase. If any phase's output lacks the Q-id reference, Phase 9 (`/invariant-check`) BLOCKs.
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select the final idea (Phase 3) or self-approve the method registry (Phase 5). Wait for human confirmation.
+  - **TEST_MODE exemption (v2.1).** When the invocation carries `test_mode=true` (set by the human for autonomous end-to-end stress testing), the 2 checkpoints are **auto-waived**: the agent self-selects the top MCTS survivor as the final idea, and self-approves the method registry, logging the waiver in `APPROVAL_LOG.txt` with `waived_by=test_mode`. All other phases (INV-G1, fallback cap, toy gate, background dispatch) remain HARD even in TEST_MODE. TEST_MODE is for stress-testing the pipeline only — production runs MUST keep both checkpoints human-gated. The waiver reason is surfaced in the final `PIPELINE_STATUS.json`.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
 - **The orchestrator never executes research.** It delegates to the corresponding skill. Do not inline derivation / verification / writing logic into this orchestrator.
 - **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no code/experiment):
@@ -419,10 +422,11 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
   - Phase 10 (result-to-claim): qualitative fidelity is the expected norm for theory-only problems
   - The derivation output is marked `[not machine-verified]` and the claim strength is adjusted accordingly
 - **Experiment execution path (v2.0).** When `verification_type` is NOT `theory-only`:
-  - Phase 6 (theory-derivation) → Phase 6b (toy experiment, foreground, < 5 min) → Phase 6c (full experiment, **background dispatch mandatory**) → Phase 7+ (pipeline continues, experiment runs async)
-  - Toy experiment FAIL → **kill the idea** (BLOCKED, do not proceed to full experiment)
+  - Phase 6 (theory-derivation) → Phase 6b (toy experiment) → Phase 6c (full experiment, **background dispatch mandatory**) → Phase 7+ (pipeline continues, experiment runs async)
+  - **Toy dispatch rule (v2.1)**: estimate toy wall-clock first. `≤ 5 min` → run foreground. `> 5 min` → dispatch to background as `toy_bg` (same dispatch protocol as full), continue pipeline, gate-check `RESULT.json` only after `toy_bg` completes (do not block foreground). The toy gate verdict is read at the appropriate downstream gate — never busy-wait.
+  - Toy experiment FAIL → **kill the idea** (BLOCKED, do not proceed to full experiment). This holds whether toy ran foreground or background.
   - Full experiment dispatched to background → pipeline continues with Phase 7-16 while experiment runs
-  - At Phase 10 (result-to-claim): check full experiment STATUS.json; if still running, use toy results + note "full experiment pending"
+  - At Phase 10 (result-to-claim): check STATUS.json for whichever background jobs are live (toy_bg if still running, full if still running); if still running, use whatever completed results exist + note "experiment pending"
   - See [`../support/experiment-execution/SKILL.md`](../../support/experiment-execution/SKILL.md) and [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md)
 - **Background dispatch is non-negotiable for full experiments.** The agent must NEVER block the foreground on tasks estimated > 5 minutes. See [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md).
 - **HARD vs FLEXIBLE boundaries:**

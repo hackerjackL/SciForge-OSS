@@ -3,6 +3,8 @@
 > **Status**: Single Source of Truth for the OSS paper output format. Consumed by `/paper-writing`, `/paper-compile`.
 >
 > **Key difference from main SciForge**: OSS uses **one unified template** for all 125 science problems. There are no venue-specific `.cls`/`.sty`/`.bst` files and no per-discipline overlay. The final output is **LaTeX** via the unified `elsarticle` document class. Venue differences (when the human user later targets a specific journal) are limited to `\documentclass` options and `\bibliographystyle{}` choice — and are deferred to submission time, not during drafting.
+>
+> **v2.1 — Mode selector on top of the single skeleton**: the section *set* (which sections, which order, theorem/figure emphasis, page band) is now chosen by a **5-mode selector** (`theory`/`experiment`/`computational`/`survey`/`hybrid`) driven by `verification_type` + `evidence_type` from `domain-signature.json`. This is **not** a return to venue families — one skeleton, one document class, five section-layout modes, zero discipline hardcode. See [`paper-modes.md`](paper-modes.md).
 
 ---
 
@@ -45,16 +47,24 @@ The agent **copies this skeleton** to the working directory and fills in the sec
 
 ---
 
-## 3. Page Target
+## 3. Page Target (mode-aware — see `paper-modes.md` §5)
 
-| Category | Page Target | Page Count Rule |
+The page target is **no longer a single table here** — it is mode-aware. The mode (`theory`/`experiment`/`computational`/`survey`/`hybrid`) is selected at `/paper-writing` entry per [`paper-modes.md`](paper-modes.md) §2, then the `length` parameter (`short`/`standard`/`long`) picks the band within that mode.
+
+| Mode | Short | Standard | Long |
+|------|-------|----------|------|
+| `theory` | 4-6 | 4-8 | 15-25 (full proofs in appendix) |
+| `experiment` | 6-8 | 8-12 | 12-16 |
+| `computational` | 6-8 | 8-12 | 12-16 |
+| `survey` | 10-12 | 15-20 | 20-25 |
+| `hybrid` | 8-10 | 10-14 | 14-18 |
+
+Page counts are main body only; refs/appx not counted. The superseded single-table form is retained below for historical reference only — prefer the mode-aware table above.
+
+| Category (legacy) | Page Target | Page Count Rule |
 |----------|-------------|----------------|
 | **OSS default** (computational / theory_experiment) | **8-15 pages, flexible** | Main body only; refs/appx NOT counted |
 | **Theory-only** (pure theory, no experiments) | **4-8 pages** (short) or **15-25 pages** (with full proofs in appendix) | If the problem is a tight derivation, 4-8 pages suffice; if complete proofs are needed, expand to 15-25 |
-| Short theoretical note | 4-6 pages | If the problem's answer is a tight derivation |
-| Long survey-style | 15-25 pages | If the problem demands a literature-heavy treatment |
-
-The agent picks the length based on the problem's nature and `verification_type`. The `length` parameter on `/paper-writing` accepts `short` / `standard` / `long` and maps to 4-6 / 8-12 / 12-16 pages (standard) or 4-6 / 4-8 / 15-25 (theory-only).
 
 ---
 
