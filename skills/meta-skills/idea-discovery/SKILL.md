@@ -49,7 +49,7 @@ Create or maintain:
 
 Key artifacts consumed:
 - The frozen Q-id + problem statement (from the human user's prompt — NOT auto-searched from the 125-problem index)
-- `refine-logs/domain-signature.json` — from Phase 1a `/domain-signature` (for perspective weight adjustment)
+- `refine-logs/domain-signature.json` — from Phase 1b `/domain-learner` (the SOLE writer; used for perspective weight adjustment)
 - `literature/references.bib` — from `/universal-retrieval` (for novelty pre-screen)
 - `data/` — from `/ouroboros-data-insight` if it has run (for data-readiness pre-screen)
 
