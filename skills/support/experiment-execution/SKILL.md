@@ -169,11 +169,18 @@ Step 2e: Evaluate against success criteria
   "core_claim_tested": "[one sentence]",
   "success_criteria": "[what was tested]",
   "result_summary": {
-    "metric_name": "[name]",
-    "metric_value": 0.85,
-    "threshold": 0.7,
-    "passed": true
+    "primary_metric": {
+      "metric_name": "[name]",
+      "metric_value": 0.85,
+      "threshold": ">= 0.7",
+      "passed": true
+    },
+    "secondary_metrics": [
+      { "metric_name": "[e.g. parallel_trends_p_value]", "metric_value": 0.34, "threshold": "> 0.05", "passed": true },
+      { "metric_name": "[e.g. coefficient_sign]", "metric_value": "negative", "threshold": "== expected_sign", "passed": true }
+    ]
   },
+  "gate_logic": "all_metrics_pass | primary_only | majority_pass",
   "execution_time_seconds": 42,
   "scale_ratio": 0.1,
   "reasoning_chain_validated": true,
@@ -181,6 +188,13 @@ Step 2e: Evaluate against success criteria
   "recommendation": "PROCEED_TO_FULL | BLOCK | REDESIGN"
 }
 ```
+
+**Gate logic** (`gate_logic` field) — how multiple metrics combine into the PASS/FAIL verdict:
+- `all_metrics_pass` (default): every metric's `passed` must be true. Use for problems where all criteria are load-bearing (e.g., causal inference needs correct sign AND magnitude AND parallel-trends).
+- `primary_only`: only `primary_metric.passed` decides; secondary metrics are informational. Use when secondary checks are diagnostic but not gating.
+- `majority_pass`: PASS if >50% of all metrics pass. Use for exploratory toys where no single metric is decisive.
+
+**For causal_inference toys specifically** (per `discipline-writing.md` §0): `primary_metric` = recovered ATE/coefficient magnitude vs known effect; `secondary_metrics` MUST include coefficient sign and parallel-trends p-value — all three load-bearing, so `gate_logic: all_metrics_pass`.
 
 ### Step 3: Toy Gate (Decision Point)
 

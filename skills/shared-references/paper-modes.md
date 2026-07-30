@@ -25,10 +25,12 @@ The skeleton's `\input{sections/...}` chain is **rewritten per mode** by the age
 | Mode | Trigger (signals, not discipline labels) | Shape | Page band |
 |------|------------------------------------------|-------|-----------|
 | `theory` | `verification_type=theory-only` AND `evidence_type=derivational` | Theorem→Lemma→Proof, no Results section | 4-8 (short) / 15-25 (with full proofs in appendix) |
-| `experiment` | `evidence_type=experimental` (clinical/bench/trial) | Methods→Results with stats | 8-15 |
+| `experiment` | `evidence_type=experimental` (clinical/bench/trial) **OR `evidence_type=causal_inference` (DiD/IV/RDD)** **OR `evidence_type=correlational` (regression)** | Methods (incl. Identification Strategy)→Results with stats | 8-15 |
 | `computational` | `verification_type=computational` OR `evidence_type=simulational` | Model→Numerical Results with convergence | 8-15 |
 | `survey` | `evidence_type=interpretive` AND literature is the primary artifact (review/synthesis problem) | Taxonomy→Detailed Survey→Open Problems | 15-25 |
 | `hybrid` | `verification_type=theory+experiment` OR ambiguous/fallback | Theory section + Experiment section combined | 10-18 |
+
+**Why causal_inference and correlational route to `experiment` mode (not a 6th `causal` mode):** causal-identification and regression studies ARE empirical/experimental in shape — they need a Methods section (which holds the identification strategy) and a Results section with coefficients/CIs/p-values. The `experiment` mode's mandatory items (power/size statement, effect size + CI) already fit causal inference. Adding a 6th mode would fragment the section-set space for no structural gain; instead, the `experiment` mode's Section 4 adapts by *content* (identification strategy for causal_inference; protocol for clinical; specification for correlational) per `discipline-writing.md`'s signature-driven rules.
 
 ### 2a. Canonical `verification_type` Tokens (cross-skill contract)
 
@@ -98,13 +100,13 @@ Each mode defines its section set. The agent writes exactly these `sections/*.te
 | `sections/1_introduction.tex` | Introduction | Motivation + gap + contribution |
 | `sections/2_related_work.tex` | Related Work | Clustered by approach |
 | `sections/3_problem_formalization.tex` | Problem / Hypothesis Formalization | Hypothesis stated, variables defined |
-| `sections/4_methods.tex` | Methods (protocol, materials, power analysis, blinding, exclusion) | Detailed protocol |
-| `sections/5_results.tex` | Results (statistical tests, effect sizes, CIs) | Stats tables + figures |
+| `sections/4_methods.tex` | Methods — **content adapts by `evidence_type`**: clinical protocol / **identification strategy + estimator choice + parallel-trends assumption (causal_inference)** / **model specification + variable definitions (correlational)** | Detailed protocol OR identification strategy |
+| `sections/5_results.tex` | Results (statistical tests, effect sizes, CIs) — **includes robustness checks for causal_inference** | Stats tables + figures |
 | `sections/6_discussion.tex` | Discussion (endogeneity/limitations/generalizability) | Robustness discussed |
 | `sections/7_conclusion.tex` | Conclusion | One paragraph |
-| `sections/A_appendix.tex` | Appendix (extended tables, protocol deviations) | Optional |
+| `sections/A_appendix.tex` | Appendix (extended tables, protocol deviations, placebo tests) | Optional |
 
-**Mandatory**: power/size statement in Methods; effect size + CI in Results (not just p-values).
+**Mandatory**: power/size statement in Methods; effect size + CI in Results (not just p-values). **For causal_inference specifically**: the identification strategy must be stated explicitly in Section 4 (per `discipline-writing.md` §0); Section 5 must include a robustness/parallel-trends check; Section 6 must discuss endogeneity. **For correlational**: the model specification + variable definitions go in Section 4; R²/coefficients/p-values in Section 5.
 
 ### 3.3 `computational` mode
 
