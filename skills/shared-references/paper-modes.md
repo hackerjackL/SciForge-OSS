@@ -104,9 +104,9 @@ Each mode defines its section set. The agent writes exactly these `sections/*.te
 | `sections/5_results.tex` | Results (statistical tests, effect sizes, CIs) — **includes robustness checks for causal_inference** | Stats tables + figures |
 | `sections/6_discussion.tex` | Discussion (endogeneity/limitations/generalizability) | Robustness discussed |
 | `sections/7_conclusion.tex` | Conclusion | One paragraph |
-| `sections/A_appendix.tex` | Appendix (extended tables, protocol deviations, placebo tests) | Optional |
+| `sections/A_appendix.tex` | Appendix (extended tables, protocol deviations, placebo tests, **ethics/IRB statement for human/animal data**) | Optional |
 
-**Mandatory**: power/size statement in Methods; effect size + CI in Results (not just p-values). **For causal_inference specifically**: the identification strategy must be stated explicitly in Section 4 (per `discipline-writing.md` §0); Section 5 must include a robustness/parallel-trends check; Section 6 must discuss endogeneity. **For correlational**: the model specification + variable definitions go in Section 4; R²/coefficients/p-values in Section 5.
+**Mandatory**: power/size statement in Methods; effect size + CI in Results (not just p-values). **For causal_inference specifically**: the identification strategy must be stated explicitly in Section 4 (per `discipline-writing.md` §0); Section 5 must include a robustness/parallel-trends check; Section 6 must discuss endogeneity. **For correlational**: the model specification + variable definitions go in Section 4; R²/coefficients/p-values in Section 5. **For experimental (clinical/biomarker with human/animal data)**: an ethics/IRB statement is MANDATORY in the Appendix (IRB approval number or exemption reason + informed-consent/animal-protocol note) — synthetic patient data must state "synthetic, no human-subjects regulation triggered" to close the loop explicitly.
 
 ### 3.3 `computational` mode
 
