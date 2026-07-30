@@ -27,22 +27,25 @@ The skeleton's `\input{sections/...}` chain is **rewritten per mode** by the age
 | `theory` | `verification_type=theory-only` AND `evidence_type=derivational` | Theorem→Lemma→Proof, no Results section | 4-8 (short) / 15-25 (with full proofs in appendix) |
 | `experiment` | `evidence_type=experimental` (clinical/bench/trial) **OR `evidence_type=causal_inference` (DiD/IV/RDD)** **OR `evidence_type=correlational` (regression)** | Methods (incl. Identification Strategy)→Results with stats | 8-15 |
 | `computational` | `verification_type=computational` OR `evidence_type=simulational` | Model→Numerical Results with convergence | 8-15 |
-| `survey` | `evidence_type=interpretive` AND literature is the primary artifact (review/synthesis problem) | Taxonomy→Detailed Survey→Open Problems | 15-25 |
+| `survey` | `verification_type=qualitative` OR (`evidence_type=interpretive` AND literature is the primary artifact) (review/synthesis problem) | Taxonomy→Detailed Survey→Open Problems | 15-25 |
 | `hybrid` | `verification_type=theory+experiment` OR ambiguous/fallback | Theory section + Experiment section combined | 10-18 |
 
 **Why causal_inference and correlational route to `experiment` mode (not a 6th `causal` mode):** causal-identification and regression studies ARE empirical/experimental in shape — they need a Methods section (which holds the identification strategy) and a Results section with coefficients/CIs/p-values. The `experiment` mode's mandatory items (power/size statement, effect size + CI) already fit causal inference. Adding a 6th mode would fragment the section-set space for no structural gain; instead, the `experiment` mode's Section 4 adapts by *content* (identification strategy for causal_inference; protocol for clinical; specification for correlational) per `discipline-writing.md`'s signature-driven rules.
 
 ### 2a. Canonical `verification_type` Tokens (cross-skill contract)
 
-To eliminate cross-skill string-matching failures, `verification_type` uses **exactly these three canonical tokens**, written verbatim (lowercase, hyphenated), in every file that reads or writes it:
+To eliminate cross-skill string-matching failures, `verification_type` uses **exactly these four canonical tokens**, written verbatim (lowercase, hyphenated), in every file that reads or writes it:
 
 | Token | Meaning | Phase 6b/6c behavior |
 |-------|---------|---------------------|
 | `theory-only` | Pure theory, no code, no numerical/experimental verification | Phase 6b/6c SKIP |
 | `computational` | Has numerical/simulation verification, no separate theory derivation chain | Phase 6b/6c MUST |
 | `theory+experiment` | Has BOTH a theory derivation AND experiments | Phase 6b/6c MUST |
+| `qualitative` | Interpretive/synthesis work — the contribution IS the taxonomy/literature analysis, NOT a derivation or experiment | Phase 6b/6c SKIP |
 
-**Forbidden aliases** (do not use — they break string matching): `theory_only`, `theory-experiment`, `experiment`, `theoretical`, `computational-only`, `theory+expt`. If a legacy file still uses an alias, treat it as a bug. Phase 2 (`/idea-discovery`) MUST emit one of the three canonical tokens; downstream skills MUST compare against the canonical tokens only.
+**Forbidden aliases** (do not use — they break string matching): `theory_only`, `theory-experiment`, `experiment`, `theoretical`, `computational-only`, `theory+expt`, `survey`, `review`, `literature`. If a legacy file still uses an alias, treat it as a bug. Phase 2 (`/idea-discovery`) MUST emit one of the four canonical tokens; downstream skills MUST compare against the canonical tokens only.
+
+**Why `qualitative` was added (v2.1.2, from real survey execution):** a survey/interpretive problem runs no symbolic derivation chain (so not `theory-only`) and no primary experiment whose results are the contribution (so not `theory+experiment`). The contribution is the taxonomy + synthesis of cited literature. Without a `qualitative` token, such problems were force-fit into `computational` (the least-wrong of the three), which then mis-routed them to `computational` mode (PDE/numerical-results shape) rather than `survey` mode. The `qualitative` token gives survey/interpretive problems a clean canonical home, and the §2 selection logic routes them to `survey` mode deterministically.
 
 ### Mode Selection Logic (deterministic, signal-driven)
 
@@ -52,20 +55,21 @@ The mode is selected at the `/paper-writing` entry from already-frozen signals p
 inputs:
   verification_type   ← determined in Phase 1 (problem decomposition), refined/confirmed by
                         Phase 2 (/idea-discovery), FROZEN at Phase 2 exit. Canonical tokens:
-                        "theory-only" | "computational" | "theory+experiment"  (see §2a below)
+                        "theory-only" | "computational" | "theory+experiment" | "qualitative"  (see §2a below)
   evidence_type      ← from domain-signature.json (Phase 1b /domain-learner — SOLE writer)
   literature_is_primary  ← heuristic: literature/references.bib entries ≥ 40 AND idea is synthesis-flavored
 
 mode selection (first match wins — verification_type is the PRIMARY axis):
   if verification_type == theory-only                                                → theory
   elif verification_type == theory+experiment                                        → hybrid
+  elif verification_type == qualitative                                              → survey
   elif evidence_type in {experimental, causal_inference, correlational}              → experiment
   elif verification_type == computational OR evidence_type == simulational           → computational
   elif evidence_type == interpretive AND literature_is_primary                        → survey
   else                                                                                → hybrid   (fallback: most general)
 ```
 
-**Ordering rationale**: `verification_type` (does the problem have theory / numerical-only / theory+experiment) is the primary axis and is checked first; `evidence_type` refines within the non-theory-only, non-hybrid cases. This prevents the old bug where `evidence_type=simulational` forced `computational` even for a problem that also has a theory derivation (which should be `hybrid`). A pure-simulation problem (`verification_type=computational` or `theory-only` excluded) still correctly lands in `computational`.
+**Ordering rationale**: `verification_type` (does the problem have theory / numerical-only / theory+experiment / qualitative-synthesis) is the primary axis and is checked first; `evidence_type` refines within the non-theory-only, non-hybrid, non-qualitative cases. This prevents the old bug where `evidence_type=simulational` forced `computational` even for a problem that also has a theory derivation (which should be `hybrid`), AND the v2.1.2 bug where a `qualitative` survey problem fell through to the `computational` branch. A pure-simulation problem (`verification_type=computational` or `theory-only` excluded) still correctly lands in `computational`.
 
 **v2.1.1 fix (from real DiD execution)**: the third branch now tests `evidence_type in {experimental, causal_inference, correlational}` rather than the literal `evidence_type == experimental` that previously appeared here. The literal form caused causal_inference and correlational problems (which need an identification-strategy section + coefficient/p-value results) to fall through to the `computational` branch — contradicting both the §2 trigger table (which routes all three to `experiment` mode) and §3.2's causal_inference-specific mandates. The set form now makes the pseudocode literally consistent with the trigger table. This closes the ambiguity a real end-to-end econ run surfaced: the table intent previously had to override the pseudocode literalism by hand.
 
