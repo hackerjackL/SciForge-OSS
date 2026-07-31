@@ -63,51 +63,89 @@
 
 ## 安装指南
 
-SciForge-OSS 不是 Python 包，而是一套纯 Markdown 技能文件。**任何能读 Markdown 的 AI agent 都能直接消费这些 skill**，无需 pip install、无需编译、无需依赖管理。
+> **v1.2.0**：纯 Skill 包 + 可选工具链。skill 本身是纯 Markdown，任何能读 Markdown 的 AI agent 直接消费；但完整跑通（图/文献/编译/实验）需要可选工具链，见下文「工具链（可选但推荐）」。
 
-### 方式一：克隆仓库（推荐）
+### 方式一：克隆仓库（推荐，标准 skill 集成）
 
 ```bash
 git clone https://gitcode.com/GewisLab/SciForge-OSS.git
 cd SciForge-OSS
 ```
 
-然后在 AI agent 中打开项目目录，agent 会自动读取 `AGENT_GUIDE.md` 作为入口。
+然后在 AI agent（Claude Code / Cursor / Trae / Codex 等）中打开项目目录，agent 会自动读取 `AGENT_GUIDE.md` 作为入口。skill 文件本身无需安装、无需编译、无依赖管理。
 
-### 方式二：将技能文件加入已有项目
+### 方式二：npm/npx 适配（标准 skill 包分发）
 
-如果已有研究项目，只需将 `skills/` 目录复制到项目根目录：
+v1.2.0 起提供 `package.json`，支持标准 npm 生态分发（skill 文件本身仍是纯 Markdown，npm 仅用于分发 + 工具链脚本）：
+
+```bash
+# 作为 npm 包安装（全局，拉取 skill 文件到 node_modules）
+npm install -g sciforge-oss
+
+# 或用 npx 一次性运行（不安装，直接拉取并执行）
+npx sciforge-oss --help
+npx sciforge-oss init ./my-research        # 在指定目录初始化一个 SciForge 项目骨架
+npx sciforge-oss tools-check               # 检查可选工具链是否齐全（见下文）
+npx sciforge-oss tools-install             # 一键安装可选工具链（texlive/d2/rsvg-convert/inkscape/graphviz/svgo）
+```
+
+`package.json` 的 `bin` 字段注册 `sciforge` 命令；`files` 字段包含 `skills/` + `AGENT_GUIDE.md` + 根 `SKILL.md`。npm 分发的是同样的纯 Markdown skill 文件——agent 消费方式不变，只是分发渠道更标准。
+
+### 方式三：将技能文件加入已有研究项目
 
 ```bash
 cp -r SciForge-OSS/skills/ /your-project/
 cp SciForge-OSS/AGENT_GUIDE.md /your-project/
 ```
 
-### 方式三：AI agent 配置
+### AI agent 配置
 
-#### Claude Code
+#### Claude Code / Codex / Cursor / Trae
 
 ```bash
-# 在项目目录中启动
-cd SciForge-OSS
-claude
-# 然后直接输入：/auto-pipeline "Q001: 宇宙的起源与演化"
+cd SciForge-OSS        # 或 npm init 后的项目目录
+claude                  # 或 codex / cursor / trae
+# 然后直接输入：
+/auto-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
+# 或测试模式（bypass 人类 checkpoint，agent 自跑全程）：
+/auto-pipeline "你的问题" — test_mode=true
 ```
-
-#### Cursor / Trae
-
-1. 用 Cursor/Trae 打开 `SciForge-OSS/` 目录
-2. 在对话中引用 `AGENT_GUIDE.md` 作为系统提示：
-   > "请阅读 AGENT_GUIDE.md，然后执行 /auto-pipeline 研究 Q001"
-3. 或直接在项目设置中将 `AGENT_GUIDE.md` 设为 AI 上下文文件
 
 #### 其他 AI agent
 
-任何支持 Markdown 上下文或自定义技能集的 AI agent 均可使用：
+任何支持 Markdown 上下文或自定义技能集的 AI agent 均可：将 `AGENT_GUIDE.md` 提供给 agent 作为系统提示/初始上下文，agent 读取后会自动理解 21-phase DAG 循环和所有可用 skill，直接输入 `/auto-pipeline "你的科学问题"` 即可启动。
 
-1. 将 `AGENT_GUIDE.md` 提供给 agent 作为系统提示/初始上下文
-2. agent 读取后会自动理解 21-phase DAG 循环和所有可用 skill
-3. 直接输入 `/auto-pipeline "你的科学问题"` 即可启动完整研究
+### 工具链（可选但推荐——完整跑通需要）
+
+skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX 编译 / 实验执行）需要以下可选工具。`npx sciforge-oss tools-check` 检查缺失项，`npx sciforge-oss tools-install` 一键安装。
+
+| 工具 | 用途 | 安装 | 必需性 |
+|------|------|------|--------|
+| **Python 3.10+** | 数据图、SymPy 推导、实验脚本 | 系统自带或 conda | 必需（核心计算） |
+| **texlive (pdflatex/latexmk/bibtex)** | Phase 13 零警告 PDF 编译 | `apt install texlive-latex-base texlive-latex-extra texlive-science texlive-publishers texlive-bibtex-extra texlive-lang-chinese latexmk` | 必需（论文编译） |
+| **d2** (v0.7+) | 复杂架构/流程/拓扑图（headless-native，主用） | `curl -fsSL https://d2lang.com/install.sh \| sh -s --` | 推荐（图） |
+| **graphviz/dot** | 密集网络/依赖图（d2 兜底） | `apt install graphviz` | 推荐（图兜底） |
+| **rsvg-convert** (librsvg) | SVG → PDF+PNG 转换（d2/graphviz 输出转双格式） | `apt install librsvg2-bin` | 推荐（图双产出） |
+| **inkscape** | rsvg-convert 兜底（SVG→PDF+PNG） | `apt install inkscape` | 可选（图兜底） |
+| **svgo** | SVG 优化（减小中间文件） | `npm install -g svgo` | 可选（图优化） |
+| **mihomo** (或任意 HTTP/SOCKS5 代理) | Phase 4 文献检索访问 arxiv/s2/crossref/openalex/huggingface | 见 [mihomo 文档](https://wiki.metacubex.one/)，规则模式 `mode: rule`，`mixed-port: 8099` | 必需（文献检索，CN 环境直连 arxiv 会超时） |
+| **PyTorch** (可选) | ML/深度学习实验（CPU/GPU/NPU） | `pip install torch` 或 conda | 可选（仅 ML 问题；CPU/GPU 自动检测） |
+
+**GPU/NPU**：SciForge 自动检测（experiment-execution Step 0a）——`nvidia-smi`(cuda) / `rocminfo`(rocm) / `npu-smi`(npu) / `torch.backends.mps`(Apple Silicon)，缺 GPU 自动回退 CPU + WARN，不阻塞。never hardcode `.cuda()`。
+
+**为什么不用 mermaid-cli / drawio**：mermaid-cli (`mmdc`) 渲染依赖 headless Chromium（puppeteer），headless 服务器易失败；drawio-desktop 是 GUI 应用，非 headless 友好。d2 和 graphviz/dot 都是 headless-native，服务器环境稳定。如人类后续想用 drawio GUI 手改图，可导入 d2/dot 产出的 SVG。
+
+### mihomo 代理配置（文献检索必需）
+
+Phase 4 universal-retrieval 通过 mihomo 规则模式访问外网。配置示例（`~/.config/mihomo/config.yaml`）：
+
+```yaml
+mixed-port: 8099          # HTTP + SOCKS5
+mode: rule                # 规则模式（CN 直连，外网走代理）
+# 节点列表 + 代理组略，按你的 VPN 配置
+```
+
+启动后，所有 arxiv/s2/crossref/openalex/huggingface/github 请求自动走代理。skill 内 `universal-retrieval` 已内置 `http_proxy=http://127.0.0.1:8099` 契约。超时则 `nohup` 后台重试，不跳 Phase 4。
 
 ### 验证安装
 

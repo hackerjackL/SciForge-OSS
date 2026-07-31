@@ -75,10 +75,13 @@ The old unified-plotting handled architecture/workflow diagrams via "JSON-spec d
 | Diagram complexity | Tool | Why |
 |--------------------|------|-----|
 | ≤ 4 nodes, trivial | AI-direct SVG | Fast, no tool needed |
-| 5-20 nodes, architecture/flow/pipeline | **d2** (`.d2` spec → SVG → PDF+PNG) | Auto-layout, proper typography, readable text |
-| 20+ nodes, dense graph | **d2** with `--layout=elk` (ELK engine for large graphs) | ELK handles dense layouts better |
+| 5-20 nodes, architecture/flow/pipeline | **d2** (`.d2` spec → SVG → PDF+PNG) — **primary** | Auto-layout, proper typography, readable text; no chromium dependency |
+| 20+ nodes, dense graph | **d2** with `--layout=elk` (ELK engine) OR **graphviz/dot** (fallback for dense graphs) | Both handle dense layouts; dot is older but battle-tested |
 | Commutative/category diagrams | LaTeX `tikz-cd` (unchanged) | Math typography |
-| Concept maps, dependency graphs | d2 OR AI-direct SVG (d2 preferred for >5 nodes) | d2 auto-layout beats hand-placement |
+| Concept maps, dependency graphs | **d2** (preferred, >5 nodes) OR graphviz/dot (fallback) | Both auto-layout; d2 typography is more modern |
+| Dense network/dependency graphs | **graphviz/dot** (`.dot` → SVG → PDF+PNG via rsvg-convert) | dot's layout algorithms (dot/neato/fdp/sfdp) are tuned for graphs |
+
+**Why d2 is primary (not mermaid-cli/drawio)**: mermaid-cli (`mmdc`) renders via headless Chromium (puppeteer) — a heavy, fragile dependency that fails on headless servers without a display server. drawio-desktop is a GUI app, not headless-friendly. **d2** and **graphviz/dot** are both headless-native, install cleanly, and produce vector SVG → PDF+PNG via `rsvg-convert` with no browser/chromium needed. For an AI-scientist pipeline that runs on servers, headless-native tools are mandatory. (If a human later wants to hand-edit a diagram in drawio-desktop's GUI, they can import the d2/dot-produced SVG — but the pipeline itself uses headless tools only.)
 
 **d2 pipeline steps**:
 1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com)
