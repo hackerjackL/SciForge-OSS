@@ -1,7 +1,7 @@
 # SciForge-OSS
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -27,7 +27,6 @@
 - [多领域示例](#多领域示例)
 - [核心设计原则](#核心设计原则)
 - [125 科学问题 Demo](#125-科学问题-demo)
-- [与 SciForge 的关系](#与-sciforge-的关系)
 - [常见问题 (FAQ)](#常见问题-faq)
 - [许可证](#许可证)
 
@@ -37,22 +36,9 @@
 
 **核心哲学**：全领域（Domain-Agnostic）。框架本身不预设任何学科知识，所有学科特定的方法论由 agent 运行时推理处理。
 
-**OSS = Open Single-question Stream** — 与主仓库 SciForge 的关键差异：
+**OSS = Open Single-question Stream** ——单题执行：每次 invocation 处理一个 Q-id，不自动迭代全部问题；全领域 1 universal pipeline（无 overlay，无学科分支）；agent 运行时推理处理领域方法；senior-reviewer-agnostic 唯一；单一 unified `elsarticle` 模板；理论-only + 计算 + 理论+实验 + qualitative 四路验证可选；INV-G1 唯一不变量（PROBLEM_ANCHOR_FREEZE 通用）。
 
-| 维度 | 主仓库 SciForge | SciForge-OSS |
-|------|----------------|--------------|
-| **学科** | 4 并行 pipeline（econ/cs-ml/physics/general） + 16 overlay 文件 | **全领域 1 universal pipeline**（无 overlay，无学科分支） |
-| **执行** | 一次可多问题 | **单题执行**——每次 invocation 处理一个 Q-id，不自动迭代全部问题 |
-| **框架** | AIM(econ) / SOTA(cs-ml) / PNV(physics) / none | None——agent 运行时推理处理领域方法 |
-| **评审 persona** | 4 学科专属 persona | senior-reviewer-agnostic 唯一 |
-| **模板** | 10+ venue families（NeurIPS/ICLR/PRL/AER...） | **单一 unified `elsarticle` 模板** |
-| **实验** | 完整 empirical pipeline（GPU 训练 + benchmark binding + SOTA gate） | **无实验**——SymPy 符号推导 + 数值沙盒 sanity check |
-| **验证路径** | 假设有代码/实验条件 | **理论-only + 计算 + 理论+实验 三路可选**——纯理论领域无需写代码 |
-| **保真度** | 5-fidelity（text/symbolic/minimal/empirical/full） | **3-fidelity**（symbolic/numerical/qualitative）——无 empirical、无 full |
-| **不变量** | INV-E*/INV-C*/INV-P* + INV-G1 | **INV-G1 唯一**（PROBLEM_ANCHOR_FREEZE 通用） |
-| **问题** | N/A | 任意数量，125 题为 Demo 展示 |
-
-与传统的"为每个学科写死工具"不同，SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应万变：
+SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应万变：
 
 | 元技能 | 角色 | 说明 |
 |--------|------|------|
@@ -74,22 +60,26 @@ cd SciForge-OSS
 
 然后在 AI agent（Claude Code / Cursor / Trae / Codex 等）中打开项目目录，agent 会自动读取 `AGENT_GUIDE.md` 作为入口。skill 文件本身无需安装、无需编译、无依赖管理。
 
-### 方式二：npm/npx 适配（标准 skill 包分发）
+### 方式二：本地 CLI（bin/sciforge.js，真实可执行）
 
-v1.2.0 起提供 `package.json`，支持标准 npm 生态分发（skill 文件本身仍是纯 Markdown，npm 仅用于分发 + 工具链脚本）：
+克隆后，仓库自带的 `bin/sciforge.js` 是一个真实的 Node.js CLI（无外部依赖，纯 stdlib），提供项目骨架初始化 + 工具链检查/安装。**该包未发布到 npm registry，不能 `npm install -g sciforge-oss`**——以下两种本地用法是真实可执行的：
 
 ```bash
-# 作为 npm 包安装（全局，拉取 skill 文件到 node_modules）
-npm install -g sciforge-oss
+git clone https://gitcode.com/GewisLab/SciForge-OSS.git
+cd SciForge-OSS
 
-# 或用 npx 一次性运行（不安装，直接拉取并执行）
-npx sciforge-oss --help
-npx sciforge-oss init ./my-research        # 在指定目录初始化一个 SciForge 项目骨架
-npx sciforge-oss tools-check               # 检查可选工具链是否齐全（见下文）
-npx sciforge-oss tools-install             # 一键安装可选工具链（texlive/d2/rsvg-convert/inkscape/graphviz/svgo）
+# 用法 A：直接用 node 调 bin（无需安装）
+node bin/sciforge.js --help
+node bin/sciforge.js tools-check               # 检查可选工具链是否齐全（见下文）
+node bin/sciforge.js init ./my-research         # 在指定目录初始化一个 SciForge 项目骨架
+
+# 用法 B：npm link 本地注册为全局命令（同仓库内，等同 npm install -g 但不发 registry）
+npm link                                        # 注册 sciforge 命令到全局（指向本仓库）
+sciforge --help                                 # 之后可直接用 sciforge 而非 node bin/...
+sciforge tools-install                          # 一键安装可选工具链（apt: texlive/d2/rsvg-convert/inkscape/graphviz；npm: svgo）
 ```
 
-`package.json` 的 `bin` 字段注册 `sciforge` 命令；`files` 字段包含 `skills/` + `AGENT_GUIDE.md` + 根 `SKILL.md`。npm 分发的是同样的纯 Markdown skill 文件——agent 消费方式不变，只是分发渠道更标准。
+`package.json` 的 `bin` 字段注册 `sciforge` 命令指向 `./bin/sciforge.js`；`files` 字段声明分发内容（`skills/` + `AGENT_GUIDE.md` + 根 `SKILL.md` + `bin/`）。若日后发布到 npm registry，上述 `npm link` 用法会无缝切换为 `npm install -g sciforge-oss`——但当前未发布，请用 clone + node bin 或 npm link。
 
 ### 方式三：将技能文件加入已有研究项目
 
@@ -398,20 +388,6 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 - 框架支持任意数量的问题（通过 `problems/` 目录自动发现）
 - Q ID 格式灵活，无需死板命名
 
-## 与 SciForge 的关系
-
-SciForge-OSS 继承自 [SciForge](https://gitcode.com/GewisLab/SciForge.git) 的纯 skill 驱动和跨模型对抗精神，但做了以下关键转变：
-
-| 维度 | SciForge | SciForge-OSS |
-|------|----------|--------------|
-| 学科覆盖 | 4 方向（经济学/CS/物理/通用） | **全领域（AI for Scientist Anything）** |
-| 架构 | 4 条并行 pipeline | **DAG 分支 + 门控 + 收敛 + 可视化追踪** |
-| 实验 | experiment-bridge（GPU 训练） | **理论验证沙盒（SymPy 推导 + 逻辑审计 + 理论-only 路径）** |
-| 核心 skill 数 | 74 个学科特定 skill | **4 个元技能 + 6 个通用 skill** |
-| 问题 | N/A | **任意数量，125 题为 Demo** |
-| 验证 | 假设有代码/实验 | **理论-only / 计算 / 理论+实验 三路可选** |
-| 评审 | 跨模型评审 | **结构化自评审（角色切换）** |
-
 ## 常见问题 (FAQ)
 
 ### Q: SciForge-OSS 支持哪些学科？
@@ -431,9 +407,6 @@ A: 统一 `elsarticle` LaTeX 格式，可编译为 PDF。理论论文使用"理�
 
 ### Q: 如何贡献新的 skill？
 A: 参考 [CONTRIBUTING.md](CONTRIBUTING.md)。所有 skill 是纯 Markdown 文件，遵循统一的 frontmatter 格式。
-
-### Q: 与主仓库 SciForge 的区别是什么？
-A: 见上方表格。核心区别：全领域、单 pipeline、DAG 架构、结构化自评审、125 题为 Demo。
 
 ## 许可证
 
