@@ -20,7 +20,7 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 |------|------|------|
 | **Orchestrator** | 1 | `/auto-pipeline` — 单入口，21 阶段 DAG 科研循环（v3.0 Phase 5b 新增 AI 8 维 EG 评估） |
 | **Meta-Skills** | 8 | 通用元技能：idea-discovery, universal-retrieval, unified-plotting, dynamic-sandbox, dynamic-tooling, domain-learner, domain-signature, novelty-check |
-| **Support Skills** | 13 | 支撑技能：paper-writing, paper-compile, quality-gate, auto-review-loop, theory-derivation, logic-verification, result-to-claim, leakage-audit, citation-audit, invariant-check, kill-argument, method-registry, adversarial-falsification |
+| **Support Skills** | 14 | 支撑技能：paper-writing, paper-compile, quality-gate, auto-review-loop, theory-derivation, **experiment-execution**, logic-verification, result-to-claim, leakage-audit, citation-audit, invariant-check, kill-argument, method-registry, adversarial-falsification |
 | **Shared References** | 31+ | 共享配置：skill-config, assurance-contract, effort-contract, color-themes, venue-profiles, **engineering-grounding-contract** 等 |
 
 ## 包含的子技能
@@ -43,6 +43,7 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 - `/paper-compile` — LaTeX 零警告零报错编译
 - `/quality-gate` — 写作前硬门控
 - `/auto-review-loop` — 跨模型对抗式评审迭代
+- `/experiment-execution` — 玩具实验 (foreground gate) + 全量实验 (background dispatch) [v2.0]
 - `/theory-derivation` — SymPy 符号推导与机器验证
 - `/logic-verification` — 6 维逻辑一致性审计
 - `/result-to-claim` — 3 保真度声明门控

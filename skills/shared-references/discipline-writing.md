@@ -61,11 +61,15 @@ The domain signature (from `/domain-signature`) automatically selects writing co
 
 ---
 
-## 1. Unified Section Structure
+## 1. Section Set (mode-selected — see `paper-modes.md` §3)
 
-The section structure depends on `verification_type` (set by the orchestrator based on the problem type).
+> **v2.1**: the old binary `theory-only vs standard` section-set branch is **superseded** by a **5-mode selector** (`theory`/`experiment`/`computational`/`survey`/`hybrid`). The mode is chosen at `/paper-writing` entry from `verification_type` + `evidence_type` signals already produced upstream. See [`paper-modes.md`](paper-modes.md) §2 for the deterministic selection logic and §3 for each mode's section set.
+>
+> This file (`discipline-writing.md`) now governs **how to write each section** (universal prose style, claim-support rules, notation hygiene, figure/equation/table standards). `paper-modes.md` governs **which sections exist** (the section set and order). They compose — mode picks the set, this guide picks the prose.
 
-### 1a. Standard Structure (computational / theory_experiment)
+The two legacy layouts below are retained for reference only. For new runs, prefer the mode-aware section sets in `paper-modes.md` §3.
+
+### 1a. Standard Structure (legacy — superseded by `experiment`/`computational`/`hybrid` modes)
 
 Every OSS paper draft with numerical or experimental verification follows this canonical skeleton:
 
