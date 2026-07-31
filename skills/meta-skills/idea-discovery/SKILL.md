@@ -90,6 +90,66 @@ Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mct
 2. Re-run ideation with broader perspectives (relax the `theoretical` axis to allow `conjecture + numerical evidence`; relax `computational` to allow `toy regime only`).
 3. If still 0 after a 2nd pass → report to the human user: "No tractable idea found within OSS constraints. Recommend returning to the human for a problem re-scoping or an external experiment collaborator."
 
+## Idea 写作质量门槛（v2.2.1 — 反"垃圾 idea"）
+
+**用户硬要求**：idea 不能写得垃圾。一个 idea 若只是"我们用 X 方法做 Y"，无新颖性洞察、无机制性贡献、无与现有工作的差异点，就是垃圾 idea，必须淘汰。
+
+每个 candidate idea 在 `IDEA_CANDIDATES.md` 必须包含以下 5 字段（缺任一即视为不达标，MCTS 前置淘汰）：
+
+| 字段 | 内容 | 垃圾 idea 的判别信号 |
+|------|------|---------------------|
+| `insight` | 一句话：本 idea 超越现有工作的**科学洞察**是什么？（不是"用了什么技术"，是"为什么这能产生新知识"） | 空洞 / 可套在任何论文上 / 无机制性陈述 |
+| `novelty_delta` | 一句话：相对 `references.bib` 中最接近的 1-2 篇，本 idea 的**具体差异点**（不是"更好"，是"在 X 假设/方法/数据上不同"） | "改进了 baseline"无具体维度 / 与 cited work 实质重复 |
+| `falsifiable_claim` | 一句话：本 idea 的核心 claim 是**可证伪的**——什么实验/推导结果会否定它？（若无可证伪点，不是科学 idea） | "我们验证了 X"无反例条件 / claim 不可证伪 |
+| `mechanism` | 一句话：**为什么**本 idea 的方法会产生预期结果？（机制性因果链，不是"经验上有效"） | 无机制 / 纯经验拟合 / "data-driven 黑箱" |
+| `boundary` | 一句话：本 idea 在什么条件/尺度/领域下**会失效**？（诚实边界，不是"普适"） | "适用于所有场景" / 无边界 |
+
+**MCTS 前置硬筛**：任一字段判为垃圾信号 → idea 直接淘汰，不进入 MCTS simulation。这比 6-axis idea-fit 更严格——6-axis 评"可行性/新颖性分数"，5 字段评"是不是真正的科学 idea"。
+
+**Phase 2 人类 checkpoint 前的二次检查**：selected idea 在写入 `FINAL_PROPOSAL.md` 前，agent 自检 5 字段是否达标；若 selected idea 仍判为垃圾（如 MCTS 分数高但 insight 空洞），回退 Step 2 重新生成（bounded 1 轮），不直接交付垃圾 idea 给下游。
+
+## BA (Backtracking-After) 机制（v2.2.1 — 实验否定 idea 时回溯）
+
+**用户硬要求**：idea 写对了但实验跑完发现不行，要有 callback/BA 机制回 Phase 2 重新生成几轮，不能直接交付一个实验否定的论文。
+
+DAG 的 fallback 已覆盖 phase 内失败（6b toy FAIL→kill idea 是最直接的）。但**实验结果否定 idea 的核心 claim**（而非实验本身失败）是更微妙的情况——toy gate PASS 但 full 实验显示 claim 不成立，或 logic-verification 发现推导结论与实验数据矛盾。这时需要 BA 回溯到 Phase 2 重新生成 idea，而非在原 idea 上打补丁。
+
+### BA 触发条件（任一命中即触发回 Phase 2）
+
+1. **Phase 6c full 实验完成 + STATUS.json verdict=FAIL 且 toy 曾 PASS**：toy 通过但 full 否定 → idea 在 toy scale 成立但 full scale 不成立，是 scale-dependent false trick。回 Phase 2 重生成（bounded 2 轮）。
+2. **Phase 8 logic-verification FATAL: "实验数据与推导结论矛盾"**：推导说 X，实验数据说 not-X。这是 idea 本身错了。回 Phase 2 重生成（bounded 2 轮）。
+3. **Phase 14 auto-review-loop 评审指出"核心 claim 被本文自己的实验数据否定"**（kill-argument 站住）。回 Phase 2 重生成（bounded 2 轮）。
+
+### BA 执行流程
+
+```
+触发 BA (条件 1/2/3 任一)
+  │
+  ▼
+记录 BA_EVENT.json: {triggered_by: "6c_full_FAIL_after_toy_PASS" | "8_logic_FATAL_contradiction" | "14_kill_argument_sustained",
+                     original_idea_id, failed_evidence: [文件路径], reason: "..."}
+  │
+  ▼
+回退 Phase 2 (idea-discovery) — bounded 2 轮:
+  轮1: 重新生成 8-12 候选，但 EXCLUDE 原 idea_id 及其 DAG 子树（避免重蹈覆辙）；
+        在 MCTS_LOG.md 记录"BA 轮1：原 idea [id] 因 [reason] 失败，已排除"
+  轮2 (若轮1 仍无达标 idea): 进一步放宽——允许"修正原 idea 的失败假设"作为新候选
+        （即：若原 idea 失败于假设 H，新候选可显式否定 H 并提出替代机制）
+  │
+  ▼
+若 2 轮 BA 后仍无达标 idea → BLOCKED + BA_EXHAUSTED，交人类决策
+  （不再无限循环；2 轮是 BA 的硬上限，区别于 phase 内 3 轮 fallback）
+```
+
+### BA 与 phase 内 fallback 的区别
+
+| 机制 | 触发 | 回退到 | 上限 |
+|------|------|--------|------|
+| phase 内 fallback (↻) | 单 phase 失败（推导报错/编译警告） | 相邻前置 phase | 3 轮 |
+| **BA (本节)** | 实验数据**否定 idea 核心claim**（非 phase 失败） | Phase 2 idea 重生成 | 2 轮 |
+
+BA 是"idea 本身错了"的回溯，phase fallback 是"执行出错"的回溯。两者不混淆：toy gate FAIL（6b）是 phase fallback（kill idea，不回 Phase 2）；full 完成但否定 claim 是 BA（回 Phase 2 重生成）。
+
 ## Workflow
 
 ### Step 0: Load the Frozen Q-id

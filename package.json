@@ -1,0 +1,40 @@
+{
+  "name": "sciforge-oss",
+  "version": "1.2.0",
+  "description": "Pure Skill-driven universal AI Scientist framework — domain-agnostic scientific reasoning engine. Markdown skills any AI agent can consume; optional toolchain for figures/literature/compile/experiments.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "ai-scientist", "research", "latex", "open-science", "discipline-agnostic",
+    "ai-for-science", "skill-driven", "dag", "auto-pipeline"
+  ],
+  "homepage": "https://atomgit.com/GewisLab/SciForge-OSS",
+  "repository": {
+    "type": "git",
+    "url": "https://atomgit.com/GewisLab/SciForge-OSS.git"
+  },
+  "bugs": {
+    "url": "https://atomgit.com/GewisLab/SciForge-OSS/issues"
+  },
+  "files": [
+    "skills/",
+    "AGENT_GUIDE.md",
+    "SKILL.md",
+    "README.md",
+    "CHANGELOG.md",
+    "CITATION.cff",
+    "problems/",
+    "bin/"
+  ],
+  "bin": {
+    "sciforge": "./bin/sciforge.js"
+  },
+  "scripts": {
+    "tools-check": "node bin/sciforge.js tools-check",
+    "tools-install": "node bin/sciforge.js tools-install",
+    "init": "node bin/sciforge.js init"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
