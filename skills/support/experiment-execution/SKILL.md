@@ -91,6 +91,8 @@ FINAL_PROPOSAL.md (selected idea)
 | `dispatch_method` | enum | `auto` | `nohup` / `tmux` / `systemd` / `auto` (auto-detect) |
 | `checkpoint_interval` | int | `600` | Seconds between checkpoints for full experiment (and toy_bg if long) |
 | `language` | enum | `python` | Primary execution language |
+| `device` | enum | `auto` | v2.2: `auto` (auto-detect CPU/GPU/NPU — see Device Detection below), `cpu`, `cuda` (NVIDIA GPU), `mps` (Apple Silicon), `npu` (Ascend/Cambricon/etc.), `rocm` (AMD GPU). The experiment script MUST honor this — never hardcode `.cuda()`; use the detected device. |
+| `fallback_device` | enum | `cpu` | v2.2: if the requested device is unavailable, fall back to this (default CPU) + log WARN. Do NOT BLOCK on a missing GPU — the toy may still run on CPU within the foreground budget. |
 
 ## Workflow
 
@@ -102,6 +104,35 @@ Read `FINAL_PROPOSAL.md` and `domain-signature.json` to determine:
 2. **What is the minimal test?** — the smallest experiment that can validate or kill the core claim
 3. **What scale is "toy"?** — typically 1-10% of full (subset of data, fewer epochs, coarser mesh, smaller sample)
 4. **What is the full experiment?** — complete-scale validation
+
+### Step 0a: Device Detection (v2.2 — CPU/GPU/NPU auto-detect)
+
+Before running any experiment script, detect the available compute device. This machine has a small GPU (may not always); some machines have NPU; CPU is always available.
+
+**Detection order** (first match wins):
+1. `nvidia-smi` returns a GPU → `device=cuda` (NVIDIA GPU; PyTorch `torch.cuda.is_available()` confirms; check VRAM — this machine has ~12GB)
+2. `rocminfo` / `hip` available → `device=rocm` (AMD GPU)
+3. `npu-smi` or Ascend/Cambricon toolkit present → `device=npu` (NPU — Ascend/Cambricon; check toolkit env vars `ASCEND_HOME`/`CANN_HOME`)
+4. macOS with Apple Silicon → `device=mps` (Metal Performance Shaders; `torch.backends.mps.is_available()`)
+5. None of the above → `device=cpu` (always available, the `fallback_device`)
+
+**The experiment script MUST honor the detected device — NEVER hardcode `.cuda()` or `.to('cuda:0')`.** Use a helper at the top of every script:
+```python
+import torch, os, subprocess
+def detect_device():
+    if torch.cuda.is_available(): return torch.device('cuda')
+    try:
+        if subprocess.run(['npu-smi','info'],capture_output=True).returncode==0: return 'npu'  # torch_npu if available
+    except: pass
+    if hasattr(torch.backends,'mps') and torch.backends.mps.is_available(): return torch.device('mps')
+    return torch.device('cpu')
+DEVICE = detect_device()
+# ALL tensors/models: x = x.to(DEVICE); model = model.to(DEVICE)
+```
+
+**Fallback contract**: if the requested `device` (e.g., `cuda`) is unavailable, fall back to `fallback_device` (default `cpu`) + log WARN to `RESULT.json`/`STATUS.json` (`device_fallback: cuda->cpu, reason: no_cuda`). **Do NOT BLOCK on a missing GPU** — the toy may still run on CPU within the foreground 5-min budget. For a full experiment requiring a GPU, if only CPU is available, the full experiment is dispatched to background with `device=cpu` + a longer `timeout_full` estimate (CPU is slower) + WARN.
+
+**VRAM awareness** (GPU): check `nvidia-smi --query-gpu=memory.total --format=csv,noheader`; if < 8GB free, reduce `scale_ratio` for the toy (e.g., 0.1 → 0.05) to avoid OOM — log `scale_ratio_adjusted: OOM_risk` to `RESULT.json`.
 
 ```json
 {
