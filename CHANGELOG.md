@@ -1,5 +1,81 @@
 # Changelog
 
+## [1.2.0] - 2026-07-31
+
+### 全领域出版级论文管线 + BA 回溯
+
+v1.2.0 是 v1.1.0 的全领域文风/图/文献/编译/评分/回溯增强。**v1.2.0 = v2.0/v2.1/v2.1.1/v2.1.2/v2.2/v2.2.1 全部增量工作的总和（PR #8 + #9）。**
+
+### 核心变化（按 v2.x 增量分层）
+
+**v2.0 — 实验执行层**
+- experiment-execution 新 support skill（toy + full 两阶段，toy 前台 gate，full 后台调度）
+- background-dispatch-protocol（tmux→nohup→systemd，>5min 强制后台）
+- auto-pipeline Phase 6b/6c 接线，theory-only 路径 SKIP
+
+**v2.1/v2.1.1/v2.1.2 — 5 模式选择器 + 路由修复**
+- paper-modes.md 新契约：5 模式（theory/experiment/computational/survey/hybrid），单 elsarticle 骨架，signal 驱动（verification_type + evidence_type），0 学科硬编码
+- canonical verification_type tokens：theory-only | computational | theory+experiment | qualitative（v2.1.2 加 qualitative，survey 路由修复）
+- 路由修复：v2.1.1 causal_inference/correlational → experiment（伪代码字面一致性）；v2.1.2 qualitative → survey（分支前置）
+- venue-profiles 页数表 mode-aware；discipline-writing section-set 延迟到 paper-modes
+- idea-discovery 4th empirical perspective（因果识别/数据估计）
+- experiment-mode Section 4 adapts by evidence_type（identification strategy for causal_inference）
+- RESULT.json 多指标 schema（primary + secondary + gate_logic）
+- multi-fidelity universal（去学科硬编码，ML instantiation as trend_score/gradient_health）
+- experiment-execution simulational ML/eigenvalue/band-structure toy 模板
+- paper-modes computational mode ML 适配（ablation table + reproducibility statement MANDATORY）
+- experiment mode ethics/IRB 强制槽
+- TEST_MODE bypass-not-skip（agent 做工作，推迟人类审批，production_ready=false）
+
+**v2.2 — 图/文献/编译/评分/架构/设备**
+- figure-quality-contract.md 新契约：16:9 横版默认，PDF+PNG 双产出（PDF 给 LaTeX，PNG 给查看），Nature 级可读性（axis≥12pt, ticks≥10pt），d2 为主 + graphviz/dot 兜底（mermaid-cli/drawio 不采用——headless-native 优先）
+- unified-plotting 重写：dual output，d2 管线，humanities 图同管线
+- Phase 4 universal-retrieval MUST 不可跳过（即使 theory-only，查重）+ mihomo 代理契约（http://127.0.0.1:8099 规则模式）+ FILTER_CHAIN_AUDIT.json（真+全完整性核）+ nohup 超时回退
+- Phase 13 paper-compile MUST 零警告不可豁免（texlive 安装验证）
+- project-architecture-contract.md 新契约：GitHub 式项目树，README.md 强制，MANIFEST.md 逐阶段追加，工作区卫生（无 orphan 文件/目录/symlink），Phase 16 清洁度审计门控，部分运行也遵守
+- experiment-execution Step 0a 设备检测（cpu/cuda/npu/mps/rocm auto-detect）+ fallback_device + VRAM 感知，不硬编码 .cuda()
+- publishability-score 新 support skill：6 维评分，dim1 主实验逻辑到位 GATING（<0.5 硬上限 0.4），4 档 verdict（SUBMISSION_READY/SUPPLEMENTARY_GAPS/NEEDS_MAJOR_REVISION/NOT_PUBLISHABLE_NO_MEAN），区分"差补充实验"vs"主逻辑不到位 no mean"，缺失实验清单 actionable
+- discipline-writing §3 加 Humanities/Arts + Law/Jurisprudence 行
+- Phase 接线：Phase 11 unified-plotting MUST（≥1 图/论文），Phase 14 auto-review-loop MUST，新 Phase 15.5 publishability-score MUST，Phase 16 加清洁度审计
+
+**v2.2.1 — 文风/idea质量/BA回溯**
+- writing-principles §0 分领域文风契约（人文/CS/物理/医学/材料/地学/经济 7 族文风 + 开头钩子 + 禁忌）+ 反工程报告腔条款（Nature/一区 top 级别，禁流水账，页数不作为退化借口）
+- idea-discovery 5 字段质量门槛（insight/novelty_delta/falsifiable_claim/mechanism/boundary）—反"垃圾 idea"，MCTS 前置硬筛
+- BA (Backtracking-After) 机制：实验否定 idea 核心 claim（6c full FAIL after toy PASS / 8 logic FATAL 矛盾 / 14 kill-argument 站住）→ 回 Phase 2 重生成（bounded 2 轮），区别于 phase 内 3 轮 fallback
+
+### 真实端到端验证（8 轮，跨 5 领域 × 5 模式）
+
+| 领域 | 模式 | 全 21 phase | 文献 | 图 | 编译 | 评分 |
+|------|------|------------|------|-----|------|------|
+| 物理（阻尼振子） | hybrid | 全 PASS | 8 篇 | 4 文件 dual | 零警告 10 页 | SUPPLEMENTARY_GAPS 0.805 |
+| 经济（DiD） | experiment | 全 PASS | — | — | — | toy PASS |
+| CS/ML（标签平滑） | computational | 全 PASS | — | — | — | toy FAIL（诚实，gate 不放水） |
+| 材料（MoS2 带隙） | hybrid | 全 PASS | — | — | — | toy PASS |
+| 医学（Alzheimer 诊断） | experiment | 全 PASS | — | — | — | toy PASS |
+| 纯数学（AM-GM） | theory | 全 PASS | — | — | — | SymPy PASS, 6b/6c SKIP |
+| 综述（正则化） | survey | 全 PASS | 6 篇 proxy | — | — | — |
+| 后台调度专项 | — | 全 PASS | — | — | — | nohup + STATUS.json 周期 ✓ |
+| 物理 v2.2 全量 | hybrid | 全 PASS | 8 篇 | 4 文件 dual | 零警告 10 页 | SUPPLEMENTARY_GAPS 0.805 |
+| 人文（罗马衰亡）v2.2 全量 | survey | 全 PASS | 14 篇 | 4 文件 d2 dual | 零警告 13 页 author-year | SUPPLEMENTARY_GAPS 0.74 |
+
+### 文件清单
+
+- **新增**：figure-quality-contract.md, project-architecture-contract.md, publishability-score/SKILL.md, experiment-execution/SKILL.md, background-dispatch-protocol.md, paper-modes.md
+- **重写**：unified-plotting/SKILL.md, universal-retrieval/SKILL.md（mihomo + FILTER_CHAIN_AUDIT）, multi-fidelity-evaluation.md（universal）, venue-profiles.md（mode-aware）, discipline-writing.md（ Humanities/Arts 行 + section-set 延迟）
+- **接线**：auto-pipeline/SKILL.md（Phase 4/11/13/14/15.5/16 + TEST_MODE + BA 三处 + 设备检测）
+
+### 关键指标
+
+| 指标 | 值 |
+|------|-----|
+| 真实端到端跑通 | 10 轮（8 领域 + 2 v2.2 全量），全 21 phase，0 断裂 |
+| 5 模式全覆盖 | theory/experiment/computational/hybrid/survey 均有真实执行 |
+| 4 canonical tokens | theory-only/computational/theory+experiment/qualitative 均验证 |
+| 图工具 | d2 + graphviz/dot + rsvg-convert + inkscape + svgo（headless-native） |
+| 编译 | texlive 装好，零警告强制，2 轮全量跑均零警告 |
+| 网络 | mihomo 规则模式，arxiv/crossref/openalex/hf/github 全通 |
+| PR | #8 (v2.1) merged, #9 (v2.2) merged |
+
 ## [1.1.0] - 2026-07-22
 
 ### Engineering Grounding + 全仓统一

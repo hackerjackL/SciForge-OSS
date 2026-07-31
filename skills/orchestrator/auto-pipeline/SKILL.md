@@ -262,14 +262,15 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 6 | SymPy 推导成功 + 逐步机器验证 PASS | 回退 Phase 1（最多 3 轮） |
 | 6b | 玩具实验 RESULT.json status=PASS + core_claim_validated=true | FAIL → BLOCKED (kill idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
 | 6c | 全量实验 DISPATCH.json 生成 + 后台进程启动确认 | 无后台方法 → BLOCKED; 启动失败 → 1 retry; theory-only → SKIP |
+| 6c-BA | 全量实验完成且 STATUS.json verdict=FAIL（toy 曾 PASS） | **v2.2.1 BA**: 回退 Phase 2 重生成 idea（bounded 2 轮）—见 [idea-discovery BA 机制](../../meta-skills/idea-discovery/SKILL.md) |
 | 7 | Type I 无 CRITICAL + Type IV 无 ESCAPE | CRITICAL → callback Phase 5 (3 轮上限)；再失败升级 BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
-| 8 | 6 维度逻辑审计 PASS (零 FATAL/CRITICAL) | FATAL/CRITICAL 回退 Phase 6（最多 3 轮） |
+| 8 | 6 维度逻辑审计 PASS (零 FATAL/CRITICAL) | FATAL/CRITICAL 回退 Phase 6（最多 3 轮）；**FATAL=实验数据与推导结论矛盾 → v2.2.1 BA 回 Phase 2**（bounded 2 轮） |
 | 9 | INV-G1 Q-id 冻结 + 在当前产物中引用 | FAIL → 重新锚定 Q-id (Phase 0) |
 | 10 | 至少 1 个主结果达到 ≥ numerical 保真度 | qualitative-only → reframe 为 conjecture；numerical 缺失 → 回退 Phase 6 |
 | 11 | (可选) 图表遵循莫兰迪色系 + Layer 2 数据热图 | 色系违规 → 重生成；非数据图无强制 |
 | 12 | 论文非空 + 统一 elsarticle 模板 + 引用都来自验证列表 | 空则回退 Phase 1；模板违规回退 Phase 12 |
 | 13 | LaTeX 编译零警告零报错 (submission 级) | 反死循环阶梯：3 attempt per-warning → BLOCKED + reason_code |
-| 14 | 跨模型评审分数 ≥ 6/10 + kill-argument 反自欺 PASS | 分数 < 6 回退 Phase 6（最多 4 轮）；反自欺 FAIL 回退 Phase 10 |
+| 14 | 跨模型评审分数 ≥ 6/10 + kill-argument 反自欺 PASS | 分数 < 6 回退 Phase 6（最多 4 轮）；反自欺 FAIL 回退 Phase 10；**kill-argument 站住(claim 被自身实验否定) → v2.2.1 BA 回 Phase 2**（bounded 2 轮） |
 | 15 | 所有引用通过 3 层防幻觉验证 | 失败 → 删除虚构引用 + 回退 Phase 4 重搜 |
 | 16 | 产物归档完整 | 缺失产物回退相关阶段 |
 
