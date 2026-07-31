@@ -175,7 +175,9 @@ The agent applies these conventions at runtime based on the problem's domain —
 | **CS/ML-flavored** (algorithms, learning theory) | Architecture diagram early in Section 4; ablation table in Section 5; complexity analysis (time/space); reproducibility statement (code + seed + hardware) |
 | **Biology/Medicine-flavored** | Mechanism description in Section 4; statistical significance + effect size in Section 5;伦理 statement if human/animal data |
 | **Earth/Climate-flavored** | Spatial/temporal resolution stated; uncertainty quantification; baseline period comparison |
-| **Social/Behavioral-flavored** | Identification strategy stated (if causal claim); robustness checks; sample selection discussion |
+| **Social/Behavioral-flavored** (sociology, psychology, education) | Identification strategy stated (if causal claim); robustness checks; sample selection discussion; IRB/ethics statement if human-subjects data |
+| **Humanities/Arts-flavored** (history, philosophy, literature, linguistics, hermeneutics) | Argument structure explicit (premise→inference→conclusion); primary-source citation discipline (edition/page-specific); counter-argument + alternative-interpretation handling; hermeneutic-circle diagrams via d2; author-year citations (`elsarticle-harv`); no empirical-stats requirement — the argument IS the contribution; timeline/structure maps via d2 (see `figure-quality-contract.md` §5) |
+| **Law/Jurisprudence-flavored** | Doctrine/doctrine-relationship structure; jurisdictional scope stated; statutory + case-law citation; counter-doctrine handling |
 | **Chemistry/Materials-flavored** | Reaction scheme as figure; characterization methods (XRD/SEM/etc.) in Section 4; reproducibility via preserved synthesis protocol |
 | **Cross-disciplinary** | Borrow the conventions of each domain relevant to the problem; flag any conflict in Section 6 |
 
