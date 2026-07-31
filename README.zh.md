@@ -62,28 +62,42 @@ cd SciForge-OSS
 
 然后在 AI agent（Claude Code / Cursor / Trae / Codex 等）中打开项目目录，agent 会自动读取 `AGENT_GUIDE.md` 作为入口。skill 文件本身无需安装、无需编译、无依赖管理。
 
-### 方式二：本地 CLI（bin/sciforge.js，真实可执行）
+### 方式二：npm 安装（已发布，scoped 包）
 
-克隆后，仓库自带的 `bin/sciforge.js` 是一个真实的 Node.js CLI（无外部依赖，纯 stdlib），提供项目骨架初始化 + 工具链检查/安装。**该包未发布到 npm registry，不能 `npm install -g sciforge-oss`**——以下两种本地用法是真实可执行的：
+本包已发布到 npm registry 作为 scoped 包 `@gewislab/sciforge-oss`。全局安装即可获得 `sciforge` CLI：
 
 ```bash
-git clone https://gitcode.com/GewisLab/SciForge-OSS.git
-cd SciForge-OSS
+# 全局安装（scoped 包——@gewislab/ scope 是必须的）
+npm install -g @gewislab/sciforge-oss
 
-# 用法 A：直接用 node 调 bin（无需安装）
-node bin/sciforge.js --help
-node bin/sciforge.js tools-check               # 检查可选工具链是否齐全（见下文）
-node bin/sciforge.js init ./my-research         # 在指定目录初始化一个 SciForge 项目骨架
-
-# 用法 B：npm link 本地注册为全局命令（同仓库内，等同 npm install -g 但不发 registry）
-npm link                                        # 注册 sciforge 命令到全局（指向本仓库）
-sciforge --help                                 # 之后可直接用 sciforge 而非 node bin/...
-sciforge tools-install                          # 一键安装可选工具链（apt: texlive/d2/rsvg-convert/inkscape/graphviz；npm: svgo）
+# sciforge 命令现在可用
+sciforge --help
+sciforge tools-check               # 检查可选工具链是否齐全（见下文）
+sciforge init ./my-research         # 在指定目录初始化一个 SciForge 项目骨架
+sciforge tools-install             # 一键安装可选工具链（apt: texlive/d2/rsvg-convert/inkscape/graphviz；npm: svgo）
 ```
 
-`package.json` 的 `bin` 字段注册 `sciforge` 命令指向 `./bin/sciforge.js`；`files` 字段声明分发内容（`skills/` + `AGENT_GUIDE.md` + 根 `SKILL.md` + `bin/`）。若日后发布到 npm registry，上述 `npm link` 用法会无缝切换为 `npm install -g sciforge-oss`——但当前未发布，请用 clone + node bin 或 npm link。
+### 方式三：源码本地 CLI（不用 npm）
 
-### 方式三：将技能文件加入已有研究项目
+若不想用 npm，可直接 clone 后用 `bin/sciforge.js`（无外部依赖，纯 Node stdlib）：
+
+```bash
+git clone https://github.com/hackerjackL/SciForge-OSS.git
+cd SciForge-OSS
+
+# 直接用 node 调 bin（无需安装）
+node bin/sciforge.js --help
+node bin/sciforge.js tools-check
+node bin/sciforge.js init ./my-research
+
+# 或 npm link 从这个 clone 注册全局命令
+npm link
+sciforge --help
+```
+
+`package.json` 的 `bin` 字段注册 `sciforge` 命令指向 `./bin/sciforge.js`；`files` 字段声明分发内容（`skills/` + `AGENT_GUIDE.md` + 根 `SKILL.md` + `bin/`）。scoped 名 `@gewislab/sciforge-oss` 表示 npm registry 上该包归属 `gewislab` 组织。
+
+### 方式四：将技能文件加入已有研究项目
 
 ```bash
 cp -r SciForge-OSS/skills/ /your-project/
