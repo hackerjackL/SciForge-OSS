@@ -190,7 +190,7 @@ For architecture/workflow/topology/concept-map/dependency-graph/humanities-timel
 ```d2
 direction: right
 Input: {shape: rectangle; style.fill: "#D4CFC9"; style.stroke: "#8B9DAF"}
-Process: {shape: rounded; style.fill: "#9CAF88"}
+Process: {shape: oval; style.fill: "#9CAF88"}
 Output: {shape: rectangle; style.fill: "#C7A8A8"}
 Input -> Process: "feeds"
 Process -> Output: "produces"
