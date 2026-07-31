@@ -220,7 +220,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 2.5: adversarial-falsification | MUST | — |
 | 2.5b: adversarial-falsification Phase 5b (EG) | MUST | ENGINEERING_GROUNDING.md 必产；HEAVY/CONSTRAINED 全量输出，READY 简化版 |
 | 3: novelty-check | MUST | — |
-| 4: universal-retrieval | MUST | — |
+| 4: universal-retrieval | MUST | v2.2: 不可跳过 — 即使 theory-only 也必须跑（理论问题需查重避免重复证明）；走 mihomo 代理（规则模式）访问 arxiv/s2/crossref |
 | 5: method-registry | MUST | — |
 | 6: theory-derivation | MUST | — |
 | 6b: experiment-execution (toy) | CONDITIONAL | v2.0: theory-only → SKIP; computational/experiment → MUST |
@@ -229,21 +229,22 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 8: logic-verification | MUST | — |
 | 9: invariant-check | MUST | — |
 | 10: result-to-claim | MUST | — |
-| 11: unified-plotting | OPTIONAL | 无图需求时跳过 |
+| 11: unified-plotting | MUST | v2.2: 图非可选——每篇论文至少 1 图（架构图/结果图）；无数据图时至少画 1 个 pipeline/概念图 |
 | 12: paper-writing | MUST | — |
-| 13: paper-compile | CONDITIONAL | WARN 可降级（人类确认后） |
-| 14: auto-review-loop | OPTIONAL | 可用 grounding-check 替代 |
+| 13: paper-compile | MUST | v2.2: 零警告零报错强制（不可豁免）；装好 texlive 后真编译产 PDF |
+| 14: auto-review-loop | MUST | v2.2: 自审查强制（角色切换 researcher→reviewer→adjudicator）；分数 < 6 回退 Phase 6/12（最多 4 轮）；不再可用 grounding-check 替代 |
 | 15: citation-audit | MUST | — |
-| 16: 最终组装 | MUST | — |
+| 15.5: publishability-score | MUST | v2.2 新增：最终可发表性评分（主实验逻辑到位为首要轴）；产出 PUBLISHABILITY_SCORE.json/md |
+| 16: 最终组装 + 清洁度审计 | MUST | v2.2: 加 project-architecture-contract 清洁度审计（orphan 文件/空目录/README 完整性） |
 
 ### Degradation Rules
 
 1. **OPTIONAL phase fails** → Log WARN with reason, skip to next phase, continue pipeline
 2. **MUST phase fails after 3 rounds** → BLOCKED, surface to human with complete failure trace
 3. **CONDITIONAL phase** → Check condition before running. If condition not met, skip with WARN
-4. **paper-compile WARN** → If user confirms "accept warnings", treat as PASS
-5. **auto-review-loop OPTIONAL** → If grounding-check passes (GROUNDED), skip auto-review-loop
-6. **unified-plotting OPTIONAL** → If no figures needed, skip entirely
+4. **paper-compile** (v2.2: now MUST, zero-warnings non-negotiable) → 零警告零报错强制；装好 texlive 后真编译产 PDF；警告不豁免（旧的可降级规则已废除）；3 attempt per-warning 反死循环阶梯后仍 FAIL → BLOCKED + 人工
+5. **auto-review-loop** (v2.2: now MUST) → 自审查强制，3 轮角色切换 (researcher→reviewer→adjudicator)；不再可用 grounding-check 替代；分数 < 6 回退 Phase 6/12（最多 4 轮）
+6. **unified-plotting** (v2.2: now MUST) → 每篇论文至少 1 图（架构图/结果图/概念图）；无数据图时画 1 个 pipeline/概念图（d2 或 tikz）
 
 ## Quality Gates (Explicit Per-Phase)
 
@@ -256,7 +257,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 2.5b | Engineering Grounding 报告输出（Phase 5b）: ENGINEERING_GROUNDING.md 生成 | 仅 HEAVY/CONSTRAINED 必需输出；BLOCKED 淘汰（子维 = 0）
 | 3 | DAG 收敛到 1 个幸存者 (≥ 0.6 idea-fit) | 放宽 strictness 重评；再失败升级 BLOCKED |
 | — | **强制人类审批**：从幸存者中选最终 idea | 等待人类确认；agent 不能自选 |
-| 4 | 文献找到或问题是理论型 | 空则 WARN；理论型（theory-only）则跳至 Phase 8，无需实证文献 |
+| 4 | 文献搜索完成 + 3 层验证通过 + 筛选链(真+全)完整性核 PASS | v2.2: **不可跳过**——即使 theory-only 也必须跑（理论问题需查重避免重复证明）；空则 WARN 但继续（需人工补救文献）；筛选链核：每篇引用至少 1 层验证 + 无 orphan 引用 + 引用覆盖核心 claim |
 | 5 | 方法 registry 构建完成 + hash 锁 + **强制人类审批** | 请求用户审批 Section 3；agent 不能自批 |
 | 6 | SymPy 推导成功 + 逐步机器验证 PASS | 回退 Phase 1（最多 3 轮） |
 | 6b | 玩具实验 RESULT.json status=PASS + core_claim_validated=true | FAIL → BLOCKED (kill idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
@@ -290,7 +291,7 @@ Only the human user can waive a failure past round 3; the orchestrator never sel
 
 ## Required Workspace
 
-On successful completion, the orchestrator produces the following structure under `{problem_id}/` (21-phase trail):
+On successful completion, the orchestrator produces the following structure under `{problem_id}/` (21-phase trail). **v2.2**: the full GitHub-style layout, README.md/MANIFEST.md contracts, workspace-hygiene rules, and the Phase 16 cleanliness audit are defined in [`project-architecture-contract.md`](../../shared-references/project-architecture-contract.md) — that contract applies to every run (auto-pipeline OR partial skill invocation). Summary tree:
 
 ```
 {problem_id}/
@@ -415,7 +416,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - **Paradigm selection.** The agent selects the appropriate paradigm (formal/empirical/interpretive/design) in Phase 1 based on the problem's nature, not by domain label. See [`discipline-paradigm.md`](../../shared-references/discipline-paradigm.md).
 - **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and must be referenced in every downstream phase. If any phase's output lacks the Q-id reference, Phase 9 (`/invariant-check`) BLOCKs.
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select the final idea (Phase 3) or self-approve the method registry (Phase 5). Wait for human confirmation.
-  - **TEST_MODE exemption (v2.1).** When the invocation carries `test_mode=true` (set by the human for autonomous end-to-end stress testing), the 2 checkpoints are **auto-waived**: the agent self-selects the top MCTS survivor as the final idea, and self-approves the method registry, logging the waiver in `APPROVAL_LOG.txt` with `waived_by=test_mode`. All other phases (INV-G1, fallback cap, toy gate, background dispatch) remain HARD even in TEST_MODE. TEST_MODE is for stress-testing the pipeline only — production runs MUST keep both checkpoints human-gated. The waiver reason is surfaced in the final `PIPELINE_STATUS.json`.
+  - **TEST_MODE checkpoint bypass (v2.2 — 规避而非跳过).** When the invocation carries `test_mode=true` (set by the human for autonomous end-to-end stress testing), the 2 human checkpoints are **bypassed, NOT skipped**: the agent still performs the EQUIVALENT work each checkpoint guards (selects the top MCTS survivor as the final idea; builds the method registry + hash lock), but records the bypass in `APPROVAL_LOG.txt` with `bypassed_by=test_mode, original_checkpoint=Phase 3→4 / Phase 5→6, agent_action_taken=auto-selected/auto-approved, human_review_status=PENDING_DEFERRED`. The bypass is **provisional** — `PIPELINE_STATUS.json` flags `checkpoints_bypassed: true, human_review_deferred: true, production_ready: false` so a human MUST later confirm both decisions before the run is considered production-grade. The work the checkpoint guards is done (idea selected, method registry built) — only the human-approval step is deferred, never the underlying quality control. All other phases (INV-G1, fallback cap, toy gate, background dispatch, zero-warnings compile) remain HARD even in TEST_MODE. TEST_MODE is for stress-testing the pipeline mechanics; production runs MUST keep both checkpoints human-gated with no bypass.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
 - **The orchestrator never executes research.** It delegates to the corresponding skill. Do not inline derivation / verification / writing logic into this orchestrator.
 - **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no code/experiment):

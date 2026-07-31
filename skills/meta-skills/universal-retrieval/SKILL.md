@@ -89,6 +89,64 @@ OSS 是学科无关的，125 问题跨 10+ 領域，**不能按学科硬切换�
 
 **OSS 没有 `discipline-context` 的源优先级覆盖**——见 [`discipline-context.md`](../../shared-references/discipline-context.md) OSS 单行契约：所有 125 问题用 `general` 行，即上表的统一优先级。如果你看到迁移自主仓库的旧代码引用 `DISCIPLINE_CONTEXT.source_priorities`，**删除该分支**——OSS 没有这种按学科切换的逻辑。
 
+## 网络代理契约（v2.2 — mihomo 强制）
+
+**文献搜索不可跳过**（见 [`auto-pipeline/SKILL.md`](../../orchestrator/auto-pipeline/SKILL.md) Phase 4 v2.2：即使 theory-only 也必须跑，用于查重避免重复证明）。为访问 arxiv/S2/crossref/pubmed/openalex，本 skill 通过 **mihomo 代理**访问外网：
+
+| 配置 | 值 | 说明 |
+|------|-----|------|
+| 代理地址 | `http://127.0.0.1:8099` | mihomo 混合端口（HTTP + SOCKS5） |
+| 模式 | `rule`（规则模式） | 默认规则模式；CN 域名直连，外网走代理 |
+| 启用方式 | 所有 HTTP 请求设置 `http_proxy`/`https_proxy` 环境变量 OR 在请求库中显式传 `proxies={"http": "...", "https": "..."}` | Python `urllib`/`requests` 均支持 |
+| 失败回退 | 若代理超时，用 `nohup` 后台重试单条查询（长任务挂后台，前台继续其他源） | 遵循 [`background-dispatch-protocol.md`](../shared-references/background-dispatch-protocol.md) |
+
+**硬规则**：所有外网 API 调用（arxiv export、S2 graph、crossref works、pubmed eutils、openalex）**必须走代理**。不直连外网（CN 环境直连 arxiv/s2/crossref 会超时）。代理通过 mihomo 规则模式自动路由——学术 API 域名走代理，CN 域名直连。
+
+**网络超时处理**（用户要求：挂 VPN 后仍超时则 nohup 后台先下载、并行改别的）：
+1. 单条 API 请求设置 `timeout=30s`；超时则重试 1 次（不同节点）。
+2. 若整批（如 arxiv 40-ID 批量）超时，用 `nohup` 后台跑该批查询，写结果到 `literature/.pending/`，前台继续其他源（S2/crossref/pubmed）。
+3. 在 Phase 10（result-to-claim）或 Phase 15（citation-audit）时回收后台查询结果。
+4. 若某源全程不可用（即使通过代理），记录 `source_status: unavailable` 到 `VERIFICATION_LOG.md`，**不跳过 Phase 4**——降级为可用源搜索 + WARN。
+
+## 筛选链完整性核（v2.2 — 真 + 全）
+
+文献搜索完成后，在进入 Phase 5 前，必须通过**筛选链完整性核**——验证筛选出的引用是否"真"且"全"：
+
+### 真实性核（每篇引用是真的）
+- 每篇 `references.bib` 条目至少通过 3 层验证中的 1 层（arxiv/s2/crossref）——见上文 3 层协议
+- 无 `\cite{TODO}`、`\cite{forthcoming}`、手写 BibTeX（除书籍/技术报告特殊处理）
+- `VERIFICATION_LOG.md` 记录每篇的验证状态 + 通过的层
+
+### 全性核（覆盖是全的）
+- **核心 claim 覆盖**：`FINAL_PROPOSAL.md` 中 idea 的每个核心 claim 至少有 1 篇引用支撑 OR 标记 `[needs-citation]` 等待人工补救
+- **无 orphan 引用**：`references.bib` 中每个 key 至少在正文 `\cite{}` 出现 1 次（反之亦然——无 `\cite` 指向不存在的 key）
+- **子方向覆盖**：若 `landscape_report.md` 识别出 N 个研究子方向，至少 N-1 个有引用覆盖（允许 1 个 "gap" 作为本研究贡献）
+- **时间覆盖**：引用不全部集中在某一年（若全在 1 年，WARN 可能漏掉经典文献）
+
+### 核验输出
+筛选链完整性核写入 `literature/FILTER_CHAIN_AUDIT.json`：
+```json
+{
+  "audit_verdict": "PASS | WARN | FAIL",
+  "authenticity": {"verified_count": N, "unverified_count": M, "details": [...]},
+  "coverage": {
+    "core_claims_covered": X,
+    "core_claims_uncovered": Y,
+    "orphan_citations": Z,
+    "orphan_refs": W,
+    "subdirections_covered": K,
+    "subdirections_total": T,
+    "time_span": {"min_year": ..., "max_year": ..., "concentration_warn": bool}
+  },
+  "unavailable_sources": ["arxiv" | "s2" | ...],
+  "recommendation": "PROCEED | NEEDS_HUMAN_LIT补充 | BLOCKED"
+}
+```
+
+- `PASS` → Phase 5 继续
+- `WARN` → Phase 5 继续，但 `NEEDS_HUMAN_LIT补充` 标记传给 `PIPELINE_STATUS.json`（人类后续补文献）
+- `FAIL`（核心 claim 全无覆盖 OR 引用全未验证）→ 回退 Phase 4 重搜（最多 3 轮）
+
 ## 配置
 
 | 参数 | 类型 | 默认 | 说明 |
