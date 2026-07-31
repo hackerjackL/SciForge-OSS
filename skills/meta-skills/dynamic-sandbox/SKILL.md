@@ -56,7 +56,7 @@ biopython, rdkit, astropy, qiskit, tensorflow, torch, transformers
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `language` | enum | `python` | `python` 或 `julia` |
-| `timeout` | int | `120` | 每个脚本最大执行秒数 |
+| `timeout` | int | `300` | 每个脚本最大执行秒数（v2.1: 对齐 experiment-execution toy 的 5min 前台预算，避免 sandbox 120s 误杀 toy） |
 | `seed` | int | `42` | 随机种子，保证可复现 |
 | `packages` | list | `[]` | 额外 pip 包 |
 | `output_format` | enum | `json` | `json` / `csv` / `markdown` |

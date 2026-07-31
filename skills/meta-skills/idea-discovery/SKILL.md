@@ -49,7 +49,7 @@ Create or maintain:
 
 Key artifacts consumed:
 - The frozen Q-id + problem statement (from the human user's prompt — NOT auto-searched from the 125-problem index)
-- `refine-logs/domain-signature.json` — from Phase 1a `/domain-signature` (for perspective weight adjustment)
+- `refine-logs/domain-signature.json` — from Phase 1b `/domain-learner` (the SOLE writer; used for perspective weight adjustment)
 - `literature/references.bib` — from `/universal-retrieval` (for novelty pre-screen)
 - `data/` — from `/ouroboros-data-insight` if it has run (for data-readiness pre-screen)
 
@@ -57,7 +57,7 @@ Key artifacts consumed:
 
 - **Max MCTS iterations** — 4 (default). Main SciForge uses 6; OSS uses 4 because the no-experiment setting means each iteration is cheaper (no pilot to run). Configurable.
 - **Min root nodes** — 8 (default). The DAG starts with 8-12 root idea nodes; MCTS prunes to the best 3-5.
-- **Perspectives** — 3 universal: `theoretical` (symbolic derivation), `computational` (numerical sanity check), `qualitative` (mechanism reasoning). Main SciForge has a 4th `empirical` (experiment) which OSS removes.
+- **Perspectives** — 4 universal: `theoretical` (symbolic derivation), `computational` (numerical sanity check), `qualitative` (mechanism reasoning), `empirical` (causal-identification / data-driven estimation). The 4th `empirical` covers econometrics (DiD/IV/RDD), regression studies, and any problem whose core contribution IS an identification strategy or an estimator recovering a known parameter — it is NOT a symbolic derivation nor a numerical confirmation of a theorem. The `empirical` perspective emits `verification_type=computational` (it runs code/data) but its idea framing is "recover [causal parameter] via [identification strategy] under [assumption]" — distinct from `computational`'s "confirm [prediction] numerically."
 - **Promotion threshold** — score ≥ 0.6 on the 6-axis idea-fit (see below).
 - **Domain-adaptive perspectives** — If `refine-logs/domain-signature.json` exists, use the perspective weights from the signature instead of the default equal weights. See [`shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
 
@@ -102,15 +102,16 @@ Record the Q-id in `refine-logs/FINAL_PROPOSAL.md` Problem Anchor (frozen by INV
 
 Read `literature/references.bib` (from `/universal-retrieval`) to understand what's already been done. For each perspective, generate 3-4 idea candidates that are NOT direct duplicates of cited work.
 
-### Step 2: 3-Perspective Generation (8-12 root nodes)
+### Step 2: 4-Perspective Generation (8-12 root nodes)
 
 | Perspective | What it produces | Example framing |
 |-------------|------------------|-----------------|
 | `theoretical` | A symbolic derivation chain from assumptions to outcome | "We establish [outcome] by deriving [chain] under [assumptions]" |
 | `computational` | A numerical sanity check that confirms a theoretical prediction | "We confirm [prediction] numerically via [sweep] in [regime]" |
 | `qualitative` | A mechanism reasoning that explains why a prediction holds | "We show [mechanism] implies [prediction] by [qualitative argument]" |
+| `empirical` | A causal-identification / estimation strategy recovering a target parameter | "We recover [causal parameter] via [identification strategy] under [assumption]" |
 
-Generate 8-12 root nodes across these 3 perspectives. Record each in `IDEA_CANDIDATES.md` with:
+Generate 8-12 root nodes across these 4 perspectives. For causal-design / econometrics / data-estimation problems, the `empirical` perspective is the primary axis — do NOT force-fit such problems into `computational` (which is for confirming a theoretical prediction, not for being the identification strategy itself). A problem may span multiple perspectives (e.g., theory + empirical for structural estimation); record all applicable perspectives on the node. Record each in `IDEA_CANDIDATES.md` with:
 - ID (e.g., `IDEA-001`)
 - Perspective
 - Framing (1-2 sentences)

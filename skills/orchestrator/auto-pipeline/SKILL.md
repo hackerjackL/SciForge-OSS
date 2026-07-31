@@ -16,6 +16,7 @@ role: single-question-research-orchestrator
 - **Scope**: 单题执行，21 阶段 DAG 循环，全领域通用
 - **Output**: 完整论文 (LaTeX/PDF) + 所有中间产物
 - **Key**: 单题执行，不迭代问题索引，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
+- **Optional flags**: `test_mode=true` (auto-waive the 2 human checkpoints for end-to-end stress testing — see TEST_MODE exemption below); `language=chinese`; `effort=lite|balanced|max|beast`
 
 ## Use When
 
@@ -152,7 +153,22 @@ Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批     
 Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
      │          ↻ 失败回退 Phase 1（最多 3 轮）
      │          (理论-only: engine=manual, 标记为 [not machine-verified])
-Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计        ← 新增
+     │
+     │  ── 实验执行层 (v2.0) ── 仅非 theory-only 路径 ──
+     │
+Phase  6b: /experiment-execution --stage=toy [CONDITIONAL]            ← v2.0
+     │  玩具实验：最小规模验证核心思维链
+     │  (theory-only → SKIP; computational/experiment → MUST)
+     │  前台硬上限 5 分钟；预计 > 5 分钟 → 也挂后台 (toy_bg)
+     │  Gate: PASS → Phase 6c; FAIL → BLOCKED (kill idea)
+     │  (toy_bg 完成后再判 Gate，不等前台)
+     │
+Phase  6c: /experiment-execution --stage=full --background [CONDITIONAL] ← v2.0
+     │  全量实验：后台调度 (tmux/nohup/systemd)
+     │  (theory-only → SKIP; computational/experiment → MUST)
+     │  Dispatch → 立即返回，pipeline 继续
+     │
+Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
      │          ↻ CRITICAL 回退 Phase 5（3 轮 callback 上限）
      │          (理论-only: Type IV = NOT_APPLICABLE)
      │
@@ -207,6 +223,8 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 4: universal-retrieval | MUST | — |
 | 5: method-registry | MUST | — |
 | 6: theory-derivation | MUST | — |
+| 6b: experiment-execution (toy) | CONDITIONAL | v2.0: theory-only → SKIP; computational/experiment → MUST |
+| 6c: experiment-execution (full+bg) | CONDITIONAL | v2.0: theory-only → SKIP; computational/experiment → MUST (background dispatch mandatory) |
 | 7: leakage-audit | MUST | — |
 | 8: logic-verification | MUST | — |
 | 9: invariant-check | MUST | — |
@@ -241,6 +259,8 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 4 | 文献找到或问题是理论型 | 空则 WARN；理论型（theory-only）则跳至 Phase 8，无需实证文献 |
 | 5 | 方法 registry 构建完成 + hash 锁 + **强制人类审批** | 请求用户审批 Section 3；agent 不能自批 |
 | 6 | SymPy 推导成功 + 逐步机器验证 PASS | 回退 Phase 1（最多 3 轮） |
+| 6b | 玩具实验 RESULT.json status=PASS + core_claim_validated=true | FAIL → BLOCKED (kill idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
+| 6c | 全量实验 DISPATCH.json 生成 + 后台进程启动确认 | 无后台方法 → BLOCKED; 启动失败 → 1 retry; theory-only → SKIP |
 | 7 | Type I 无 CRITICAL + Type IV 无 ESCAPE | CRITICAL → callback Phase 5 (3 轮上限)；再失败升级 BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
 | 8 | 6 维度逻辑审计 PASS (零 FATAL/CRITICAL) | FATAL/CRITICAL 回退 Phase 6（最多 3 轮） |
 | 9 | INV-G1 Q-id 冻结 + 在当前产物中引用 | FAIL → 重新锚定 Q-id (Phase 0) |
@@ -301,6 +321,19 @@ On successful completion, the orchestrator produces the following structure unde
 │       ├── derivation.py        ← SymPy script (Phase 6)
 │       ├── derivation_output.md ← derivation report (Phase 6)
 │       └ verification_report.md ← SymPy verification (Phase 6)
+├── experiments/                  ← v2.0 experiment execution layer
+│   ├── toy/
+│   │   └ session_{timestamp}/
+│   │       ├── toy_experiment.py ← agent-written toy script (Phase 6b)
+│   │       ├── RESULT.json       ← toy gate verdict (Phase 6b)
+│   │       └ experiment_plan.json ← toy design rationale (Phase 6b)
+│   └ full/
+│       ├── {experiment_id}.py    ← agent-written full script (Phase 6c)
+│       ├── FULL_EXPERIMENT_DISPATCH.json ← background dispatch metadata (Phase 6c)
+│       ├── STATUS.json           ← periodic status from background job
+│       ├── {experiment_id}.log   ← stdout/stderr log
+│       ├── {experiment_id}.pid   ← PID file (nohup mode)
+│       └ checkpoints/            ← intermediate checkpoints
 ├── audit_report/
 │   ├── LOGIC_VERIFICATION.md    ← 6-dim logic audit (Phase 8)
 │   ├── LOGIC_VERIFICATION.json  ← machine-readable verdict (Phase 8)
@@ -382,12 +415,24 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - **Paradigm selection.** The agent selects the appropriate paradigm (formal/empirical/interpretive/design) in Phase 1 based on the problem's nature, not by domain label. See [`discipline-paradigm.md`](../../shared-references/discipline-paradigm.md).
 - **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and must be referenced in every downstream phase. If any phase's output lacks the Q-id reference, Phase 9 (`/invariant-check`) BLOCKs.
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select the final idea (Phase 3) or self-approve the method registry (Phase 5). Wait for human confirmation.
+  - **TEST_MODE exemption (v2.1).** When the invocation carries `test_mode=true` (set by the human for autonomous end-to-end stress testing), the 2 checkpoints are **auto-waived**: the agent self-selects the top MCTS survivor as the final idea, and self-approves the method registry, logging the waiver in `APPROVAL_LOG.txt` with `waived_by=test_mode`. All other phases (INV-G1, fallback cap, toy gate, background dispatch) remain HARD even in TEST_MODE. TEST_MODE is for stress-testing the pipeline only — production runs MUST keep both checkpoints human-gated. The waiver reason is surfaced in the final `PIPELINE_STATUS.json`.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
 - **The orchestrator never executes research.** It delegates to the corresponding skill. Do not inline derivation / verification / writing logic into this orchestrator.
 - **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no code/experiment):
-  - Phase 5 (method-registry) → Phase 6 (theory-derivation with `engine=manual`) → Phase 7 (Type IV = NOT_APPLICABLE) → Phase 8 (logic-verification)
+  - Phase 5 (method-registry) → Phase 6 (theory-derivation with `engine=manual`) → Phase 6b/6c (SKIP) → Phase 7 (Type IV = NOT_APPLICABLE) → Phase 8 (logic-verification)
   - Phase 10 (result-to-claim): qualitative fidelity is the expected norm for theory-only problems
   - The derivation output is marked `[not machine-verified]` and the claim strength is adjusted accordingly
+- **Experiment execution path (v2.0).** When `verification_type` is NOT `theory-only`:
+  - Phase 6 (theory-derivation) → Phase 6b (toy experiment) → Phase 6c (full experiment, **background dispatch mandatory**) → Phase 7+ (pipeline continues, experiment runs async)
+  - **Toy dispatch rule (v2.1)**: estimate toy wall-clock first. `≤ 5 min` → run foreground. `> 5 min` → dispatch to background as `toy_bg` (same dispatch protocol as full), continue pipeline. The toy gate verdict (PASS/FAIL from `RESULT.json`) is read **at the Phase 6c dispatch boundary** — if `toy_bg` is still running when the pipeline reaches 6c, the orchestrator **skips 6c** (no full experiment dispatched yet) and continues with Phase 7+ for non-experiment work; the toy verdict is re-checked at Phase 10 alongside other live background jobs. Never busy-wait at 6c for `toy_bg`.
+  - Toy experiment FAIL → **kill the idea** (BLOCKED, do not proceed to full experiment). This holds whether toy ran foreground or background.
+  - Full experiment dispatched to background → pipeline continues with Phase 7-16 while experiment runs
+  - At Phase 10 (result-to-claim): check STATUS.json for whichever background jobs are live (toy_bg if still running, full if still running); if still running, use whatever completed results exist + note "experiment pending"
+  - See [`../support/experiment-execution/SKILL.md`](../../support/experiment-execution/SKILL.md) and [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md)
+- **Background dispatch is non-negotiable for full experiments.** The agent must NEVER block the foreground on tasks estimated > 5 minutes. See [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md).
+- **HARD vs FLEXIBLE boundaries:**
+  - **HARD (non-negotiable)**: INV-G1 freeze, forced human checkpoints (Phase 3→4, 5→6), 3-round fallback cap, toy gate FAIL = kill idea, background dispatch for full experiments
+  - **FLEXIBLE (agent discretion)**: MCTS round count (default 4, may reduce if convergence is clear), experiment scale_ratio, toy experiment design, strictness thresholds, effort level
 
 ## Output Protocols
 
@@ -418,6 +463,8 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - [`../meta-skills/unified-plotting/SKILL.md`](../../meta-skills/unified-plotting/SKILL.md) — Phase 11
 - [`../support/method-registry/SKILL.md`](../../support/method-registry/SKILL.md) — Phase 5
 - [`../support/theory-derivation/SKILL.md`](../../support/theory-derivation/SKILL.md) — Phase 6
+- [`../support/experiment-execution/SKILL.md`](../../support/experiment-execution/SKILL.md) — Phase 6b (toy) + Phase 6c (full+background) [v2.0]
+- [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md) — background dispatch protocol [v2.0]
 - [`../support/leakage-audit/SKILL.md`](../../support/leakage-audit/SKILL.md) — Phase 7
 - [`../support/logic-verification/SKILL.md`](../../support/logic-verification/SKILL.md) — Phase 8
 - [`../support/invariant-check/SKILL.md`](../../support/invariant-check/SKILL.md) — Phase 9

@@ -30,6 +30,7 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 | **Meta-skill** | `/unified-plotting` | Render publication-quality figures (morandi palette + Layer 2 data colormaps) |
 | **Meta-skill** | `/dynamic-sandbox` | Lightweight numerical sanity checks (Python/numpy, no GPU) |
 | **Meta-skill** | `/dynamic-tooling` | On-the-fly tooling for the sandbox |
+| **Support** | `/experiment-execution` | Toy experiment (foreground) + full experiment (background dispatch) [v2.0] |
 | **Support** | `/method-registry` | Build + hash-lock the method registry (forced human approval) |
 | **Support** | `/theory-derivation` | SymPy symbolic derivation + step-by-step machine verification |
 | **Support** | `/leakage-audit` | Type I logic gap + Type IV empirical escape audit (universal) |
@@ -58,6 +59,8 @@ Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
 Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批
     ─── Forced human checkpoint: approve the method registry ───
 Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
+Phase  6b: /experiment-execution (toy) [CONDITIONAL] — v2.0 玩具实验 (theory-only → SKIP)
+Phase  6c: /experiment-execution (full+bg) [CONDITIONAL] — v2.0 全量实验后台调度 (theory-only → SKIP)
 Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
 Phase  8: /logic-verification — 6 维度逻辑一致性审计
 Phase  9: /invariant-check — INV-G1 问题锚点冻结验证
@@ -135,7 +138,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | **Reviewer personas** | senior-econ-editor / senior-ml-reviewer / senior-physics-editor / senior-reviewer-agnostic | senior-reviewer-agnostic only |
 | **Overlays** | 16 overlay files (4 skills × 4 disciplines) | None — no discipline dispatch |
 | **Templates** | 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) | Single unified `elsarticle` template |
-| **Experiments** | Full empirical pipeline (GPU training, benchmark binding, SOTA gate) | No experiments — SymPy derivation + numerical sanity sandbox only |
+| **Experiments** | Full empirical pipeline (GPU training, benchmark binding, SOTA gate) | **Toy + Full experiments** — toy foreground gate, full background dispatch [v2.0] |
 | **Verification paths** | Implicit — assumes code/experiment available | Explicit — theory-only / computational / theory+experiment 三路可选 |
 | **Problem index** | N/A | Stub at `problems/125-SCIENCE-PROBLEMS.md` — NOT auto-searched; human supplies Q-id. 125 题为 Demo，非完整题库 |
 | **Figures** | Python pipeline mandatory (matplotlib/seaborn) | Python pipeline for data plots; AI-direct SVG allowed for simple diagrams (morandi palette still enforced) |

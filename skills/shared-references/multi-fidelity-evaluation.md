@@ -73,120 +73,72 @@ This means: out of 8-12 candidate ideas, only 1-2 survive to full novelty check.
 
 ---
 
-## 3. Discipline-Specific Evaluation
+## 3. Universal Discipline-Agnostic Evaluation
 
-Each discipline has its own evaluation method at each fidelity level. The **DAG + MCTS framework is universal**, but the **evaluation content is discipline-specific**.
+OSS does not hardcode discipline-specific evaluation formulas. The three-layer filter structure (Low → Mid → High) is universal; the **content** of each layer is driven by the `evidence_type` from `domain-signature.json` (Phase 1b). The agent designs the evaluation method at runtime based on the idea's nature.
 
-### 3.1 CS/ML (Pipeline B)
+### Universal Low Fidelity (all domains)
 
-| Fidelity | Evaluation method | Token cost | Compute cost | Pass threshold |
-|----------|-------------------|------------|-------------|----------------|
-| **Low** | Text reasoning: data insight matching (5-axis idea-fit), cross-model feasibility review, SOTA gap analysis. "Can this idea plausibly beat the baseline on this data?" | Minimal (text only) | None | `score ≥ 0.5` |
-| **Mid** | **Proxy experiment: train for 3-10 epochs on 10% data subset.** Compare convergence trend against baseline at the same point. If the idea's validation loss is lower than baseline's at epoch 10, it's promising. If higher, it's a false trick. | Moderate (code generation + 10% training) | ~0.5-2 GPU-hours | `score ≥ 0.65` |
-| **High** | Full training: complete training run with all epochs, full dataset, proper hyperparameter tuning. Ablation study: remove the novel component and verify performance drops. | Full (complete training + ablation) | ~4-24 GPU-hours | `score ≥ 0.75` |
+Text reasoning: data insight matching, 6-axis idea-fit pre-screen (incl. Engineering Grounding), feasibility review. "Can this idea plausibly work given the domain signature?"
 
-**Mid-fidelity scoring formula (cs-ml)**:
+- Token cost: minimal (text only)
+- Compute cost: none
+- Pass threshold: `score ≥ 0.5`
+
+### Universal Mid Fidelity (all domains)
+
+**Proxy experiment: run at reduced scale (10% data / 3-10 epochs / coarse mesh / simplified model).** Compare against baseline trend. If the idea's proxy metric improves over baseline, it's promising. If worse, it's a false trick.
+
+- Token cost: moderate (code generation + proxy run)
+- Compute cost: ~10% of full
+- Pass threshold: `score ≥ 0.65`
+
+**Universal mid-fidelity scoring formula**:
 ```
-mid_score = 0.5 * trend_score + 0.3 * gradient_health + 0.2 * resource_efficiency
-
-trend_score = 1.0 if idea_val_loss < baseline_val_loss at epoch 10
-            = 0.5 if idea_val_loss ≈ baseline (within 5%)
-            = 0.0 if idea_val_loss > baseline by >5%
-
-gradient_health = 1.0 if gradients are stable (no NaN, no explosion)
-                = 0.5 if mild instability (correctable with gradient clipping)
-                = 0.0 if severe instability (NaN, explosion)
-
-resource_efficiency = 1.0 if GPU memory < 80% of baseline
-                   = 0.5 if ≈ baseline
-                   = 0.0 if >120% of baseline (too expensive)
-```
-
-**False-trick detection**: If `mid_score < low_score * 0.7`, flag as suspected false trick. Retry once with different 10% subset. If still fails, prune.
-
-### 3.2 Physics (Pipeline C)
-
-| Fidelity | Evaluation method | Token cost | Compute cost | Pass threshold |
-|----------|-------------------|------------|-------------|----------------|
-| **Low** | Text reasoning: PNV chain completeness check (Physical assumption → Numerical method → Verification). Physical validity of synthetic data. Conservation law check. "Does this physical model make sense?" | Minimal | None | `score ≥ 0.5` |
-| **Mid** | **Proxy experiment: run on coarse mesh / simplified geometry.** Verify that the physical assumption holds at reduced resolution. Check convergence trend — if the solution diverges on coarse mesh, it will diverge on fine mesh too. | Moderate (code generation + coarse simulation) | ~2-4 CPU-hours | `score ≥ 0.65` |
-| **High** | Full simulation: complete mesh resolution, full boundary conditions, convergence study (mesh independence). Benchmarking against analytical or experimental reference. | Full (complete simulation + convergence study) | ~16-48 CPU-hours | `score ≥ 0.75` |
-
-**Mid-fidelity scoring formula (physics)**:
-```
-mid_score = 0.4 * convergence_trend + 0.4 * physical_validity + 0.2 * stability
-
-convergence_trend = 1.0 if solution converges on coarse mesh
-                  = 0.5 if converges with relaxation
-                  = 0.0 if diverges
-
-physical_validity = 1.0 if conservation laws satisfied on coarse mesh
-                  = 0.5 if minor violation (correctable with finer mesh)
-                  = 0.0 if severe violation (fundamental flaw)
-
-stability = 1.0 if CFL condition satisfied and time-stepping stable
-          = 0.5 if marginal stability
-          = 0.0 if instability
-```
-
-**False-trick detection**: If a method converges on coarse mesh but violates conservation laws, it's a numerical artifact (false trick). Retry with finer mesh. If conservation still violated, prune.
-
-### 3.3 Economics (Pipeline A)
-
-| Fidelity | Evaluation method | Token cost | Compute cost | Pass threshold |
-|----------|-------------------|------------|-------------|----------------|
-| **Low** | Text reasoning: AIM chain completeness check (Theoretical assumptions → Identification assumptions → Testable implications → Methodology map). Identification strategy feasibility. "Can this identification strategy recover the causal parameter?" | Minimal | None | `score ≥ 0.5` |
-| **Mid** | **Proxy experiment: run on 10% sample with simplified model.** Check if the sign of the estimate matches theoretical prediction. Check if first-stage F-stat > 10 (for IV). Check if parallel trends hold on subsample (for DiD). | Moderate (code generation + 10% regression) | ~0.5-1 stat-hour | `score ≥ 0.65` |
-| **High** | Full estimation: complete sample, proper standard errors (clustering, robust), robustness checks (placebo, Oster bound, alternative specifications). Replication package readiness. | Full (complete estimation + robustness) | ~2-4 stat-hours | `score ≥ 0.75` |
-
-**Mid-fidelity scoring formula (economics)**:
-```
-mid_score = 0.3 * sign_match + 0.3 * identification_strength + 0.2 * precision + 0.2 * specification_stability
-
-sign_match = 1.0 if estimate sign matches theoretical prediction
-           = 0.0 if opposite sign (red flag)
-
-identification_strength = 1.0 if first-stage F > 10 (IV) or parallel trends hold (DiD)
-                        = 0.5 if marginal (F ≈ 10, weak trends)
-                        = 0.0 if weak (F < 10, trends violated)
-
-precision = 1.0 if standard error < 0.5 * estimate magnitude
-          = 0.5 if standard error ≈ estimate
-          = 0.0 if standard error > estimate (insignificant)
-
-specification_stability = 1.0 if estimate stable across 2-3 alternative specs on subsample
-                        = 0.5 if moderate variation
-                        = 0.0 if sign flips across specs
-```
-
-**False-trick detection**: If the estimate sign flips across alternative specifications on the 10% subsample, it's a specification-driven artifact (false trick). Retry with different 10% subsample. If sign still flips, prune.
-
-### 3.4 General (Pipeline D)
-
-| Fidelity | Evaluation method | Token cost | Compute cost | Pass threshold |
-|----------|-------------------|------------|-------------|----------------|
-| **Low** | Text reasoning: data insight matching, cross-model feasibility review, problem-hypothesis-method-claim completeness. "Is this idea worth testing?" | Minimal | None | `score ≥ 0.5` |
-| **Mid** | **Proxy experiment: simplified verification.** Run a minimal test that captures the core claim. This is discipline-agnostic — the agent decides what constitutes a "minimal test" based on the idea's nature. | Moderate | varies | `score ≥ 0.65` |
-| **High** | Full experiment: complete test with proper controls, replication. | Full | varies | `score ≥ 0.75` |
-
-**Mid-fidelity scoring formula (general)**:
-```
-mid_score = 0.4 * core_claim_support + 0.3 * reproducibility + 0.3 * effect_size
+mid_score = 0.4 * core_claim_support + 0.3 * reproducibility + 0.3 * resource_efficiency
 
 core_claim_support = 1.0 if proxy test supports the core claim
                    = 0.5 if ambiguous
                    = 0.0 if contradicts
 
-reproducibility = 1.0 if result stable across 2 runs with different seeds
+reproducibility = 1.0 if result stable across 2 runs with different seeds/configs
                 = 0.5 if moderate variation
-                = 0.0 if high variation
+                = 0.0 if high variation or non-reproducible
 
-effect_size = 1.0 if effect size > 0.5 * expected
-            = 0.5 if effect size ≈ 0.3 * expected
-            = 0.0 if effect size negligible
+resource_efficiency = 1.0 if resource use < baseline
+                    = 0.5 if ≈ baseline
+                    = 0.0 if significantly more expensive
 ```
 
+**False-trick detection**: If `mid_score < low_score * 0.7` (30% drop), flag as suspected false trick. Retry once with different proxy config. If still fails, prune.
+
+### Universal High Fidelity (all domains)
+
+Full-scale experiment/simulation/derivation: complete test with proper controls, robustness checks, convergence/replication.
+
+- Token cost: full
+- Compute cost: full
+- Pass threshold: `score ≥ 0.75`
+
+### Domain-Specific Adaptation
+
+The agent adapts the evaluation content based on `domain-signature.json`:
+
+| evidence_type | Low fidelity focus | Mid fidelity proxy | High fidelity full |
+|--------------|-------------------|-------------------|-------------------|
+| `derivational` | Proof structure check | Numerical verification of symbolic result on small instance | Full convergence study + machine-verified proof |
+| `correlational` / `causal_inference` | Identification strategy feasibility | 10% sample regression, check sign + F-stat | Full estimation + robustness + sensitivity |
+| `experimental` | Protocol + power analysis feasibility | Pilot sample effect size check | Full protocol execution + preregistration |
+| `simulational` (physics/PDE) | Physical assumption validity | Coarse mesh simulation | Fine mesh + mesh-independence study |
+| `simulational` (ML/training) | Hypothesis + architecture feasibility | Train on 10% data / 3-10 epochs, compare val-loss trend vs baseline | Full training + ablation (remove novel component, verify drop) |
+| `interpretive` | Argument coherence check | 3-claim consistency check | Full textual analysis + counter-evidence survey |
+
+**ML-specific mid-fidelity signals** (when `evidence_type=simulational` ML/training): the universal `core_claim_support` should be operationalized as `trend_score = 1.0 if idea_val_loss < baseline_val_loss at the proxy epoch, 0.5 if within 5%, 0.0 if worse by >5%`; and `reproducibility` should additionally check `gradient_health` (1.0 if gradients stable, no NaN/explosion; 0.5 if mild instability correctable with clipping; 0.0 if severe). These are not a separate cs-ml formula — they are the concrete instantiation of the universal `core_claim_support`/`reproducibility` axes for the ML/training row. Use the universal `mid_score = 0.4*core_claim_support + 0.3*reproducibility + 0.3*resource_efficiency` with these instantiations.
+
+**False-trick detection**: If `mid_score < low_score * 0.7`, flag as suspected false trick. Retry once with different proxy config (or different 10% subset for ML). If still fails, prune.
+
 ---
+
 
 ## 4. Promotion Gates Summary
 
