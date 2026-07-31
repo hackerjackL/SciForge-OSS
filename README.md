@@ -62,26 +62,32 @@ cd SciForge-OSS
 
 Then open the project directory in an AI agent (Claude Code / Cursor / Trae / Codex, etc.); the agent auto-reads `AGENT_GUIDE.md` as the entry point. The skill files themselves need no installation, no compilation, no dependency management.
 
-### Method 2: Local CLI (bin/sciforge.js, real and executable)
+### Method 2: Install from npm (global `sciforge` command, published)
 
-After cloning, the repo ships `bin/sciforge.js` — a real Node.js CLI (no external deps, pure stdlib) for project-skeleton init + toolchain check/install. **This package is NOT published to the npm registry, so `npm install -g sciforge-oss` will not work.** The two local usages below are real and executable:
+The package is published to the npm registry as `@gewislab/sciforge-oss` — that's it:
 
 ```bash
-git clone https://gitcode.com/GewisLab/SciForge-OSS.git
-cd SciForge-OSS
+npm install -g @gewislab/sciforge-oss
 
-# Usage A: call bin directly with node (no install)
-node bin/sciforge.js --help
-node bin/sciforge.js tools-check               # check which optional toolchain tools are installed
-node bin/sciforge.js init ./my-research         # scaffold a SciForge project skeleton in a target dir
-
-# Usage B: npm link to register a global command (within this repo, equivalent to npm install -g but no registry)
-npm link                                        # registers the sciforge command globally (points at this repo)
-sciforge --help                                 # now you can use sciforge instead of node bin/...
-sciforge tools-install                          # one-shot install of the optional toolchain (apt: texlive/d2/rsvg-convert/inkscape/graphviz; npm: svgo)
+sciforge --help          # installed — the sciforge command is globally available
 ```
 
-`package.json`'s `bin` field registers `sciforge` pointing at `./bin/sciforge.js`; the `files` field declares the distribution contents (`skills/` + `AGENT_GUIDE.md` + root `SKILL.md` + `bin/`). If the package is published to the npm registry in the future, the `npm link` usage seamlessly becomes `npm install -g sciforge-oss` — but it is not published yet, so please use clone + node bin or npm link.
+Step 3 — check the optional toolchain (install on demand):
+
+```bash
+sciforge tools-check     # reports which optional toolchain tools are installed
+sciforge tools-install   # one-shot install of the optional toolchain (apt: texlive/d2/rsvg-convert/inkscape/graphviz; npm: svgo)
+```
+
+Scaffold a project skeleton:
+
+```bash
+sciforge init ./my-research   # scaffold a SciForge project skeleton in a target dir
+```
+
+`package.json`'s `bin` field registers `sciforge` pointing at `./bin/sciforge.js`; the `files` field declares the distribution contents (`skills/` + `AGENT_GUIDE.md` + root `SKILL.md` + `bin/`). The CLI has no external dependencies (pure Node stdlib).
+
+> Prefer a local checkout? Clone the repo and run `node bin/sciforge.js --help` from the repo root (see Method 1) — same commands, no npm install.
 
 ### Method 3: Add the skill files to an existing research project
 
@@ -109,7 +115,7 @@ Any AI agent supporting Markdown context or custom skill sets works: provide `AG
 
 ### Toolchain (optional but recommended — needed to fully run through)
 
-The skills themselves are pure Markdown, but fully running through (figure rendering / literature search / LaTeX compile / experiment execution) needs the optional tools below. `node bin/sciforge.js tools-check` reports missing items; `sciforge tools-install` installs them in one shot.
+The skills themselves are pure Markdown, but fully running through (figure rendering / literature search / LaTeX compile / experiment execution) needs the optional tools below. `sciforge tools-check` reports missing items; `sciforge tools-install` installs them in one shot.
 
 | Tool | Purpose | Install | Necessity |
 |------|---------|---------|-----------|
