@@ -12,6 +12,9 @@ Thumbs.db
 .vscode/
 *.iml
 
+# Jupyter
+.ipynb_checkpoints/
+
 # Python
 __pycache__/
 *.py[cod]

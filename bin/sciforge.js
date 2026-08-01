@@ -20,7 +20,7 @@ const TOOLS = [
   { cmd: "rsvg-convert", min: "librsvg2-bin", check: "rsvg-convert --version", install: "apt install librsvg2-bin" },
   { cmd: "inkscape", min: "inkscape", check: "inkscape --version", install: "apt install inkscape" },
   { cmd: "svgo", min: "svgo", check: "svgo --version", install: "npm install -g svgo" },
-  { cmd: "mihomo", min: "proxy", check: "pgrep -x mihomo || echo 'mihomo not running'", install: "see https://wiki.metacubex.one/ — mixed-port 8099, mode rule" },
+  { cmd: "mihomo", min: "proxy", check: "probe 127.0.0.1:{8099,7890,7892,1080,8080} (auto-detect, not just pgrep)", install: "see https://wiki.metacubex.one/ — mixed-port 8099, mode rule (skills auto-detect 8099→7890→7892→1080→8080)" },
 ];
 
 function have(cmd) {
@@ -57,7 +57,18 @@ function cmd_tools_check() {
   console.log("========================================");
   let missing = 0;
   for (const t of TOOLS) {
-    const ok = t.cmd === "mihomo" ? (() => { try { execSync("pgrep -x mihomo", { stdio: "ignore" }); return true; } catch { return false; } })() : have(t.cmd);
+    const ok = t.cmd === "mihomo" ? (() => {
+      // Probe candidate proxy ports (must match universal-retrieval auto-detect list).
+      // pgrep alone is a false positive when the process runs but the port isn't bound —
+      // the proxy is unusable in that state, so we require a reachable port.
+      for (const port of [8099, 7890, 7892, 1080, 8080]) {
+        try {
+          execSync(`python3 -c "import socket,sys; s=socket.socket(); s.settimeout(2); sys.exit(0 if s.connect_ex(('127.0.0.1',${port}))==0 else 1)"`, { stdio: "ignore" });
+          return true;
+        } catch {}
+      }
+      return false;
+    })() : have(t.cmd);
     console.log(`${ok ? "[OK]   " : "[MISS] "}${t.cmd.padEnd(16)} (min ${t.min})  ${ok ? "" : "-> install: " + t.install}`);
     if (!ok && t.cmd !== "mihomo") missing++;
   }
