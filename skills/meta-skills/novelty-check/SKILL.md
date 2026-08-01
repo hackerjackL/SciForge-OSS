@@ -1,5 +1,6 @@
 ---
 name: novelty-check
+description: "4-axis idea elimination (novelty×0.45 + feasibility×0.25 + relevance×0.15 + EG×0.15) + v3.2 frontier-gap analysis (FRONTIER_GAP.md + FRONTIER_MAP.json). Phase 3. Invoke to converge the DAG to one survivor."
 type: reference-skill
 role: novelty-verifier
 ---

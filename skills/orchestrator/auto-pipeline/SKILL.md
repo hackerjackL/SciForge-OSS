@@ -1,5 +1,7 @@
 ---
 name: auto-pipeline
+description: "SciForge-OSS autonomous 21-phase research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
+argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast"
 type: orchestrator
 role: single-question-research-orchestrator
 ---

@@ -1,5 +1,6 @@
 ---
 name: experiment-execution
+description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + full-code smoke gate. Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
 version: 2.0.0
@@ -119,6 +120,12 @@ Read `FINAL_PROPOSAL.md` and `domain-signature.json` to determine:
 ### Step 0d: Async Dataset Download (nohup — 用户硬要求：大文件/长任务后台异步)
 
 大型数据集（HLE ~数 GB、PaperBench、NatureBench、ImageNet、COCO、Pile、OpenWebText、HF Hub 模型权重）或环境依赖（`pip install`、conda env、`huggingface-cli download`、`modelscope download`）预计耗时较长时**必须用 `nohup` 后台异步下载，立刻切其他代码重构/测试任务**，遵循 [`background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md)：
+
+**0d.0 — 先查本地已有数据集注册表（v3.2 — 避免重下已存在的 benchmark）**：在发起任何下载前，本 skill **必须先查本地 benchmark 注册表**——工作区常有 `/root/autodl-tmp/datasets/`（或项目根的 `datasets/`）已预置好 HLE / NatureBench / PaperBench 等 benchmark（含 `README.md` + `INDEX.md` + parquet/csv）。查表顺序：
+1. 读 `datasets/README.md`（benchmark 注册表）+ 各 `datasets/<name>/INDEX.md`——若目标数据集已在册且文件齐全（如 `datasets/PaperBench/train.parquet` 存在且 size > 0），**直接 symlink 或 copy 到 `experiments/datasets/<name>/`**，在 `.downloads.json` 记 `method: "local_registry", via_proxy: false, source: "local datasets/<name>"`，**跳过网络下载**。
+2. 若在册但文件缺失（如 HLE 全量 parquet 因 gated 未下完，只有 README/eval.yaml）→ 走下面的 nohup 异步下载补全缺失部分（gated 数据集需先 `huggingface-cli login`）。
+3. 若完全不在册 → 走下面的 nohup 异步下载全量。
+**绝对禁止**：在已存在 `datasets/<name>/` 的情况下重新从 HF 下载同一数据集——浪费带宽 + 时间 + 可能拿到不同版本。
 
 1. **触发阈值**：单文件/批次预计 > 2min 或体积 > 100MB → MUST 后台；2-5min/≤100MB → SHOULD 后台（agent 自主）；<2min/≤100MB → 前台。
 2. **nohup 调度**（与 Step 5 同栈，tmux→nohup→systemd 降级）：
