@@ -25,8 +25,8 @@
 
 ## 第 5 轮 — 图表外部 QA 闭环设计 [DONE]
 - **问题点**：绘图 agent 自审不可信；架构图质量无外部把关。
-- **修复**：新增 `shared-references/figure-quality-review.md`（mimo-v2.5 单次调用评分/10 + top-3 改进 → 重渲染，≤3 轮），接线进 unified-plotting。
-- **验证**：mimo-v2.5 API 实测 HTTP 200 + 结构化反馈。
+- **修复**：新增 `shared-references/figure-quality-review.md`（外部 LLM 绘图优化辅助——单次调用给出改进建议 → 重渲染；非评分门、不阻塞管线），接线进 unified-plotting。
+- **验证**：外部 LLM 顾问 API 实测可达 + 结构化建议反馈。
 
 ## 第 6 轮 — 数据集接入（NatureBench）[DONE]
 - **问题点**：OSS 无外部基准测试输入。
@@ -69,8 +69,8 @@
 - **验证**：B1/B10 命中确认。
 
 ## 第 14 轮 — 图表外部 QA 闭环实操 [DONE]
-- **问题点**：v1 架构图 LitSearch 孤立、缺文献环节、无闭环（mimo 评分 6/10）。
-- **修复**：按 mimo 3 条建议构建 v2（lit-search→idea-discovery/novelty + claim→idea-discovery 反馈回路），重渲染。
+- **问题点**：v1 架构图 LitSearch 孤立、缺文献环节、无闭环（外部顾问指出的问题）。
+- **修复**：按外部顾问 3 条建议构建 v2（lit-search→idea-discovery/novelty + claim→idea-discovery 反馈回路），重渲染。
 - **验证**：v2 d2 编译成功（SVG 29.3KB + PNG）；3 条建议全部落实。
 
 ## 第 15 轮 — NatureBench 实际跑题 [DONE]

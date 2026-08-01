@@ -6,7 +6,7 @@
 
 **架构级纪律契约**
 - 新增 `shared-references/methodology-and-context-contract.md`：充分性停止规则、证据强制、bundle+compact 上下文经济、确定性优先 + 哈希锁、评审只传原始工件、figure-contract-first + 禁编造、单 Agent 边界性声明（7 条）；接线进 auto-pipeline "Context Economy & Boundary" 小节
-- 新增 `shared-references/figure-quality-review.md`：外部 mimo-v2.5 质量审查闭环（评分/10 + top-3 改进 → 重渲染，≤3 轮），接线进 unified-plotting
+- 新增 `shared-references/figure-quality-review.md`：外部 LLM 绘图优化辅助（可选顾问——给出改进建议 → 重渲染；非评分门、不阻塞管线），接线进 unified-plotting
 - output-protocol 扩展为聚合权威（版本化 + Manifest + 路径回退 + 过期检测 + 输出语言），15 个 SKILL.md 三行 boilerplate 收敛为单指针
 
 **一致性/路径/断链修复（B/C/D/R 系列）**
@@ -20,7 +20,7 @@
 
 **测试与实证**
 - 干净 worker 子代理恢复验证 + explore 子代理 5 域健康检查
-- mimo-v2.5 外部 QA 实操：v1 架构图 6/10 → 按建议 v2 闭环（补文献接入 + 反馈回路）
+- 外部 LLM 绘图优化辅助实操：v1 架构图按建议 v2 闭环（补文献接入 + 反馈回路）
 - NatureBench 实际跑题（ubonodin_rnap_inhibition）：Ridge 基线，官方 evaluator Pearson 0.473 / Spearman 0.385 / MAE 2.24
 - ITERATION_LOG.md：15 轮大版本自迭代记录
 - package.json → 1.3.0
