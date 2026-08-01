@@ -297,7 +297,40 @@ If toy gate passed, design the full-scale experiment:
 
 **Background dispatch is MANDATORY for full experiments.** The agent must NOT wait in the foreground for long-running jobs.
 
-**Dispatch method selection** (`auto` mode):
+### Step 5.0: Full-Code Smoke Gate (v3.2 — MANDATORY before dispatch)
+
+> **Why this exists (honest gap)**: the toy gate (Step 3) validates the *idea's reasoning chain* at 1-10% scale; it does NOT validate that the *full-scale script itself* runs end-to-end on the real data without crashing. [`leakage-audit`](../leakage-audit/SKILL.md) and [`logic-verification`](../logic-verification/SKILL.md) are both **structural/symbolic** audits that deliberately "do not run the code" (leakage-audit boundary) — so neither catches runtime crashes. Without this gate, a full experiment can be dispatched to background, run 6+ hours, and die at the final aggregation step because of a shape mismatch or an OOM only triggered at full scale — discovered only when Phase 10 reads a `failed` STATUS.json. This gate runs a 60-second end-to-end smoke on the full script at a 1-step/1-batch slice and refuses to dispatch if it cannot complete that slice.
+
+**Procedure**:
+1. **Slice to 1 step / 1 batch**: invoke the full-scale script (`experiments/full/{script}.py`) with an override that caps it to 1 training step (ML), 1 timestep (PDE sim), 1 bootstrap iteration (causal), 1 k-point (eigenvalue), or 1 claim (interpretive). The script MUST already expose such a cap (Step 4 design rule "Add checkpointing" implies a `--max-steps`/`--max-epochs`/`--steps` flag; if it doesn't, **add one now** — this is part of full-experiment design, not optional).
+2. **Run with a 60-second foreground timeout** (`subprocess.run(timeout=60)`). This is cheap and stays in the foreground budget. The slice must: (a) import without exception, (b) load the real dataset (or a 1-row slice of it — verifying the data path + parsing are correct, not just synthetic), (c) execute 1 step of the actual computation, (d) write a checkpoint + 1 row to STATUS.json, (e) exit 0.
+3. **Verdict**:
+   - Smoke `PASS` (exit 0, 1 STATUS.json row written, no exception) → proceed to dispatch the **full** run (remove the step cap). The gate's only job was to prove the script is dispatchable; it does not validate the *results* (that's Phase 10's job).
+   - Smoke `FAIL` (exception / non-zero exit / timeout / no STATUS.json row) → **DO NOT dispatch**. Classify the failure into one of 4 codes, each with a bounded fix path (this is the same early-stop taxonomy as the toy P5 dry-run, applied to the full script):
+
+   | Smoke failure code | Trigger | Fix path (bounded) |
+   |---------------------|---------|--------------------|
+   | `IMPORT_OR_SYNTAX` | `SyntaxError`/`ImportError`/`ModuleNotFoundError` in first 5s | Fix the script (1 retry); re-run smoke |
+   | `DATA_PATH_BROKEN` | `FileNotFoundError` on dataset / `KeyError` on column / shape mismatch | Fix data path or parsing (1 retry); re-run smoke. If the dataset genuinely isn't downloaded yet (Step 0d pending), **do not block** — dispatch a `data_pending` smoke that skips the data step, and the full run's STATUS.json will record `status: waiting_on_data` until Step 0d completes |
+   | `OOM_AT_SLICE` | `RuntimeError: CUDA out of memory` / `MemoryError` even at 1 step | Reduce `scale_ratio` or `batch_size` in the full config (1 retry); re-run smoke. If still OOM at 1 step, the full run is `BLOCKED, reason_code: oom_at_minimal_scale` — do not dispatch a job that cannot even take 1 step |
+   | `LOGIC_RUNTIME_CRASH` | `ValueError`/`AssertionError`/`KeyError` mid-step (not import, not data, not OOM) | This is a real bug — fix the script logic (1 retry); re-run smoke. If it persists, **fallback to Phase 6** (the derivation assumption the full script encodes may be wrong) per the Phase 8 FATAL→Phase 6 contract |
+
+   All fix paths are bounded to **1 retry** — the smoke gate is not a debugging loop; if 1 fix doesn't clear it, the full dispatch is `BLOCKED` with the failure code, surfacing to the human. Never dispatch a full experiment whose 1-step smoke fails twice.
+
+4. **Smoke artifact**: write `experiments/full/{experiment_id}.SMOKE.json`:
+   ```json
+   {"experiment_id":"...","smoke_scale":"1-step","smoke_result":"PASS|FAIL","fail_code":"<code or null>","fix_attempts":0,"status_row_written":true,"executed_at":"<ISO8601>","duration_seconds":<n>}
+   ```
+   Phase 10 (`/result-to-claim`) reads this — if `smoke_result=FAIL` and a full DISPATCH.json exists anyway, that's an invariant violation (Phase 9 INV-check catches it).
+
+**Boundaries**:
+- The smoke runs at **1 step, NOT 1% of steps** — it validates runnability, not convergence. Running 1% would itself take minutes on a full-scale job; 1 step is seconds.
+- The smoke is **foreground** (≤60s budget). It is NOT background-dispatched — its whole point is a synchronous gate before the async dispatch.
+- The smoke does **not** validate result *correctness* — only that the script executes end-to-end on real data for 1 step without crashing. Correctness is Phase 10 (`/result-to-claim`) + Phase 8 (`/logic-verification`).
+- If the full script has no step-cap flag, adding one is **part of Step 4 (Design Full Experiment)**, retroactively enforced here. A full script that cannot be sliced to 1 step is itself a design defect.
+- This gate is **additive to** the toy gate (Step 3): toy validates the *idea* at 1-10% scale; smoke validates the *full script* at 1 step. Both must pass before dispatch.
+
+### Step 5.1: Dispatch Method Selection
 
 ```
 Check environment:

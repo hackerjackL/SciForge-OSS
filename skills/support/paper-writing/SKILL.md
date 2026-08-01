@@ -58,6 +58,8 @@ The paper directory (default `paper/`):
 
 **Inputs consumed** (read from upstream skills):
 - `refine-logs/FINAL_PROPOSAL.md` — the frozen Q-id + selected idea (from `/idea-discovery`)
+- `refine-logs/FRONTIER_GAP.md` — **v3.2** frontier baseline + delta claim + why-not-before (from `/novelty-check`) — feeds the Introduction's contribution-positioning paragraphs directly; if absent, Introduction must flag `[needs-frontier-positioning]` rather than fabricate one
+- `refine-logs/FRONTIER_MAP.json` — **v3.2** frontier node graph (from `/novelty-check`) — lets the Introduction cite the specific SOTA nodes the idea advances beyond
 - `literature/landscape_report.md` — literature survey (from `/universal-retrieval`)
 - `literature/references.bib` — verified citations (from `/universal-retrieval`)
 - `derivations/{problem_id}/derivation_output.md` — derivation results (from `/theory-derivation`)
