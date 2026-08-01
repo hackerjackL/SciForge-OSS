@@ -1,14 +1,12 @@
 {
   "runner": "SciForge-OSS verify_all",
-  "timestamp": "2026-08-01T20:14:49",
+  "timestamp": "2026-08-01T20:25:22",
   "overall": "PASS",
   "checks": [
     {
       "check": "git-cleanliness",
       "pass": true,
-      "uncommitted": [
-        " M artifacts/regression/latest.json"
-      ],
+      "uncommitted": [],
       "unexpected": []
     },
     {
@@ -42,7 +40,7 @@
       "check": "regression-and-domains",
       "pass": true,
       "regression_exit": 0,
-      "regression_output_tail": "ning Pretrained Language Models for Efficient Training and Inference\\\" has been re\",\n          \"sub_tasks_count\": 0\n        }\n      ],\n      \"metric\": \"rubric-coverage (checklist-based scoring)\"\n    }\n  }\n}\n\n[report] /root/autodl-tmp/SciForge-OSS/artifacts/regression/regression_20260801_201442.json\n",
+      "regression_output_tail": "ning Pretrained Language Models for Efficient Training and Inference\\\" has been re\",\n          \"sub_tasks_count\": 0\n        }\n      ],\n      \"metric\": \"rubric-coverage (checklist-based scoring)\"\n    }\n  }\n}\n\n[report] /root/autodl-tmp/SciForge-OSS/artifacts/regression/regression_20260801_202513.json\n",
       "domain_statuses": {
         "sciforge-test-econ": "COMPLETED",
         "sciforge-test-math": "COMPLETED",
