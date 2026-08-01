@@ -1,5 +1,6 @@
 ---
 name: publishability-score
+description: "Final publishability scoring across dim1-first-axis + multi-dim. Phase 15.5. Invoke after citation-audit for the go/no-go submission verdict."
 type: support-skill
 role: paper-publishability-assessor
 version: 2.2.0
