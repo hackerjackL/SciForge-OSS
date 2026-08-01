@@ -129,7 +129,7 @@ Every project root has a `README.md` (created at Phase 0, updated through Phase 
 - checkpoints_bypassed: {true|false} (if test_mode)
 
 ## Directory Layout
-See [Project Architecture Contract](link) for the full tree.
+See [`project-architecture-contract.md`](./project-architecture-contract.md) § "Required Workspace" for the full canonical tree (this template section is copied into each run's `PIPELINE_STATUS.md`; the link resolves to the contract file itself when viewed in-tree).
 
 ## How to Reproduce
 1. {entry command that produced this run}
