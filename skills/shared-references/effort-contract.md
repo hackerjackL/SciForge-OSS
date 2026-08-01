@@ -65,7 +65,7 @@ User can override independently:
 - `effort: balanced` + `assurance: submission` → normal depth, strict audits
 - `effort: beast` + `assurance: draft` → maximum depth, no audit gate (legal but discouraged for real submissions)
 
-**Why split the axes?** Historically `effort: beast` did not enforce audits — phases like `/proof-checker`, `/paper-claim-audit`, `/citation-audit` were gated by content detectors that allowed silent skip. A user reported `effort: beast` produced a "draft-quality" paper with all three submission gates skipped. The split makes audit strictness independently verifiable and stops conflating "do more work" with "be more rigorous."
+**Why split the axes?** Historically `effort: beast` did not enforce audits — phases like `/logic-verification`, `/result-to-claim`, `/citation-audit` were gated by content detectors that allowed silent skip. A user reported `effort: beast` produced a "draft-quality" paper with all three submission gates skipped. The split makes audit strictness independently verifiable and stops conflating "do more work" with "be more rigorous."
 
 ## Per-Skill Profiles
 
@@ -76,8 +76,8 @@ User can override independently:
 | research-lit | papers found | 6-8 | 10-15 | 18-25 | 40-50 |
 | research-lit | query variants | 2 | 5 | 8 | 15+ |
 | research-lit | deep reads | 3 | 5-8 | 8 | 15+ |
-| idea-creator | ideas generated | 4-6 | 8-12 | 12-16 | 20-30 |
-| idea-creator | pilots | 1-2 | 2-3 | 3-4 | 5-6 |
+| idea-discovery | ideas generated | 4-6 | 8-12 | 12-16 | 20-30 |
+| idea-discovery | pilots | 1-2 | 2-3 | 3-4 | 5-6 |
 | novelty-check | claims checked | 2-3 | 3-4 | 4-6 | all |
 | novelty-check | closest works | top-3 | top-5 | top-8 | top-10+ |
 | research-refine | max rounds | 3 | 5 | 7 | 10+ |
@@ -90,11 +90,10 @@ User can override independently:
 
 | Skill | Dimension | lite | balanced | max | beast |
 |-------|-----------|------|----------|-----|-------|
-| experiment-bridge | scope | sanity + main | main + basic ablation | + top ablation + robustness | full suite + cross-validation |
+| experiment-execution | scope | sanity + main | main + basic ablation | + top ablation + robustness | full suite + cross-validation |
 | run-experiment | launches | smoke + main | smoke + multi-seed | + dry run + manifest | full config + multi-GPU parallel |
 | monitor-experiment | depth | latest log | log + JSON | + W&B + anomaly | real-time + auto-alert + trend |
 | analyze-results | findings | 3 | 5 | 8 | full-dimensional + stat tests |
-| ablation-planner | ablations | 2-3 | 4-5 | 6-8 | 10+ |
 
 ### Review
 
@@ -102,22 +101,17 @@ User can override independently:
 |-------|-----------|------|----------|-----|-------|
 | auto-review-loop | max rounds | 2 | 3-4 | 6 | 8+ (until converged) |
 | auto-review-loop | fixes per round | 1-2 | 3-4 | 4-6 | all actionable |
-| research-review | passes | 1 | 1 + follow-up | 1 + 2 follow-ups | 2 independent + cross-compare |
-| experiment-audit | depth | skip | basic 4 checks | full 6 checks | line-by-line + reproduce |
 
 ### Writing & Rebuttal
 
 | Skill | Dimension | lite | balanced | max | beast |
 |-------|-----------|------|----------|-----|-------|
-| paper-plan | outline reviews | 0 | 1 | 2 | 3 |
-| paper-plan | citations/section | 2-3 | 4-5 | 5-8 | 8+ |
-| paper-figure | caption reviews | 1 | 1 | 2 | 3 |
-| paper-write | abstract variants | 1 | 1 | 2 | 3 |
-| paper-write | related work depth | shallow | standard | deep | exhaustive |
+| unified-plotting | caption reviews | 1 | 1 | 2 | 3 |
+| paper-writing | abstract variants | 1 | 1 | 2 | 3 |
+| paper-writing | related work depth | shallow | standard | deep | exhaustive |
 | paper-compile | fix attempts | 2 | 3 | 4 | until zero warnings |
 | auto-paper-improvement | rounds | 1 | 2 | 3 | 5 |
-| d2-diagram | layout iterations | 1 | 2 | 3 | 5 |
-| figure-spec | layout iterations | 1 | 2 | 3 | 5 |
+| unified-plotting | layout iterations | 1 | 2 | 3 | 5 |
 | rebuttal | draft rounds | 1 | 2 | 3 | 5 |
 | rebuttal | stress tests | 0-1 | 1 | 2 | 3 |
 

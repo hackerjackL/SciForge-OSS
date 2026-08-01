@@ -48,19 +48,19 @@ Search the literature using `/universal-retrieval`:
 ## Literature Search Results
 
 ### Search 1: "standard methodologies in [domain]"
-- Query: "common research methods in economics causal inference"
-- Results: DiD (50%), IV (30%), RDD (20%) — from 50 papers surveyed
-- Source: Journal of Economic Literature surveys
+- Query: "common signal-processing methods in time-series anomaly detection"
+- Results: spectral methods (40%), statistical thresholding (35%), model-based filtering (25%) — from 50 papers surveyed
+- Source: signal-processing / time-series analysis methodological reviews
 
 ### Search 2: "common failure modes in [domain]"
-- Query: "common pitfalls in economics causal inference"
-- Results: endogeneity (60%), omitted variable bias (25%), selection bias (15%)
-- Source: Angrist & Pischke "Mostly Harmless Econometrics"
+- Query: "common pitfalls in time-series periodicity and anomaly analysis"
+- Results: sensor noise/aliasing (45%), non-stationarity (35%), edge effects (20%)
+- Source: measurement-science and signal-analysis surveys
 
 ### Search 3: "standard paper structure in [domain]"
-- Query: "AER paper structure format"
-- Results: Introduction → Theory → Empirical Strategy → Results → Robustness → Conclusion
-- Source: American Economic Review author guidelines
+- Query: "typical structure of a physics/datalab measurement study"
+- Results: Problem → Model/Hypothesis → Measurement → Analysis → Robustness → Conclusion
+- Source: measurement-physics and applied-lab author guidelines
 ```
 
 ### Step 2: Seed Paper Analysis
@@ -70,18 +70,18 @@ If the user provided seed papers or the problem references known works:
 ```markdown
 ## Seed Paper Analysis
 
-### Paper 1: Card & Krueger (1994)
-- Title: "Minimum Wages and Employment: A Case Study..."
-- Journal: American Economic Review
-- Methodology: Difference-in-Differences
-- Structure: Introduction → Background → Empirical Strategy → Results → Conclusion
-- Citations: author-year (AER style)
-- Key robustness checks: placebo test, specification checks
+### Paper 1: "Damped Oscillator Parameter Estimation from Noisy Time Series"
+- Title: "Recovering damping ratio and natural frequency from short, noisy records"
+- Venue: Applied Physics Letters (measurement-notes style)
+- Methodology: nonlinear least-squares fit of an analytical oscillator model
+- Structure: Intro → Model → Acquisition → Fit → Uncertainty → Conclusion
+- Citations: author-year (physical-sciences style)
+- Key robustness checks: residual whiteness test, cross-validated fit, multiple trials
 
-### Paper 2: Angrist & Pischke (2009)
-- Type: Methodology textbook
-- Methods: IV, DiD, RDD, panel data
-- Common failures: endogeneity, weak instruments, measurement error
+### Paper 2: "Material Degradation Modeling over Exposure Time"
+- Type: Empirical methodology study
+- Methods: exponential/logistic growth-curve fitting, uncertainty propagation, sensitivity analysis
+- Common failures: measurement drift, instrument calibration bias, truncation of long-term trends
 ```
 
 ### Step 3: Synthesize Domain Profile
@@ -91,32 +91,32 @@ If the user provided seed papers or the problem references known works:
   "learner_version": "2.0",
   "learning_method": "literature_search + seed_analysis",
   "sources_consulted": [
-    "Journal of Economic Literature",
-    "Angrist & Pischke (2009)",
-    "Card & Krueger (1994)"
+    "Signal-processing methodological review (50 papers)",
+    "Measurement-physics study (oscillator parameter estimation)",
+    "Material-science degradation modeling study"
   ],
   "learning_confidence": 0.85,
   "domain_profile": {
-    "primary_domain": "economics",
-    "evidence_type": "causal_inference",
+    "primary_domain": "physics_measurement",
+    "evidence_type": "empirical_measurement",
     "reasoning_paradigm": "empirical"
   },
   "methodology_profile": {
-    "standard_methods": ["difference_in_differences", "instrumental_variables", "regression_discontinuity"],
-    "method_frequencies": {"DiD": 0.50, "IV": 0.30, "RDD": 0.20},
+    "standard_methods": ["model_based_fitting", "spectral_analysis", "statistical_thresholding"],
+    "method_frequencies": {"model_based_fitting": 0.40, "spectral_analysis": 0.35, "statistical_thresholding": 0.25},
     "verification_approach": "numerical_simulation",
     "learning_basis": "literature survey of 50 papers"
   },
   "failure_mode_profile": {
-    "common_failures": ["endogeneity", "omitted_variable_bias", "selection_bias"],
-    "failure_frequencies": {"endogeneity": 0.60, "OVB": 0.25, "selection": 0.15},
-    "learning_basis": "Angrist & Pischke common pitfalls"
+    "common_failures": ["sensor_noise", "non_stationarity", "edge_effects"],
+    "failure_frequencies": {"sensor_noise": 0.45, "non_stationarity": 0.35, "edge_effects": 0.20},
+    "learning_basis": "signal-analysis common pitfalls"
   },
   "writing_profile": {
-    "style": "empirical_economics",
+    "style": "empirical_measurement",
     "citation_format": "author_year",
-    "section_structure": "introduction → theory → empirical_strategy → results → robustness → conclusion",
-    "learning_basis": "AER author guidelines + 50 paper survey"
+    "section_structure": "introduction → model → measurement → analysis → robustness → conclusion",
+    "learning_basis": "measurement-physics author guidelines + 50 paper survey"
   }
 }
 ```

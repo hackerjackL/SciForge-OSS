@@ -89,7 +89,25 @@ sciforge init ./my-research   # scaffold a SciForge project skeleton in a target
 
 > Prefer a local checkout? Clone the repo and run `node bin/sciforge.js --help` from the repo root (see Method 1) — same commands, no npm install.
 
-### Method 3: Add the skill files to an existing research project
+If you prefer not to use npm, clone and use `bin/sciforge.js` directly (no external deps, pure Node stdlib):
+
+```bash
+git clone https://github.com/hackerjackL/SciForge-OSS.git
+cd SciForge-OSS
+
+# call bin directly with node (no install)
+node bin/sciforge.js --help
+node bin/sciforge.js tools-check
+node bin/sciforge.js init ./my-research
+
+# or npm link to register a global command from this clone
+npm link
+sciforge --help
+```
+
+`package.json`'s `bin` field registers `sciforge` pointing at `./bin/sciforge.js`; the `files` field declares the distribution contents (`skills/` + `AGENT_GUIDE.md` + root `SKILL.md` + `bin/`). The scoped name `@gewislab/sciforge-oss` means the npm registry shows it under the `gewislab` organization.
+
+### Method 4: Add the skill files to an existing research project
 
 ```bash
 cp -r SciForge-OSS/skills/ /your-project/

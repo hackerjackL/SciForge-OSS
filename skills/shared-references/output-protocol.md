@@ -44,3 +44,10 @@
 ## 过期状态检测
 
 状态文件 (REVIEW_STATE.json 等) 的默认过期阈值：24 小时。过期时警告用户，可继续或重新开始。
+
+## 输出语言 (Output Language)
+
+尊重项目的语言设置（`language=chinese` 时输出中文，默认英文；图表/代码注释使用英文标识符）。论文正文与标题语言遵循 pipeline 启动时的语言声明；不可在单一交付物中混用语言。
+
+---
+> **单一权威 (single source of truth)**：输出版本化、Manifest 记录、产物目录、路径回退、过期检测与语言规则全部由此文件统一定义。各 SKILL.md 只需 pointer-load 本文件（`../../shared-references/output-protocol.md`），不再内联三行重复块。

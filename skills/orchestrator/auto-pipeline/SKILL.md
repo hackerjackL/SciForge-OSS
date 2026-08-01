@@ -77,7 +77,7 @@ Where possible, phases run in parallel to reduce wall-clock time:
 
 | Parallel Group | Phases | Rationale |
 |---------------|--------|-----------|
-| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output. **Caution**: Phase 2's novelty pre-screen depends on Phase 4's literature. If Phase 2 runs first, it uses cached literature; if parallel, Phase 4 must complete before Phase 2's novelty evaluation. Recommend: Phase 2 Round 1 (idea generation) runs in parallel with Phase 4 literature search; Phase 2 Round 2-4 (novelty evaluation) waits for Phase 4 to complete. |
+| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output. **B1 硬性串行化 (v2.3)**: Phase 2 拆两段——Round 1 (idea 生成) 可与 Phase 4 文献检索并行；但 **novelty 预筛 (6-axis 中 novelty 轴) 与 Round 2-4 评估必须等 Phase 4 完成**（读到 `literature/references.bib` 才跑 novelty 轴，禁止用空 bib 预筛或先斩后奏）。若 Phase 4 WARN/空文献，novelty 轴标记 `pending-literature` 并如实记录，不静默降级为猜测。 |
 | **Group B** | Phase 11 (unified-plotting) + Phase 12 (paper-writing) | Figures can be generated while the paper is being written |
 | **Group C** | Phase 7 (leakage-audit) + Phase 8 (logic-verification) | Both audits are independent |
 
@@ -100,6 +100,23 @@ MCTS iteration is optimized to avoid re-scoring already-clear ideas:
 | Phase 3 | — | Adversarial falsification is MANDATORY — never skipped |
 | Phase 10 | All claims reach symbolic fidelity | Skip Phase 14 (auto-review-loop) — no improvement needed |
 | Phase 12 | No figures needed | Skip Phase 11 (unified-plotting)
+
+### Context Economy & Boundary (single-agent) — v2.3
+
+The single-agent full-pipeline configuration must obey the cross-cutting discipline in:
+**[`shared-references/methodology-and-context-contract.md`](../../shared-references/methodology-and-context-contract.md)** — pointer-load, do NOT inline.
+
+Non-negotiable for OSS runs (esp. multi-round / context-constrained):
+
+1. **Bundle-out**: any ≥ 10-line prompt/instruction a phase produces is written to a bundle file (`refine-logs/<phase>.bundle.md`); the next phase is handed the **path**, not the blurb.
+2. **Compact-forward**: before Phase 8 (logic) and Phase 12 (paper-writing), write a 20-40 line compact summary of the prior phase's decisive artifacts; base the downstream phase on that summary.
+3. **Sufficiency stopping**: analysis sub-loops stop only when (mandatory fields assigned) ∧ (verdict stable 2 rounds) ∧ (marginal return ≤ 0). Persist `stopping_rule.satisfied` in every analysis output. Boundary: never "keep digging" as a habit; name the specific open question + the evidence that resolves it.
+4. **Evidence-forcing**: every finding ships with `raw_stat`+`confidence`+`method`; data-features ≠ errors (never clean a real feature to prettify); analysis layer reports, never judges.
+5. **Deterministic-first**: file-existence/field/threshold/SHA-256 checks run before any LLM judgment; frozen artifacts get a hash lock.
+6. **Reviewer-only-raw-artifacts** (single-agent adaptation): pass paths+raw artifacts, not the executor's interpretation/leading conclusions.
+7. **Boundary**: anything out of single-agent scope is written as `deferred` + one-line reason, and the closest valid artifact is emitted — never silently skipped. Human supplies the Q-id; OSS runs exactly one Q-id per invocation.
+
+This section replaces ad-hoc instructions duplicated across skills; the contract file is the single source of truth.
 
 ```
 Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
@@ -192,6 +209,9 @@ Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺      �
      │          ↻ 分数 < 6 回退 Phase 6（最多 4 轮）
      │
 Phase 15: /citation-audit — 最终引用 3 层验证                        ← 新增
+     │
+Phase 15.5: /publishability-score — 可发表性评分 (dim1 首轴门控)     ← 新增 v2.2
+     │         产出 PUBLISHABILITY_SCORE.json/md
      │
 Phase 16: 最终组装 + 产物归档
 ```
@@ -360,6 +380,8 @@ On successful completion, the orchestrator produces the following structure unde
 ├── review-stage/
 │   ├── AUTO_REVIEW.md           ← cross-model review log (Phase 14)
 │   ├── REVIEW_STATE.json        ← recovery state (Phase 14)
+│   └ PUBLISHABILITY_SCORE.json  ← publishability score (Phase 15.5)  ← 新增
+│   └ PUBLISHABILITY_SCORE.md    ← human-readable score report (Phase 15.5)  ← 新增
 │   └ REVIEW_LEDGER.json        ← machine-readable ledger (Phase 14)
 ├── citation_audit/
 │   └ CITATION_AUDIT.md          ← 3-layer citation audit (Phase 15)
@@ -439,9 +461,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## See Also
 

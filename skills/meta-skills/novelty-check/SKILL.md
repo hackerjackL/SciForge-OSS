@@ -114,11 +114,13 @@ score = novelty × 0.45 + feasibility × 0.25 + relevance × 0.15 + engineering_
 - `title` — 简短描述
 - `hypothesis` — 核心主张
 - `methodology` — 如何推导/验证
-- `perspective` — 理论 / 计算 / 定性 / 交叉学科（与 OSS 3-perspective 对齐：theoretical / computational / qualitative；OSS 无 empirical）
+- `perspective` — 理论 / 计算 / 定性 / 交叉学科（与 OSS 4-perspective 对齐：theoretical / computational / qualitative / empirical；其中 `empirical` 视角的 idea 以 `verification_type=computational` 推进，aligned with idea-discovery）
 
 ### Step 2: 对每个 Idea 运行 4 维评估
 
 对每个 idea，按上述标准执行 4 维评估（新颖性 + 可行性 + 相关性 + 工程落地 EG）。
+
+> **R1 收敛声明 (v2.3)**: 6-axis 预筛（novelty/feasibility/relevance/tractability/data-readiness/EG）已在 `/idea-discovery` 的 pre-screen 完成——本 skill **不重算这些轴**，只基于 `IDEA_DAG.json` 中已预筛通过并进入 MCTS 的 idea 做**幸存者选择**（4 维复合分排序 + 存活判定）。若发现某轴被 idea-discovery 判定 BLOCKED 却仍出现在 DAG 中，标注 `inconsistent_pre-screen` 并回报，而非在本步重新评分。
 
 ### Step 3: 计算综合判定
 

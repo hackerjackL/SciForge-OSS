@@ -89,7 +89,25 @@ sciforge init ./my-research   # 在指定目录初始化一个 SciForge 项目�
 
 > 更想本地 checkout？克隆仓库后在根目录运行 `node bin/sciforge.js --help`（见方式一）——命令相同，无需 npm 安装。
 
-### 方式三：将技能文件加入已有研究项目
+若不想用 npm，可直接 clone 后用 `bin/sciforge.js`（无外部依赖，纯 Node stdlib）：
+
+```bash
+git clone https://github.com/hackerjackL/SciForge-OSS.git
+cd SciForge-OSS
+
+# 直接用 node 调 bin（无需安装）
+node bin/sciforge.js --help
+node bin/sciforge.js tools-check
+node bin/sciforge.js init ./my-research
+
+# 或 npm link 从这个 clone 注册全局命令
+npm link
+sciforge --help
+```
+
+`package.json` 的 `bin` 字段注册 `sciforge` 命令指向 `./bin/sciforge.js`；`files` 字段声明分发内容（`skills/` + `AGENT_GUIDE.md` + 根 `SKILL.md` + `bin/`）。scoped 名 `@gewislab/sciforge-oss` 表示 npm registry 上该包归属 `gewislab` 组织。
+
+### 方式四：将技能文件加入已有研究项目
 
 ```bash
 cp -r SciForge-OSS/skills/ /your-project/

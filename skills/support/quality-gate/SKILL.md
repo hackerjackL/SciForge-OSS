@@ -158,13 +158,13 @@ OSS has **no discipline overlay**. The universal QF-G* checks below apply to eve
 
 | ID | Criterion | Type | Check | PASS condition |
 |----|-----------|------|-------|----------------|
-| QF-G1 | Derivation chain exists | D | `results/sympy/` contains ≥ 1 derivation log file | File exists + non-empty |
+| QF-G1 | Derivation chain exists | D | `derivations/{problem_id}/derivation_output.md` exists and is non-empty | File exists + non-empty |
 | QF-G2 | Logic audit PASS | D | `audit_report/LOGIC_VERIFICATION.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G3 | Leakage audit PASS | D | `audit_report/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G4 | Result-to-claim verdict | D | `CLAIMS_FROM_RESULTS.md` exists with `claim_supported: yes` or `partial` | claim_supported ∈ {yes, partial}; NOT `no` |
-| QF-G5 | Primary outcome fidelity | D | At least 1 primary outcome at ≥ numerical fidelity (from CLAIMS_FROM_RESULTS.md fidelity gate) | ≥ 1 primary at numerical+ |
-| QF-G6 | Problem anchor frozen | D | `refine-logs/FINAL_PROPOSAL.md` exists with frozen Q-id AND referenced in derivation chain | Q-id present in FINAL_PROPOSAL + derivation logs |
-| QF-G7 | Method registry hash locked | D | `methods/REGISTRY_HASH.txt` matches `METHOD_REGISTRY.md` Section 3 SHA256 | Hash matches |
+| QF-G5 | Primary outcome fidelity | D | **CONSUME** `/result-to-claim` 的 fidelity 裁决（`CLAIMS_FROM_RESULTS.md` 中 primary outcome ≥ numerical 的逐条记录）；不重算 ladder | ≥ 1 primary at numerical+（据 result-to-claim 裁决） |
+| QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` 的 INV-G1 裁决（`refine-logs/FINAL_PROPOSAL.md` 冻结 Q-id）；不重复检查 | INV-G1 裁决 = PASS |
+| QF-G7 | Method registry hash locked | D | **CONSUME** `/method-registry` 的哈希锁验证（`methods/REGISTRY_HASH.txt` 对应 `METHOD_REGISTRY.md` Section 3）；不重复计算 | method-registry 哈希验证 = PASS |
 | QF-G8 | Interpretation consistency | S | The derivation's interpretation is consistent with the declared assumptions | LLM judgment grounded in specific assumption citations |
 | QF-G9 | Scope calibration | S | Claim scope matches derivation regime (no overgeneralization) | LLM judgment comparing claim language vs. derivation regime |
 
@@ -238,6 +238,8 @@ The self-deception guard uses a **structured self-consistency check** approach:
 | SD-G3 | Scope calibration | Claim language matches derivation regime (no "general" when derivation is regime-specific) |
 | SD-G4 | Symbolic proof completeness | The SymPy chain is actually complete (no hidden "TODO" / "gap" / hand-waved steps) |
 | SD-G5 | Numerical sanity independence | The numerical check used parameters independent from the symbolic proof's assumptions (not circular) |
+
+> **R4 收敛声明 (v2.3)**: SD-G* 只做**确定性优先**的结构化自查（claim↔evidence 映射、负面结果披露、作用域校准、符号链完整性、数值独立性）——**不做角色对抗**。角色切换式对抗自审是 `/kill-argument` 的职责，由 `/auto-review-loop` 在 hard/nightmare 难度调用；三处各司其职：quality-gate = 确定性结构化检查，kill-argument = 对抗自审，auto-review-loop = 跨角色外部评审。避免在三处重复执行同一检查。
 
 ### Output
 

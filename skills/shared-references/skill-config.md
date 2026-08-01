@@ -8,8 +8,8 @@ SciForge skills accept a shared set of **public knobs** that control runtime beh
 
 Three recurring drift bugs:
 
-1. **`MAX_ROUNDS` semantic drift.** `auto-review-loop` defaulted to 4 rounds; `economics-empirical-pipeline` raised it to 6 for econ; `auto-paper-improvement-loop` defaulted to 2. Users passed `— max-rounds: 3` expecting one meaning and got three.
-2. **`EFFORT` mapping drift.** `paper-writing` mapped `balanced → draft` assurance; `auto-review-loop` mapped `balanced → 3-4 rounds`; `econometrics-tools` had no effort axis at all. Same word, three behaviors.
+1. **`MAX_ROUNDS` semantic drift.** `auto-review-loop` defaulted to 4 rounds; `paper-writing` raised it to 6 for econ; `auto-paper-improvement-loop` defaulted to 2. Users passed `— max-rounds: 3` expecting one meaning and got three.
+2. **`EFFORT` mapping drift.** `paper-writing` mapped `balanced → draft` assurance; `auto-review-loop` mapped `balanced → 3-4 rounds`; `research-refine` had no effort axis at all. Same word, three behaviors.
 3. **`ASSURANCE` vs `EFFORT` conflation.** Users reported `effort: beast` runs that silently skipped mandatory audits because the two axes were entangled. The fix split them — but only `paper-writing` honored the split.
 
 Centralizing eliminates drift: each knob is defined once here, referenced by every skill, and overrides are explicit per skill.
@@ -59,8 +59,8 @@ Each skill declares its own default in its Configuration section, but the **cano
 | Value | When to use | Defined in |
 |---|---|---|
 | `default-ml` (DEFAULT) | ML/AI papers, NeurIPS/ICML/ICLR/CVPR/ACL | `/auto-review-loop/SKILL.md` Prompt Template |
-| `senior-econ-editor` | Economics papers, AER/QJE/JPE/Econometrica/RES/JFE/JF | `/economics-empirical-pipeline/SKILL.md` Phase 7 |
-| `senior-physics-editor` | Physics papers, Nature Photonics/PRL/Optica | `/physics-pipeline/SKILL.md` (Active — used by physics-pipeline Phase 7, PNV chain + Nature Physics/PRL/Optica review standards) |
+| `senior-econ-editor` | Economics papers, AER/QJE/JPE/Econometrica/RES/JFE/JF | `/auto-review-loop/SKILL.md` (econ variant injection) |
+| `senior-physics-editor` | Physics papers, Nature Photonics/PRL/Optica | `/auto-review-loop/SKILL.md` (Active — used by auto-review-loop, PNV chain + Nature Physics/PRL/Optica review standards) |
 | `general-cross-discipline` (reserved) | Interdisciplinary / Pipeline D | `/idea-discovery/SKILL.md` (default fallback) |
 
 **`/auto-review-loop` MUST honor this knob.** When the caller passes `— reviewer-prompt-variant: senior-econ-editor`, the loop replaces its default ML reviewer prompt with the econ variant verbatim. The variant defines: editorial framework (AIM chain / 14-class rejection ledger for econ; PNV chain for physics), files the reviewer must read first, scoring rubric, brutally-honest enforcement areas.
@@ -73,7 +73,7 @@ Each skill declares its own default in its Configuration section, but the **cano
 | `true` | Pause at every phase boundary for user approval |
 | `phase-list` (e.g., `2,4,8`) | Pause only at listed phases |
 
-**Applies to**: pipeline orchestrators (`/economics-empirical-pipeline`, `/research-pipeline`, `/physics-pipeline`, `/idea-discovery`, `/paper-writing`). Sub-skills inherit the value from the orchestrator via `AGENT_DOC.md`.
+**Applies to**: pipeline orchestrators (`/idea-discovery`, `/paper-writing`). Sub-skills inherit the value from the orchestrator via `AGENT_DOC.md`.
 
 ### `AUTO_PROCEED` — auto-continue between phases (within a skill)
 
@@ -88,10 +88,10 @@ Each skill declares its own default in its Configuration section, but the **cano
 
 | Value | Behavior |
 |---|---|
-| `true` (DEFAULT) | After writing the audit/report markdown, invoke `/render-html` for a readable HTML view |
+| `true` (DEFAULT) | After writing the audit/report markdown, render a readable HTML view of the report |
 | `false` | Skip HTML rendering; markdown + JSON are canonical |
 
-**Applies to**: all audit skills (`/paper-claim-audit`, `/citation-audit`, `/proof-checker`, `/kill-argument`, `/leakage-audit`), `/result-to-claim`, `/auto-review-loop`. Read from `AGENT_DOC.md` if set; otherwise default `true`.
+**Applies to**: all audit skills (`/result-to-claim`, `/citation-audit`, `/logic-verification`, `/kill-argument`, `/leakage-audit`), `/auto-review-loop`. Read from `AGENT_DOC.md` if set; otherwise default `true`.
 
 **Non-blocking**: HTML render failure (helper missing, reviewer unavailable) MUST NOT block the parent skill. The JSON + MD verdict files are canonical; HTML is convenience.
 
@@ -102,9 +102,9 @@ Each skill declares its own default in its Configuration section, but the **cano
 | `real` (DEFAULT) | Downstream may use "empirical evidence", "policy implications", "welfare analysis" language |
 | `synthetic` | Downstream MUST use "simulation suggests", "numerical analysis indicates" language; MUST NOT claim "empirical evidence" or "policy implications" |
 
-**Emitted by**: `/data-acquisition` at source (mandatory — provenance signal at acquisition time); also re-emitted by `/experiment-bridge` Phase 1.5.
+**Emitted by**: `/universal-retrieval` at source (mandatory — provenance signal at acquisition time); also re-emitted by `/experiment-execution`.
 
-**Enforced by**: `/experiment-bridge` Phase 1.5 (blocks overclaiming in experiment plan), `/result-to-claim` (blocks overclaiming in claim verdict), `/paper-write` Step 0.5 (blocks overclaiming in LaTeX prose), `/paper-figure` Step 5.5 (annotates figures with "(Synthetic Data)" if synthetic).
+**Enforced by**: `/experiment-execution` (blocks overclaiming in experiment plan), `/result-to-claim` (blocks overclaiming in claim verdict), `/paper-writing` Step 0.5 (blocks overclaiming in LaTeX prose), `/unified-plotting` Step 5.5 (annotates figures with "(Synthetic Data)" if synthetic).
 
 ### `TARGET_VENUE` — journal/conference target
 
@@ -181,7 +181,7 @@ Every skill should print its active knob configuration at the start of its work,
 
 ```
 effort: max — papers=25, ideas=16, rounds=6 | reviewer reasoning: maximum (always)
-assurance: submission | reviewer-prompt-variant: senior-econ-editor | render-html: true
+assurance: submission | reviewer-prompt-variant: senior-econ-editor
 ```
 
 ## See Also
