@@ -55,3 +55,6 @@ tools/
 KILL_ARGUMENT.md
 KILL_ARGUMENT.json
 KILL_ARGUMENT.html
+# transient per-run verification/regression artifacts (keep latest.json + README + evidence_full)
+artifacts/regression/regression_*.json
+artifacts/verification/verify_*.json
