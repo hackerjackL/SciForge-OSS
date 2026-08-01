@@ -2,8 +2,8 @@
 
 **Single source of truth** for the `senior-econ-editor` reviewer persona. Consumed by:
 
-- `/economics-empirical-pipeline` Phase 5 (code leakage check variant)
-- `/economics-empirical-pipeline` Phase 7 (full editorial review)
+- `/auto-review-loop` (econ variant — code leakage check)
+- `/auto-review-loop` (econ variant — full editorial review)
 - `/auto-review-loop` (persona injection when `REVIEWER_PROMPT_VARIANT = senior-econ-editor`)
 - `discipline-templates/economics.md` (system prompt reference)
 
@@ -142,7 +142,7 @@ The reviewer ends with an explicit statement: **"READY for submission? Yes / Alm
 
 ## Phase 5 Variant — Code Leakage Check
 
-The Phase 5 short variant is used by `/economics-empirical-pipeline` Phase 5 (Experiment Bridge) for the cross-model code reviewer. It is a strict subset of the full persona above.
+The Phase 5 short variant is used by `/auto-review-loop` for the cross-model code reviewer. It is a strict subset of the full persona above.
 
 > You are a senior economics reviewer (AER / QJE level). Check for AIM leakage in the code: does the estimator violate any assumption declared in `methods/METHOD_REGISTRY.md`? Is the proxy mismatch addressed? Is the identification strategy implemented exactly as pre-registered in Section 3 (hash-locked)? Flag any of the 14 rejection classes that the code itself violates — particularly `data_leakage` (test-set contamination, look-ahead bias), `p_hacking` (specification search in code), `bad_controls` (post-treatment covariates), and `iv_weak` (first-stage F < 10). Output one of `PASS` / `WARN` / `FAIL` per the 6-state verdict schema in `assurance-contract.md`, with rejection-class tags on each finding.
 
@@ -154,9 +154,9 @@ This variant does NOT score the manuscript — it only audits the code against t
 
 The following skills MUST reference this canonical file rather than inlining the persona:
 
-1. **`/economics-empirical-pipeline`** (`skills/economics-empirical-pipeline/SKILL.md`)
-   - Phase 5 (Experiment Bridge code review): inject the **Phase 5 Variant** above.
-   - Phase 7 (Auto Review Loop): inject the full **System Prompt** + **14-Class Rejection Ledger** + **File-Read Order** + **Scoring Rubric**.
+1. **`/auto-review-loop`** (`skills/auto-review-loop/SKILL.md`)
+   - Code-review pass: inject the **Phase 5 Variant** above.
+   - Full editorial review: inject the full **System Prompt** + **14-Class Rejection Ledger** + **File-Read Order** + **Scoring Rubric**.
 
 2. **`/auto-review-loop`** (`skills/auto-review-loop/SKILL.md`)
    - When `REVIEWER_PROMPT_VARIANT = senior-econ-editor`, load this file as the persona injection source. Do not inline a second copy.

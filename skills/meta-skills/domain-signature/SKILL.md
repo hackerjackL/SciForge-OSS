@@ -42,10 +42,10 @@ Read the problem statement and extract domain signals:
 ## Domain Signal Analysis
 
 ### Direct Signals
-- **Domain keywords**: [economics, regression, causal, treatment, effect]
-- **Methodology keywords**: [DiD, IV, RDD, panel data]
-- **Evidence keywords**: [estimate, significance, confidence interval]
-- **Output keywords**: [policy recommendation, causal claim]
+- **Domain keywords**: [time-series, trend, periodicity, anomaly, signal]
+- **Methodology keywords**: [detrending, spectral analysis, thresholding, model fitting]
+- **Evidence keywords**: [residual, uncertainty, confidence interval, goodness-of-fit]
+- **Output keywords**: [trend decomposition, anomaly flag, parameter estimate]
 
 ### Inferred Signals
 - **Reasoning style**: empirical / formal / interpretive / design
@@ -54,8 +54,8 @@ Read the problem statement and extract domain signals:
 - **Proof standard**: statistical / derivational / argumentative
 
 ### Literature Signals
-- **Seed paper venues**: [AER, QJE, Econometrica]
-- **Seed paper methods**: [difference-in-differences, instrumental variables]
+- **Seed paper venues**: [general scientific journals, measurement-notes, data-repository publications]
+- **Seed paper methods**: [detrending, spectral analysis, threshold-based anomaly detection]
 - **Citation style**: [author-year, Harvard]
 ```
 
@@ -66,34 +66,34 @@ Read the problem statement and extract domain signals:
   "signature_id": "sig_20260720_001",
   "problem_id": "Q001",
   "domain_profile": {
-    "primary_domain": "economics",
-    "secondary_domains": ["statistics", "social_science"],
-    "evidence_type": "causal_inference",
+    "primary_domain": "time_series_analysis",
+    "secondary_domains": ["statistics", "physics_measurement"],
+    "evidence_type": "empirical_measurement",
     "reasoning_paradigm": "empirical"
   },
   "methodology_profile": {
-    "standard_methods": ["difference_in_differences", "instrumental_variables", "regression_discontinuity"],
+    "standard_methods": ["detrending", "spectral_analysis", "threshold_based_detection"],
     "verification_approach": "numerical_simulation",
     "requires_experiment": false,
-    "can_be_theory_only": true
+    "can_be_theory_only": false
   },
   "writing_profile": {
-    "style": "empirical_economics",
+    "style": "empirical_measurement",
     "citation_format": "author_year",
-    "section_structure": "introduction → theory → empirical_strategy → results → discussion",
-    "typical_length": "25-35 pages",
+    "section_structure": "introduction → model → measurement → analysis → discussion",
+    "typical_length": "12-20 pages",
     "abstract_style": "motivation → method → main_result → implication"
   },
   "failure_mode_profile": {
-    "common_failures": ["endogeneity", "omitted_variable_bias", "reverse_causality", "measurement_error"],
-    "critical_assumptions": ["exclusion_restriction", "parallel_trends", "no_spillover"],
-    "robustness_checks": ["placebo_test", "different_specifications", "subsample_analysis"]
+    "common_failures": ["sensor_noise", "non_stationarity", "edge_effects", "aliasing"],
+    "critical_assumptions": ["stationarity", "error_whiteness", "adequate_sampling_rate"],
+    "robustness_checks": ["residual_test", "cross_validation", "different_preprocessing"]
   },
   "data_profile": {
-    "data_type": "panel_data",
-    "typical_sources": ["World Bank", "PSID", "CPS", "Compustat"],
+    "data_type": "time_series",
+    "typical_sources": ["sensor arrays", "public measurement repositories", "instrument logs"],
     "data_availability": "high",
-    "min_sample_size": "1000 observations"
+    "min_sample_size": "500 time points"
   },
   "confidence": {
     "domain_confidence": 0.85,

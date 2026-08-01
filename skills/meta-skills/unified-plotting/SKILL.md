@@ -30,7 +30,7 @@ Typical prompts:
 - "架构图" / "workflow 图" / "pipeline 图"
 - "figure spec" / "draw architecture"
 
-**Not for**: format conversion (use `/drawio-export` if available; otherwise inline the conversion in this skill's output).
+**Not for**: format conversion (format conversion is done inline within this skill in OSS; no `/drawio-export`).
 
 ## Job
 
@@ -292,9 +292,7 @@ Append to `figures/FIGURE_INDEX.md`:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 > - **[Figure Quality Contract](../../shared-references/figure-quality-contract.md)** — dual output, 16:9 default, Nature readability floor, d2 pipeline
 > - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — external seja-mimo-v2.5 QA loop for top-tier architecture/DAG/academic diagrams (score `/10` + top-3 fixes → re-render; bounded 3 rounds)
 

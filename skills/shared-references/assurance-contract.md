@@ -2,8 +2,8 @@
 
 SciForge audits emit machine-readable verdicts. The `assurance` axis decides whether
 those verdicts are advisory (draft mode) or load-bearing gates (submission mode).
-This contract is referenced by `paper-writing`, `paper-claim-audit`, `citation-audit`,
-`proof-checker`, and the external verifier (canonical name `verify_paper_audits.sh`;
+This contract is referenced by `paper-writing`, `result-to-claim`, `citation-audit`,
+`logic-verification`, and the external verifier (canonical name `verify_paper_audits.sh`;
 callers resolve the actual path via `integration-contract.md` §2).
 
 ## Why a separate axis from `effort`
@@ -91,7 +91,7 @@ human-readable Markdown sibling). The JSON must contain at minimum:
 
 ```json
 {
-  "audit_skill": "paper-claim-audit",
+  "audit_skill": "result-to-claim",
   "verdict": "PASS",
   "reason_code": "all_numbers_match",
   "summary": "Verified 23 numeric claims against 4 result files; no mismatches.",
@@ -100,7 +100,7 @@ human-readable Markdown sibling). The JSON must contain at minimum:
     "sections/5.evidence.tex": "sha256:b2d1...",
     "results/run_2026_04_19.json": "sha256:c9e4..."
   },
-  "trace_path": ".sciforge/traces/paper-claim-audit/2026-04-21_run01/",
+  "trace_path": ".sciforge/traces/result-to-claim/2026-04-21_run01/",
   "thread_id": "019dae73-fc12-4ab8-...",
   "reviewer_model": "gpt-5.5",
   "reviewer_reasoning": "xhigh",
@@ -120,7 +120,7 @@ Field semantics:
     resolves relative to the paper dir and `paper/paper/main.tex` will
     false-fail. The verifier rehashes the current files and flags `STALE`
     if any hash changed since the audit ran. (User edited `main.tex`
-    after running `paper-claim-audit`? The next verifier run will catch it.)
+    after running `result-to-claim`? The next verifier run will catch it.)
 - **`trace_path`** — directory containing the full reviewer prompt + response
   pair, per `review-tracing.md`. Required for mandatory audits — not optional.
 - **`thread_id`** — reviewer provider thread ID, for forensic traceability.
@@ -149,7 +149,7 @@ non-zero exit blocks Final Report generation.
 
 ## Subskill Contract: "Always Emit, Never Block"
 
-Child audit skills (`paper-claim-audit`, `citation-audit`, `proof-checker`)
+Child audit skills (`result-to-claim`, `citation-audit`, `logic-verification`)
 follow this contract:
 
 - **Always emit a verdict artifact**, even on detector-negative or error paths.
@@ -158,7 +158,7 @@ follow this contract:
   given verdict blocks finalization. This decision lives in *one* place
   (`assurance` axis + verifier), not duplicated across child skills.
 
-Earlier wording in `paper-claim-audit` and `citation-audit` (e.g., "audit is
+Earlier wording in `result-to-claim` and `citation-audit` (e.g., "audit is
 advisory, never blocking") referred to this division of labor — but conflicted
 with `paper-writing`'s declaration that they were "mandatory submission gates."
 This contract resolves the conflict: child = always emit; parent = decides
@@ -170,8 +170,8 @@ blocking based on assurance level.
 ```
 — effort: beast    (implies assurance: submission)
 ```
-- `proof-checker` runs, audits theorems → `PASS` or `WARN` or `FAIL`
-- `paper-claim-audit` runs, finds numbers → `PASS`
+- `logic-verification` runs, audits theorems → `PASS` or `WARN` or `FAIL`
+- `result-to-claim` runs, finds numbers → `PASS`
 - `citation-audit` runs, audits refs → `PASS`
 - Verifier: all green
 - Final Report: `submission-ready: yes`
@@ -180,8 +180,8 @@ blocking based on assurance level.
 ```
 — effort: beast    (implies assurance: submission)
 ```
-- `proof-checker` invoked → no theorems found → emits `NOT_APPLICABLE`
-- `paper-claim-audit` invoked → no numeric claims → emits `NOT_APPLICABLE`
+- `logic-verification` invoked → no theorems found → emits `NOT_APPLICABLE`
+- `result-to-claim` invoked → no numeric claims → emits `NOT_APPLICABLE`
 - `citation-audit` invoked → audits refs → `PASS`
 - Verifier: all green (NOT_APPLICABLE is not blocking)
 - Final Report: `submission-ready: yes` with note "no theorems / no numeric claims to audit"
@@ -190,13 +190,13 @@ blocking based on assurance level.
 ```
 — effort: beast
 ```
-- `proof-checker` → `NOT_APPLICABLE`
-- `paper-claim-audit` invoked → finds claims like `accuracy = 89.2%` but
+- `logic-verification` → `NOT_APPLICABLE`
+- `result-to-claim` invoked → finds claims like `accuracy = 89.2%` but
   `results/` is empty → emits `BLOCKED` with reason_code `no_raw_evidence`
 - `citation-audit` → `PASS`
 - Verifier: exit 1 (BLOCKED is submission-blocking)
 - Final Report: **refuses to finalize**; surfaces "Mandatory audit BLOCKED:
-  paper-claim-audit cannot verify numeric claims — no raw result files found.
+  result-to-claim cannot verify numeric claims — no raw result files found.
   Add results/ or downgrade to `— assurance: draft`."
 
 ### Stale audit (user edited paper after running audits)
@@ -204,7 +204,7 @@ blocking based on assurance level.
 - User edits `sec/5.evidence.tex` to change a number
 - User reruns the verifier (or re-finalizes)
 - Verifier rehashes → `audited_input_hashes` mismatch → `STALE` flag → exit 1
-- Final Report: refuses; instructs user to rerun `paper-claim-audit` and
+- Final Report: refuses; instructs user to rerun `result-to-claim` and
   `citation-audit` before re-finalizing.
 
 ## Backward Compatibility
@@ -236,7 +236,7 @@ When `assurance=submission`, the verifier additionally checks:
 
 ### FIGURES_REPRODUCIBLE
 
-- **Rule**: Every data figure (from `/paper-figure`) must have a corresponding `gen_*.py` script in `figures/`.
+- **Rule**: Every data figure (from `/unified-plotting`) must have a corresponding `gen_*.py` script in `figures/`.
 - **Check**: For each `figures/<name>.pdf`, verify `figures/gen_<name>.py` exists.
 - **Verdict**: `WARN` if missing scripts (some figures may be manually created via D2/FigureSpec/draw.io).
 

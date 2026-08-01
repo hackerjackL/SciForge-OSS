@@ -51,7 +51,7 @@ Key artifacts consumed:
 - The frozen Q-id + problem statement (from the human user's prompt — NOT auto-searched from the 125-problem index)
 - `refine-logs/domain-signature.json` — from Phase 1b `/domain-learner` (the SOLE writer; used for perspective weight adjustment)
 - `literature/references.bib` — from `/universal-retrieval` (for novelty pre-screen)
-- `data/` — from `/ouroboros-data-insight` if it has run (for data-readiness pre-screen)
+- `data/` — from `idea-discovery` 6-axis pre-screening's data-readiness axis (built-in)
 
 ## Configuration
 
@@ -81,7 +81,7 @@ Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) for the full contract. Summary:
 
 1. **Round 1 (Expansion)**: Generate 8-12 root idea nodes across the 3 perspectives.
-2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
+2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). **B1 文献依赖 (v2.3)**: novelty 轴依赖 Phase 4 的 `literature/references.bib`——若该文件尚未就绪（Phase 4 未完成），先标注 `novelty=pending-literature` 并暂停 novelty 轴的最终判定，待文献到达后再补评；**禁止在无参考文献的情况下对 novelty 轴做最终 BLOCKED/PASS 判定**（可用 generation 视角的直觉先做可行性/相关性预筛，但 novelty 判定必须等文献）。Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
 3. **Round 3 (Backpropagation)**: Promote ideas with simulation score ≥ 0.6. Reject ideas with simulation score < 0.4. For borderline (0.4-0.6), generate 2-3 child nodes (refined variants) and re-score.
 4. **Round 4 (Final selection)**: From promoted ideas, select the top 1-3 for `FINAL_PROPOSAL.md`. The human user picks the final one (forced checkpoint).
 
@@ -232,9 +232,7 @@ The human picks the final idea. Record in `FINAL_PROPOSAL.md`:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Boundaries
 
