@@ -1,5 +1,6 @@
 ---
 name: paper-compile
+description: "Compile LaTeX (elsarticle) to submission-ready PDF with zero-warnings policy + anti-deadloop escalation + table/figure overflow checks. Phase 13. Invoke after paper-writing to produce main.pdf."
 type: reference-skill
 role: latex-compiler
 ---
