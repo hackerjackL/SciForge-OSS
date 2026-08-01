@@ -183,7 +183,7 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 
 Derive sections from existing artifacts:
 - `refine-logs/FINAL_PROPOSAL.md` Problem Anchor + Q-id → Section 1
-- `refine-logs/DERIVATION_PLAN.md` / `IDEA_REPORT.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
+- `refine-logs/IDEA_DAG.json` + `refine-logs/FINAL_PROPOSAL.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
 
 If none exist, this is the **first** pre-writing step. Initialize an empty registry with the schema above and ask the user to fill in Sections 2-4, or — if there is enough context — propose a draft for user approval.
 

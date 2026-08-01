@@ -77,9 +77,9 @@ hard_cap_if_main_logic_fail: if dim1 == 0 → total capped at 0.4 (NOT_PUBLISHAB
 - `paper/main.pdf` + `paper/main.tex` + `paper/sections/*.tex`（论文本身）
 - `paper/COMPILE_REPORT.json`（编译状态，零警告？）
 - `experiments/toy/RESULT.json` + `experiments/full/STATUS.json` + `experiments/full/EXPERIMENT_RESULTS.json`（实验结果）
-- `audit_report/CLAIMS_FROM_RESULTS.md`（claim 门控）
-- `audit_report/LOGIC_VERIFICATION.json` + `LEAKAGE_AUDIT.json`（逻辑/泄漏审计）
-- `review/REVIEW_REPORT.md` + `review/KILL_ARGUMENT.md`（Phase 14 评审）
+- `CLAIMS_FROM_RESULTS.md`（claim 门控，仓库根）
+- `audit_report/LOGIC_VERIFICATION.json` + `audit_report/LEAKAGE_AUDIT.json`（逻辑/泄漏审计）
+- `review-stage/REVIEW_REPORT.md` + `review-stage/KILL_ARGUMENT.md`（Phase 14 评审）
 - `literature/FILTER_CHAIN_AUDIT.json`（文献链）
 - `refine-logs/FINAL_PROPOSAL.md`（核心 claim 冻结）
 - `PIPELINE_STATUS.json`（pipeline 状态）

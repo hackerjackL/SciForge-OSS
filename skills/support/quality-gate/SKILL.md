@@ -158,7 +158,7 @@ OSS has **no discipline overlay**. The universal QF-G* checks below apply to eve
 
 | ID | Criterion | Type | Check | PASS condition |
 |----|-----------|------|-------|----------------|
-| QF-G1 | Derivation chain exists | D | `results/sympy/` contains ≥ 1 derivation log file | File exists + non-empty |
+| QF-G1 | Derivation chain exists | D | `derivations/{problem_id}/derivation_output.md` exists and is non-empty | File exists + non-empty |
 | QF-G2 | Logic audit PASS | D | `audit_report/LOGIC_VERIFICATION.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G3 | Leakage audit PASS | D | `audit_report/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G4 | Result-to-claim verdict | D | `CLAIMS_FROM_RESULTS.md` exists with `claim_supported: yes` or `partial` | claim_supported ∈ {yes, partial}; NOT `no` |

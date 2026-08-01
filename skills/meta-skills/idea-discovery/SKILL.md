@@ -6,14 +6,14 @@ role: research-idea-generation
 
 # Idea Discovery (SciForge-OSS — Discipline-Agnostic, MCTS-Enhanced)
 
-> **Status**: Generates and pre-screens research idea candidates for a given 125-problem question. OSS merges main SciForge's `idea-creator` (MCTS iterative idea refinement + DAG node expansion) into this meta-skill. **OSS is discipline-agnostic** — there is no economics DiD/IV/RDD framing, no cs-ml SOTA framing, no physics PNV framing. The universal 3-perspective ideation (theoretical / computational / qualitative) + MCTS iteration applies to every problem.
+> **Status**: Generates and pre-screens research idea candidates for a given 125-problem question. OSS merges main SciForge's `idea-creator` (MCTS iterative idea refinement + DAG node expansion) into this meta-skill. **OSS is discipline-agnostic** — there is no economics DiD/IV/RDD framing, no cs-ml SOTA framing, no physics PNV framing. The universal 4-perspective ideation (theoretical / computational / qualitative / empirical) + MCTS iteration applies to every problem.
 
 ## Quick Reference
 
 - **Purpose**: 生成 8-12 个 idea → MCTS 4 轮迭代 → 筛选最优 1-3 个
 - **Input**: 人类提供的 Q-id + 问题描述
 - **Output**: IDEA_DAG.json + FINAL_PROPOSAL.md + IDEA_DAG_VISUAL.md
-- **Key**: 3 视角 (theoretical/computational/qualitative), 5-axis pre-screen, 强制人类审批
+- **Key**: 4 视角 (theoretical/computational/qualitative/empirical), 5-axis pre-screen, 强制人类审批
 
 > **No legacy pilot fallback**: main SciForge's `idea-creator` has a legacy demo/pilot experimental fallback when MCTS produces 0 promoted ideas. OSS has **no experiments** — the fallback is instead "re-run ideation with broader perspectives" (not "fall back to a demo experiment").
 
@@ -239,7 +239,7 @@ The human picks the final idea. Record in `FINAL_PROPOSAL.md`:
 ## Boundaries
 
 - **No legacy pilot fallback.** OSS has no experiments. 0 promoted ideas → re-run ideation with broader perspectives, OR report to human for problem re-scoping. Never fall back to a "demo experiment".
-- **No discipline-specific framing.** Do not reintroduce economics DiD/IV/RDD, cs-ml SOTA, or physics PNV framings. The universal 3-perspective (theoretical / computational / qualitative) applies to every problem.
+- **No discipline-specific framing.** Do not reintroduce economics DiD/IV/RDD, cs-ml SOTA, or physics PNV framings. The universal 4-perspective (theoretical / computational / qualitative / empirical) applies to every problem.
 - **Forced human checkpoint at final selection.** The agent cannot self-select the final idea.
 - **MCTS iteration is mandatory.** Do not commit to the first idea generated — the first idea is rarely the best. Always run ≥ 4 MCTS rounds.
 - **6-axis hard filter is non-negotiable.** Any axis `BLOCKED` → idea rejected before MCTS, no exceptions. Engineering Grounding BLOCKED = any sub-dimension = 0 (see [EG contract](../../shared-references/engineering-grounding-contract.md)).

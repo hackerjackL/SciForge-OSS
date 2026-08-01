@@ -129,10 +129,10 @@ Read the problem statement and extract domain signals:
 
 ### Step 4: Consume Signature
 
-The domain signature is written to `refine-logs/domain-signature.json` and consumed by all downstream skills:
+The **hint** is written to `refine-logs/domain-signature-hint.json` and consumed ONLY by `/domain-learner` (Phase 1b) as a prior. It is **NOT** consumed directly by downstream skills — the learner is the sole source of truth that writes `refine-logs/domain-signature.json`. (v2.8 alignment: this skill is an OPTIONAL fast-path hint, never the final signature.)
 
-| Downstream Skill | How It Uses the Signature |
-|-----------------|--------------------------|
+| Downstream Skill | How It Uses the Learner Signature |
+|-----------------|-----------------------------------|
 | `/idea-discovery` | Adjusts perspective weights based on evidence type |
 | `/adversarial-falsification` | Adds domain-specific failure modes to attack vectors |
 | `/novelty-check` | Adjusts novelty thresholds based on domain norms |
@@ -140,6 +140,8 @@ The domain signature is written to `refine-logs/domain-signature.json` and consu
 | `/paper-writing` | Selects writing style, citation format, section structure |
 | `/discipline-writing` | Applies domain-specific writing conventions |
 | `/result-to-claim` | Calibrates confidence based on domain feasibility |
+
+> **Note**: These consumers read `domain-signature.json` (learner output), NOT the hint file produced here.
 
 ## Boundaries
 
