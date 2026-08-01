@@ -101,6 +101,23 @@ MCTS iteration is optimized to avoid re-scoring already-clear ideas:
 | Phase 10 | All claims reach symbolic fidelity | Skip Phase 14 (auto-review-loop) — no improvement needed |
 | Phase 12 | No figures needed | Skip Phase 11 (unified-plotting)
 
+### Context Economy & Boundary (single-agent) — v2.3
+
+The single-agent full-pipeline configuration must obey the cross-cutting discipline in:
+**[`shared-references/methodology-and-context-contract.md`](../../shared-references/methodology-and-context-contract.md)** — pointer-load, do NOT inline.
+
+Non-negotiable for OSS runs (esp. multi-round / context-constrained):
+
+1. **Bundle-out**: any ≥ 10-line prompt/instruction a phase produces is written to a bundle file (`refine-logs/<phase>.bundle.md`); the next phase is handed the **path**, not the blurb.
+2. **Compact-forward**: before Phase 8 (logic) and Phase 12 (paper-writing), write a 20-40 line compact summary of the prior phase's decisive artifacts; base the downstream phase on that summary.
+3. **Sufficiency stopping**: analysis sub-loops stop only when (mandatory fields assigned) ∧ (verdict stable 2 rounds) ∧ (marginal return ≤ 0). Persist `stopping_rule.satisfied` in every analysis output. Boundary: never "keep digging" as a habit; name the specific open question + the evidence that resolves it.
+4. **Evidence-forcing**: every finding ships with `raw_stat`+`confidence`+`method`; data-features ≠ errors (never clean a real feature to prettify); analysis layer reports, never judges.
+5. **Deterministic-first**: file-existence/field/threshold/SHA-256 checks run before any LLM judgment; frozen artifacts get a hash lock.
+6. **Reviewer-only-raw-artifacts** (single-agent adaptation): pass paths+raw artifacts, not the executor's interpretation/leading conclusions.
+7. **Boundary**: anything out of single-agent scope is written as `deferred` + one-line reason, and the closest valid artifact is emitted — never silently skipped. Human supplies the Q-id; OSS runs exactly one Q-id per invocation.
+
+This section replaces ad-hoc instructions duplicated across skills; the contract file is the single source of truth.
+
 ```
 Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
      │

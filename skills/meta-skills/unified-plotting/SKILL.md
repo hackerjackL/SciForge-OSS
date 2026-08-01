@@ -82,7 +82,7 @@ The non-negotiable goals:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `format` | enum | `svg` | `svg` / `pdf` / `png` / `all` |
+| `format` | enum | `pdf+png` | v2.2: default `pdf+png` (was `svg`). PDF for LaTeX compile (only format embedded), PNG for AI/human viewing. `svg` is intermediate-only. |
 | `theme` | enum | `academic` | `academic` (serif, restrained), `modern` (sans-serif, vivid — **NEVER use**, violates morandi), `monochrome` (grayscale, print-friendly) |
 | `width` | string | `8in` | Figure width (inches or cm) — v2.2: default raised for 16:9 wide figures |
 | `height` | string | `4.5in` | Figure height — v2.2: default set for 16:9 ratio (8:4.5 = 16:9) |
@@ -90,7 +90,6 @@ The non-negotiable goals:
 | `dpi` | int | `300` | Raster output resolution (PNG) |
 | `color_scheme` | string | `morandi` | Palette — **default is `morandi`** (house default, chroma C* ≤ 25). See [`color-themes.md`](../../shared-references/color-themes.md). Switch to `colorblind-safe` only when the venue explicitly requires it OR the human user explicitly requests it. |
 | `renderer` | enum | `auto` | `auto` (Python for data, d2 for diagrams, tikz-cd for commutative, AI-direct SVG ≤4 nodes only), `python`, `d2` (force d2 for diagrams), `graphviz` (force dot for graphs), `tikz` (LaTeX theoretical), `ai-direct` (force AI hand-written SVG — ≤4 nodes only, LAST resort) |
-| `format` | enum | `pdf+png` | v2.2: default `pdf+png` (was `svg`). PDF for LaTeX compile (only format embedded), PNG for AI/human viewing. `svg` is intermediate-only. |
 
 **Hard prohibition on `theme: modern`**: the modern theme uses high-saturation Tailwind colors that violate the morandi chroma C* ≤ 25 principle. If the user requests `theme: modern`, override to `theme: academic` and log a warning.
 
@@ -297,6 +296,7 @@ Append to `figures/FIGURE_INDEX.md`:
 > - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
 > - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
 > - **[Figure Quality Contract](../../shared-references/figure-quality-contract.md)** — dual output, 16:9 default, Nature readability floor, d2 pipeline
+> - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — external seja-mimo-v2.5 QA loop for top-tier architecture/DAG/academic diagrams (score `/10` + top-3 fixes → re-render; bounded 3 rounds)
 
 ## Boundaries
 

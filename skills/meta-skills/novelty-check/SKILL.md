@@ -114,7 +114,7 @@ score = novelty × 0.45 + feasibility × 0.25 + relevance × 0.15 + engineering_
 - `title` — 简短描述
 - `hypothesis` — 核心主张
 - `methodology` — 如何推导/验证
-- `perspective` — 理论 / 计算 / 定性 / 交叉学科（与 OSS 3-perspective 对齐：theoretical / computational / qualitative；OSS 无 empirical）
+- `perspective` — 理论 / 计算 / 定性 / 交叉学科（与 OSS 4-perspective 对齐：theoretical / computational / qualitative / empirical；其中 `empirical` 视角的 idea 以 `verification_type=computational` 推进，aligned with idea-discovery）
 
 ### Step 2: 对每个 Idea 运行 4 维评估
 

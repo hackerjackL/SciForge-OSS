@@ -36,7 +36,7 @@ For each candidate idea, execute 5 attack vectors to find its weakest point. The
 
 ### Phase 0: Load Domain Signature & Failure Modes
 
-Read `refine-logs/domain-signature.json` (from Phase 1a `/domain-signature`) to auto-load domain-specific failure modes:
+Read `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner` — the sole source of truth per v2.8; Phase 1a `/domain-signature` writes only the `domain-signature-hint.json` prior) to auto-load domain-specific failure modes:
 
 1. Read the domain signature → extract `failure_mode_profile.common_failures`
 2. Query `shared-references/domain-failure-modes.md` for matching failure modes
