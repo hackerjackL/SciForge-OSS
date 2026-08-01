@@ -294,6 +294,7 @@ Append to `figures/FIGURE_INDEX.md`:
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 > - **[Figure Quality Contract](../../shared-references/figure-quality-contract.md)** — dual output, 16:9 default, Nature readability floor, d2 pipeline
+> - **[Unified Plot Theme (v3.1)](../../shared-references/figure-quality-contract.md)** — 统一强制：数据图按学术主题（DPI=300、Arial 或系统回退字体、Nature 调色板、字号下限 title≥13/axis≥12/tick≥10、16:9 默认）、图保存矢量 PDF + PNG 双产出；架构图/流程图强制 d2 / graphviz 声明式渲染（d2→SVG→PDF+PNG），禁用徒手 SVG（>4 节点）。数据图禁止直接手写散乱样式——必须遵循统一主题契约。
 > - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — external LLM optimization advisor (optional) for top-tier architecture/DAG/academic diagrams: concrete improvement suggestions → re-render; advisory only, never a gate
 
 ## Boundaries
