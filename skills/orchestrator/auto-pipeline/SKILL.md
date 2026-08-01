@@ -77,7 +77,7 @@ Where possible, phases run in parallel to reduce wall-clock time:
 
 | Parallel Group | Phases | Rationale |
 |---------------|--------|-----------|
-| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output. **Caution**: Phase 2's novelty pre-screen depends on Phase 4's literature. If Phase 2 runs first, it uses cached literature; if parallel, Phase 4 must complete before Phase 2's novelty evaluation. Recommend: Phase 2 Round 1 (idea generation) runs in parallel with Phase 4 literature search; Phase 2 Round 2-4 (novelty evaluation) waits for Phase 4 to complete. |
+| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output. **B1 硬性串行化 (v2.3)**: Phase 2 拆两段——Round 1 (idea 生成) 可与 Phase 4 文献检索并行；但 **novelty 预筛 (6-axis 中 novelty 轴) 与 Round 2-4 评估必须等 Phase 4 完成**（读到 `literature/references.bib` 才跑 novelty 轴，禁止用空 bib 预筛或先斩后奏）。若 Phase 4 WARN/空文献，novelty 轴标记 `pending-literature` 并如实记录，不静默降级为猜测。 |
 | **Group B** | Phase 11 (unified-plotting) + Phase 12 (paper-writing) | Figures can be generated while the paper is being written |
 | **Group C** | Phase 7 (leakage-audit) + Phase 8 (logic-verification) | Both audits are independent |
 
@@ -209,6 +209,9 @@ Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺      �
      │          ↻ 分数 < 6 回退 Phase 6（最多 4 轮）
      │
 Phase 15: /citation-audit — 最终引用 3 层验证                        ← 新增
+     │
+Phase 15.5: /publishability-score — 可发表性评分 (dim1 首轴门控)     ← 新增 v2.2
+     │         产出 PUBLISHABILITY_SCORE.json/md
      │
 Phase 16: 最终组装 + 产物归档
 ```
@@ -377,6 +380,8 @@ On successful completion, the orchestrator produces the following structure unde
 ├── review-stage/
 │   ├── AUTO_REVIEW.md           ← cross-model review log (Phase 14)
 │   ├── REVIEW_STATE.json        ← recovery state (Phase 14)
+│   └ PUBLISHABILITY_SCORE.json  ← publishability score (Phase 15.5)  ← 新增
+│   └ PUBLISHABILITY_SCORE.md    ← human-readable score report (Phase 15.5)  ← 新增
 │   └ REVIEW_LEDGER.json        ← machine-readable ledger (Phase 14)
 ├── citation_audit/
 │   └ CITATION_AUDIT.md          ← 3-layer citation audit (Phase 15)
@@ -456,9 +461,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## See Also
 

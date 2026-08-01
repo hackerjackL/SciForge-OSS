@@ -137,37 +137,7 @@ Read all research artifacts and design the paper structure. Write `paper/PAPER_P
 
 **v2.1 — Mode-selected section set.** Determine the mode first per [`paper-modes.md`](../../shared-references/paper-modes.md) §2 (read the canonical `verification_type` token + `evidence_type` from `domain-signature.json`). Then use the section set for that mode from `paper-modes.md` §3. Do NOT hand-pick sections here — the mode fully determines which `sections/*.tex` files to write.
 
-For reference, the two legacy layouts below map onto modes as: `theory` mode (§3.1) covers the old `theory-only` case; `experiment` / `computational` / `hybrid` modes (§3.2/§3.3/§3.5) cover the old `computational`/`theory_experiment` cases. The `survey` mode (§3.4) has no legacy counterpart — it was previously collapsed into the standard layout. Prefer the mode-aware sets.
-
-**Legacy `theory` shape** (now `theory` mode, §3.1) — theorem→lemma→proof, no Results section:
-
-```
-1. **Title** — descriptive, specific to the problem
-2. **Abstract** — 150-250 words, summarizing problem / approach / key theorem / implication
-3. **Introduction** — background, motivation, gap, contribution
-4. **Preliminaries** — notation, assumptions, definitions
-5. **Main Results** — theorem statements with proof sketches
-6. **Proofs** — full derivations (short proofs inline, long proofs in Appendix)
-7. **Discussion** — implications, limitations, open problems
-8. **Conclusion** — contribution summary
-9. **References** — only verified citations
-10. **Appendix** — long proofs, lemmas, extended derivations
-```
-
-**Legacy standard shape** (now `experiment`/`computational`/`hybrid` modes, §3.2-§3.5) — with Results/Experiments:
-
-```
-1. **Title** — descriptive, specific to the problem
-2. **Abstract** — 150-250 words, summarizing problem / approach / result / implication
-3. **Introduction** — background, motivation, gap, contribution
-4. **Related Work** — positioned against the literature survey
-5. **Problem Formalization** — formal definition of the problem
-6. **Theory / Derivation** — core theoretical contribution
-7. **Results** — verification results, consistency checks, sanity checks
-8. **Discussion** — implications, limitations, future work
-9. **Conclusion** — contribution summary
-10. **References** — only verified citations
-```
+**R6 收敛声明 (v2.3)**: 遗留的 `theory`/`standard` 完整版式已从本文件移除——`paper-modes.md` §3 是**唯一的** section-set 权威源（`theory`→§3.1，`experiment`/`computational`/`hybrid`→§3.2/§3.3/§3.5，`survey`→§3.4）。读取该契约文件即可获得完整 section 列表，本 skill 不再内嵌任何版式副本，避免双源漂移。
 
 **Default** (`verification_type=auto`): run the mode selector — when ambiguous it returns `hybrid` (the most general shape), per `paper-modes.md` §2.
 
@@ -265,9 +235,7 @@ Before declaring the draft ready, perform a self-review:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Boundaries
 

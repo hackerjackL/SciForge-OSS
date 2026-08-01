@@ -239,7 +239,7 @@ Verdict mapping:
 
 ### Phase 6: Render HTML (if enabled)
 
-Auto-render `audit_report/LOGIC_VERIFICATION.md` to HTML via `/render-html`. Non-blocking: if rendering fails, log and continue.
+Auto-render `audit_report/LOGIC_VERIFICATION.md` to HTML inline by the agent. Non-blocking: if rendering fails, log and continue.
 
 ## 6-State Verdict Schema
 
@@ -257,9 +257,7 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Boundaries
 

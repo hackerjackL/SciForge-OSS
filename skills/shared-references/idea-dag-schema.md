@@ -1,6 +1,6 @@
 # Idea DAG Schema — Single Source of Truth
 
-> **Status**: Contract for the Idea DAG data structure. Consumed by `/idea-creator` Phase 2.5 (DAG-Based Idea Search). Produces `idea-stage/IDEA_DAG.json`.
+> **Status**: Contract for the Idea DAG data structure. Consumed by `/idea-discovery` Phase 2.5 (DAG-Based Idea Search). Produces `idea-stage/IDEA_DAG.json`.
 
 This schema defines a **Directed Acyclic Graph (DAG)** for storing the idea search space. Each node represents an Idea's state (including its sketch, fidelity scores, and UCB value). Edges represent iteration (Mutation) or combination (Crossover). The DAG structure captures the evolutionary history of ideas — which ideas were derived from which, and which were combined to form fusion ideas.
 
@@ -183,7 +183,7 @@ UCB = V_idea + c * sqrt(ln(N_total) / n_idea)
 
 ## 6. Data Fit Flags (Optional, Discipline-Aware)
 
-The `data_fit_flags` field on each node records the data axis alignment from the low-fidelity evaluation (sourced from `/ouroboros-data-insight` 5-axis idea-fit verdict). This field is **optional** — it is populated when `DATA_INSIGHT_REPORT.md` exists and the low-fidelity evaluation runs.
+The `data_fit_flags` field on each node records the data axis alignment from the low-fidelity evaluation (sourced from the idea-discovery data-readiness axis 5-axis idea-fit verdict). This field is **optional** — it is populated when `DATA_INSIGHT_REPORT.md` exists and the low-fidelity evaluation runs.
 
 | Field | Values | Meaning |
 |-------|--------|--------|
@@ -218,13 +218,13 @@ The `idea_sketch` field carries discipline-specific content per `DISCIPLINE_CONT
 
 | Artifact | Path | Producer | Consumers | Schema |
 |----------|------|----------|-----------|--------|
-| `IDEA_DAG.json` | idea-stage/ | `/idea-creator` Phase 2.5 | `/idea-creator` (self-consumed across MCTS iterations), `/novelty-check` (reads promoted ideas), `/research-review` (reads promoted ideas for review) | This schema (v1.0) |
+| `IDEA_DAG.json` | idea-stage/ | `/idea-discovery` Phase 2.5 | `/idea-discovery` (self-consumed across MCTS iterations), `/novelty-check` (reads promoted ideas), `/auto-review-loop` (reads promoted ideas for review) | This schema (v1.0) |
 
 ---
 
 ## 9. Fallback Behavior
 
-If `IDEA_DAG.json` does not exist or is corrupted, `/idea-creator` falls back to the legacy pilot experiment flow (Phase 2 pilot top 2-3 ideas). The DAG search is an enhancement layer, not a hard dependency — the 4 pipeline orchestrators remain unaffected.
+If `IDEA_DAG.json` does not exist or is corrupted, `/idea-discovery` falls back to the legacy pilot experiment flow (Phase 2 pilot top 2-3 ideas). The DAG search is an enhancement layer, not a hard dependency — the 4 pipeline orchestrators remain unaffected.
 
 ---
 

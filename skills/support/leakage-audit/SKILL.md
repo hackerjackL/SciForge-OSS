@@ -89,6 +89,8 @@ If `methods/METHOD_REGISTRY.md` does not exist, **ABORT and tell the user to run
 - Are there hidden assumptions not stated that are doing the work?
 - Is the implication stronger than what the model can deliver?
 
+> **R5 收敛声明 (v2.3)**: Type I 与 `/logic-verification` 的 `LOGICAL_GAP`/`UNJUSTIFIED_ASSERTION` 关注同一逻辑正确性问题——本 audit **交叉引用** logic-verification 的裁决：若 `LOGIC_VERIFICATION.json` 已对该 claim 判定 FATAL/CRITICAL，则 Type I 直接继承（不重复判定），只追加"该方法/结果是否从假设推导"这一板块性视角；避免对同一缺口双重判罚。
+
 ### Type II — Hidden Violation (OSS: NOT APPLICABLE)
 
 > The empirical methodology silently violates the paper's own theoretical assumptions.
@@ -296,9 +298,7 @@ The audit REJECTS the project (returns FAIL) if any of:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Boundaries
 

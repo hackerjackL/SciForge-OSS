@@ -1,6 +1,6 @@
 # Multi-Fidelity Evaluation Contract — Three-Layer Filter for Idea Screening
 
-> **Status**: Contract for the three-layer multi-fidelity evaluation system. Consumed by `/idea-creator` Phase 2.5 (DAG-Based Idea Search). Works with [`idea-dag-schema.md`](idea-dag-schema.md) (DAG structure) and [`mcts-search-protocol.md`](mcts-search-protocol.md) (search algorithm).
+> **Status**: Contract for the three-layer multi-fidelity evaluation system. Consumed by `/idea-discovery` Phase 2.5 (DAG-Based Idea Search). Works with [`idea-dag-schema.md`](idea-dag-schema.md) (DAG structure) and [`mcts-search-protocol.md`](mcts-search-protocol.md) (search algorithm).
 
 This contract defines the **three fidelity gates** that filter ideas from cheap text reasoning to expensive full experiments. The goal is to **minimize token and compute waste** by pruning bad ideas early, while **catching "late bloomers"** that look mediocre initially but improve with iteration.
 
@@ -25,7 +25,7 @@ In reinforcement learning, this is called **noisy reward** or **delayed reward**
 ## 2. Three-Layer Filter
 
 ```
-    8-12 candidate ideas (from /idea-creator Phase 2)
+    8-12 candidate ideas (from /idea-discovery Phase 2)
            │
            ▼
     ┌──────────────────────────────────────────────────────┐
@@ -182,7 +182,7 @@ The user's core concern is "false tricks" — ideas that look good early but fai
 
 ## 7. Integration with Data Insight
 
-The `/ouroboros-data-insight` skill produces a 5-axis idea-fit verdict that feeds into the **low-fidelity** evaluation:
+The idea-discovery data-readiness axis produces a 5-axis idea-fit verdict that feeds into the **low-fidelity** evaluation:
 
 | Axis | Used in | Question answered |
 |------|---------|-------------------|

@@ -1,6 +1,6 @@
 # MCTS Search Protocol — Monte Carlo Tree Search for Idea Exploration
 
-> **Status**: Contract for the MCTS-based idea search algorithm. Consumed by `/idea-creator` Phase 2.5. Works in concert with [`idea-dag-schema.md`](idea-dag-schema.md) (data structure) and [`multi-fidelity-evaluation.md`](multi-fidelity-evaluation.md) (evaluation gates).
+> **Status**: Contract for the MCTS-based idea search algorithm. Consumed by `/idea-discovery` Phase 2.5. Works in concert with [`idea-dag-schema.md`](idea-dag-schema.md) (data structure) and [`multi-fidelity-evaluation.md`](multi-fidelity-evaluation.md) (evaluation gates).
 
 This protocol defines how the agent searches the idea DAG using **Monte Carlo Tree Search (MCTS)** with the **UCB (Upper Confidence Bound)** formula. The goal is to balance **exploration** (trying under-visited ideas) and **exploitation** (deepening promising ideas), avoiding both BFS (too slow) and DFS (one-path-to-death) traps.
 
@@ -297,7 +297,7 @@ This catches ideas that look good on paper (low-fidelity text reasoning) but fai
 
 ## 9. Integration with Existing Pipeline
 
-The MCTS search is invoked by `/idea-creator` Phase 2.5. It does NOT replace the existing pilot experiment flow — it enhances it:
+The MCTS search is invoked by `/idea-discovery` Phase 2.5. It does NOT replace the existing pilot experiment flow — it enhances it:
 
 | Existing flow (unchanged) | New flow (Phase 2.5) |
 |---------------------------|---------------------|
