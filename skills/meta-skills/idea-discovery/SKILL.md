@@ -94,6 +94,44 @@ Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mct
 
 **用户硬要求**：idea 不能写得垃圾。一个 idea 若只是"我们用 X 方法做 Y"，无新颖性洞察、无机制性贡献、无与现有工作的差异点，就是垃圾 idea，必须淘汰。
 
+## 反重复记忆（v3.1 — P1 anti-repetition mechanism）
+
+**防止重复生成已被淘汰/证伪的 idea**。持久化 + 双重排毒，工具：`scripts/idea/failed_ideas_memory.py`（纯 stdlib，0 LLM cost）：
+
+1. **持久化**：每当 idea 被 `FALSIFIED`（Phase 2.5 淘汰）、toy gate `FAIL`、BA 回退被杀，或 novelty-check 淘汰时，把 `{id, description, reason}` 追加写入 `refine-logs/failed_ideas.json`（幂等，按 id 去重）。
+   ```bash
+   python3 scripts/idea/failed_ideas_memory.py add <idea_id> "<description>" "<reason>"
+   ```
+2. **硬校验（0 LLM cost）**：MCTS Round 1 生成每个 root node 前，跑 TF-IDF 余弦相似度检查；与 failed_ideas 库相似度 **> 0.78 直接废弃**该 idea（不再进入 MCTS）：
+   ```bash
+   python3 scripts/idea/failed_ideas_memory.py check "<new idea description>"
+   # -> {"verdict": "REJECT"|"PASS", "similarity": ...}
+   ```
+   `REJECT` → 该候选不加入 DAG，原因写入 `MCTS_LOG.md`（reason_code `duplicate_failed_idea`）。
+3. **软 Prompt 注入**：MCTS Round 1 生成前，把历史最相似的 N 条被杀 idea + 失败原因注入生成 prompt（防止"换个说法再来一次"）：
+   ```bash
+   python3 scripts/idea/failed_ideas_memory.py prompt <n> "<current problem statement>"
+   ```
+   注入文本以 `[failed-ideas prompt injection]` 开头，随生成指令一并交给 agent。
+
+## Type-A 客观硬淘汰 vs Type-B 品质量刑（v3.1 — P2 decoupling）
+
+**严禁在初筛阶段让 LLM 用主观口味淘汰可行性方案。** 筛选流水线解耦为两层：
+
+| 层 | 内容 | LLM Cost | 工具 |
+|----|------|----------|------|
+| **Type-A（客观硬条件淘汰）** | GPU 显存预估、数据可得性、依赖包导入、代码语法（AST）四类机械检查。任一 FAIL → **0 成本斩杀**，不进入任何质量评审 | **0** | `scripts/idea/type_a_gate.py` |
+| **Type-B（品质量刑）** | 通过 Type-A 后，才进入 Phase 2.5（adversarial-falsification）/ Phase 3（novelty-check）等 Peer-Review 子代理，对 Novelty / Soundness / Impact 加权多维打分 | LLM | 既有 Phase 2.5 / Phase 3 |
+
+**执行协议**：
+1. MCTS Round 1 每个候选 idea 先产出结构化 spec（`requires_gpu_gb` / `requires_packages` / `data_required` / `data_sources` / `code_snippet`），跑 Type-A：
+   ```bash
+   python3 scripts/idea/type_a_gate.py <idea_spec.json> --gpu-gb <可用显存GB>
+   ```
+2. `verdict: FAIL` → idea 直接淘汰，`MCTS_LOG.md` 记录 `reason_code=type_a_<fail_reason>`（如 `type_a_gpu_oom_estimated` / `type_a_missing_data_source` / `type_a_missing_dependency` / `type_a_code_syntax_error`）；**不得**进入 Phase 2.5/3。
+3. `verdict: PASS` → 才进入 Type-B（Phase 2.5 证伪 + Phase 3 novelty 评分）。
+4. Type-A 判定**永不调用 LLM**；任何 LLM 都不得在初筛阶段替代或覆盖 Type-A 的机械判定。
+
 每个 candidate idea 在 `IDEA_CANDIDATES.md` 必须包含以下 5 字段（缺任一即视为不达标，MCTS 前置淘汰）：
 
 | 字段 | 内容 | 垃圾 idea 的判别信号 |

@@ -1,0 +1,147 @@
+{
+  "runner": "SciForge-OSS regression-matrix",
+  "timestamp": "2026-08-01T19:28:42",
+  "method": "single-model x multi-temperature sampling (deterministic toy-gate probe)",
+  "temperatures": [
+    0.0,
+    0.4,
+    0.8
+  ],
+  "domains": [
+    {
+      "domain": "sciforge-test-econ",
+      "q_id": "Q-TEST-ECON",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": true,
+        "status": "PASS",
+        "primary_metric": null,
+        "primary_value": null
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": false,
+        "PAPER": true,
+        "TOY_RESULT": true
+      },
+      "closed_loop": true
+    },
+    {
+      "domain": "sciforge-test-math",
+      "q_id": "Q-TEST-MATH",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": false
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": true,
+        "PAPER": true,
+        "TOY_RESULT": false
+      },
+      "closed_loop": false
+    },
+    {
+      "domain": "sciforge-test-ml",
+      "q_id": "Q-TEST-ML",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": true,
+        "status": "FAIL",
+        "primary_metric": null,
+        "primary_value": null
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": true,
+        "PAPER": true,
+        "TOY_RESULT": true
+      },
+      "closed_loop": true
+    },
+    {
+      "domain": "sciforge-test-med",
+      "q_id": "Q-TEST-MED",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": true,
+        "status": "PASS",
+        "primary_metric": null,
+        "primary_value": null
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": true,
+        "PAPER": true,
+        "TOY_RESULT": true
+      },
+      "closed_loop": true
+    },
+    {
+      "domain": "sciforge-test-run",
+      "q_id": "Q-TEST-001",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": true,
+        "status": "PASS",
+        "primary_metric": null,
+        "primary_value": null
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": true,
+        "PAPER": true,
+        "TOY_RESULT": true
+      },
+      "closed_loop": true
+    },
+    {
+      "domain": "sciforge-test-survey",
+      "q_id": "Q-TEST-SURVEY",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": false
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": true,
+        "PAPER": true,
+        "TOY_RESULT": false
+      },
+      "closed_loop": false
+    },
+    {
+      "domain": "sciforge-test-mat",
+      "q_id": "Q-TEST-MAT",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": true,
+        "status": "PASS",
+        "primary_metric": null,
+        "primary_value": null
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": true,
+        "PAPER": true,
+        "TOY_RESULT": true
+      },
+      "closed_loop": true
+    },
+    {
+      "domain": "sciforge-test-bg",
+      "q_id": "SciForge-OSS v2.0 ba",
+      "pipeline_verdict": "COMPLETED",
+      "toy_gate": {
+        "present": true,
+        "status": "PASS",
+        "primary_metric": null,
+        "primary_value": null
+      },
+      "artifacts": {
+        "FINAL_PROPOSAL": false,
+        "PAPER": false,
+        "TOY_RESULT": true
+      },
+      "closed_loop": false
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "closed_loop": 5,
+    "completed_verdict": 8
+  }
+}

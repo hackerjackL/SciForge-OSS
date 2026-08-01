@@ -137,6 +137,21 @@ Read all research artifacts and design the paper structure. Write `paper/PAPER_P
 
 **v2.1 — Mode-selected section set.** Determine the mode first per [`paper-modes.md`](../../shared-references/paper-modes.md) §2 (read the canonical `verification_type` token + `evidence_type` from `domain-signature.json`). Then use the section set for that mode from `paper-modes.md` §3. Do NOT hand-pick sections here — the mode fully determines which `sections/*.tex` files to write.
 
+**v3.1 — 全学科写作 Adapter 分发器（P5/Phase 6）**: mode 决定 section 骨架，**学科 Adapter 决定写作风格与强制槽位**。先用 `scripts/writing/discipline_adapter.py` 对 `domain-signature.json` + 问题文本做学科识别，再取用对应 Adapter 契约：
+
+```bash
+python3 scripts/writing/discipline_adapter.py detect "<problem text / signature>"
+python3 scripts/writing/discipline_adapter.py adapter <stem|medbio|humanities>
+```
+
+| Adapter | 语气 | 强制槽位 |
+|---------|------|----------|
+| **STEM** | 被动语态、客观克制、定量精确（单位/误差棒） | derivation_log, verification_evidence |
+| **Med/Bio** | 对照实验框架、显著性显式、临床转化相关 | statistical_significance, ethics_statement, data_compliance, limitations |
+| **Humanities/SS** | 概念演变辨析、史料/文献推演、定性论证框架 | source_chain, concept_definition, interpretive_scope_boundary |
+
+执行协议：写每个 section 前先取 Adapter 契约；`forced_slots` 缺失 → 该 section 回退重写；`forbidden` 表述出现 → 重写。Adapter 判定为规则化（关键词评分），不引入额外 LLM 调用。
+
 **R6 收敛声明 (v2.3)**: 遗留的 `theory`/`standard` 完整版式已从本文件移除——`paper-modes.md` §3 是**唯一的** section-set 权威源（`theory`→§3.1，`experiment`/`computational`/`hybrid`→§3.2/§3.3/§3.5，`survey`→§3.4）。读取该契约文件即可获得完整 section 列表，本 skill 不再内嵌任何版式副本，避免双源漂移。
 
 **Default** (`verification_type=auto`): run the mode selector — when ambiguous it returns `hybrid` (the most general shape), per `paper-modes.md` §2.
