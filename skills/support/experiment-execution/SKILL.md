@@ -299,8 +299,18 @@ If toy gate passed, design the full-scale experiment:
 2. **Add rigor** — proper controls, ablation, robustness checks
 3. **Add checkpointing** — save intermediate results every `checkpoint_interval` seconds
 4. **Add monitoring** — periodic status updates to `experiments/full/STATUS.json`
+5. **Expose a 1-step cap flag** (`--max-steps`/`--max-epochs`/`--steps`) — Step 5.0's smoke gate REQUIRES slicing the full script to 1 step; a full script with no step-cap flag is itself a design defect. Add the flag here, retroactively enforced at Step 5.0.
 
 ### Step 5: Dispatch Full Experiment to Background
+
+**The full-experiment dispatch sequence is FIXED and top-to-bottom — the agent MUST execute Step 5.0 (smoke) → Step 5.1 (method select) → Step 5.2 (dispatch) → Step 6 (return) in this exact order. Dispatching a full experiment WITHOUT first running Step 5.0 is a contract violation — the agent must NEVER skip the smoke gate because it's "only a 1-step slice".**
+
+1. **Step 5.0 — Full-Code Smoke Gate** (v3.2, MANDATORY — see below; produces `.SMOKE.json`)
+2. **Step 5.1 — Dispatch Method Selection** (tmux → nohup → systemd)
+3. **Step 5.2 — Execute Dispatch** (writes `FULL_EXPERIMENT_DISPATCH.json`)
+4. **Step 6 — Return to Orchestrator** (immediate, do not wait)
+
+> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Step 5.0 was a **buried subsection** between Step 5 (dispatch) and Step 5.1 (method) — the agent read the numbered Step 4→5→6 chain and **silently skipped 5.0** because it was not in the explicit execution list. The Q-SGD-BS-GAP test run confirmed this: `experiments/full/` has `FULL_EXPERIMENT_DISPATCH.json` + `STATUS.json` (state=DONE, 184s) but **NO `.SMOKE.json`** — the full experiment ran successfully by luck (the script happened to work), but the smoke gate that v3.2 mandates to catch a 6-hour-late crash never executed. This is the same buried-subsection bug class as the auto-review-loop B.2 fix. The `.SMOKE.json` file is the load-bearing evidence — a full dispatch that completes without first writing `.SMOKE.json` is invalid regardless of whether the experiment ultimately succeeded.
 
 **Background dispatch is MANDATORY for full experiments.** The agent must NOT wait in the foreground for long-running jobs.
 

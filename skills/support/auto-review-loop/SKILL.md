@@ -114,6 +114,17 @@ State fields:
 
 ### Loop (repeat up to MAX_ROUNDS)
 
+**The per-round execution order is FIXED and top-to-bottom — the agent MUST execute Phase A → Phase B.1 → Phase B.2 → Phase C → Phase D in this exact sequence each round. Skipping any phase (especially the buried B.2 sub-step) is a contract violation. The round's final score is `effective_score = min(Phase A raw score, B.2 cap)` (see STOP CONDITION).**
+
+1. **Phase A — Structured Self-Review** (generic 6-axis checklist, produces raw score + weakness list)
+2. **Phase B.1 — Fidelity Gate** (3-fidelity ladder on primary outcomes)
+3. **Phase B.2 — Domain-Expert Blind-Spot Review** (v3.2, MANDATORY — see below; produces `BLINDSPOT_CHECK.json` + score cap)
+4. **Phase B.5/B.6** (only if difficulty ≥ hard — memory + debate)
+5. **Phase C — Implement Fixes** (merge Phase A weaknesses + B.2 unresolved blind-spots into one fix list)
+6. **Phase D — Wait for background derivations** (if any dispatched)
+
+> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Phase B.2 was a **buried subsection** between B.1 and B.5 — the agent read the numbered Phase A→B.1→B.5→C chain and **silently skipped B.2** because it was not in the explicit execution list. Two real test runs (Q-HARM-001 theory, Q-SGD-BS-GAP computational) confirmed this: both produced `review-stage/` with `AUTO_REVIEW.md` + `REVIEW_LEDGER.json` but **NO `BLINDSPOT_CHECK.json`** — Phase B.2 never ran, yet `PIPELINE_STATUS.md` claimed "盲区8项全过" with zero backing artifact. This is the same orphan-artifact bug class as the v3.2 frontier gap. The fix is structural: B.2 is now step 3 of the explicit ordered loop, not a buried subsection. The `BLINDSPOT_CHECK.json` file is the load-bearing evidence — a round that completes without writing it is invalid regardless of the score it claims.
+
 #### Phase A: Structured Self-Review
 
 **Role switching (OSS — universal):** The agent switches its own role from "researcher" to "senior reviewer". The `{reviewer_persona}` is always `senior-reviewer-agnostic` — applied to every problem. There is no discipline-specific persona.
