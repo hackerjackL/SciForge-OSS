@@ -1,5 +1,6 @@
 ---
 name: unified-plotting
+description: "Render publication-quality vector figures (PDF+PNG) from data or JSON specs — 11 chart types, Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
 ---

@@ -1,5 +1,6 @@
 ---
 name: auto-review-loop
+description: "Iterative self-review (review→fix→re-review) with role-switch + v3.2 Phase B.2 domain-expert blind-spot review + kill-argument anti-self-deception. Phase 14. Invoke to improve the draft until score≥6 or MAX_ROUNDS."
 type: reference-skill
 role: autonomous-review-loop-orchestrator
 ---
@@ -199,7 +200,7 @@ Then extract structured fields:
 - **Verdict** ("ready" / "almost" / "not ready")
 - **Action items** (ranked list of fixes)
 
-**STOP CONDITION**: If score >= 6 AND verdict contains "ready" or "almost" → stop loop, document final state.
+**STOP CONDITION**: If `effective_score >= 6` AND verdict contains "ready" or "almost" → stop loop, document final state. **v3.2 — `effective_score` not raw score**: the score used for the stop condition is the **min of (Phase C raw score, B.2 cap)**, NOT the raw Phase C score alone. A raw 7/10 that hides a fatal unresolved domain blind-spot (B.2 cap = 5) is `effective_score = 5` → does NOT stop, must fix the blind-spot first. This closes the gap where the generic Phase C review could declare "ready" while a fatal endogeneity / boundary-condition / straw-man failure (B.2) was never addressed.
 
 #### Phase B.1: Fidelity Gatekeeping (Universal — replaces economics p-value gate and cs-ml SOTA gate)
 

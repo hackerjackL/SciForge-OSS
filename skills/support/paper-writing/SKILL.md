@@ -1,5 +1,6 @@
 ---
 name: paper-writing
+description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer
 ---
@@ -175,6 +176,8 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 - State the gap clearly
 - List contributions explicitly
 - End with the paper structure roadmap
+
+> **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the 3-layer citation discipline forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".
 
 **Related Work:**
 - Group by theme, not by paper
