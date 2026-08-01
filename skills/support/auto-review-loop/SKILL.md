@@ -14,6 +14,8 @@ role: autonomous-review-loop-orchestrator
 - **Key**: 单 agent 角色切换 (研究者→评审者→辩护者→裁决者)；3 轮上限；保真度门控
 
 > **Status**: Autonomous iterative improvement via structured self-review. **OSS uses single-agent self-review** — the same agent switches roles between "researcher" and "senior reviewer" to provide adversarial critique. There is no external cross-model reviewer requirement. **OSS is discipline-agnostic** — only the universal `senior-reviewer-agnostic` persona is active. No statistical gatekeeping (economics p-value), no SOTA gate (cs-ml), no PNV chain integrity (physics). Copied from main SciForge and adapted to OSS's single-agent architecture.
+>
+> **v3.2 — Domain-expert blind-spot pass (content-quality fix)**: a single-LLM self-review has a systematic blind spot: the same model family tends to miss the *same class* of domain-specific failure on every pass (e.g. an LLM reviewing a causal-inference paper reliably under-checks instrument validity; reviewing a PDE paper reliably under-checks boundary conditions). A real domain-expert reviewer would special-case these. v3.2 adds a **Domain-Expert Blind-Spot Review** sub-step (see §Domain-Expert Blind-Spot Pass below) that uses [`domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) as a **forced checklist** keyed off the domain signature's `evidence_type` — the agent must explicitly check each known failure mode for its domain and mark it checked/NA/unresolved, independent of the general score-based review. This catches the class of weaknesses that the generic LLM reviewer structurally under-weights, and is the single biggest content-quality lever for reaching a senior-researcher-usable draft.
 
 ## Use When
 
@@ -228,6 +230,47 @@ Then extract structured fields:
    - All primary outcomes below threshold → "preliminary" / "suggests" — block positive assessment
 
 **This gate is MANDATORY and cannot be skipped. The gate operates on PRIMARY outcomes (pre-specified) only, NOT on all outcomes.**
+
+#### Phase B.2: Domain-Expert Blind-Spot Review (v3.2 — MANDATORY, all difficulties)
+
+> **Why this exists (honest gap)**: a single-LLM self-review has a *systematic*, not random, blind spot — the same model family tends to under-check the *same class* of domain-specific failure on every pass. An LLM reviewing a causal-inference paper reliably under-checks instrument validity; reviewing a PDE paper reliably under-checks boundary conditions; reviewing an interpretive paper reliably under-checks straw-man. A *human* domain expert would special-case exactly these. The generic score-based review (Phase C) cannot fix this because it reviews against a universal checklist, not a domain-specific one. This phase closes that gap by forcing a **domain-specific failure-mode checklist** derived from the domain signature's `evidence_type`.
+
+**Runs on EVERY round, all difficulties (medium/hard/nightmare) — it is NOT gated behind difficulty like Phase B.5/B.6.** This is the single biggest content-quality lever; it cannot be opt-in.
+
+**Inputs**:
+- `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner`) — read `evidence_type` + `methodology_profile`
+- [`domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) — the canonical failure-mode catalog, keyed by `evidence_type`
+- The research artifacts under review this round (`derivations/`, `CLAIMS_FROM_RESULTS.md`, `paper/sections/*.tex`)
+
+**Procedure**:
+1. **Select the failure-mode row** for this run's `evidence_type` from `domain-failure-modes.md`:
+   - `causal_inference` → endogeneity / omitted_variable_bias / reverse_causality / selection_bias / measurement_error / simultaneity / attrition_bias / publication_bias
+   - `experimental` → no_placebo / no_blinding / insufficient_power / multiple_testing / regression_to_mean / confounding_by_indication / lead_time_bias
+   - `correlational` → spurious_correlation / ecological_fallacy / simpson_paradox / survivorship_bias / confirmation_bias
+   - `derivational` → hidden_assumption / circular_reasoning / quantifier_error / division_by_zero / limit_order_error / dimensional_error / boundary_condition_error
+   - `simulational` → numerical_instability / convergence_failure / discretization_error / parameter_tuning_bias / seed_dependence
+   - `interpretive` → cherry_picking / anecdotal_evidence / straw_man / ad_hoc_hypothesis / equivocation
+   - If the signature has a secondary `evidence_type` (e.g. `theory+experiment`), union the two rows.
+2. **For each failure mode in the row**, the reviewer (still the same agent, fresh role switch per [`reviewer-independence.md`](../../shared-references/reviewer-independence.md)) must produce one of three verdicts, with **file:line evidence** for `unresolved`:
+   - `checked_clear` — the artifacts explicitly address this failure mode (e.g. a DWH test for endogeneity is present and passes) → no action.
+   - `not_applicable` — this failure mode does not apply to this problem (e.g. `no_placebo` for a pure-theory paper) → record the reason in one clause.
+   - `unresolved` — the failure mode applies but the artifacts do NOT address it → **add to this round's fix list as a MAJOR (or CRITICAL if the failure-mode catalog marks it `fatal`)**, independent of the generic Phase C weakness list.
+3. **Write `review-stage/BLINDSPOT_CHECK.json`** (one per round, appended):
+   ```json
+   {"round":N,"evidence_type":"<x>","failure_modes_checked":[
+     {"mode":"endogeneity","verdict":"checked_clear","evidence":"methods/METHOD_REGISTRY.md:42 DWH p=0.31"},
+     {"mode":"reverse_causality","verdict":"unresolved","evidence":"missing","severity":"fatal","added_to_fix_list":true},
+     {"mode":"no_placebo","verdict":"not_applicable","reason":"pure theory, no treatment arm"}
+   ],"unresolved_count":1,"fatal_unresolved":1}
+   ```
+4. **Severity propagation**: any `unresolved` failure mode whose catalog severity is `fatal` forces this round's review to **cap the top-level score at 5/10** (below the 6/10 positive threshold) regardless of how well the generic Phase C review scored it — a fatal domain blind spot is submission-blocking, and a 6+ score that hides a fatal endogeneity gap is dishonest. `severe` unresolved caps at 6; `checked_clear`/`not_applicable` impose no cap. The cap is recomputed each round; once the fix lands and the mode re-checks `checked_clear`, the cap lifts.
+
+**Boundaries**:
+- This phase is **additive to, not a replacement for**, Phase B.1 (fidelity gate) and Phase C (generic review). Run all three; the score is the min of (Phase C score, B.2 cap).
+- The failure-mode row is **selected by `evidence_type` only** — never by a discipline label. No economics/physics hardcode.
+- If `domain-signature.json` is missing (Phase 1b failed), this phase **WARNs and falls back to the `derivational` row** (the most general: hidden_assumption / circular_reasoning / quantifier_error) — it never silently skips. The WARN is recorded in `BLINDSPOT_CHECK.json` (`fallback_reason: signature_missing`).
+- `unresolved` findings feed the fix list exactly like Phase C weaknesses — they are not informational-only. The loop must attempt a fix (bounded 2 solution paths before conceding, per the "Exhaust before surrendering" rule).
+- A `fatal` unresolved that survives MAX_ROUNDS surfaces to the human as `BLOCKED, reason_code: unresolved_domain_blindspot_<mode>` — it is never self-waived.
 
 #### Phase B.5: Self-Reviewer Memory Update (hard + nightmare only)
 
