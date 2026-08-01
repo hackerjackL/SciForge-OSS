@@ -105,6 +105,40 @@ Read `FINAL_PROPOSAL.md` and `domain-signature.json` to determine:
 3. **What scale is "toy"?** — typically 1-10% of full (subset of data, fewer epochs, coarser mesh, smaller sample)
 4. **What is the full experiment?** — complete-scale validation
 
+### Step 0p: Network Proxy Auto-Mount (MANDATORY before any dataset/model download)
+
+**绝对禁止因网络问题跳过数据集/模型/依赖下载**（用户硬要求）。toy/full 实验常需从 GitHub / HuggingFace / ModelScope / arXiv / Zenodo / Kaggle / OpenNeuro 等拉取数据集或预训练权重；本 skill 在任何网络请求前必须先完成代理挂载，逻辑与 `universal-retrieval` 的「代理自主检测」对齐（同一份 `literature/.proxy-resolved.json` 可复用）：
+
+1. **复用已探测代理**：若 `literature/.proxy-resolved.json` 存在且 `detected_at` 距今 < 1h，或环境变量 `http_proxy`/`https_proxy`/`ALL_PROXY` 已设，直接复用，跳过探测。
+2. **候选端口探测**（与 universal-retrieval 同序列）：`8099`（mihomo mixed-port）→ `7890`（Clash HTTP）→ `7892`（Clash SOCKS）→ `1080` → `8080`。逐个 `socket.connect_ex(('127.0.0.1',<port>), timeout=2)`，TCP 通后再经该代理 GET `https://huggingface.co` 或 `https://github.com`（`timeout=3s`，期望 2xx/3xx）双检。第一个双检通过即选中。
+3. **挂载**：写入 `experiments/.proxy-resolved.json`（实验侧副本，与 `literature/.proxy-resolved.json` 同 schema），并对后续所有下载设 `http_proxy`/`https_proxy`。
+4. **全部候选不可达** → **绝不放弃下载**：(a) 直连试 1 次（`timeout=10s`）；(b) 直连失败 → 转入「Step 0d 异步下载」（nohup 后台），下载 verdict 降为 `WARN`，**永不降级为 SKIP/NOT_APPLICABLE/网络原因 BLOCKED**。网络只能把 PASS 降到 WARN。
+5. **重探测**：已挂载代理连续超时 2 次 → 删 `.proxy-resolved.json` 回步骤 2 重探测。
+6. **下载产物归档**：所有下载的数据集/权重写 `experiments/datasets/` 或 `experiments/weights/`，并在 `experiments/.downloads.json` 登记 `{source, url, sha256, size_bytes, downloaded_at, via_proxy:bool, method:"foreground|nohup"}`，供 Phase 10 result-to-claim 与 Phase 15 citation-audit 回溯。
+
+### Step 0d: Async Dataset Download (nohup — 用户硬要求：大文件/长任务后台异步)
+
+大型数据集（HLE ~数 GB、PaperBench、NatureBench、ImageNet、COCO、Pile、OpenWebText、HF Hub 模型权重）或环境依赖（`pip install`、conda env、`huggingface-cli download`、`modelscope download`）预计耗时较长时**必须用 `nohup` 后台异步下载，立刻切其他代码重构/测试任务**，遵循 [`background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md)：
+
+1. **触发阈值**：单文件/批次预计 > 2min 或体积 > 100MB → MUST 后台；2-5min/≤100MB → SHOULD 后台（agent 自主）；<2min/≤100MB → 前台。
+2. **nohup 调度**（与 Step 5 同栈，tmux→nohup→systemd 降级）：
+   ```bash
+   cd {workdir} && nohup bash -c '
+     export http_proxy="{proxy_url}" https_proxy="{proxy_url}" ALL_PROXY="{proxy_url}"
+     {download_command}   # 如: huggingface-cli download <repo> --local-dir experiments/datasets/<name>
+                          # 或: wget -c <url> -O experiments/datasets/<name>
+                          # 或: pip install -r requirements-exp.txt
+   ' > experiments/downloads/{name}.log 2>&1 &
+   echo $! > experiments/downloads/{name}.pid
+   disown
+   ```
+3. **立即返回**：调度后**不等待**，前台立即切到 Step 1（设计 toy）/其他 phase；下载状态在 Phase 10（result-to-claim）回收——读 `experiments/downloads/{name}.STATUS.json`，若 `status=running` 用已下完的部分继续 toy（缩 scale），若 `failed` 按 Recovery Protocol 重试 1 次，仍失败 verdict WARN + 记录 `source_status: unavailable`。
+4. **多下载并行**：多个独立数据集/依赖可并行各起一个 nohup job（不同 `{name}`），互不阻塞；每个写独立 `.pid`/`.log`/`.STATUS.json`。
+5. **下载完整性核**：完成后对每个文件算 sha256 写入 `experiments/.downloads.json`（步骤 0p·6）；哈希与上游公布的（HuggingFace/HF Hub 的 `LFS` sha256、Zenodo 的 checksum）比对，不符 → WARN + 重下 1 次。
+6. **断点续传**：优先用支持 `-c`/`--resume`/`--local-dir-use-symlinks False` 的工具（`wget -c`、`aria2c -c`、`huggingface-cli download` 自带断点）；STATUS.json 记录 `resume_from` 字段。
+
+**绝对禁止**：因下载慢/超时而跳过数据集获取、改用纯合成数据替代真实数据集（除非 domain-signature 明确允许）、或把 toy gate PASS 建立在未下完的残缺数据上而不标记。
+
 ### Step 0a: Device Detection (v2.2 — CPU/GPU/NPU auto-detect)
 
 Before running any experiment script, detect the available compute device. This machine has a small GPU (may not always); some machines have NPU; CPU is always available.

@@ -95,12 +95,29 @@ OSS 是学科无关的，125 问题跨 10+ 領域，**不能按学科硬切换�
 
 | 配置 | 值 | 说明 |
 |------|-----|------|
-| 代理地址 | `http://127.0.0.1:8099` | mihomo 混合端口（HTTP + SOCKS5） |
+| 代理地址 | `http://127.0.0.1:8099`（默认；启动时自主探测，见下文「代理自主检测」） | mihomo 混合端口（HTTP + SOCKS5）；探测失败则按候选序列降级 |
 | 模式 | `rule`（规则模式） | 默认规则模式；CN 域名直连，外网走代理 |
 | 启用方式 | 所有 HTTP 请求设置 `http_proxy`/`https_proxy` 环境变量 OR 在请求库中显式传 `proxies={"http": "...", "https": "..."}` | Python `urllib`/`requests` 均支持 |
-| 失败回退 | 若代理超时，用 `nohup` 后台重试单条查询（长任务挂后台，前台继续其他源） | 遵循 [`background-dispatch-protocol.md`](../shared-references/background-dispatch-protocol.md) |
+| 失败回退 | 若代理超时，用 `nohup` 后台重试单条查询（长任务挂后台，前台继续其他源） | 遵循 [`background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md) |
 
 **硬规则**：所有外网 API 调用（arxiv export、S2 graph、crossref works、pubmed eutils、openalex）**必须走代理**。不直连外网（CN 环境直连 arxiv/s2/crossref 会超时）。代理通过 mihomo 规则模式自动路由——学术 API 域名走代理，CN 域名直连。
+
+### 代理自主检测（auto-mount — 用户硬要求：自主检测并挂载，绝不因网络跳过）
+
+本 skill **不假定代理端口固定**，启动时按以下协议自主探测并挂载代理（即便 mihomo 默认 `8099`，也必须实测可达，不可凭配置假定）：
+
+1. **显式配置优先**：若环境变量 `http_proxy`/`https_proxy`/`ALL_PROXY` 已设，或 `literature/.proxy-resolved.json` 存在且 `detected_at` 距今 < 1h，直接使用并跳过探测。
+2. **候选端口探测**（按优先级顺序，逐个尝试直到第一个可达）：`8099`（mihomo mixed-port 默认）→ `7890`（Clash 传统 HTTP）→ `7892`（Clash SOCKS）→ `1080` → `8080`。
+3. **探测方法**：对每个候选 `http://127.0.0.1:<port>`，用 `python3` 发起一次 TCP 连接探测（`socket.connect_ex(('127.0.0.1',<port>)`，`timeout=2s`，返回 0 即可达）；TCP 通后再通过该代理对 `http://export.arxiv.org/` 发一次 GET（`timeout=3s`，期望 2xx/3xx）确认代理真的能转发外网。第一个双检通过即选中。
+4. **挂载**：选中后写入 `literature/.proxy-resolved.json`：
+   ```json
+   {"proxy":"http://127.0.0.1:<port>","port":<port>,"detected_at":"<ISO8601>","probed":["8099","7890","7892","1080","8080"],"method":"tcp+http","tcp_ok":true,"http_forward_ok":true}
+   ```
+   并对后续所有请求设 `http_proxy`/`https_proxy` 为该地址（`requests` 传 `proxies={"http":...,"https":...}`；`urllib` 用 `ProxyHandler`）。
+5. **全部候选不可达** → **绝不放弃、绝不跳过 Phase 4**：(a) 先直连试 1 次（`timeout=10s`）；(b) 直连也失败 → 对该源启用 `nohup` 后台重试（见「网络超时处理」），记录 `source_status: proxy_unavailable` 到 `VERIFICATION_LOG.md`，整体 Phase 4 verdict 降为 `WARN`（降级为可用源搜索），**Phase 4 本身永不降级为 `SKIP`/`NOT_APPLICABLE`/`BLOCKED`-by-network**。
+6. **重探测**：若已挂载代理在请求中连续超时 2 次，删除 `.proxy-resolved.json` 并回到步骤 2 重探测（可能 mihomo 重启换端口）。
+
+**绝对禁止**：因网络问题跳过文献搜索、筛选链完整性核、数据集下载三者中的任何一项。网络只能把 verdict 从 `PASS` 降到 `WARN`，永远不能降到 `SKIP`/`NOT_APPLICABLE`/网络原因 `BLOCKED`。
 
 **网络超时处理**（用户要求：挂 VPN 后仍超时则 nohup 后台先下载、并行改别的）：
 1. 单条 API 请求设置 `timeout=30s`；超时则重试 1 次（不同节点）。

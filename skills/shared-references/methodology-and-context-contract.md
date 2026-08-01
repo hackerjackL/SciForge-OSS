@@ -71,4 +71,4 @@ When self-reviewing or when delegating to a reviewer sub-agent, pass only **path
 Fixed contracts & default positions live in the head of each skill (always load). Deep per-domain reference material (template galleries, venue lists, failure catalogs) lives in `shared-references/` and is loaded on-demand by path — it is **not** inlined into a skill body. Adding a domain region = adding one shared-reference file + one manifest line, not growing every skill.
 
 ---
-**Single source of truth**: this file is the canonical home of the above cross-cutting rules. Consuming skills must pointer-load it by path (e.g. `[methodology-and-context-contract](../../shared-references/methodology-and-context-contract.md)`) rather than re-asserting their own partial copies.
+**Single source of truth**: this file is the canonical home of the above cross-cutting rules. Consuming skills must pointer-load it by path (e.g. the literal path string `../../shared-references/methodology-and-context-contract.md`, relative to a skill two levels deep such as `skills/meta-skills/<x>/SKILL.md`) rather than re-asserting their own partial copies.
