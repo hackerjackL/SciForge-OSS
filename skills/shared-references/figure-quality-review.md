@@ -1,31 +1,31 @@
 ---
 name: figure-quality-review
 type: shared-reference
-role: external-figure-qa-loop (mimo-v2.5)
+role: external-figure-optimization-advisor
 ---
 
-# Figure Quality Review Contract (mimo-v2.5 external QA loop)
+# Figure Quality Review Contract (external LLM optimization advisor)
 
-> **Purpose**: The figure quality cannot be judged reliably by the drawing agent alone (self-confirmation bias). For top-tier **architecture diagrams, DAGs, workflow/pipeline figures and academic charts**, pipe the figure description + spec to the **mimo-v2.5** reviewer for a score and concrete fixes, then implement and re-render. Moved from "self-check" to "external strict review".
+> **Purpose**: The figure quality cannot be judged reliably by the drawing agent alone (self-confirmation bias). For top-tier **architecture diagrams, DAGs, workflow/pipeline figures and academic charts**, the drawing agent may optionally pipe the figure's structure (nodes, edges, layout intent, palette) to an **external LLM optimization advisor** to get concrete improvement suggestions, then implement and re-render. The advisor is an **assist for optimizing the drawing** — it is NOT a scoring gate, NOT part of the pipeline verdict, and never blocks a run. If the advisor is unreachable, the run continues normally (self-review against the criteria table below).
 
-> **Access (single strict pass)**: `https://token-plan-cn.xiaomimimo.com/v1/chat/completions`, model `mimo-v2.5`, auth `Authorization: Bearer <key>`. Keep the prompt **minimal** (a short instruction, the figure's d2/tikz/matplotlib source or its semantic content) — the reviewer must do the rigorous analysis, not be spoon-fed a recommendation. 单次调用.
+> **Discipline**: keep the prompt **minimal** (a short instruction + the figure's d2/tikz/matplotlib source or its semantic content) — the advisor should do the rigorous analysis, not be spoon-fed a recommendation. Use at most one call per figure version; never treat its output as a pass/fail gate.
 
 ## Protocol
 
 1. **Produce**: render the first version of the diagram (d2 → SVG → PDF+PNG), per [`unified-plotting`](../../meta-skills/unified-plotting/SKILL.md) and [`figure-quality-contract.md`](figure-quality-contract.md).
-2. **Review** (one call): send a *brief* reviewer instruction + the figure's structure (nodes, edges, layout intent, palette) to mimo-v2.5. Ask for: score `/10`, the **3 most important fixes**, and whether the narrative/architecture is logically complete (any missing input/feedback edge?).
-3. **Deploy fixes**: implement the top-3 (e.g. add a missing literature→theory edge, add an experiment→idea feedback loop, add data/method input nodes, fix typography/caption, add a legend for data plots).
-4. **Re-render + close**: render v2, and confirm each of the 3 fixes is present. Figures needing >3 rounds of external review should be flagged for human decision (bounded — 3 rounds max, mirroring the 3-round rollback ceiling elsewhere).
+2. **Advisory pass** (optional, one call): send a *brief* instruction + the figure's structure (nodes, edges, layout intent, palette) to the external advisor. Ask for the **most useful improvements** (e.g. missing input/feedback edge? better layout? typography/caption fixes?) and whether the architecture narrative is logically complete.
+3. **Deploy improvements**: implement the suggested fixes where they genuinely improve the figure (e.g. add a missing literature→theory edge, add an experiment→idea feedback loop, add data/method input nodes, fix typography/caption, add a legend for data plots).
+4. **Re-render**: render v2, and confirm each adopted improvement is present. If the advisor is unreachable, mark the advisory pass as `deferred-external` and rely on the criteria table below — never block the pipeline on it.
 
 ## Prompt template (keep it minimal)
 
 ```
-评审以下科研图是否达到可发表水准,给1-10分和最重要的3条改进(每条一句话),
-并指出图形的逻辑是否完整(有无缺失的输入/反馈边/数据节点)。
-图源(结构概要): <nodes>, <edges>, <intent>。请严格且克制地审查。
+请对以下科研图的表达提出最有用的改进建议(每条一句话),并指出图形的
+逻辑是否完整(有无缺失的输入/反馈边/数据节点)。
+图源(结构概要): <nodes>, <edges>, <intent>。请严谨而克制。
 ```
 
-## Quality criteria the reviewer scores against
+## Figure criteria (self-review fallback when advisor is unreachable)
 
 | Aspect | Good threshold |
 |--------|----------------|
@@ -37,4 +37,4 @@ role: external-figure-qa-loop (mimo-v2.5)
 | Export | PDF + PNG dual output; spec preserved for reproducibility |
 
 ---
-Single source of truth for external figure QA. When mimo is unreachable, mark the QA as `deferred-external` and self-review against the criteria table above instead of silently skipping.
+The external advisor is an optimization aid only — it never produces a gate verdict, never stores credentials in the repo, and its suggestions are adopted at the drawing agent's judgment.

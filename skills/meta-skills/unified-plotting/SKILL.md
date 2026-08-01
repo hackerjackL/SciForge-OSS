@@ -294,7 +294,7 @@ Append to `figures/FIGURE_INDEX.md`:
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 > - **[Figure Quality Contract](../../shared-references/figure-quality-contract.md)** — dual output, 16:9 default, Nature readability floor, d2 pipeline
-> - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — external seja-mimo-v2.5 QA loop for top-tier architecture/DAG/academic diagrams (score `/10` + top-3 fixes → re-render; bounded 3 rounds)
+> - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — external LLM optimization advisor (optional) for top-tier architecture/DAG/academic diagrams: concrete improvement suggestions → re-render; advisory only, never a gate
 
 ## Boundaries
 
