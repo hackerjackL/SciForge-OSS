@@ -37,17 +37,26 @@ role: novelty-verifier
 
 ## 3 维评估标准
 
-### 维度 1：新颖性检查
+### 维度 1：新颖性检查（v3.2 — 前沿感知，二元 novelty → 前沿推进度）
 
-对每个 idea，对照现有文献检查（通过 `/universal-retrieval`）：
-1. 搜索与 idea 假设和方法论匹配的先前工作
-2. 如果找到匹配论文 → 检查 idea 是否提供清晰差异化
-3. 分数：1-10（1 = 已经做过，10 = 完全新颖）
+对每个 idea，对照现有文献检查（通过 `/universal-retrieval`）。**v3.2 升级**：旧版只判“做过没做过”（二元 novelty），这不足以支撑一区 Intro 的 contribution 定位——审稿人要的是“相对当前前沿推进了多少”，不是“有没有人碰过”。新版分两层：
 
-**新颖性判定：**
-- 分数 ≥ 7 → `novel`（新颖）
-- 分数 4-6 → `partially_novel`（部分新颖）
-- 分数 < 4 → `not_novel`（不新颖）
+1. **二元新颖性（既有，保留）** — 搜索与 idea 假设和方法论匹配的先前工作；若找到匹配论文 → 检查 idea 是否提供清晰差异化。分数：1-10（1 = 已经做过，10 = 完全新颖）。
+   - ≥ 7 → `novel`；4-6 → `partially_novel`；< 4 → `not_novel`
+2. **前沿推进度（v3.2 新增，MANDATORY）** — 产出 `refine-logs/FRONTIER_GAP.md`，必含 3 项，缺一即 `WARN`（不能进入 Phase 3→4 checkpoint）：
+   - **前沿基线**（frontier baseline）：明确列出“本研究出发时该子方向的当前 SOTA / 已知最强结果 / 最新未解问题”，每项必须挂 1 篇近 2 年（min_year=2020 起，但优先近 2 年）引用。不可写“据我们所知尚无研究”——那是空话，必须具体到“[Smith2024] 达到 X，[Lee2025] 改进到 Y，但 Z 未解”。
+   - **推进声明**（delta claim）：本 idea 相对前沿基线具体推进了什么，用一句话陈述增量（“我们提出 W 机制，将 Z 从不可解推进到条件可解 / 在 K benchmark 上提升 Δ%”）。增量必须可证伪——若 idea 跑完后 delta 为 0 或负，Phase 14 kill-argument 会抓住。
+   - **为何前人没做**（why-not-before）：3 条理由，覆盖“技术约束”“理论盲区”“数据可得性”三类中至少两类。防止 idea 是“前人没做是因为没意义”的 trivial novelty。若找不到 3 条，标记 `why_not_before_weak` 并降 novelty 分 -2。
+
+**前沿图谱（frontier map，v3.2 新增）**：从 `/universal-retrieval` 的 `landscape_report.md` + `references.bib` 抽取近 2 年高引论文构造“前沿节点图”（每个节点 = 一篇近 2 年论文 + 其声明 + 未解问题），写入 `refine-logs/FRONTIER_MAP.json`。本 idea 必须落在该图的某个“未解节点”上；若落在“已解节点”或“空白无意义区”，标 `not_novel` 或 `trivial_novel`。该图同时供 `/paper-writing` 的 Introduction 段直接消费（“前沿推进度”三件套即 Intro 的 contribution 定位）。
+
+**二元 + 前沿复合 novelty 分**：
+```
+novelty_final = 0.5 × binary_novelty + 0.5 × frontier_advance
+```
+其中 `frontier_advance` ∈ [1,10]：有清晰前沿基线+可证伪增量+3 条 why-not-before = 10；缺前沿基线 = ≤4；增量不可证伪 = -3；落在已解节点 = 1。最终 novelty 判定改用 `novelty_final`（不是旧 `binary_novelty`）。
+
+**为何必加**：一区投稿（Nature/PRL/IEEE T）的 Introduction 头 3 段必须有前沿定位 + 增量 + why-not-before；若 `/novelty-check` 不产出这三件套，`/paper-writing` 只能靠 agent 临场编造——这正是“AI 写的 Intro 读起来空泛、无具体前沿锚定”的根因。v3.2 把前沿定位前移到 novelty-check，让 Intro 的 contribution 段可追溯到 `FRONTIER_GAP.md`。
 
 ### 维度 2：可行性检查
 
