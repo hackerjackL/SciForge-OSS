@@ -183,12 +183,7 @@ Step 2b: Write experiment script
 Step 2c: Execute with timeout
          → subprocess.run(timeout=timeout_toy)
 
-**P5 Dry-Run 早停（v3.1）**: toy 执行优先经 `scripts/experiment/dry_run_runner.py` 包装（1%-5% 子集 / 3-5min 硬上限），三类早停自动触发并把反馈送回 idea 修正循环，避免全量算力浪费：
-
-```bash
-python3 scripts/experiment/dry_run_runner.py <toy_experiment.py> \
-    --timeout 300 --scale 0.02 --metric-key <val_loss> --baseline <基线>
-```
+**P5 Dry-Run 早停（v3.1）**: toy 执行应在 1%-5% 子集 / 3-5min 硬上限下先做 dry-run，三类早停自动触发并把反馈送回 idea 修正循环，避免全量算力浪费：
 
 | 早停原因 | 触发条件 | 反馈动作 |
 |----------|----------|----------|
@@ -197,7 +192,7 @@ python3 scripts/experiment/dry_run_runner.py <toy_experiment.py> \
 | `BELOW_BASELINE` | 指标 > 1.5× baseline | 回 Phase 2 重生成 idea（bounded 2 轮） |
 | `DRY_RUN_TIMEOUT` | 超硬上限 | 降 scale 重试一次；仍超时 → toy gate BLOCKED |
 
-早停判定全部机械（无 LLM cost）；`verdict=PASS` 才进入正常 RESULT.json 门控流程。
+早停判定全部机械（无 LLM cost）；dry-run `PASS` 才进入正常 RESULT.json 门控流程。
 
 Step 2d: Capture output
          → stdout, stderr, return code, RESULT.json
