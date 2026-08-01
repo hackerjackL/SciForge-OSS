@@ -137,12 +137,7 @@ Read all research artifacts and design the paper structure. Write `paper/PAPER_P
 
 **v2.1 — Mode-selected section set.** Determine the mode first per [`paper-modes.md`](../../shared-references/paper-modes.md) §2 (read the canonical `verification_type` token + `evidence_type` from `domain-signature.json`). Then use the section set for that mode from `paper-modes.md` §3. Do NOT hand-pick sections here — the mode fully determines which `sections/*.tex` files to write.
 
-**v3.1 — 全学科写作 Adapter 分发器（P5/Phase 6）**: mode 决定 section 骨架，**学科 Adapter 决定写作风格与强制槽位**。先用 `scripts/writing/discipline_adapter.py` 对 `domain-signature.json` + 问题文本做学科识别，再取用对应 Adapter 契约：
-
-```bash
-python3 scripts/writing/discipline_adapter.py detect "<problem text / signature>"
-python3 scripts/writing/discipline_adapter.py adapter <stem|medbio|humanities>
-```
+**v3.1 — 全学科写作 Adapter 分发器（P5/Phase 6）**: mode 决定 section 骨架，**学科 Adapter 决定写作风格与强制槽位**。对 `domain-signature.json` + 问题文本做学科识别（关键词评分），取用对应 Adapter 契约：
 
 | Adapter | 语气 | 强制槽位 |
 |---------|------|----------|
