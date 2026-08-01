@@ -62,22 +62,32 @@ cd SciForge-OSS
 
 然后在 AI agent（Claude Code / Cursor / Trae / Codex 等）中打开项目目录，agent 会自动读取 `AGENT_GUIDE.md` 作为入口。skill 文件本身无需安装、无需编译、无依赖管理。
 
-### 方式二：npm 安装（已发布，scoped 包）
+### 方式二：npm 全局安装（`sciforge` 命令，已发布）
 
-本包已发布到 npm registry 作为 scoped 包 `@gewislab/sciforge-oss`。全局安装即可获得 `sciforge` CLI：
+包已发布到 npm registry：`@gewislab/sciforge-oss`——这样就装好了：
 
 ```bash
-# 全局安装（scoped 包——@gewislab/ scope 是必须的）
 npm install -g @gewislab/sciforge-oss
 
-# sciforge 命令现在可用
-sciforge --help
-sciforge tools-check               # 检查可选工具链是否齐全（见下文）
-sciforge init ./my-research         # 在指定目录初始化一个 SciForge 项目骨架
-sciforge tools-install             # 一键安装可选工具链（apt: texlive/d2/rsvg-convert/inkscape/graphviz；npm: svgo）
+sciforge --help          # 安装完成——sciforge 命令全局可用
 ```
 
-### 方式三：源码本地 CLI（不用 npm）
+第 3 步——检查可选工具链（按需安装）：
+
+```bash
+sciforge tools-check     # 检查可选工具链是否齐全（见下文）
+sciforge tools-install   # 一键安装可选工具链（apt: texlive/d2/rsvg-convert/inkscape/graphviz；npm: svgo）
+```
+
+初始化项目骨架：
+
+```bash
+sciforge init ./my-research   # 在指定目录初始化一个 SciForge 项目骨架
+```
+
+`package.json` 的 `bin` 字段注册 `sciforge` 命令指向 `./bin/sciforge.js`；`files` 字段声明分发内容（`skills/` + `AGENT_GUIDE.md` + 根 `SKILL.md` + `bin/`）。CLI 无外部依赖（纯 Node stdlib）。
+
+> 更想本地 checkout？克隆仓库后在根目录运行 `node bin/sciforge.js --help`（见方式一）——命令相同，无需 npm 安装。
 
 若不想用 npm，可直接 clone 后用 `bin/sciforge.js`（无外部依赖，纯 Node stdlib）：
 
@@ -123,7 +133,7 @@ claude                  # 或 codex / cursor / trae
 
 ### 工具链（可选但推荐——完整跑通需要）
 
-skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX 编译 / 实验执行）需要以下可选工具。`npx sciforge-oss tools-check` 检查缺失项，`npx sciforge-oss tools-install` 一键安装。
+skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX 编译 / 实验执行）需要以下可选工具。`sciforge tools-check` 检查缺失项，`sciforge tools-install` 一键安装。
 
 | 工具 | 用途 | 安装 | 必需性 |
 |------|------|------|--------|

@@ -62,7 +62,7 @@ function cmd_tools_check() {
     if (!ok && t.cmd !== "mihomo") missing++;
   }
   console.log("========================================");
-  console.log(missing === 0 ? "All core tools present." : `${missing} tool(s) missing — run: npx sciforge-oss tools-install`);
+  console.log(missing === 0 ? "All core tools present." : `${missing} tool(s) missing — run: sciforge tools-install`);
 }
 
 function cmd_tools_install() {
