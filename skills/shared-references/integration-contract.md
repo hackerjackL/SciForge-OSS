@@ -15,7 +15,7 @@ pressure and the caller has no way to detect it.
 Two bugs in the same week, same pathology:
 
 1. **Assurance gate bypass.** A paper-writing run at high effort
-   silently skipped the proof-checker, claim-audit, and citation-audit
+   silently skipped the logic-verification, result-to-claim, and citation-audit
    skills because each phase's content detector could return negative
    and the outer prose said "audit is optional."
 2. **Research wiki ingest no-op.** A research-wiki init created the
@@ -64,8 +64,8 @@ SKILL.md is the first thing to get skipped.
 
 ```
 📋 Submission audits required before Final Report:
-   [ ] 1. proof-checker       → paper/PROOF_AUDIT.json
-   [ ] 2. paper-claim-audit   → paper/PAPER_CLAIM_AUDIT.json
+   [ ] 1. logic-verification  → paper/PROOF_AUDIT.json
+   [ ] 2. result-to-claim     → paper/PAPER_CLAIM_AUDIT.json
    [ ] 3. citation-audit      → paper/CITATION_AUDIT.json
    [ ] 4. Run the submission verifier against paper/ at assurance=submission
    [ ] 5. Block Final Report iff verifier exit code != 0
@@ -149,8 +149,8 @@ required input artifact is missing, the skill aborts with `BLOCKED`
 and emits a backfill hint (§4).
 
 This is the first line of defense against silent no-ops. It is
-implemented by the orchestrator skill (e.g. `/economics-empirical-pipeline`,
-`/paper-writing`, `/idea-discovery`) at each phase boundary, not by
+implemented by the orchestrator skill (e.g. `/paper-writing`,
+`/idea-discovery`) at each phase boundary, not by
 the callee skill itself — the callee cannot be trusted to verify its
 own activation.
 
@@ -172,10 +172,10 @@ Economics invariants (canonical, hardcoded — do not infer):
 
 | Check | Trigger | Pass condition | Fail action |
 |-------|---------|----------------|-------------|
-| `REGISTRY_HASH` | Before `/result-to-claim`, `/paper-write`, `/auto-review-loop` | `METHOD_REGISTRY.md` Section 3 exists AND `REGISTRY_HASH.txt` matches `SHA256(Section 3)` | BLOCK — re-run `/method-registry` |
-| `OUTCOME_CLASSIFICATION` | Before `/paper-claim-audit` | `methods/OUTCOME_CLASSIFICATION.md` exists AND lists primary vs secondary outcomes | BLOCK — re-run `/method-registry` Step 4 |
-| `LEAKAGE_AUDIT_VERDICT` | Before `/paper-write` | `audit_report/LEAKAGE_AUDIT.json` exists AND `verdict ∈ {PASS, WARN}` | BLOCK if FAIL — re-run `/leakage-audit` |
-| `DATA_SOURCE_CONSISTENCY` | Before `/paper-write` | If `DATA_SOURCE=synthetic`, no occurrence of "empirical evidence" / "policy implication" in `paper/` | BLOCK — re-write affected sections |
+| `REGISTRY_HASH` | Before `/result-to-claim`, `/paper-writing`, `/auto-review-loop` | `METHOD_REGISTRY.md` Section 3 exists AND `REGISTRY_HASH.txt` matches `SHA256(Section 3)` | BLOCK — re-run `/method-registry` |
+| `OUTCOME_CLASSIFICATION` | Before `/result-to-claim` | `methods/OUTCOME_CLASSIFICATION.md` exists AND lists primary vs secondary outcomes | BLOCK — re-run `/method-registry` Step 4 |
+| `LEAKAGE_AUDIT_VERDICT` | Before `/paper-writing` | `audit_report/LEAKAGE_AUDIT.json` exists AND `verdict ∈ {PASS, WARN}` | BLOCK if FAIL — re-run `/leakage-audit` |
+| `DATA_SOURCE_CONSISTENCY` | Before `/paper-writing` | If `DATA_SOURCE=synthetic`, no occurrence of "empirical evidence" / "policy implication" in `paper/` | BLOCK — re-write affected sections |
 
 Output: `audit_report/INVARIANT_CHECK.json` with the 6-state verdict
 schema from [`assurance-contract.md`](assurance-contract.md). Consumed
@@ -204,31 +204,27 @@ and may be silently skipped by the orchestrator.
 
 | # | Caller | Callee | Activation predicate | Concrete artifact | Verifier |
 |---|--------|--------|----------------------|-------------------|----------|
-| 1 | `paper-writing` (Phase 4.5) | `proof-checker` | `assurance=submission` AND `paper/sections/proof.tex` exists | `paper/PROOF_AUDIT.json` | submission verifier (exit 1) |
-| 2 | `paper-writing` (Phase 4.7) | `paper-claim-audit` | `paper/main.pdf` exists | `paper/PAPER_CLAIM_AUDIT.json` | submission verifier (exit 1) |
+| 1 | `paper-writing` (Phase 4.5) | `logic-verification` | `assurance=submission` AND `paper/sections/proof.tex` exists | `paper/PROOF_AUDIT.json` | submission verifier (exit 1) |
+| 2 | `paper-writing` (Phase 4.7) | `result-to-claim` | `paper/main.pdf` exists | `paper/PAPER_CLAIM_AUDIT.json` | submission verifier (exit 1) |
 | 3 | `paper-writing` (Phase 5.5) | `citation-audit` | `paper/main.pdf` exists | `paper/CITATION_AUDIT.json` | submission verifier (exit 1) |
-| 4 | `economics-empirical-pipeline` (Phase 1) | `method-registry` | economics pipeline entered | `methods/METHOD_REGISTRY.md` + `methods/REGISTRY_HASH.txt` | `/invariant-check` (REGISTRY_HASH) |
+| 4 | `paper-writing` (Phase 1, economics overlay) | `method-registry` | economics pipeline entered | `methods/METHOD_REGISTRY.md` + `methods/REGISTRY_HASH.txt` | `/invariant-check` (REGISTRY_HASH) |
 | 5 | `method-registry` (post) | `leakage-audit` | `methods/METHOD_REGISTRY.md` exists | `audit_report/LEAKAGE_AUDIT.json` | `/invariant-check` (LEAKAGE_AUDIT_VERDICT) |
-| 6 | `leakage-audit` → `paper-write` | (verdict gate) | `LEAKAGE_AUDIT.json` exists | (consumed as gate) | `/invariant-check` (LEAKAGE_AUDIT_VERDICT) |
-| 7 | `economics-empirical-pipeline` (Phase 5) | `result-to-claim` | `results/` non-empty AND `methods/METHOD_REGISTRY.md` exists | `CLAIMS_FROM_RESULTS.md` | `/invariant-check` (REGISTRY_HASH) |
-| 8 | `result-to-claim` → `paper-claim-audit` | (input contract) | `CLAIMS_FROM_RESULTS.md` exists | (consumed as input) | `paper-claim-audit` internal |
-| 9 | `economics-empirical-pipeline` (Phase 7) | `auto-review-loop` | `paper/main.pdf` exists AND `REVIEWER_PROMPT_VARIANT=senior-econ-editor` | `review-stage/REVIEW_STATE.json` | auto-review-loop internal (MAX_ROUNDS gate) |
-| 10 | `idea-discovery` (Phase 1.5) | `ouroboros-data-insight` | local data exists OR `/data-acquisition` completed | `DATA_INSIGHT_REPORT.md` | `/idea-creator` consumes (MANDATORY input check) |
+| 6 | `leakage-audit` → `paper-writing` | (verdict gate) | `LEAKAGE_AUDIT.json` exists | (consumed as gate) | `/invariant-check` (LEAKAGE_AUDIT_VERDICT) |
+| 7 | `paper-writing` (Phase 5, economics overlay) | `result-to-claim` | `results/` non-empty AND `methods/METHOD_REGISTRY.md` exists | `CLAIMS_FROM_RESULTS.md` | `/invariant-check` (REGISTRY_HASH) |
+| 8 | `result-to-claim` → `paper-writing` | (input contract) | `CLAIMS_FROM_RESULTS.md` exists | (consumed as input) | `paper-writing` internal |
+| 9 | `paper-writing` (Phase 7, economics overlay) | `auto-review-loop` | `paper/main.pdf` exists AND `REVIEWER_PROMPT_VARIANT=senior-econ-editor` | `review-stage/REVIEW_STATE.json` | auto-review-loop internal (MAX_ROUNDS gate) |
+| 10 | `idea-discovery` (Phase 1.5) | `universal-retrieval` | local data exists OR `/universal-retrieval` completed | `DATA_INSIGHT_REPORT.md` | `/idea-discovery` consumes (MANDATORY input check) |
 | 11 | (shared) paper-reading skills | `research-wiki` ingest | `research-wiki/` directory exists | `research-wiki/papers/<slug>.md` + `log.md` append | Wiki-coverage diagnostic (non-blocking) |
-| 12 | `paper-writing` (Phase 2) | `paper-figure` | `PAPER_PLAN.md` exists AND `figures/` directory exists | `figures/latex_includes.tex` + `figures/*.pdf` | `/paper-compile` (figure reference resolution) |
-| 13 | `paper-writing` (Phase 2b) | `d2-diagram` | `illustration=d2` AND `PAPER_PLAN.md` figure plan has architecture/pipeline entries | `figures/d2_output/*.pdf` + `*.d2` source | `/paper-compile` (figure reference resolution) |
-| 14 | `paper-writing` (Phase 2b) | `figure-spec` | `illustration=figurespec` AND `PAPER_PLAN.md` figure plan has manual-layout entries | `figures/specs/*.json` + `figures/*.svg` | `/paper-compile` (figure reference resolution) |
-| 15 | (shared) diagram skills | `drawio-export` | `figures/d2_output/*.svg` or `figures/*.svg` exists | `figures/*.drawio` + converted `*.pdf` | Format conversion verification |
+| 12 | `paper-writing` (Phase 2) | `unified-plotting` | `PAPER_PLAN.md` exists AND `figures/` directory exists | `figures/latex_includes.tex` + `figures/*.pdf` | `/paper-compile` (figure reference resolution) |
+| 13 | `paper-writing` (Phase 2b) | `unified-plotting` | `illustration=d2` AND `PAPER_PLAN.md` figure plan has architecture/pipeline entries | `figures/d2_output/*.pdf` + `*.d2` source | `/paper-compile` (figure reference resolution) |
+| 14 | `paper-writing` (Phase 2b) | `unified-plotting` | `illustration=figurespec` AND `PAPER_PLAN.md` figure plan has manual-layout entries | `figures/specs/*.json` + `figures/*.svg` | `/paper-compile` (figure reference resolution) |
 
 **Reserved rows** (placeholders for other pipelines — to be populated
 when those pipelines add integrations):
 
 | Pipeline | Reserved integration | Status |
 |----------|---------------------|--------|
-| `physics-pipeline` | → `proof-checker` (theorem proofs) | placeholder |
-| `physics-pipeline` | → `method-registry` (experimental assumptions) | placeholder |
-| `research-pipeline` (CS-ML) | → `paper-claim-audit` (ML claim audit variant) | placeholder |
-| `idea-discovery` (general) | → `ouroboros-data-insight` (cross-discipline) | placeholder |
+| `idea-discovery` (general) | → `universal-retrieval` (cross-discipline) | placeholder |
 
 When adding a new cross-skill integration, add a row to the table above
 AND a corresponding entry in

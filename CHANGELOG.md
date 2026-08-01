@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.3.0] - 2026-08-01
+
+### v2.3 — 单 Agent 全流程纪律 + 全量清理迭代（15 轮自迭代）
+
+**架构级纪律契约**
+- 新增 `shared-references/methodology-and-context-contract.md`：充分性停止规则、证据强制、bundle+compact 上下文经济、确定性优先 + 哈希锁、评审只传原始工件、figure-contract-first + 禁编造、单 Agent 边界性声明（7 条）；接线进 auto-pipeline "Context Economy & Boundary" 小节
+- 新增 `shared-references/figure-quality-review.md`：外部 LLM 绘图优化辅助（可选顾问——给出改进建议 → 重渲染；非评分门、不阻塞管线），接线进 unified-plotting
+- output-protocol 扩展为聚合权威（版本化 + Manifest + 路径回退 + 过期检测 + 输出语言），15 个 SKILL.md 三行 boilerplate 收敛为单指针
+
+**一致性/路径/断链修复（B/C/D/R 系列）**
+- domain-signature v2.8 统一为 hint-only；adversarial-falsification 签名来源改指 Phase 1b learner
+- 4 视角统一（theoretical/computational/qualitative/empirical）横跨 idea-discovery ↔ novelty-check
+- quality-gate QF-G1 路径修正、QF-G5/G6/G7 改为消费权威裁决；publishability-score/method-registry 路径修正
+- C1: shared-references 死域引用全清（19 文件）；C2: citation-audit 无经济残留；C3: domain-learner/signature 示例中性化（物理/时序）
+- D1-D9: 6 个技能文件死链改下跨正名
+- R1-R7: novelty-check 只做幸存者选择；SD-G 角色边界；leakage-audit Type I 交叉引用；paper-writing 删遗留版式；kill-argument 定为 auto-review-loop 子步骤
+- B1: idea-discovery novelty 预筛与文献依赖硬性串行化（pending-literature）；B10: Phase 15.5 补入 DAG + workspace
+
+**测试与实证**
+- 干净 worker 子代理恢复验证 + explore 子代理 5 域健康检查
+- 外部 LLM 绘图优化辅助实操：v1 架构图按建议 v2 闭环（补文献接入 + 反馈回路）
+- NatureBench 实际跑题（ubonodin_rnap_inhibition）：Ridge 基线，官方 evaluator Pearson 0.473 / Spearman 0.385 / MAE 2.24
+- ITERATION_LOG.md：15 轮大版本自迭代记录
+- package.json → 1.3.0
+
 ## [1.2.0] - 2026-07-31
 
 ### 全领域出版级论文管线 + BA 回溯

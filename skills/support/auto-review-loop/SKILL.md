@@ -87,9 +87,7 @@ State fields:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Workflow
 
@@ -453,7 +451,7 @@ When loop ends (positive assessment or max rounds):
    - List remaining blockers.
    - Estimate effort needed for each.
    - Suggest whether to continue manually or pivot.
-7. **Render HTML view** (if `RENDER_HTML = true`, default): invoke `/render-html` on the cumulative review log. **Non-blocking**: if rendering fails, log the error and continue. Skip if `RENDER_HTML = false`.
+7. **Render HTML view** (if `RENDER_HTML = true`, default): the agent renders the cumulative review log to HTML inline within the pipeline (if convenient; no `/render-html` in OSS). **Non-blocking**: if rendering fails, log the error and continue. Skip if `RENDER_HTML = false`.
 
 ## Boundaries
 
@@ -515,4 +513,4 @@ The self-review output is the primary record. No external routing or tracing is 
 - [`../shared-references/reviewer-routing.md`](../../shared-references/reviewer-routing.md) — cross-model reviewer routing
 - [`../shared-references/review-tracing.md`](../../shared-references/review-tracing.md) — forensic review trace policy
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate (consumed at termination)
-- [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — anti-self-deception exercise (complementary)
+- [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — anti-self-deception exercise; **R7: 定义为本 skill 的对抗子步骤**（hard/nightmare 难度时调用，用于 executor 的 role-switch 攻击），不是独立并行门

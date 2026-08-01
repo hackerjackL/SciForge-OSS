@@ -403,9 +403,8 @@ The skill auto-selects experiment templates based on `evidence_type`:
 
 ## Output Protocols
 
-> Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
+> Follow the shared output protocol for all output files (versioned writes, MANIFEST logging, output language):
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — merged single source of truth
 
 ## See Also
 

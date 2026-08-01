@@ -3,7 +3,7 @@ name: sciforge-oss
 type: skill-package
 role: ai-scientist-framework
 version: 1.2.0
-description: 纯 Skill 驱动的通用 AI Scientist 框架 — 全领域 (Domain-Agnostic) 科学推理引擎，v1.2 新增图管线/文献强制/零警告编译/可发表性评分/BA回溯
+description: 纯 Skill 驱动的通用 AI Scientist 框架 — 全领域 (Domain-Agnostic) 科学推理引擎，v2.3 新增单 Agent 纪律契约/外部图表 QA/冗余收敛/文献-预筛串行化
 entry: skills/orchestrator/auto-pipeline/SKILL.md
 license: MIT
 tags: [ai-scientist, research, latex, open-science, discipline-agnostic]

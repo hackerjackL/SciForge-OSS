@@ -6,14 +6,14 @@ role: research-idea-generation
 
 # Idea Discovery (SciForge-OSS — Discipline-Agnostic, MCTS-Enhanced)
 
-> **Status**: Generates and pre-screens research idea candidates for a given 125-problem question. OSS merges main SciForge's `idea-creator` (MCTS iterative idea refinement + DAG node expansion) into this meta-skill. **OSS is discipline-agnostic** — there is no economics DiD/IV/RDD framing, no cs-ml SOTA framing, no physics PNV framing. The universal 3-perspective ideation (theoretical / computational / qualitative) + MCTS iteration applies to every problem.
+> **Status**: Generates and pre-screens research idea candidates for a given 125-problem question. OSS merges main SciForge's `idea-creator` (MCTS iterative idea refinement + DAG node expansion) into this meta-skill. **OSS is discipline-agnostic** — there is no economics DiD/IV/RDD framing, no cs-ml SOTA framing, no physics PNV framing. The universal 4-perspective ideation (theoretical / computational / qualitative / empirical) + MCTS iteration applies to every problem.
 
 ## Quick Reference
 
 - **Purpose**: 生成 8-12 个 idea → MCTS 4 轮迭代 → 筛选最优 1-3 个
 - **Input**: 人类提供的 Q-id + 问题描述
 - **Output**: IDEA_DAG.json + FINAL_PROPOSAL.md + IDEA_DAG_VISUAL.md
-- **Key**: 3 视角 (theoretical/computational/qualitative), 5-axis pre-screen, 强制人类审批
+- **Key**: 4 视角 (theoretical/computational/qualitative/empirical), 5-axis pre-screen, 强制人类审批
 
 > **No legacy pilot fallback**: main SciForge's `idea-creator` has a legacy demo/pilot experimental fallback when MCTS produces 0 promoted ideas. OSS has **no experiments** — the fallback is instead "re-run ideation with broader perspectives" (not "fall back to a demo experiment").
 
@@ -51,7 +51,7 @@ Key artifacts consumed:
 - The frozen Q-id + problem statement (from the human user's prompt — NOT auto-searched from the 125-problem index)
 - `refine-logs/domain-signature.json` — from Phase 1b `/domain-learner` (the SOLE writer; used for perspective weight adjustment)
 - `literature/references.bib` — from `/universal-retrieval` (for novelty pre-screen)
-- `data/` — from `/ouroboros-data-insight` if it has run (for data-readiness pre-screen)
+- `data/` — from `idea-discovery` 6-axis pre-screening's data-readiness axis (built-in)
 
 ## Configuration
 
@@ -81,7 +81,7 @@ Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) for the full contract. Summary:
 
 1. **Round 1 (Expansion)**: Generate 8-12 root idea nodes across the 3 perspectives.
-2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
+2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). **B1 文献依赖 (v2.3)**: novelty 轴依赖 Phase 4 的 `literature/references.bib`——若该文件尚未就绪（Phase 4 未完成），先标注 `novelty=pending-literature` 并暂停 novelty 轴的最终判定，待文献到达后再补评；**禁止在无参考文献的情况下对 novelty 轴做最终 BLOCKED/PASS 判定**（可用 generation 视角的直觉先做可行性/相关性预筛，但 novelty 判定必须等文献）。Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
 3. **Round 3 (Backpropagation)**: Promote ideas with simulation score ≥ 0.6. Reject ideas with simulation score < 0.4. For borderline (0.4-0.6), generate 2-3 child nodes (refined variants) and re-score.
 4. **Round 4 (Final selection)**: From promoted ideas, select the top 1-3 for `FINAL_PROPOSAL.md`. The human user picks the final one (forced checkpoint).
 
@@ -232,14 +232,12 @@ The human picks the final idea. Record in `FINAL_PROPOSAL.md`:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Boundaries
 
 - **No legacy pilot fallback.** OSS has no experiments. 0 promoted ideas → re-run ideation with broader perspectives, OR report to human for problem re-scoping. Never fall back to a "demo experiment".
-- **No discipline-specific framing.** Do not reintroduce economics DiD/IV/RDD, cs-ml SOTA, or physics PNV framings. The universal 3-perspective (theoretical / computational / qualitative) applies to every problem.
+- **No discipline-specific framing.** Do not reintroduce economics DiD/IV/RDD, cs-ml SOTA, or physics PNV framings. The universal 4-perspective (theoretical / computational / qualitative / empirical) applies to every problem.
 - **Forced human checkpoint at final selection.** The agent cannot self-select the final idea.
 - **MCTS iteration is mandatory.** Do not commit to the first idea generated — the first idea is rarely the best. Always run ≥ 4 MCTS rounds.
 - **6-axis hard filter is non-negotiable.** Any axis `BLOCKED` → idea rejected before MCTS, no exceptions. Engineering Grounding BLOCKED = any sub-dimension = 0 (see [EG contract](../../shared-references/engineering-grounding-contract.md)).

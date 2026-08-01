@@ -28,7 +28,7 @@ Typical prompts:
 - "把说明文档变成可写进论文的公式文档"
 - "这几段公式之间逻辑不通"
 
-**Use `/proof-checker` (→ `/logic-verification` in OSS) only after the exact claim is fixed, the assumptions are stable, and the notation is settled.** This skill is for the upstream construction + symbolic verification phase.
+**Use `/logic-verification` only after the exact claim is fixed, the assumptions are stable, and the notation is settled.** This skill is for the upstream construction + symbolic verification phase.
 
 ## Job
 
@@ -265,9 +265,7 @@ Write:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Boundaries
 

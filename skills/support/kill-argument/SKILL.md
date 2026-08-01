@@ -27,7 +27,7 @@ Typical prompts:
 - "rebuttal preparation"
 - "reviewer-2 simulation"
 
-Most valuable for **theory papers** with ≥5 theorem-class environments where the headline depends on real proof obligations. For empirical papers without theorems, use `/research-review` instead.
+Most valuable for **theory papers** with ≥5 theorem-class environments where the headline depends on real proof obligations. For empirical papers without theorems, use `/auto-review-loop` instead.
 
 ## Job
 
@@ -45,9 +45,9 @@ This skill runs that adversarial pass deliberately, then forces the same agent (
 
 | Skill | What it asks the reviewer | Output |
 |-------|---------------------------|--------|
-| `/research-review` | "Score this paper, list weaknesses by severity" | balanced weakness list |
-| `/proof-checker` | "Is this theorem actually proved?" | per-step proof obligation audit |
-| `/paper-claim-audit` | "Does the paper report numbers truthfully?" | per-claim evidence verification |
+| `/auto-review-loop` | "Score this paper, list weaknesses by severity" | balanced weakness list |
+| `/logic-verification` | "Is this theorem actually proved?" | per-step proof obligation audit |
+| `/result-to-claim` | "Does the paper report numbers truthfully?" | per-claim evidence verification |
 | `/citation-audit` | "Are citations real and used in correct context?" | per-entry KEEP/FIX/REPLACE/REMOVE |
 | **`/kill-argument`** | **"Write the single strongest rejection paragraph; then defend it."** | **attack memo + per-point defense + unresolved surfaced** |
 
@@ -290,9 +290,7 @@ To the user:
 ## Output Protocols
 
 > Follow these shared protocols for all output files:
-> - **[Output Versioning Protocol](../../shared-references/output-versioning.md)** — write timestamped file first, then copy to fixed name
-> - **[Output Manifest Protocol](../../shared-references/output-manifest.md)** — log every output to MANIFEST.md
-> - **[Output Language Protocol](../../shared-references/output-language.md)** — respect the project's language setting
+> - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 
 ## Boundaries
 
@@ -316,7 +314,7 @@ To the user:
 
 ## When NOT to Use
 
-- Empirical papers without theorems / scope claims — `/research-review` is more useful. The skill emits `NOT_APPLICABLE` with `reason_code: not_theory_or_scope_paper` in this case.
+- Empirical papers without theorems / scope claims — `/auto-review-loop` is more useful. The skill emits `NOT_APPLICABLE` with `reason_code: not_theory_or_scope_paper` in this case.
 - Very early drafts where the headline isn't stable yet — fix the headline first. The skill emits `NOT_APPLICABLE` with `reason_code: headline_unstable` if the title or abstract changed within the last 2 commits.
 - Papers with ongoing experiments — wait until results stabilize, then run.
 
@@ -326,7 +324,7 @@ To the user:
 - `KILL_ARGUMENT.json` — machine-readable ledger
 - `.sciforge/traces/kill-argument/<date>_runNN/` — role-switch traces (Attack memo + Adjudication memo)
 - Optional: applied fixes if user explicitly requests; default is **detect-only, do not auto-modify**
-- `KILL_ARGUMENT.html` (when `RENDER_HTML = true`, default) — single-file HTML view auto-rendered via `/render-html`. Full review gate applies. The `.review.json` sidecar carries the render-fidelity verdict. **Non-blocking**: if `/render-html` fails, log the failure and treat the skill as complete — the HTML view is a convenience, not a prerequisite for the kill-argument verdict.
+- `KILL_ARGUMENT.html` (when `RENDER_HTML = true`, default) — single-file HTML view rendered inline by the agent. Full review gate applies. The `.review.json` sidecar carries the render-fidelity verdict. **Non-blocking**: if rendering fails, log the failure and treat the skill as complete — the HTML view is a convenience, not a prerequisite for the kill-argument verdict.
 
 ## Key Rules
 
