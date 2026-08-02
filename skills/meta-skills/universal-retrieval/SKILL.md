@@ -1,6 +1,6 @@
 ---
 name: universal-retrieval
-version: 0.1.0
+version: 1.1.0
 description: "Literature search + 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar) + v3.2 proxy auto-mount + filter-chain integrity audit. Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
 type: reference-skill
 role: academic-retriever

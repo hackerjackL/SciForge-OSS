@@ -1,6 +1,6 @@
 ---
 name: adversarial-falsification
-version: 0.1.0
+version: 1.1.0
 description: "Stress-test an idea's hypotheses with domain-specific failure modes + Ouroboros basic integration (D dim). Phase 2.5 (MANDATORY). Invoke after idea-discovery, before the human checkpoint."
 type: support-skill
 role: idea-falsification-auditor
