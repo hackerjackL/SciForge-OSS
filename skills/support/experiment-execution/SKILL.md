@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 2.0.0
+version: 0.1.0
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
