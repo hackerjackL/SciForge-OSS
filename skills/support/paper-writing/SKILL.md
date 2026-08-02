@@ -1,5 +1,6 @@
 ---
 name: paper-writing
+version: 1.1.0
 description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (8-class regex, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer

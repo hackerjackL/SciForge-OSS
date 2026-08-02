@@ -1,5 +1,6 @@
 ---
 name: auto-review-loop
+version: 1.1.0
 description: "Iterative self-review (review→fix→re-review) with role-switch + v3.2 Phase B.2 domain-expert blind-spot review (wired into explicit ordered chain A→B.1→B.2→C) + kill-argument anti-self-deception. v3.4 STOP CONDITION uses effective_score=min(Phase C raw, B.2 cap) — a fatal blind-spot caps at 5, blocks false 'ready'. Writes BLINDSPOT_CHECK.json. Phase 14. Invoke to improve the draft until score≥6 or MAX_ROUNDS."
 type: reference-skill
 role: autonomous-review-loop-orchestrator
