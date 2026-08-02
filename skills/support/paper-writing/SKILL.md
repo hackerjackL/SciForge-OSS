@@ -187,20 +187,20 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 
 **Problem Formalization:**
 - Formal definition (variables, constraints, objective)
-- Connect to the 125-problem context (Q-id)
 - State assumptions clearly
+- Do NOT reference the internal Q-id identifier, INV-G1, or any pipeline anchor in the manuscript text — the reader sees a research problem, not a pipeline run
 
 **Theory / Derivation:**
-- Present the derivation from `/theory-derivation` output
+- Present the derivation results in neutral academic prose
 - Key equations with explanatory text
-- Reference the derivation script for reproducibility
+- **Reproducibility is expressed as a neutral statement** ("All symbolic checks were performed with SymPy 1.13 and verified to 60 conditions"; "numerical sampling used a fixed random seed"), NOT as internal pipeline paths. The actual scripts/inputs are deposited in a supplementary archive (see Step 5 Reproducibility Statement) — they are NEVER referenced via `\path{derivations/...}` or `\texttt{experiments/...}` in the manuscript body. Internal artifact paths (`derivations/{problem_id}/`, `experiments/toy/`, `experiments/full/`, `methods/`, `refine-logs/`, `audit_report/`, `review-stage/`, `literature/`) are engineering scaffolding, not academic content.
 - Include only intermediate results that aid understanding
 
 **Results:**
-- Present the logic audit results from `/logic-verification`
-- Show consistency checks, contradiction checks, fallacy scans
+- Present verification results in neutral academic language ("All 60 symbolic checks pass"; "numerical sampling over $n \le 10^6$ confirms the bound"), NOT as audit-skill jargon ("logic audit (6 dimensions, 20-category taxonomy) reports 0 FATAL/0 CRITICAL"), NOT as internal verdicts ("Type I LEAKY", "Type IV ESCAPE", "INV-G1 freeze verified", "Phase 6 derivation")
+- Show consistency checks, contradiction checks as standard scientific validation language
 - Include numerical sanity checks if applicable
-- Include figures from `/unified-plotting` if they aid understanding
+- Include figures from `/unified-plotting` if they aid understanding — but captions describe the science, NEVER the rendering pipeline ("Morandi palette", "16:9", "viridis colormap", "render.py")
 
 **Discussion:**
 - Interpret the results
@@ -227,7 +227,41 @@ After writing, verify:
 3. **Every figure** is referenced in the body with `\cref{fig:label}` (never hardcoded "Figure 3")
 4. **Every equation** with a `\label{eq:}` is referenced via `\cref{eq:label}`
 5. **No citations outside the verified list** — no `\cite{TODO}`, no `\cite{forthcoming}`
-6. **The Q-id** appears in the paper (usually Section 1 or the abstract context) — INV-G1 freeze
+
+### Step 3.5: Pipeline-Leakage Scrub Gate (v3.3 — MANDATORY before compile, blocks submission)
+
+> **Why this exists (honest gap)**: two real test runs (Q-HARM-001, Q-SGD-BS-GAP) shipped LaTeX with `\path{derivations/Q-HARM-001/derivation.py}`, "logic audit (6 dimensions, 20-category taxonomy) reports 0 FATAL/0 CRITICAL", "INV-G1 freeze verified", "Morandi palette", "Phase 6b toy 阶段" directly in the manuscript body — a reviewer reading these immediately desk-rejects as an AI pipeline dump. The old Step 2 even *encouraged* it ("Reference the derivation script for reproducibility"). This gate catches and scrubs all 8 leakage classes before compile. It is MANDATORY: a paper that fails this gate is `FAIL` regardless of any other quality, and `/paper-compile` MUST refuse to compile it.
+
+**Runs after Step 3 (cross-ref check), before Step 4 (generate output). Wired into the ordered chain, not buried — a paper cannot reach compile without passing.**
+
+**Procedure — grep all `.tex` files (main.tex + sections/*.tex + math_commands.tex preamble comments) for the 8 leakage classes; each hit MUST be rewritten to neutral academic prose or removed:**
+
+| Class | Forbidden pattern (regex) | Required rewrite |
+|-------|---------------------------|------------------|
+| **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `refine-logs/`, `audit_report/`, `review-stage/`, `literature/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
+| **B. Phase / pipeline jargon** | `Phase [0-9]`, `toy 阶段`, `toy_gate`, `background dispatch`, `nohup`, `tmux`, `systemd`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: ?(lite\|balanced\|max\|beast)`, `role.?switch`, `senior.?reviewer`, `adversarial.?falsification` | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
+| **C. Audit-skill verdicts** | `Type I (LEAKY\|CLEAN\|WEAK)`, `Type IV (ESCAPE\|CLOSED\|N/A)`, `INV-G[0-9]`, `0 FATAL\|0 CRITICAL\|0 MAJOR.*MINOR`, `6 dimensions.*20.category`, `fidelity.*symbolic\|numerical\|qualitative`, `assurance.?contract` | Rewrite as neutral verification language ("All symbolic and numerical checks pass"; no taxonomy counts, no verdict enums) |
+| **D. Pipeline identifiers** | `Q-[A-Z]+-[A-Z0-9]+`, `INV-G[0-9]`, `problem.?anchor`, `Q-id`, `125.?problems`, `domain.?signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
+| **E. Rendering pipeline in captions** | `Morandi`, `morandi`, `viridis`, `magma`, `plasma`, `16:9`, `render\.py`, `input_data\.json`, `color.?palette`, `chroma` | Remove — captions describe the science ("remainder decay on a log–log scale"), never the rendering toolchain |
+| **F. Internal config / debug** | `hbox_warnings`, `overfull.*pt`, `font_embedding`, `microtypesetup`, compile.log fragments, `COMPILE_REPORT`, `PAPER_PLAN` references in body | These belong in `paper/COMPILE_REPORT.json` (engineering sidecar), NEVER in the manuscript body |
+| **G. Draft comments** | `%.*Q-`, `%.*Phase`, `%.*verification_type`, `%.*evidence_type`, `%.*mode:`, `%.*INV` | Remove all internal-identifier comments from preamble/section headers; keep only standard academic comments (`% section title`) |
+| **H. Frontmatter leak** | `verification_type`, `evidence_type`, `mode:`, `INV-G` in main.tex preamble comments or PAPER_PLAN exposed in body | main.tex preamble comment must be a neutral title only (`% Harmonic series remainder asymptotics`), never `% Q-HARM-001: ... (verification_type=theory-only)` |
+
+**Scrub procedure**:
+1. `grep -rnE "<patterns above>" paper/main.tex paper/sections/*.tex paper/math_commands.tex` — collect every hit.
+2. For each hit, apply the required rewrite (column 3). If no neutral rewrite is possible (e.g., a debug log fragment), delete the sentence entirely.
+3. **Re-grep** after rewrite — zero hits required to pass. Any remaining hit is a `FAIL`.
+4. Write `paper/LEAKAGE_SCRUB.json`:
+   ```json
+   {"gate":"pipeline-leakage-scrub","version":"v3.3","status":"PASS|FAIL","hits_found":<n>,"hits_scrubbed":<n>,"hits_remaining":<m>,"classes_seen":["A","C",...],"scrubbed_to":"neutral academic prose","checked_files":["main.tex","sections/*.tex","math_commands.tex"]}
+   ```
+5. **`/paper-compile` consumes this file** — if `status != PASS`, compile refuses to run (`BLOCKED, reason_code: pipeline_leakage_not_scrubbed`). The scrub gate is the single hard wall between internal engineering and the academic manuscript.
+
+**Boundaries**:
+- `paper/PAPER_PLAN.md` is an **engineering planning document** — it is NOT compiled into the PDF and is NOT referenced from the manuscript body. It stays in `paper/` for the agent's own use but must never appear in `\input{}` or `\include{}` chains. A `\input{PAPER_PLAN}` in main.tex is a `FAIL`.
+- The scrub gate is **additive to** the 3-layer citation discipline — it catches pipeline jargon, not citation hallucination (that's `/citation-audit`'s job).
+- Reproducibility is NOT sacrificed — Step 5 (Reproducibility Statement) deposits the actual scripts/data in a supplementary archive with a neutral name (`supplementary/` or a Zenodo bundle), referenced as "supplementary material". The internal paths are the agent's workspace, not the reader's concern.
+- This gate is the **single biggest submission-blocking lever** — a paper with perfect science but `\path{derivations/...}` in the body is desk-rejected. It is non-negotiable.
 
 ### Step 4: Generate Output
 
