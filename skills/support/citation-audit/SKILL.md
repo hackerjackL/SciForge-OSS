@@ -1,5 +1,6 @@
 ---
 name: citation-audit
+version: 1.1.0
 description: "Final 3-layer citation verification (existence + metadata + context) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
 type: reference-skill
 role: bibliographic-integrity-auditor

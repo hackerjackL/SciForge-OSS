@@ -1,5 +1,6 @@
 ---
 name: leakage-audit
+version: 1.1.0
 description: "Structural audit for Type I logic gaps + Type IV empirical escape (verification contradicts premise). Phase 7. Invoke after method-registry, before paper-writing. Does NOT run code (structural only)."
 type: reference-skill
 role: structural-leakage-auditor

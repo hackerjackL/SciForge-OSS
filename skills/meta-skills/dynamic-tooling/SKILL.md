@@ -1,5 +1,6 @@
 ---
 name: dynamic-tooling
+version: 1.1.0
 description: "Build custom ad-hoc tools (parsers, converters, small CLIs) the agent needs mid-run that aren't pre-provided. Invoke when no existing tool fits a pipeline step."
 type: reference-skill
 role: tool-builder
