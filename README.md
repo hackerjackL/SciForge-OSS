@@ -3,7 +3,7 @@
 > **[English](README.md)** | **[中文](README.zh.md)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.2.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -51,7 +51,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 
 ## Installation
 
-> **v1.2.0**: pure Skill package + optional toolchain. The skills themselves are pure Markdown that any Markdown-capable AI agent can consume directly; fully running through (figures / literature / compile / experiments) needs the optional toolchain, see "Toolchain (optional but recommended)" below.
+> **v1.1.0**: pure Skill package + optional toolchain. The skills themselves are pure Markdown that any Markdown-capable AI agent can consume directly; fully running through (figures / literature / compile / experiments) needs the optional toolchain, see "Toolchain (optional but recommended)" below.
 
 ### Method 1: Clone the repository (recommended, standard skill integration)
 

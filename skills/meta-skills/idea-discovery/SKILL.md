@@ -1,6 +1,6 @@
 ---
 name: idea-discovery
-version: 0.1.0
+version: 1.1.0
 description: "Generate 8-12 candidate research ideas via MCTS over a DAG, with 6-axis pre-screen (novelty/feasibility/relevance/tractability/data-readiness/EG). Phase 2. Invoke after domain signature is ready, before novelty-check."
 type: meta-skill
 role: research-idea-generation

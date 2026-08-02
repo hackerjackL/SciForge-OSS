@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0] - 2026-08-02
+
+### 正式版发布（大一统版本号，取代旧编号体系）
+
+**版本策略（见 VERSIONING.md）**
+- 单一版本号 `1.1.0` 统一全链路：根 SKILL.md + .atomcode-plugin/plugin.json + 24 个子 skill + README 徽章 + CHANGELOG + release tag + marketplace
+- 后续 bug 修复 / 文档修正记为 `1.1.0.x`（补丁号递增）；功能性重大变更才升主版本（1.2.0 / 2.0.0）
+- 废弃历史编号：v2.3/v3.0/v3.2/v3.4（改为 description 里的内容特性标识）、1.2.0/1.3.0（根 SKILL.md 旧值）、2.0.0（experiment-execution）、2.2.0（publishability-score）、0.1.0（marketplace 首发草案）
+
+**v3.4 完整特性集（本正式版内置）**
+- human_skip=true：生产级检查点跳过（production_ready=true, skip_authority=human_explicit），区别于 test_mode（降级）
+- Figure Budget Contract：per-section 最低图数（Intro≥1、Methods≥1 架构图强制、Results 2-4），总正文最低 4，复合组图（Composite/Group, subcaption 契约）
+- LaTeX pipeline 泄露清洗门（paper-writing Step 3.5 + paper-compile Step 1.5 消费）：8 类 regex，正文零内部路径/术语
+- Reproducibility + Data Availability 声明（paper-writing Step 4.5，中性 supplementary/ 归档）
+- domain-expert blind-spot 评审（auto-review-loop Phase B.2，BLINDSPOT_CHECK.json，effective_score=min(Phase C, B.2 cap)）
+- full-code smoke gate（experiment-execution Step 5.0，.SMOKE.json，dispatch 前 1-step 端到端）
+- proxy auto-mount + 异步数据集下载 + 本地 benchmark 注册表检查（Step 0d.0）
+
+
 ## [1.3.0] - 2026-08-01
 
 ### v2.3 — 单 Agent 全流程纪律 + 全量清理迭代（15 轮自迭代）

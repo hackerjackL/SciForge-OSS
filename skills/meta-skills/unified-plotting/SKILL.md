@@ -1,6 +1,6 @@
 ---
 name: unified-plotting
-version: 0.1.0
+version: 1.1.0
 description: "Render publication-quality vector figures (PDF+PNG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
