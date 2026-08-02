@@ -60,12 +60,20 @@ The non-negotiable goals:
 | **Theoretical** | commutative-diagram, derivation-tree, concept-map, dependency-graph, counterexample-plot | Proof structures, concept relations, theorem dependencies | LaTeX `tikz-cd` (commutative) OR **d2** (concept-map, dependency-graph, 5+ nodes) OR AI-direct SVG (≤4 nodes) |
 | **Engineering Path** | ai-dev-path | AI 开发路线三段式时间轴（Stage 1/2/3 轮次+投资+风险节点+downside protection） | **d2** (sequence/timeline) OR LaTeX `tikz`/`pgfplots` → PDF |
 | **Humanities/Arts** | timeline, argument-structure, textual-flow, comparison-map | Historical timelines, argument maps, hermeneutic diagrams | **d2** (all — same pipeline as STEM, see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §5) |
+| **Composite / Group** (v3.4 — NEW) | subfigure-grid, panel-2x2, panel-1x3, panel-2x3, inset-zoom, dual-axis | Multi-panel figures (a/b/c/d panels sharing one caption), grouped result comparisons, inset detail + overview | Python (`matplotlib` `subplots`/`gridspec`) for data panels OR d2 multi-graph for diagram panels → **single composite PDF+PNG**; LaTeX side: `\usepackage{subcaption}` + `\begin{figure}\subfloat{...}\subfloat{...}\end{figure}` OR single rendered PDF embedded with panel labels (a/b/c) baked into the image |
 
 **Pipeline rule** (v2.2 — see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md)):
 - **Data plots** (Relation/Comparison/Distribution/Composition/Correlation/3D Surface/Scientific) → Python pipeline mandatory (matplotlib/numpy), render script + input data preserved, **output BOTH `output.pdf` AND `output.png`** (PDF for LaTeX, PNG for viewing)
 - **Diagram plots** (Topology + Architecture) → **d2** (`.d2` spec → SVG intermediate → `rsvg-convert`/`inkscape` → PDF+PNG). AI-direct SVG demoted to ≤4-node trivial only. For 5+ node diagrams, d2 (or graphviz fallback) is mandatory — AI-direct SVG produces small-text, poor-layout, non-Nature figures.
 - **Theoretical plots** → LaTeX `tikz-cd` for commutative diagrams (PDF direct); **d2** for concept-maps/dependency-graphs (5+ nodes); AI-direct SVG for ≤4-node trivial. Reproducibility via the LaTeX source OR the `.d2` spec preserved.
 - **Engineering Path / Humanities** → **d2** (timelines, argument maps, comparison structures → SVG → PDF+PNG). Same 16:9 default, dual output, Nature readability floor as STEM — no humanities quality deviation.
+- **Composite / Group plots (v3.4 — NEW)** → two valid modes:
+  1. **Pre-rendered composite** (preferred for data panels): Python `matplotlib.subplots`/`gridspec` renders all panels into ONE PDF+PNG with (a)/(b)/(c) labels baked in. LaTeX embeds the single PDF via `\includegraphics`. Caption uses Nature style: "Figure N. **a**, Description. **b**, Description. ...". Preserves ONE render.py + ONE input_data.json for the whole composite.
+  2. **LaTeX `subcaption` composite** (preferred when panels are heterogeneous — e.g. a d2 architecture diagram + a data plot + a table): each panel is a separate PDF; LaTeX assembles via `\usepackage{subcaption}` + `\begin{figure}\subfloat[...]{\includegraphics{panel_a.pdf}}\subfloat[...]{\includegraphics{panel_b.pdf}}\end{figure}`. The `subcaption` package MUST be loaded in the unified skeleton's preamble (add to `math_commands.tex` or `main.tex` preamble: `\usepackage{subcaption}`).
+  - **Panel label rule**: every subpanel gets a bold lowercase letter label **(a)**, **(b)**, **(c)**... — either baked into the image (mode 1) or via `\subfloat`'s caption (mode 2). Never unlabeled panels.
+  - **Gap rule** (from figure-quality-contract): ≥ 2pt gap between subpanels; no cramped layouts.
+  - **Caption self-contained**: the composite caption explains ALL panels — a reader should understand the figure without reading the body text.
+  - **Dual output for composites**: the composite produces `output.pdf` (LaTeX-embeddable) AND `output.png` (viewable) regardless of mode. For mode 2 (LaTeX subcaption), the composite PNG is a rendered preview of the assembled figure (the agent renders it once for review).
 - **Dual output is non-negotiable** for ALL pipelines: every figure produces both PDF (LaTeX-embeddable) AND PNG (viewable). A figure with only one format is INCOMPLETE — re-render.
 - **16:9 horizontal default** for ALL pipelines unless content demands otherwise (square matrix → 4:3; documented reason required for any deviation).
 
@@ -309,6 +317,31 @@ Append to `figures/FIGURE_INDEX.md`:
 - **d2 is the preferred tool for complex diagrams (5+ nodes).** AI-direct SVG is demoted to ≤4-node trivial diagrams ONLY. For 5+ node architecture/flow/topology/humanities diagrams, d2 (or graphviz fallback) is mandatory — AI-direct SVG produces small-text, poor-layout, non-Nature figures. If d2 AND graphviz are both unavailable, BLOCK 5+ node diagrams (do not produce a low-quality AI-direct figure).
 - **SVG is NEVER the final deliverable.** SVG is an intermediate format (d2/graphviz output) converted to PDF+PNG before delivery. `\includegraphics{output.pdf}` in LaTeX — never `.svg` (breaks pdflatex) and never `.png` for vector content (loses quality).
 - **Every figure preserves its source** (`render.py` + `input_data.json` for data; `spec.d2` for d2; `source.md` for AI-direct). No figure is "just a PDF" — the source is part of the output.
+
+## Figure Budget Contract (v3.4 — per-section minimums, consumed by `/paper-writing`)
+
+> **Why this exists (honest gap)**: two real test runs produced **2 figures** (Q-HARM-001) and **5 figures** (Q-SGD-BS-GAP), ALL crammed into the Results section. A Zone-1 SCI paper has **4-8 figures distributed across sections** — an Introduction problem/motivation figure, a Methods/architecture diagram, 2-4 Results panels, often a Discussion/limitations figure. The "1-2 figures is enough" failure made the papers look thin and broke the "figures aid understanding at every section" SCI norm. This contract sets per-section minimums that `/paper-writing` Step 1 (Plan Structure) consumes when planning the figure budget.
+
+**Per-section figure budget (minimum — a paper may exceed)**:
+
+| Section | Min figures | Typical figure type | Rationale |
+|---------|-------------|---------------------|-----------|
+| **Introduction** | 1 | Problem illustration / motivation figure / frontier-gap map (d2 concept-map or 1-panel data teaser) | A Zone-1 Intro often opens with "Figure 1: the problem" — it orients the reader before any text |
+| **Related Work** | 0-1 | Comparison table/diagram (taxonomy tree, method-comparison matrix) | Optional; a taxonomy diagram dramatically improves a survey-flavored Related Work |
+| **Problem Formalization** | 0-1 | Formal setup illustration (variable-dependency graph, problem-schema diagram) | Optional but valuable for complex formalizations |
+| **Methods / Architecture** | 1 | **Pipeline / architecture diagram (MANDATORY)** — d2 layered/hub-and-spoke/flow showing the method's components + data flow | A Methods section with zero architecture diagram is the single strongest "thin paper" signal; every Zone-1 paper has one |
+| **Theory / Derivation** | 0-1 | Commutative diagram / derivation tree / dependency graph (tikz-cd or d2) | Optional for theory-heavy papers; valuable when proof structure is non-trivial |
+| **Results** | 2-4 | Primary result curves + comparison/bar + ablation + sensitivity (data plots, may be composites) | The core evidence; 2-4 panels is the Zone-1 norm (1 is thin, 5+ risks overcrowding without composites) |
+| **Discussion** | 0-1 | Limitations illustration / future-work roadmap / robustness summary | Optional; a robustness/sensitivity summary figure strengthens the Discussion |
+| **Appendix** | 0+ | Extended tables, full grid results, supplementary plots | Unlimited; appendix figures are not counted in the body budget |
+
+**Total body minimum (excl. appendix)**: **4 figures** (1 Intro + 1 Methods/architecture + 2 Results). A paper with fewer than 4 body figures is `WARN` (`figure_budget: below_minimum`). A paper with **only 1-2 figures total** is `FAIL` — it cannot support a Zone-1 submission regardless of text quality.
+
+**Composite counting**: a single composite figure with 4 panels (a/b/c/d) counts as **1 figure** for budget purposes but provides 4 visual units — this is the preferred way to pack rich content without inflating the figure count past the page budget. The Results section's "2-4 figures" minimum is best met as 2 composites × 2-3 panels each.
+
+**Architecture-diagram mandate (v3.4)**: every paper's Methods/Architecture section MUST contain at least one d2 (or graphviz) pipeline/architecture diagram showing the method's components and data flow. A Methods section with only equations and text — no architecture diagram — is the strongest "thin paper / desk-reject-risk" signal. This is a HARD requirement: `figure_budget.architecture_diagram_present` must be `true` in `FIGURE_INDEX.md`, or `/paper-writing` Step 5 self-review emits `FAIL, reason_code: missing_architecture_diagram`.
+
+**How `/paper-writing` consumes this**: at Step 1 (Plan Structure), the agent reads this budget, plans which figures go in which section, writes the plan to `PAPER_PLAN.md`'s figure-budget row, then at Step 2 (Write Each Section) requests each planned figure from `/unified-plotting`. A section that ends up with fewer figures than its minimum is `WARN` unless the mode (e.g. `theory` with no Methods section) makes it not-applicable — in which case the minimum is recalculated per the mode's section set (see [`paper-modes.md`](../../shared-references/paper-modes.md) §3).
 - **Humanities/arts figures use the same pipeline and quality floor as STEM.** A history timeline, argument map, or hermeneutic diagram must meet the same Nature readability, 16:9 default, dual output, and morandi palette as a physics curve. No humanities quality deviation.
 - **No discipline-specific enforcement.** Do not reintroduce physics SI-units enforcement or cs-ml benchmark-plot conventions. The universal morandi + Layer 2 + dual-output + 16:9 contract applies to every problem.
 - **`theme: modern` is prohibited.** Override to `theme: academic` and log a warning if requested.
