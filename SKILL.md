@@ -2,7 +2,7 @@
 name: sciforge-oss
 type: skill-package
 role: ai-scientist-framework
-version: 1.3.0
+version: 0.1.0
 description: "SciForge-OSS — 纯 Skill 驱动的全领域 (Domain-Agnostic) 自动科研框架：任意一个科学 idea → 一篇投稿就绪的 SCI 论文。21 阶段 DAG 单题循环（idea-discovery → theory-derivation → experiments → logic/leakage audits → paper-writing → compile → cross-model review → citation-audit）。v3.4 新增：human_skip=true 生产级检查点跳过、per-section 图预算+复合组图（Composite/Group）、LaTeX pipeline 泄露清洗门（8 类 regex）、Reproducibility + Data Availability 声明、domain-expert blind-spot 评审（BLINDSPOT_CHECK.json）、full-code smoke gate（.SMOKE.json）、proxy auto-mount + 异步数据集下载。24 个子 skill，orchestrator 通过 use_skill 链式调用。Invoke /sciforge-oss 或 /auto-pipeline 跑完整 pipeline。"
 entry: skills/orchestrator/auto-pipeline/SKILL.md
 license: MIT
