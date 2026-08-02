@@ -270,6 +270,35 @@ Write the complete paper:
 - **Markdown** (if `format=markdown` or `format=both`): write `output/PAPER.md` with proper formatting (headings, math, figures, citations)
 - **PDF**: defer to `/paper-compile` for the actual compile (this skill does NOT compile — it only produces the LaTeX source)
 
+### Step 4.5: Reproducibility Statement + Data Availability Statement (v3.4 — MANDATORY, the sections the v3.3 scrub gate references)
+
+> **Why this exists (honest gap — orphan reference)**: the v3.3 pipeline-leakage scrub gate (Step 3.5) rewrote internal paths (`\path{derivations/...}`) to "neutral reproducibility statement (see Step 5 Reproducibility Statement)" — but Step 5 is "Self-Review", NOT a Reproducibility Statement. The scrub gate referenced a section that did not exist. This step writes that missing section + the Data Availability Statement, closing the orphan-reference loop and giving the scrub gate's rewrites a real landing target.
+
+> A Zone-1 submission REQUIRES two back-matter statements that the manuscript body does NOT contain but the `\section*{}` back-matter does. These are NOT optional — their absence is a `FAIL` at self-review (Step 5) and a `WARN`/`BLOCKED` at `/paper-compile`'s submission-readiness check.
+
+**Write two short sections, placed AFTER the Conclusion, BEFORE the References (or in the Appendix front matter)**:
+
+#### Reproducibility Statement (`\section*{Reproducibility}`)
+A neutral, self-contained paragraph stating what is needed to reproduce the results. **Forbidden content** (v3.3 scrub gate class A/F): internal pipeline paths (`derivations/`, `experiments/`, `refine-logs/`), artifact filenames (`RESULT.json`, `METHOD_REGISTRY.md`), pipeline phase numbers, audit verdicts. **Required content**:
+- The software stack (versions): "All symbolic computations used SymPy 1.13.1 and mpmath 1.3.0; numerical experiments used NumPy 2.1.3 and scikit-learn 1.5."
+- The random seed: "All stochastic procedures use a fixed random seed (42)."
+- The verification count (neutral): "All 60 symbolic conditions and 39 numerical checks pass."
+- The supplementary archive pointer: "The complete verification scripts and input data are provided as supplementary material (see `supplementary/`)." — the word "supplementary" is the ONLY path reference allowed; the actual archive is `paper/supplementary/` (a symlink to the relevant workspace dirs, with a neutral name, NOT `derivations/Q-XXX/`).
+
+#### Data Availability Statement (`\section*{Data Availability}`)
+A neutral statement on data provenance. **Required content** depends on `evidence_type`:
+- `theory-only` / `derivational`: "This study is purely theoretical; no external datasets were used. The symbolic verification scripts are provided as supplementary material."
+- `computational` / `simulational` with synthetic data: "All experiments use synthetic data generated with `sklearn.datasets.make_classification` (fixed seed 42, n=2000, 20 features); the generation script is provided as supplementary material."
+- `computational` / `simulational` with real data: name the dataset NEUTRALLY ("the HLE benchmark", "the NatureBench ubonodin task") + a citation (`\cite{...}`), the split/seed, and the access path ("data accessed via the public benchmark registry"). **Forbidden**: internal pipeline paths (`datasets/HLE/full_sample.parquet`), download-log filenames (`STATUS.json`), proxy jargon (`mihomo`, `.proxy-resolved.json`).
+- `experimental` / `causal_inference` / `correlational`: name the data source + citation + access path (neutral) + any IRB/gating note IF the human supplied one (the human's job, but the statement slot must exist; if absent, emit `[data-availability-needs-human]`).
+
+**Both statements are written to `paper/sections/Z_reproducibility.tex`** (the `Z_` prefix sorts it after all lettered sections). `main.tex` MUST `\input{sections/Z_reproducibility}` after the Conclusion `\input` and before `\bibliography{}`. The scrub gate (Step 3.5) re-greps these statements too — any internal path leak in them is a `FAIL`.
+
+**Boundaries**:
+- These statements are **neutral academic prose**, not pipeline status dumps. The v3.3 scrub gate's class-A/F patterns apply here with full force.
+- The supplementary archive (`paper/supplementary/`) is a **neutral-named symlink bundle** the agent creates at Step 4.5: it symlinks `derivations/{problem_id}/` → `supplementary/derivation/`, `experiments/` → `supplementary/experiments/`, `figures/` → `supplementary/figures/`, etc. The manuscript references ONLY `supplementary/` (neutral), never the live workspace paths. The symlink names are the reader-facing names; the workspace paths are the agent's.
+- If the human later wants a real Zenodo/OSF DOI, that's the human's job (per scope boundary) — the statement slot + neutral archive exist; the human swaps `supplementary/` for a DOI URL at submission.
+
 ### Step 5: Self-Review
 
 Before declaring the draft ready, perform a self-review:
@@ -280,6 +309,8 @@ Before declaring the draft ready, perform a self-review:
 5. **Citations** — are all citations real and correctly formatted?
 6. **Template compliance** — is the unified `elsarticle` template used? No hand-written preamble? No `revtex`/`optica`/`IEEEtran`?
 7. **Citation style consistency** — numeric OR author-year, not mixed?
+8. **Figure budget (v3.4)** — does the paper meet the per-section figure minimums from [`/unified-plotting`](../../meta-skills/unified-plotting/SKILL.md) §Figure Budget Contract? Is `figure_budget.architecture_diagram_present` true in `FIGURE_INDEX.md`? (< 4 body figures → `WARN`; < 2 total → `FAIL`)
+9. **Reproducibility + Data Availability (v3.4)** — do both back-matter statements exist (`sections/Z_reproducibility.tex`), are they `\input`'d in `main.tex` before `\bibliography`, and did the Step 3.5 scrub gate's re-grep find zero internal-path leaks in them? (missing → `FAIL, reason_code: missing_reproducibility_statement`)
 
 ## Output Protocols
 
