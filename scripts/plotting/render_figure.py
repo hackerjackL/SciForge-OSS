@@ -295,6 +295,26 @@ def render_mermaid(src: Path, out_pdf: Path, out_png: Path, dpi: int,
         tmp_svg.unlink()
 
 
+def render_pikchr(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+                  log: list, keep_svg: Path | None = None) -> None:
+    """pikchr — lightweight vector DSL for mechanism/sequence schematics
+    (SQLite project, compiled from the pikchr.org tarball; INSTALL.md).
+    Produces SVG via --svg-only, then the shared svg2dual path handles
+    palette sanitization, dual output and audit — single pipeline."""
+    outdir = out_pdf.parent
+    outdir.mkdir(parents=True, exist_ok=True)
+    tmp_svg = outdir / "_render.svg"
+    r = subprocess.run(["pikchr", "--svg-only", str(src)],
+                       capture_output=True, text=True, timeout=TOOL_TIMEOUT)
+    log.append("$ pikchr --svg-only " + str(src))
+    if r.returncode != 0:
+        raise RuntimeError(f"pikchr failed:\n{r.stderr[:3000]}")
+    tmp_svg.write_text(r.stdout, encoding="utf-8")
+    svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+    if tmp_svg.exists():
+        tmp_svg.unlink()
+
+
 def render_asymptote(src: Path, out_pdf: Path, out_png: Path, dpi: int,
                      log: list) -> None:
     """Asymptote — publication vector engine for geometry/mechanism figures."""
@@ -368,7 +388,16 @@ def svg2dual(svg: Path, out_pdf: Path, out_png: Path, dpi: int,
         run(["inkscape", str(svg), f"--export-filename={out_png}",
              f"--export-dpi={dpi}"], log=log)
     else:
-        raise RuntimeError("no SVG converter found (need rsvg-convert or inkscape)")
+        # last-resort pure-Python fallback: cairosvg (pdf + png), so the
+        # pipeline still works on a minimal python-only host
+        try:
+            import cairosvg
+        except ImportError:
+            raise RuntimeError("no SVG converter found (need rsvg-convert, "
+                               "inkscape, or pip install cairosvg)")
+        cairosvg.svg2pdf(url=str(svg), write_to=str(out_pdf))
+        cairosvg.svg2png(url=str(svg), write_to=str(out_png), dpi=dpi)
+        log.append("# cairosvg python fallback used")
     stamp_png_dpi(out_png, dpi)
 
 
@@ -414,6 +443,9 @@ def doctor() -> int:
         ("asy", ["asy"], "Asymptote math/geometry mechanism figures"),
         ("typst", ["typst"], "Typst fletcher/CeTZ fast diagrams"),
         ("diagrams", ["python3"], "mingrammer/diagrams as-code (python import check)"),
+        ("pikchr", ["pikchr"], "pikchr vector schematic DSL"),
+        ("resvg", ["resvg"], "high-fidelity SVG rasterizer (optional)"),
+        ("cairosvg", ["python3"], "pure-Python SVG converter fallback (import check)"),
         ("rsvg-convert", ["rsvg-convert"], "SVG -> PDF+PNG conversion"),
         ("inkscape", ["inkscape"], "SVG conversion fallback (optional)"),
         ("pdftoppm", ["pdftoppm"], "PDF -> PNG rasterization"),
@@ -466,7 +498,7 @@ def main() -> int:
     ap.add_argument("--engine",
                     choices=["d2", "graphviz", "tikz", "svg", "asy",
                              "typst", "diagrams", "blockdiag", "mermaid",
-                             "python", "auto"],
+                             "pikchr", "python", "auto"],
                     default="auto")
     ap.add_argument("--layout", default=None,
                     help="d2: dagre|elk|tala  /  graphviz: dot|neato|fdp|...")
@@ -498,7 +530,7 @@ def main() -> int:
                   ".tex": "tikz", ".svg": "svg",
                   ".asy": "asy", ".typ": "typst", ".py": "python",
                   ".diag": "blockdiag", ".mmd": "mermaid",
-                  ".mermaid": "mermaid"}.get(ext)
+                  ".mermaid": "mermaid", ".pik": "pikchr"}.get(ext)
         if src.name.endswith("_diagr.py"):
             engine = "diagrams"
         if engine is None:
@@ -539,6 +571,8 @@ def main() -> int:
             render_blockdiag(src, out_pdf, out_png, args.dpi, log, keep_svg)
         elif engine == "mermaid":
             render_mermaid(src, out_pdf, out_png, args.dpi, log, keep_svg)
+        elif engine == "pikchr":
+            render_pikchr(src, out_pdf, out_png, args.dpi, log, keep_svg)
         else:
             render_svg(src, out_pdf, out_png, args.dpi, log, keep_svg)
     except PaletteError as e:
