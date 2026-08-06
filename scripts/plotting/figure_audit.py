@@ -211,9 +211,15 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
         max_line = max((len(s) for s in lines), default=0) or len(body)
         fs = re.search(r'font-size[:=]\s*"?([\d.]+)', tm.group(0))
         est_w = max_line * (float(fs.group(1)) if fs else 16) * 0.6
-        centered = "text-anchor:middle" in tag or 'text-anchor="middle"' in tag
-        right = x + (est_w / 2 if centered else est_w)
-        left = x - est_w / 2 if centered else x
+        if "text-anchor:middle" in tag or 'text-anchor="middle"' in tag:
+            right = x + est_w / 2
+            left = x - est_w / 2
+        elif "text-anchor:end" in tag or 'text-anchor="end"' in tag:
+            right = x
+            left = x - est_w
+        else:
+            right = x + est_w
+            left = x
         if right > vw + 4 or left < -4:
             clipped += 1
     if clipped:

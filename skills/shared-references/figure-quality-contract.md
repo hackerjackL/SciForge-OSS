@@ -128,14 +128,14 @@ When a tool produces SVG (d2, graphviz, AI-direct, inkscape), the conversion to 
 
 | Tool | Role | Install |
 |------|------|---------|
-| **`scripts/plotting/render_figure.py`** | **SINGLE unified entry point for all figures** (d2/graphviz/tikz/asy/typst/blender/SVG → dual output → embedded audit) | in-repo, stdlib only (+PIL for DPI stamp) |
+| **`scripts/plotting/render_figure.py`** | **SINGLE unified entry point for all figures** (d2/graphviz/tikz/asy/typst/diagrams/blockdiag/SVG → dual output → embedded audit) | in-repo, stdlib only (+PIL for DPI stamp) |
 | `scripts/plotting/sciforge_style.py` | Morandi design tokens — single source of truth (validated C* ≤ 25, contrast ≥ 4.5); `apply_matplotlib_style()` loads SciencePlots `science` base under house overrides | in-repo |
 | `matplotlib` + `SciencePlots` | Data plots (line/scatter/bar/heatmap/3D) — journal-grade geometry + house palette/fonts | pip (aliyun mirror) |
 | `d2` | Complex architecture/flow/topology diagrams (invoked ONLY via render_figure.py) | d2 install script |
 | `graphviz` (`dot`) | Fallback graph layout (via render_figure.py) | apt: `graphviz` |
 | `asymptote` (`asy`) | High-end math/geometry/mechanism vector figures (via render_figure.py) | apt: `asymptote` |
 | `typst` (+ fletcher/CeTZ packages) | Fast declarative diagrams, millisecond compile (via render_figure.py) | GitHub release binary |
-| `blender` (Cycles CPU headless) | Cover-grade 3D mechanism/structure renders (via render_figure.py) | apt: `blender` |
+| `diagrams` (mingrammer) + `blockdiag` 家族 | Diagram-as-code with pro icon sets / swimlane activity & sequence diagrams (via render_figure.py) | pip (aliyun mirror) |
 | `rsvg-convert` | SVG → PDF + PNG conversion (via render_figure.py) | apt: `librsvg2-bin` |
 | `inkscape` | Fallback SVG → PDF + PNG | apt: `inkscape` |
 | `pdfcrop` | Whitespace crop for asy/typst PDF deliverables (via render_figure.py) | apt: `texlive-extra-utils` |

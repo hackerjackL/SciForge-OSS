@@ -27,7 +27,7 @@ role: figure-renderer-and-spec-generator
 
 > **Agent 驱动分阶段设计工作流（借鉴 AutoFigure-Edit 的分阶段装配思想，MIT 许可；本 skill 零外部 API——"模型"就是 agent 自身，用户用自己的 Claude/Codex/AtomCode 开箱即用）**:
 > 1. **骨架（skeleton）**: 从方法段落文本抽取组件清单 + 数据流 + 分组层级，先写布局骨架（容器/行列/边），不急着画
-> 2. **填充（fill）**: 按内容类型选引擎——架构/流程用 d2，机制细节用 tikz，几何/示意用 asy，快速迭代用 typst，3D 结构用 blender，数据用 matplotlib；每个组件填莫兰迪 token 样式
+> 2. **填充（fill）**: 按内容类型选引擎——架构/流程用 d2 或 diagrams/blockdiag（专业图标集/泳道），机制细节用 tikz，几何/示意用 asy，快速迭代用 typst，Visio 级精密图用手工装配 SVG（正交圆角布线），数据用 matplotlib；每个组件填莫兰迪 token 样式
 > 3. **装配（assemble）**: 全部经单一入口 `render_figure.py` 渲染（前导注入、调色板净化、双产出、LaTeX 片段一步完成）
 > 4. **审阅（review）**: 看 `figure_audit.json` verdict；WARN/FAIL 回到骨架层改 spec 重渲染——禁止手工修补 PNG/SVG 像素
 >
