@@ -268,6 +268,33 @@ def render_blockdiag(src: Path, out_pdf: Path, out_png: Path, dpi: int,
         tmp_svg.unlink()
 
 
+def render_mermaid(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+                   log: list, keep_svg: Path | None = None) -> None:
+    """mermaid-cli (mmdc) — flowchart/sequence/class/state diagrams.
+
+    Requires headless Chrome (puppeteer).  Under root the sandbox must be
+    disabled: we auto-generate a puppeteer config with --no-sandbox when
+    running as uid 0.  plotly/kaleido was evaluated and REJECTED for the
+    same Chromium-dependency reason (documented in INSTALL.md)."""
+    outdir = out_pdf.parent
+    outdir.mkdir(parents=True, exist_ok=True)
+    tmp_svg = outdir / "_render.svg"
+    if tmp_svg.exists():
+        tmp_svg.unlink()
+    cmd = ["mmdc", "-i", str(src), "-o", str(tmp_svg), "-b", "transparent"]
+    if os.geteuid() == 0:
+        cfg = outdir / "_puppeteer.json"
+        cfg.write_text('{"args": ["--no-sandbox", "--disable-setuid-sandbox"]}',
+                       encoding="utf-8")
+        cmd += ["-p", str(cfg)]
+    run(cmd, log=log)
+    if not tmp_svg.is_file():
+        raise RuntimeError("mmdc produced no SVG")
+    svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+    if tmp_svg.exists():
+        tmp_svg.unlink()
+
+
 def render_asymptote(src: Path, out_pdf: Path, out_png: Path, dpi: int,
                      log: list) -> None:
     """Asymptote — publication vector engine for geometry/mechanism figures."""
@@ -438,7 +465,8 @@ def main() -> int:
     ap.add_argument("--name", default="output", help="output basename (no ext)")
     ap.add_argument("--engine",
                     choices=["d2", "graphviz", "tikz", "svg", "asy",
-                             "typst", "diagrams", "blockdiag", "python", "auto"],
+                             "typst", "diagrams", "blockdiag", "mermaid",
+                             "python", "auto"],
                     default="auto")
     ap.add_argument("--layout", default=None,
                     help="d2: dagre|elk|tala  /  graphviz: dot|neato|fdp|...")
@@ -469,7 +497,8 @@ def main() -> int:
         engine = {".d2": "d2", ".dot": "graphviz", ".gv": "graphviz",
                   ".tex": "tikz", ".svg": "svg",
                   ".asy": "asy", ".typ": "typst", ".py": "python",
-                  ".diag": "blockdiag"}.get(ext)
+                  ".diag": "blockdiag", ".mmd": "mermaid",
+                  ".mermaid": "mermaid"}.get(ext)
         if src.name.endswith("_diagr.py"):
             engine = "diagrams"
         if engine is None:
@@ -508,6 +537,8 @@ def main() -> int:
             render_diagrams(src, out_pdf, out_png, args.dpi, log, keep_svg)
         elif engine == "blockdiag":
             render_blockdiag(src, out_pdf, out_png, args.dpi, log, keep_svg)
+        elif engine == "mermaid":
+            render_mermaid(src, out_pdf, out_png, args.dpi, log, keep_svg)
         else:
             render_svg(src, out_pdf, out_png, args.dpi, log, keep_svg)
     except PaletteError as e:

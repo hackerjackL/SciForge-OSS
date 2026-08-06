@@ -23,6 +23,7 @@ Exit: 0 PASS, 1 WARN, 4 FAIL.
 
 from __future__ import annotations
 
+import html
 import json
 import re
 import sys
@@ -290,6 +291,238 @@ def audit_complexity(figdir: Path, rep: Report) -> None:
         rep.add("A7", "PASS", "complexity audit n/a for this engine")
 
 
+def audit_richness(figdir: Path, rep: Report) -> None:
+    """A8 — visual depth richness per figure-complexity-contract §7.
+
+    Mechanical count of depth devices in hand-assembled SVG sources:
+    gradients, drop shadows, mini-visualizations (sparkline/strip/grid/
+    matrix), port dots, status meters.  A Visio-grade figure must not be
+    flat boxes — flat-only => WARN."""
+    override = (figdir / "complexity_override.txt").is_file()
+    src = next(iter(figdir.glob("source*.svg")), None)
+    if src is None:
+        src = figdir / "intermediate.svg"
+    if not src.is_file():
+        rep.add("A8", "PASS", "richness audit n/a (no SVG source)")
+        return
+    text = src.read_text(encoding="utf-8", errors="replace")
+    devices = {
+        "gradients": len(re.findall(r"<(linearGradient|radialGradient)\b", text)),
+        "shadows": len(re.findall(r'filter="url\(#shadow\)"', text)),
+        "sparklines": len(re.findall(r"<polyline\b", text)),
+        "grids": len(re.findall(r'patch grid|dot grid|token strip|attention mini',
+                                text, re.I)),
+        "port_dots": len(re.findall(r'<!-- port|class="port"', text)),
+        "meters": len(re.findall(r'open \d+%|status meter', text, re.I)),
+    }
+    total = sum(devices.values())
+    cards = len(re.findall(r'rx="1[0-4]"', text))
+    if cards >= 4 and total < cards and not override:
+        rep.add("A8", "WARN",
+                f"{cards} cards but only {total} depth device(s) — add "
+                "gradients/ports/mini-viz per complexity-contract §7")
+    else:
+        rep.add("A8", "PASS",
+                f"depth devices: {total} "
+                f"(gradients={devices['gradients']}, shadows={devices['shadows']}, "
+                f"mini-viz={devices['sparklines'] + devices['grids']}, "
+                f"ports={devices['port_dots']}, meters={devices['meters']})")
+
+
+BRAND_BLOCKLIST = (
+    r"sciforge", r"sci[- ]?forge", r"atomcode", r"autofigure",
+    r"unified renderer", r"unified-renderer", r"figure-lab",
+    r"morandi", r"pipeline skill", r"render_figure", r"v\d\.\d renderer",
+)
+
+
+def audit_brand_leak(figdir: Path, rep: Report) -> None:
+    """A9 — figures are PAPER figures: no internal-tool branding may leak
+    into them (skill names, renderer names, palette codenames, lab paths).
+    Scans every preserved source in the figure dir.  Python import/sys.path
+    machinery lines are exempt: they never render into the figure, and a
+    repo checkout named SciForge-OSS makes the module path unavoidable."""
+    hits = []
+    for p in figdir.glob("*"):
+        if p.suffix not in (".svg", ".tex", ".py", ".d2", ".asy", ".typ",
+                            ".diag", ".dot"):
+            continue
+        text = p.read_text(encoding="utf-8", errors="replace")
+        if p.suffix == ".py":
+            kept = [ln for ln in text.splitlines()
+                    if not re.match(r"^\s*(?:sys\.path|import|from)\b", ln)]
+            text = "\n".join(kept)
+        for pat in BRAND_BLOCKLIST:
+            for m in re.finditer(pat, text, re.I):
+                line = text[: m.start()].count("\n") + 1
+                hits.append(f"{p.name}:{line} '{m.group(0)}'")
+                if len(hits) > 6:
+                    break
+    if hits:
+        rep.add("A9", "FAIL", "internal branding leaked into figure: "
+                + "; ".join(hits[:6]))
+    else:
+        rep.add("A9", "PASS", "no internal branding in figure sources")
+
+
+def _seg_intersects_rect(p1, p2, r) -> bool:
+    """Liang-Barsky: does segment p1-p2 intersect rect (x0,y0,x1,y1)?"""
+    x0, y0, x1, y1 = r
+    dx, dy = p2[0] - p1[0], p2[1] - p1[1]
+    if dx == 0 and dy == 0:
+        return x0 <= p1[0] <= x1 and y0 <= p1[1] <= y1
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, p1[0] - x0), (dx, x1 - p1[0]),
+                 (-dy, p1[1] - y0), (dy, y1 - p1[1])):
+        if p == 0:
+            if q < 0:
+                return False
+        else:
+            t = q / p
+            if p < 0:
+                t0 = max(t0, t)
+            else:
+                t1 = min(t1, t)
+            if t0 > t1:
+                return False
+    return True
+
+
+def audit_text_occlusion(svg_text: str, rep: Report) -> None:
+    """A10 — text must never be occluded by wiring: a line segment passing
+    through a text bbox without a solid halo/background rect is flagged.
+    Heuristic: text bbox estimated from x/y/font-size/anchor; halo = a
+    bright rect covering >=80% of the text bbox."""
+    texts = []
+    for tm in re.finditer(
+            r'<text[^>]*?x="([\d.-]+)"[^>]*?y="([\d.-]+)"[^>]*>(.*?)</text>',
+            svg_text, re.S):
+        tag = tm.group(0)[: tm.group(0).find(">")]
+        body = html.unescape(re.sub(r"<[^>]+>", "", tm.group(3))).strip()
+        if not body:
+            continue
+        lines = [html.unescape(s) for s in
+                 re.findall(r"<tspan[^>]*>([^<]*)</tspan>", tm.group(3))] or [body]
+        max_line = max((len(s) for s in lines), default=len(body))
+        fs = float(re.search(r'font-size[:=]\s*"?([\d.]+)', tag).group(1)) \
+            if re.search(r'font-size', tag) else 16
+        w = max_line * fs * 0.62
+        h = (len(lines) + 0.4) * fs
+        x, y = float(tm.group(1)), float(tm.group(2))
+        if "middle" in tag:
+            x0 = x - w / 2
+        elif "end" in tag:
+            x0 = x - w
+        else:
+            x0 = x
+        texts.append((x0, y - fs, x0 + w, y + h * 0.4, body[:24]))
+    # halo rects: bright fills (canvas/white)
+    halos = []
+    for rm in re.finditer(r'<rect[^>]*>', svg_text):
+        t = rm.group(0)
+        fill = re.search(r'fill="(#[0-9A-Fa-f]{6}|white)"', t)
+        if not fill:
+            continue
+        f = fill.group(1)
+        bright = f.lower() in ("#faf8f5", "#ffffff", "white")
+        if not bright:
+            continue
+        try:
+            x = float(re.search(r'x="([\d.-]+)"', t).group(1))
+            y = float(re.search(r'y="([\d.-]+)"', t).group(1))
+            w = float(re.search(r'width="([\d.-]+)"', t).group(1))
+            h = float(re.search(r'height="([\d.-]+)"', t).group(1))
+        except AttributeError:
+            continue
+        halos.append((x, y, x + w, y + h))
+
+    def covered(t):
+        x0, y0, x1, y1, _ = t
+        for hx0, hy0, hx1, hy1 in halos:
+            ix = max(0, min(x1, hx1) - max(x0, hx0))
+            iy = max(0, min(y1, hy1) - max(y0, hy0))
+            if (x1 - x0) > 0 and (y1 - y0) > 0 and \
+                    ix * iy >= 0.8 * (x1 - x0) * (y1 - y0):
+                return True
+        return False
+
+    # gather line segments (polyline points, <line>, path M/L chains).
+    # Arc/curve commands are skipped — occlusion risk lives in straight runs.
+    segs = []
+    for pm in re.finditer(r'<polyline[^>]*points="([^"]+)"[^>]*>', svg_text):
+        nums = [float(v) for v in
+                re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)", pm.group(1))]
+        for i in range(0, len(nums) - 3, 2):
+            segs.append(((nums[i], nums[i + 1]), (nums[i + 2], nums[i + 3])))
+    for pm in re.finditer(r'<line[^>]*>', svg_text):
+        t = pm.group(0)
+        try:
+            segs.append(((float(re.search(r'x1="([\d.-]+)"', t).group(1)),
+                          float(re.search(r'y1="([\d.-]+)"', t).group(1))),
+                         (float(re.search(r'x2="([\d.-]+)"', t).group(1)),
+                          float(re.search(r'y2="([\d.-]+)"', t).group(1)))))
+        except AttributeError:
+            continue
+    num_re = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+    for pm in re.finditer(r'<path[^>]*>', svg_text):
+        tag = pm.group(0)
+        d = re.search(r'd="([^"]+)"', tag)
+        if not d:
+            continue
+        if 'fill="none"' not in tag:
+            continue  # filled shapes are not wiring
+        # walk explicit M/L (absolute or relative) coordinate runs only
+        for cm in re.finditer(r"[MmLl]((?:\s*[-+]?(?:\d+\.?\d*|\.\d+))+)",
+                              d.group(1)):
+            coords = [float(v) for v in num_re.findall(cm.group(1))]
+            pts = [(coords[i], coords[i + 1])
+                   for i in range(0, len(coords) - 1, 2)]
+            segs.extend(zip(pts, pts[1:]))
+
+    bad = []
+    for t in texts:
+        if covered(t):
+            continue
+        r = (t[0], t[1], t[2], t[3])
+        for s1, s2 in segs:
+            if _seg_intersects_rect(s1, s2, r):
+                bad.append(t[4])
+                break
+    if bad:
+        rep.add("A10", "WARN", f"{len(bad)} label(s) crossed by wiring without "
+                f"a halo rect (first: {bad[:3]}) — add background rects or "
+                "re-route")
+    else:
+        rep.add("A10", "PASS", "no wiring crosses unlabeled text bboxes")
+
+    # text-on-text overlap: labels truly collide when the vertical
+    # intrusion exceeds 30% of the smaller label's height (area ratios are
+    # inconsistent across label widths — short labels would fail at the
+    # same line spacing where wide ones pass).
+    overlaps = []
+    for i in range(len(texts)):
+        for j in range(i + 1, len(texts)):
+            a, b = texts[i], texts[j]
+            ix = max(0, min(a[2], b[2]) - max(a[0], b[0]))
+            iy = max(0, min(a[3], b[3]) - max(a[1], b[1]))
+            if ix <= 16 or iy <= 0:
+                continue
+            smaller_h = min(a[3] - a[1], b[3] - b[1])
+            if smaller_h > 0 and iy > 0.30 * smaller_h:
+                overlaps.append(f"'{a[4]}' vs '{b[4]}'")
+    if overlaps:
+        rep.add("A10", "FAIL", f"{len(overlaps)} text-overlap pair(s): "
+                + "; ".join(overlaps[:4]) + " — re-layout labels")
+    else:
+        rep.add("A10", "PASS", f"{len(texts)} labels, zero text-on-text overlap")
+
+    # layer structure: a Visio-grade figure organizes content in <g> layers
+    layers = len(re.findall(r'<g[^>]*class="layer', svg_text))
+    if layers == 0 and len(texts) >= 20:
+        rep.add("A10", "WARN", "no <g class=\"layer-*\"> structure — organize "
+                               "canvas/cards/wiring/labels into named layers")
+
+
 def audit_figure(figdir: Path) -> Report:
     figdir = Path(figdir)
     rep = Report()
@@ -316,6 +549,14 @@ def audit_figure(figdir: Path) -> Report:
             rep.add("A3", "WARN", "no SVG intermediate or source to audit")
     audit_contract(figdir, rep)
     audit_complexity(figdir, rep)
+    audit_richness(figdir, rep)
+    audit_brand_leak(figdir, rep)
+    svg = figdir / "intermediate.svg"
+    if not svg.is_file():
+        svg = next(iter(figdir.glob("source*.svg")), None)
+    if svg is not None and svg.is_file():
+        audit_text_occlusion(svg.read_text(encoding="utf-8", errors="replace"),
+                             rep)
     return rep
 
 

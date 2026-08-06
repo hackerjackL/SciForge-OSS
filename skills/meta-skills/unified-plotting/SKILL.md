@@ -31,7 +31,7 @@ role: figure-renderer-and-spec-generator
 > 3. **装配（assemble）**: 全部经单一入口 `render_figure.py` 渲染（前导注入、调色板净化、双产出、LaTeX 片段一步完成）
 > 4. **审阅（review）**: 看 `figure_audit.json` verdict；WARN/FAIL 回到骨架层改 spec 重渲染——禁止手工修补 PNG/SVG 像素
 >
-> **复杂度硬约束（v3.6 — 防"小学生级别"图）**: 每张 5+ 节点的架构图必须满足 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)：≥60% 组件用**自绘图标**（d2 `icon:`，agent 现写 SVG，随图保存到 `figures/<name>/icons/`）或 TikZ `\pic` 自绘组件；连线必须容器级汇流（禁止箭头雨，边密度 ≤1.6）；至少两级分组；文字纪律（≤3 行/≤4 词）。达不到下限 = 图还没画完，继续迭代。审计 A7 层机械检查图标计数与边密度。
+> **复杂度硬约束（v3.6 — 防"小学生级别"图，全领域适用）**: 每张 5+ 节点的图必须满足 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)：≥60% 组件用**自绘图标**（d2 `icon:`，agent 现写 SVG，随图保存到 `figures/<name>/icons/`）或 TikZ `\pic` 自绘组件；连线必须容器级汇流（禁止箭头雨，边密度 ≤1.6）；至少两级分组；文字纪律（≤3 行/≤4 词）。达不到下限 = 图还没画完，继续迭代。审计 A7 层机械检查图标计数与边密度。先按契约 §0.5 判定图的**结构角色**（结构/流程/机制/网络/层级/时间/空间/数据）选引擎——领域只决定组件语义，不改变规则。
 
 > **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the morandi palette + Layer 2 data-encoding colormaps are universal contracts.
 >
