@@ -135,6 +135,8 @@ Any AI agent supporting Markdown context or custom skill sets works: provide `AG
 
 The skills themselves are pure Markdown, but fully running through (figure rendering / literature search / LaTeX compile / experiment execution) needs the optional tools below. `sciforge tools-check` reports missing items; `sciforge tools-install` installs them in one shot.
 
+> 📊 **Figure toolchain**: all figures (data plots, architecture/process/mechanism diagrams — every discipline) are produced through ONE unified entry point, `scripts/plotting/render_figure.py` (11 engines: matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag-family / mermaid / pikchr / hand-assembled SVG — single pipeline, never parallel tools; PDF+PNG dual output + embedded Nature-level audit). Full dependency list, mirrors, fonts and not-adopted tools: **[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**. Environment self-check: `python scripts/plotting/render_figure.py --doctor`.
+
 | Tool | Purpose | Install | Necessity |
 |------|---------|---------|-----------|
 | **Python 3.10+** | Data plots, SymPy derivation, experiment scripts | system (apt/conda) | Required (core compute) |
@@ -149,7 +151,7 @@ The skills themselves are pure Markdown, but fully running through (figure rende
 
 **GPU/NPU**: SciForge auto-detects (experiment-execution Step 0a) — `nvidia-smi`(cuda) / `rocminfo`(rocm) / `npu-smi`(npu) / `torch.backends.mps`(Apple Silicon); missing GPU auto-falls back to CPU + WARN, never blocks. Never hardcode `.cuda()`.
 
-**Why not mermaid-cli / drawio**: mermaid-cli (`mmdc`) renders via headless Chromium (puppeteer), which is fragile on headless servers; drawio-desktop is a GUI app, not headless-friendly. d2 and graphviz/dot are both headless-native and stable in server environments. If a human later wants to hand-edit a diagram in drawio's GUI, they can import the d2/dot-produced SVG — but the pipeline itself uses headless tools only.
+**Why not drawio / blender**: drawio-desktop is a GUI app, not headless-friendly; Blender headless rendering produced black frames that could not be reliably fixed. mermaid-cli (`mmdc`) IS supported (auto `--no-sandbox` under root); pikchr, resvg and cairosvg are also integrated. Full engine ledger with evaluation notes: [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md). If a human later wants to hand-edit a diagram in drawio's GUI, they can import the d2/dot-produced SVG — but the pipeline itself uses headless tools only.
 
 ### mihomo proxy configuration (required for literature search)
 
