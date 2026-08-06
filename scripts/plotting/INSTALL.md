@@ -22,9 +22,15 @@
 | `asymptote` | 数学/几何/机制示意图（矢量） | `apt-get install asymptote` |
 | `typst` | 毫秒级声明式图（fletcher/CeTZ） | GitHub release 二进制解压到 `/usr/local/bin/typst` |
 | `diagrams` (mingrammer) + `blockdiag` 家族 | Diagram-as-code 专业图标集 / 泳道活动图、时序图 | `pip install diagrams blockdiag actdiag seqdiag nwdiag`（aliyun 镜像） |
+| `mermaid` (mmdc) | 流程图/时序图/状态图（root 下自动 `--no-sandbox`） | `npm install -g @mermaid-js/mermaid-cli` |
+| `pikchr` | 轻量机制/序列示意 DSL（SQLite 项目，产物 SVG 走统一净化+审计；注意颜色用 `fill 0xRRGGBB` 数值而非引号字符串） | pikchr.org tarball 编译：`make && install pikchr /usr/local/bin/` |
+| `resvg` | 高保真 SVG 栅格化（可选增强） | GitHub linebender/resvg release 二进制 → `/usr/local/bin/resvg` |
+| `cairosvg` | 纯 Python SVG→PDF/PNG 兜底转换器（无 rsvg/inkscape 时的最小依赖回退） | `pip install cairosvg` |
 | `SciencePlots` | 数据图期刊级几何规范 | `pip install SciencePlots` |
 | `inkscape` | SVG 转换回退 | `apt-get install inkscape` |
 | `svgo` | SVG 瘦身 | `npm install -g svgo` |
+
+**明确不采用（评估记录）**: `blender`（无头黑屏不可修复）、`plotly+kaleido`（依赖 headless Chrome）。`Memslides`/`AutoFigure-Edit` 仅借鉴方法论（scoped revision / 分阶段装配），不作为引擎集成——保持单一链路 `render_figure.py`。
 
 ## 字体（与 LaTeX 正文一致的关键）
 
