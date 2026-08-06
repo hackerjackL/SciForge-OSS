@@ -97,15 +97,34 @@ def render_d2(src: Path, out_pdf: Path, out_png: Path, layout: str,
     bad = palette_check(spec, src.name)
     if bad:
         raise PaletteError(bad)
+    outdir = out_pdf.parent
+    # Icon support (figure-complexity-contract §5.1): copy locally
+    # authored icons next to the compiled spec so relative `icon:` paths
+    # resolve, keeping the figure dir self-contained/reproducible.
+    for m in re.finditer(r"^\s*icon:\s*\"?([^\s\"#]+)\"?", spec, re.M):
+        ip = Path(m.group(1))
+        if ip.is_absolute():
+            continue
+        cand = (src.parent / ip).resolve()
+        dest = (outdir / ip).resolve()
+        if cand.is_file() and dest != cand:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(cand, dest)
+            log.append(f"# icon copied: {ip}")
     compiled = (st.d2_preamble() + "\n" + spec) if inject else spec
-    with tempfile.TemporaryDirectory() as td:
-        tmp_d2 = Path(td) / "render.d2"
+    # compile INSIDE outdir so relative icon paths resolve
+    tmp_d2 = outdir / "_render.d2"
+    tmp_svg = outdir / "_render.svg"
+    try:
         tmp_d2.write_text(compiled, encoding="utf-8")
-        tmp_svg = Path(td) / "render.svg"
         cmd = ["d2", "--layout", layout, "--pad", str(pad)] + \
             st.d2_font_flags() + [str(tmp_d2), str(tmp_svg)]
-        run(cmd, log=log)
+        run(cmd, cwd=str(outdir), log=log)
         svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+    finally:
+        for f in (tmp_d2, tmp_svg):
+            if f.exists():
+                f.unlink()
 
 
 def render_graphviz(src: Path, out_pdf: Path, out_png: Path, layout: str,

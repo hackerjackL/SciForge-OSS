@@ -13,7 +13,7 @@ role: figure-renderer-and-spec-generator
 - **Purpose**: 从结构化数据或 JSON spec 渲染出版级矢量图
 - **Input**: 数据 (JSON/matrix) 或图表描述
 - **Output**: **PDF + PNG 双产出** (PDF for LaTeX compile, PNG for AI/human viewing) + 渲染脚本 + `figure_audit.json`
-- **Key**: 12 种图表类型 (含 4 种理论图)；莫兰迪色系强制（单一事实源 `scripts/plotting/sciforge_style.py`）；数据图 Python 管线，复杂图**统一渲染工具**；**16:9 横版默认**；**Nature 级可读性**；见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md)
+- **Key**: 12 种图表类型 (含 4 种理论图)；莫兰迪色系强制（单一事实源 `scripts/plotting/sciforge_style.py`）；数据图 Python 管线，复杂图**统一渲染工具**；**16:9 横版默认**；**Nature 级可读性**；见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md)（格式）与 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)（复杂与美观下限）
 
 > **v3.5 单一入口工具（UNIFIED SINGLE-ENTRY RENDERER）**: 所有声明式图（d2 / graphviz / tikz / AI-direct SVG）只通过**一个** CLI 产出，禁止多工具并行或绕过：
 >
@@ -30,6 +30,8 @@ role: figure-renderer-and-spec-generator
 > 2. **填充（fill）**: 按内容类型选引擎——架构/流程用 d2，机制细节用 tikz，几何/示意用 asy，快速迭代用 typst，3D 结构用 blender，数据用 matplotlib；每个组件填莫兰迪 token 样式
 > 3. **装配（assemble）**: 全部经单一入口 `render_figure.py` 渲染（前导注入、调色板净化、双产出、LaTeX 片段一步完成）
 > 4. **审阅（review）**: 看 `figure_audit.json` verdict；WARN/FAIL 回到骨架层改 spec 重渲染——禁止手工修补 PNG/SVG 像素
+>
+> **复杂度硬约束（v3.6 — 防"小学生级别"图）**: 每张 5+ 节点的架构图必须满足 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)：≥60% 组件用**自绘图标**（d2 `icon:`，agent 现写 SVG，随图保存到 `figures/<name>/icons/`）或 TikZ `\pic` 自绘组件；连线必须容器级汇流（禁止箭头雨，边密度 ≤1.6）；至少两级分组；文字纪律（≤3 行/≤4 词）。达不到下限 = 图还没画完，继续迭代。审计 A7 层机械检查图标计数与边密度。
 
 > **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the morandi palette + Layer 2 data-encoding colormaps are universal contracts.
 >

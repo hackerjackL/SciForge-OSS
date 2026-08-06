@@ -162,6 +162,7 @@ The unified CLI auto-detects what is installed and routes accordingly (d2 prefer
 ## 9. See Also
 
 - [`color-themes.md`](color-themes.md) — morandi palette (Layer 1) + viridis/magma (Layer 2)
+- [`figure-complexity-contract.md`](figure-complexity-contract.md) — 复杂与美观下限（组件丰富度/连线治理/图标自绘方法论）
 - [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — consumer of this contract
 - [`../support/paper-compile/SKILL.md`](../support/paper-compile/SKILL.md) — consumes the PDF figures
 - [`writing-principles.md`](writing-principles.md) — figure caption style
