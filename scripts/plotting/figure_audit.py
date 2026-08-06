@@ -211,9 +211,15 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
         max_line = max((len(s) for s in lines), default=0) or len(body)
         fs = re.search(r'font-size[:=]\s*"?([\d.]+)', tm.group(0))
         est_w = max_line * (float(fs.group(1)) if fs else 16) * 0.6
-        centered = "text-anchor:middle" in tag or 'text-anchor="middle"' in tag
-        right = x + (est_w / 2 if centered else est_w)
-        left = x - est_w / 2 if centered else x
+        if "text-anchor:middle" in tag or 'text-anchor="middle"' in tag:
+            right = x + est_w / 2
+            left = x - est_w / 2
+        elif "text-anchor:end" in tag or 'text-anchor="end"' in tag:
+            right = x
+            left = x - est_w
+        else:
+            right = x + est_w
+            left = x
         if right > vw + 4 or left < -4:
             clipped += 1
     if clipped:
@@ -235,6 +241,53 @@ def audit_contract(figdir: Path, rep: Report) -> None:
         rep.add("A6", "FAIL", "latex_include.tex missing")
     else:
         rep.add("A6", "PASS", "latex_include.tex present")
+
+
+def audit_complexity(figdir: Path, rep: Report) -> None:
+    """A7 — complexity floor per figure-complexity-contract.md:
+    edge density, icon/custom-component usage for d2/tikz specs.
+    Mechanical heuristics only; the qualitative judgment stays with the
+    figure-quality-review advisor."""
+    override = (figdir / "complexity_override.txt").is_file()
+    spec_d2 = next(iter(figdir.glob("*.d2")), None)
+    spec_tex = next(iter(figdir.glob("*.tex")), None)
+
+    if spec_d2 is not None:
+        text = spec_d2.read_text(encoding="utf-8", errors="replace")
+        ids = set(re.findall(r"^([A-Za-z_][\w.-]*)\s*[:{]", text, re.M))
+        ids |= set(re.findall(r"^([A-Za-z_][\w.-]*)\s*->", text, re.M))
+        edges = re.findall(r"->", text)
+        icons = len(re.findall(r"^\s*icon:", text, re.M))
+        nodes = max(len(ids), 1)
+        density = len(edges) / nodes
+        msgs = []
+        if density > 1.6 and not override:
+            msgs.append(f"edge density {density:.2f} > 1.6 — consolidate "
+                        "parallel flows into trunk/bus edges "
+                        "(or add complexity_override.txt with a reason)")
+        if nodes >= 5 and icons == 0 and not override:
+            msgs.append(f"{nodes}-node diagram with zero icons — author "
+                        "custom icons per figure-complexity-contract §1/§5")
+        if msgs:
+            for m in msgs:
+                rep.add("A7", "WARN", m)
+        else:
+            rep.add("A7", "PASS",
+                    f"{nodes} nodes / {len(edges)} edges "
+                    f"(density {density:.2f}), {icons} icon node(s)")
+    elif spec_tex is not None:
+        text = spec_tex.read_text(encoding="utf-8", errors="replace")
+        pics = len(re.findall(r"\\pic\b", text))
+        rects = len(re.findall(r"rectangle", text))
+        if pics == 0 and rects >= 5 and not override:
+            rep.add("A7", "WARN", f"TikZ figure with {rects} bare rectangles "
+                                  "and no \\pic — author custom components "
+                                  "per figure-complexity-contract §1/§5.2")
+        else:
+            rep.add("A7", "PASS", f"TikZ components: {pics} pic(s), "
+                                  f"{rects} rectangle ref(s)")
+    else:
+        rep.add("A7", "PASS", "complexity audit n/a for this engine")
 
 
 def audit_figure(figdir: Path) -> Report:
@@ -262,6 +315,7 @@ def audit_figure(figdir: Path) -> Report:
         else:
             rep.add("A3", "WARN", "no SVG intermediate or source to audit")
     audit_contract(figdir, rep)
+    audit_complexity(figdir, rep)
     return rep
 
 
