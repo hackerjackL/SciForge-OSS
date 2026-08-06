@@ -43,9 +43,13 @@ ALLOWED_FONT_SUBSTRINGS = (
 class Report:
     def __init__(self) -> None:
         self.checks: list[dict] = []
+        self.suggested_fixes: list[dict] = []
 
     def add(self, layer: str, status: str, msg: str) -> None:
         self.checks.append({"layer": layer, "status": status, "msg": msg})
+
+    def add_fix(self, layer: str, fix: str) -> None:
+        self.suggested_fixes.append({"layer": layer, "fix": fix})
 
     def verdict(self) -> str:
         if any(c["status"] == "FAIL" for c in self.checks):
@@ -55,9 +59,12 @@ class Report:
         return "PASS"
 
     def to_json(self) -> dict:
-        return {"verdict": self.verdict(),
-                "style_version": st.__version__,
-                "checks": self.checks}
+        d = {"verdict": self.verdict(),
+             "style_version": st.__version__,
+             "checks": self.checks}
+        if self.suggested_fixes:
+            d["suggested_fixes"] = self.suggested_fixes
+        return d
 
 
 def _parse_size(value: str) -> float:
@@ -92,10 +99,23 @@ def audit_resolution(png: Path, rep: Report, figdir: Path | None = None) -> None
     except Exception as e:  # pragma: no cover
         rep.add("A2", "WARN", f"PNG unreadable: {e}")
         return
+    # adaptive width floor: a journal single-column preset legitimately
+    # renders narrower than the 1200px wide-figure default (at 300dpi a
+    # 88mm column is ~1039px); honor the preset when recorded
+    floor = 1200
+    if figdir is not None:
+        pf = figdir / "width_preset.txt"
+        if pf.is_file():
+            try:
+                mm = float(pf.read_text().split()[0])
+                floor = max(500, int(mm / 25.4 * 300 * 0.85))
+            except (ValueError, IndexError):
+                pass
     if dpi and dpi < 290:
         rep.add("A2", "FAIL", f"PNG dpi {dpi:.0f} < 300")
-    elif w < 1200:
-        rep.add("A2", "WARN", f"PNG width {w}px < 1200 — small for agent review")
+    elif w < floor:
+        rep.add("A2", "WARN", f"PNG width {w}px < {floor} — small for agent "
+                              "review (pass --width-preset for column figs)")
     else:
         rep.add("A2", "PASS", f"PNG {w}x{h} @ {dpi:.0f}dpi")
     # aspect ratio — contract §1 (PNG-based so ALL engines are covered)
@@ -498,7 +518,9 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
     # text-on-text overlap: labels truly collide when the vertical
     # intrusion exceeds 30% of the smaller label's height (area ratios are
     # inconsistent across label widths — short labels would fail at the
-    # same line spacing where wide ones pass).
+    # same line spacing where wide ones pass).  For each collision the
+    # audit emits an actionable fix: move the LOWER label down by the
+    # intrusion depth + 4px clearance (scoped revision, contract §4.6).
     overlaps = []
     for i in range(len(texts)):
         for j in range(i + 1, len(texts)):
@@ -510,9 +532,16 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
             smaller_h = min(a[3] - a[1], b[3] - b[1])
             if smaller_h > 0 and iy > 0.30 * smaller_h:
                 overlaps.append(f"'{a[4]}' vs '{b[4]}'")
+                lower = b if b[1] >= a[1] else a
+                shift = iy + 4
+                rep.add_fix(
+                    "A10",
+                    f"move label '{lower[4]}' down by {shift:.0f}px "
+                    f"(baseline y {lower[3]:.0f} -> {lower[3] + shift:.0f}), "
+                    f"or re-anchor it to clear '{(a if lower is b else b)[4]}'")
     if overlaps:
         rep.add("A10", "FAIL", f"{len(overlaps)} text-overlap pair(s): "
-                + "; ".join(overlaps[:4]) + " — re-layout labels")
+                + "; ".join(overlaps[:4]) + " — see suggested_fixes")
     else:
         rep.add("A10", "PASS", f"{len(texts)} labels, zero text-on-text overlap")
 

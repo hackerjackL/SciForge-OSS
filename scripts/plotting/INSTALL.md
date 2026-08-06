@@ -32,6 +32,10 @@
 
 **明确不采用（评估记录）**: `blender`（无头黑屏不可修复）、`plotly+kaleido`（依赖 headless Chrome）。`Memslides`/`AutoFigure-Edit` 仅借鉴方法论（scoped revision / 分阶段装配），不作为引擎集成——保持单一链路 `render_figure.py`。
 
+## 运行时图标词汇（契约 §5.5）
+
+图标资产库**不随仓库分发**；agent 运行时从白名单来源抓取专业图标（bioicons.com 生医、Tabler/Lucide/Feather 技术通用、Font Awesome Free、d2 bundled），强制经 `sciforge_style.recolor_icon()` 重着色为莫兰迪后使用，来源与许可记录在图的 `revision_log.md`。抓取失败回退 agent 手绘，不阻塞管线。国内网络经 mihomo 代理（8099）访问。
+
 ## 字体（与 LaTeX 正文一致的关键）
 
 ```bash

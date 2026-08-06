@@ -214,6 +214,62 @@ def sanitize_palette(svg_text: str) -> tuple[str, int]:
     return _re.sub(r"#[0-9a-fA-F]{6}", _sub, svg_text), n
 
 
+# --------------------------------------------------------------------------
+# Runtime icon vocabulary (contract §5.5): recolor third-party icons
+# --------------------------------------------------------------------------
+def recolor_icon(svg_text: str, mapping: dict | None = None) -> tuple[str, int]:
+    """Recolor an arbitrary icon SVG onto the morandi palette.
+
+    Protocol (figure-complexity-contract §5.5): agents may fetch CC0/MIT
+    icons at runtime (bioicons.com, Tabler, Lucide, Feather, ...) but the
+    icons MUST pass through this function before use, so every delivered
+    figure stays palette-compliant without shipping an asset library in
+    the repo.  Mapping rule:
+      - near-white / near-black / neutral (C*<2, L*>96 or <12): keep
+      - saturated colors: sorted by CIELAB L*, mapped to SERIES_HEX in
+        lightness order (lightest first), duplicates merge onto the
+        nearest series slot by L* distance
+      - `mapping` overrides individual source hexes if given.
+    Returns (recolor_svg, n_substitutions).
+    """
+    import re as _re
+    found = sorted(set(_re.findall(r"#[0-9a-fA-F]{6}", svg_text)))
+    if mapping is None:
+        mapping = {}
+    remap: dict[str, str] = {}
+    candidates = []
+    for h in found:
+        if h.lower() in {k.lower() for k in mapping}:
+            continue
+        c = chroma(h)
+        L = rgb2lab(hex2rgb(h))[0]
+        if c < 2.0 or L > 96 or L < 12:
+            continue  # neutrals stay untouched
+        candidates.append((L, h))
+    candidates.sort()
+    for i, (L, h) in enumerate(candidates):
+        slot = SERIES_HEX[min(i, len(SERIES_HEX) - 1)]
+        # nearest-by-lightness refinement within the series
+        best = min(SERIES_HEX,
+                   key=lambda t: abs(rgb2lab(hex2rgb(t))[0] - L))
+        remap[h.lower()] = best
+    for k, v in mapping.items():
+        remap[k.lower()] = v
+    if not remap:
+        return svg_text, 0
+    n = 0
+
+    def _sub(m):
+        nonlocal n
+        h = m.group(0).lower()
+        if h in remap:
+            n += 1
+            return remap[h]
+        return m.group(0)
+
+    return _re.sub(r"#[0-9a-fA-F]{6}", _sub, svg_text), n
+
+
 def mix(hex1: str, hex2: str, t: float) -> str:
     """Linear RGB mix of hex1 toward hex2 (t=1 fully hex2)."""
     out = []

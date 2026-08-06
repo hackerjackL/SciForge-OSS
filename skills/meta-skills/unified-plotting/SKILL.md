@@ -24,12 +24,14 @@ role: figure-renderer-and-spec-generator
 > ```
 >
 > 该工具内部自动完成：莫兰迪前导注入（d2）→ 引擎渲染（d2 自动选 dagre/elk）→ 引擎泄漏色确定性净化 → SVG→PDF+PNG 双产出（300 DPI）→ LaTeX include 片段 → 内嵌 Nature 级审计（`figure_audit.json`，verdict PASS/WARN/FAIL；`--strict` 时 FAIL 退出码 4）。数据图仍走 Python 管线（可复现性要求），但必须在脚本顶部调用 `apply_matplotlib_style()` 统一主题。依赖安装见 [`scripts/plotting/INSTALL.md`](../../../scripts/plotting/INSTALL.md)，环境自检：`python scripts/plotting/render_figure.py --doctor`。
+>
+> **v3.7 三项增强**: (1) **期刊宽度预设** `--width-preset nature-single|nature-double|aaai-single|...`（14 种版面，LaTeX include 自动用 mm 物理宽度，审计宽度下限自适应，见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1.5）；(2) **运行时图标词汇**——可从白名单开源库（bioicons/Tabler/Lucide/Feather/Font Awesome Free）运行时抓取专业图标，强制经 `sciforge_style.recolor_icon()` 重着色为莫兰迪后使用，来源许可记入 `revision_log.md`（契约 §5.5；抓取失败回退手绘，不阻塞）；(3) **审计自动修正建议**——`figure_audit.json` 的 `suggested_fixes` 字段对文字重叠输出精确偏移坐标（"move label X down by Npx"），按契约 §4.6 scoped revision 逐条应用。
 
 > **Agent 驱动分阶段设计工作流（借鉴 AutoFigure-Edit 的分阶段装配思想，MIT 许可；本 skill 零外部 API——"模型"就是 agent 自身，用户用自己的 Claude/Codex/AtomCode 开箱即用）**:
 > 1. **骨架（skeleton）**: 从方法段落文本抽取组件清单 + 数据流 + 分组层级，先写布局骨架（容器/行列/边），不急着画
 > 2. **填充（fill）**: 按内容类型选引擎——架构/流程用 d2 或 diagrams/blockdiag（专业图标集/泳道），机制细节用 tikz，几何/示意用 asy，快速迭代用 typst，Visio 级精密图用手工装配 SVG（正交圆角布线），数据用 matplotlib；每个组件填莫兰迪 token 样式
 > 3. **装配（assemble）**: 全部经单一入口 `render_figure.py` 渲染（前导注入、调色板净化、双产出、LaTeX 片段一步完成）
-> 4. **审阅（review）**: 看 `figure_audit.json` verdict；WARN/FAIL 回到骨架层改 spec 重渲染——禁止手工修补 PNG/SVG 像素
+> 4. **审阅（review）**: 看 `figure_audit.json` verdict 与 `suggested_fixes`；FAIL 时按 suggested_fixes 的精确坐标逐条局部修正（契约 §4.6 scoped revision，一次一类问题）再重渲染——禁止手工修补 PNG/SVG 像素
 >
 > **复杂度硬约束（v3.6 — 防"小学生级别"图，全领域适用）**: 每张 5+ 节点的图必须满足 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)：≥60% 组件用**自绘图标**（d2 `icon:`，agent 现写 SVG，随图保存到 `figures/<name>/icons/`）或 TikZ `\pic` 自绘组件；连线必须容器级汇流（禁止箭头雨，边密度 ≤1.6）；至少两级分组；文字纪律（≤3 行/≤4 词）。达不到下限 = 图还没画完，继续迭代。审计 A7 层机械检查图标计数与边密度。先按契约 §0.5 判定图的**结构角色**（结构/流程/机制/网络/层级/时间/空间/数据）选引擎——领域只决定组件语义，不改变规则。
 

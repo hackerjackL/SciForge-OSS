@@ -417,14 +417,42 @@ class PaletteError(RuntimeError):
         self.violations = violations
 
 
+# Journal column-width presets (figure-quality-contract §1.5).  Physical
+# widths in mm; used for the LaTeX include snippet AND for the adaptive
+# audit width floor (a single-column figure is legitimately narrower than
+# the 1200px wide-figure default).
+WIDTH_PRESETS = {
+    "nature-single": 88,     # Nature/Science-style 1 column
+    "nature-1.5col": 120,    # 1.5-column wide
+    "nature-double": 180,    # full width
+    "science-single": 84,
+    "science-double": 174,
+    "cell-single": 85,
+    "cell-double": 176,
+    "elsevier-single": 90,   # elsarticle default 1-column
+    "elsevier-double": 190,
+    "aaai-single": 83,       # AAAI single column (3.25in)
+    "aaai-double": 178,      # AAAI double column (7in)
+    "ieee-single": 88,
+    "ieee-double": 181,
+    "wide": 240,             # oversized landscape panel
+}
+
+
 def write_latex_include(outdir: Path, name: str, caption: str | None,
-                        label: str | None) -> None:
+                        label: str | None, width_mm: int | None = None) -> None:
     cap = caption or f"Figure: {label or name} (auto-caption — replace)."
     lab = label or name
+    if width_mm:
+        width_opt = f"width={width_mm}mm"
+        (outdir / "width_preset.txt").write_text(
+            f"{width_mm} mm\n", encoding="utf-8")
+    else:
+        width_opt = "width=0.9\\textwidth"
     (outdir / "latex_include.tex").write_text(
         "\\begin{figure}[htbp]\n"
         "    \\centering\n"
-        f"    \\includegraphics[width=0.9\\textwidth]{{figures/{lab}/output.pdf}}\n"
+        f"    \\includegraphics[{width_opt}]{{figures/{lab}/output.pdf}}\n"
         f"    \\caption{{{cap}}}\n"
         f"    \\label{{fig:{lab}}}\n"
         "\\end{figure}\n", encoding="utf-8")
@@ -504,6 +532,11 @@ def main() -> int:
                     help="d2: dagre|elk|tala  /  graphviz: dot|neato|fdp|...")
     ap.add_argument("--dpi", type=int, default=300)
     ap.add_argument("--pad", type=int, default=60)
+    ap.add_argument("--width-preset", default=None,
+                    choices=sorted(WIDTH_PRESETS),
+                    help="journal column-width preset; sets the LaTeX "
+                         "include width in mm and writes width_preset.txt "
+                         "so the audit width floor adapts")
     ap.add_argument("--no-preamble", action="store_true",
                     help="skip morandi preamble injection (d2)")
     ap.add_argument("--caption", default=None)
@@ -590,7 +623,9 @@ def main() -> int:
     if kept.resolve() != src.resolve():
         shutil.copyfile(src, kept)
     write_latex_include(outdir, args.name, args.caption,
-                        args.label or outdir.name)
+                        args.label or outdir.name,
+                        WIDTH_PRESETS.get(args.width_preset)
+                        if args.width_preset else None)
     (outdir / "render.log").write_text("\n".join(log), encoding="utf-8")
     for f in (out_pdf, out_png):
         if not f.is_file() or f.stat().st_size == 0:
