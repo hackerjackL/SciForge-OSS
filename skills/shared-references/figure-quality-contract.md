@@ -21,6 +21,19 @@ All figures default to **16:9 horizontal** (横版) aspect ratio. This is the Na
 
 **Enforcement**: the render script MUST set `figsize` to a 16:9 ratio (e.g., `(8, 4.5)`, `(10, 5.625)`, `(12, 6.75)`). The skill rejects a render whose figsize ratio deviates from 16:9 by >10% without an explicit `aspect_ratio` override + documented reason.
 
+## 1.5 Journal Column-Width Presets (v3.7)
+
+Aspect ratio is the SHAPE contract; the physical WIDTH must match the target venue's column grid. `render_figure.py --width-preset <name>` sets the LaTeX include width in mm (and writes `width_preset.txt` so the audit width floor adapts — a single-column figure is legitimately narrower than the 1200px wide-figure default):
+
+| Preset family | Width | Venue / use |
+|--------|-------|-------------|
+| `nature-single` / `science-single` / `cell-single` / `aaai-single` / `ieee-single` / `elsevier-single` | 83–90 mm | 1-column figures |
+| `nature-1.5col` | 120 mm | 1.5-column wide figures |
+| `nature-double` / `science-double` / `cell-double` / `aaai-double` / `ieee-double` / `elsevier-double` | 174–190 mm | full-width figures (composites, architecture) |
+| `wide` | 240 mm | oversized landscape panels (supplementary) |
+
+**Rule**: pick the preset at render time from the submission venue's template; do not rely on `width=0.9\textwidth` for single-column figures (it overflows or underscales at compile time).
+
 ---
 
 ## 2. Dual Output (PDF + PNG) — Non-Negotiable
