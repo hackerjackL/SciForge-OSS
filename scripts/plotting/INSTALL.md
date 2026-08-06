@@ -21,7 +21,7 @@
 |------|------|------|
 | `asymptote` | 数学/几何/机制示意图（矢量） | `apt-get install asymptote` |
 | `typst` | 毫秒级声明式图（fletcher/CeTZ） | GitHub release 二进制解压到 `/usr/local/bin/typst` |
-| `blender` | 封面级 3D 机制/结构渲染（Cycles CPU 无头） | `apt-get install blender` |
+| `diagrams` (mingrammer) + `blockdiag` 家族 | Diagram-as-code 专业图标集 / 泳道活动图、时序图 | `pip install diagrams blockdiag actdiag seqdiag nwdiag`（aliyun 镜像） |
 | `SciencePlots` | 数据图期刊级几何规范 | `pip install SciencePlots` |
 | `inkscape` | SVG 转换回退 | `apt-get install inkscape` |
 | `svgo` | SVG 瘦身 | `npm install -g svgo` |

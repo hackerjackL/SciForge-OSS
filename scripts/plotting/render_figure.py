@@ -10,8 +10,10 @@ output.png), enforcing the morandi design system
   tikz      spec.tex       -> pdflatex (standalone) -> pdfcrop -> pdf -> png
   asy       spec.asy       -> asy -f pdf        -> pdfcrop -> pdf -> png
   typst     spec.typ       -> typst compile     -> pdfcrop -> pdf -> png
-  blender   spec.py        -> blender -b -P (Cycles CPU headless) -> png(+pdf)
-  svg       source.svg     -> rsvg-convert      -> pdf+png  (AI-direct last resort)
+  diagrams  spec_diagr.py  -> mingrammer/diagrams (Python diagram-as-code,
+                              bundled pro icon sets) -> svg -> pdf+png
+  blockdiag spec.diag      -> blockdiag/actdiag/seqdiag/nwdiag -> svg -> pdf+png
+  svg       source.svg     -> rsvg-convert      -> pdf+png  (agent hand-assembly)
 
 Usage:
   python render_figure.py spec.d2  --out figures/arch/ --name output \
@@ -30,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -190,6 +193,81 @@ def render_python(src: Path, outdir: Path, dpi: int, log: list) -> None:
         stamp_png_dpi(png, dpi)
 
 
+def render_diagrams(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+                    log: list, keep_svg: Path | None = None) -> None:
+    """mingrammer/diagrams — diagram-as-code with bundled pro icon sets.
+
+    Convention: the spec script writes its Diagram to the file name in
+    environment variable SF_OUT (no extension).  We pass SF_OUT, run the
+    script with outformat='svg' expected, then convert via svg2dual.
+    The spec SHOULD set graph_attr bgcolor/fontname per the skill docs.
+    """
+    outdir = out_pdf.parent
+    outdir.mkdir(parents=True, exist_ok=True)
+    svg = outdir / "sciforge_out.svg"
+    if svg.exists():
+        svg.unlink()
+    env = dict(os.environ, SF_OUT=str(svg.with_suffix("")))
+    try:
+        r = subprocess.run([sys.executable, str(src)], cwd=str(outdir),
+                           capture_output=True, text=True, timeout=TOOL_TIMEOUT,
+                           env=env)
+    except FileNotFoundError:
+        raise RuntimeError("python not found")
+    log.append("$ " + sys.executable + " " + str(src))
+    if r.stderr.strip():
+        log.append("[stderr] " + r.stderr.strip()[:4000])
+    if r.returncode != 0:
+        raise RuntimeError(f"diagrams script failed (rc={r.returncode}):\n"
+                           f"{r.stderr[:3000]}")
+    cand = list(outdir.glob("sciforge_out.svg")) + sorted(
+        outdir.glob("*.svg"), key=lambda p: p.stat().st_mtime, reverse=True)
+    cand = [p for p in cand if p.name not in ("intermediate.svg", "_render.svg")]
+    if not cand:
+        raise RuntimeError("diagrams script produced no SVG — write "
+                           "Diagram(filename=os.environ.get('SF_OUT','output'), "
+                           "outformat='svg', show=False)")
+    svg2dual(cand[0], out_pdf, out_png, dpi, log, keep_svg)
+
+
+def render_blockdiag(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+                     log: list, keep_svg: Path | None = None) -> None:
+    """blockdiag family (blockdiag/actdiag/seqdiag/nwdiag) — swimlane
+    activity & sequence diagrams.  Tool auto-selected by spec keyword;
+    the repo's _pil_compat shim restores Pillow>=10 compatibility."""
+    text = src.read_text(encoding="utf-8")
+    tool = "blockdiag"
+    for kw in ("actdiag", "seqdiag", "nwdiag"):
+        if re.search(rf"^\s*{kw}\s*\{{", text, re.M):
+            tool = kw
+            break
+    outdir = out_pdf.parent
+    outdir.mkdir(parents=True, exist_ok=True)
+    tmp_svg = outdir / "_render.svg"
+    if tmp_svg.exists():
+        tmp_svg.unlink()
+    script_dir = Path(__file__).resolve().parent
+    app = tool.capitalize() + "App" if tool != "blockdiag" else "BlockdiagApp"
+    app = {"blockdiag": "BlockdiagApp", "actdiag": "ActdiagApp",
+           "seqdiag": "SeqdiagApp", "nwdiag": "NwdiagApp"}[tool]
+    # App().run(args) avoids the blockdiag CLI's silent sys.argv exit quirk
+    code = (
+        "import sys; sys.path.insert(0, %r); import _pil_compat; "
+        "from %s.command import %s; "
+        "%s().run(['-Tsvg', %r, '-o', %r])"
+    ) % (str(script_dir), tool, app, app, str(src), str(tmp_svg))
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True,
+                       text=True, timeout=TOOL_TIMEOUT)
+    log.append(f"$ python -c <{tool} wrapper> {src.name}")
+    if r.stderr.strip():
+        log.append("[stderr] " + r.stderr.strip()[:4000])
+    if r.returncode != 0 or not tmp_svg.is_file():
+        raise RuntimeError(f"{tool} failed:\n{r.stderr[:3000]}")
+    svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+    if tmp_svg.exists():
+        tmp_svg.unlink()
+
+
 def render_asymptote(src: Path, out_pdf: Path, out_png: Path, dpi: int,
                      log: list) -> None:
     """Asymptote — publication vector engine for geometry/mechanism figures."""
@@ -231,49 +309,6 @@ def render_typst(src: Path, out_pdf: Path, out_png: Path, dpi: int,
     run(["pdftoppm", "-png", "-r", str(dpi), "-singlefile",
          str(out_pdf), str(out_png.with_suffix(""))], log=log)
     stamp_png_dpi(out_png, dpi)
-
-
-def render_blender(src: Path, out_pdf: Path, out_png: Path, dpi: int,
-                   log: list) -> None:
-    """Blender (Cycles, headless CPU) — cover-grade 3D mechanism render.
-
-    The script MUST set bpy.context.scene.render.filepath to the literal
-    token SCIFORGE_OUTPUT_PNG which is replaced with out_png's path.
-    Produces PNG natively; PDF wraps it via img2pdf-style pdflatex.
-    """
-    script = src.read_text(encoding="utf-8")
-    script = script.replace("SCIFORGE_OUTPUT_PNG", str(out_png))
-    with tempfile.TemporaryDirectory() as td:
-        tmp_py = Path(td) / "render.py"
-        tmp_py.write_text(script, encoding="utf-8")
-        run(["blender", "-b", "-P", str(tmp_py)], cwd=td, log=log)
-    if not out_png.is_file():
-        raise RuntimeError("blender script produced no PNG "
-                           "(must render to SCIFORGE_OUTPUT_PNG)")
-    stamp_png_dpi(out_png, dpi)
-    # wrap PNG into a vector-safe PDF for LaTeX embedding
-    _png_to_pdf(out_png, out_pdf, dpi, log)
-
-
-def _png_to_pdf(png: Path, pdf: Path, dpi: int, log: list) -> None:
-    from PIL import Image
-    with tempfile.TemporaryDirectory() as td:
-        with Image.open(png) as im:
-            w, h = im.size
-        pts_w, pts_h = 72 * w / dpi, 72 * h / dpi
-        tex = (
-            "\\documentclass[varwidth]{standalone}\n"
-            "\\usepackage{graphicx}\n"
-            "\\begin{document}\n"
-            f"\\includegraphics[width={pts_w:.1f}pt,height={pts_h:.1f}pt]"
-            "{img.png}\n"
-            "\\end{document}\n"
-        )
-        (Path(td) / "main.tex").write_text(tex, encoding="utf-8")
-        shutil.copyfile(png, Path(td) / "img.png")
-        run(["pdflatex", "-interaction=nonstopmode", "-halt-on-error",
-             "main.tex"], cwd=td, log=log)
-        shutil.copyfile(Path(td) / "main.pdf", pdf)
 
 
 def render_svg(src: Path, out_pdf: Path, out_png: Path, dpi: int,
@@ -351,7 +386,7 @@ def doctor() -> int:
         ("pdflatex", ["pdflatex"], "tikz/tikz-cd theoretical diagrams"),
         ("asy", ["asy"], "Asymptote math/geometry mechanism figures"),
         ("typst", ["typst"], "Typst fletcher/CeTZ fast diagrams"),
-        ("blender", ["blender"], "Blender Cycles headless 3D renders"),
+        ("diagrams", ["python3"], "mingrammer/diagrams as-code (python import check)"),
         ("rsvg-convert", ["rsvg-convert"], "SVG -> PDF+PNG conversion"),
         ("inkscape", ["inkscape"], "SVG conversion fallback (optional)"),
         ("pdftoppm", ["pdftoppm"], "PDF -> PNG rasterization"),
@@ -365,7 +400,7 @@ def doctor() -> int:
         found = which(*cmds)
         if found:
             mark = "OK  "
-        elif name in ("inkscape", "svgo", "blender", "typst", "asy"):
+        elif name in ("inkscape", "svgo", "diagrams", "typst", "asy"):
             mark = "opt "  # optional engines / fallbacks
         else:
             mark = "MISS"
@@ -396,14 +431,14 @@ def doctor() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="SciForge unified figure renderer")
     ap.add_argument("source", nargs="?", help="spec.d2 / spec.dot / spec.tex / "
-                    "source.svg / spec.asy / spec.typ / render.py / *.blender.py")
+                    "source.svg / spec.asy / spec.typ / render.py / spec.diag")
     ap.add_argument("--doctor", action="store_true",
                     help="check the figure toolchain environment and exit")
     ap.add_argument("--out", default=None, help="output dir (default: beside source)")
     ap.add_argument("--name", default="output", help="output basename (no ext)")
     ap.add_argument("--engine",
                     choices=["d2", "graphviz", "tikz", "svg", "asy",
-                             "typst", "blender", "python", "auto"],
+                             "typst", "diagrams", "blockdiag", "python", "auto"],
                     default="auto")
     ap.add_argument("--layout", default=None,
                     help="d2: dagre|elk|tala  /  graphviz: dot|neato|fdp|...")
@@ -434,13 +469,13 @@ def main() -> int:
         engine = {".d2": "d2", ".dot": "graphviz", ".gv": "graphviz",
                   ".tex": "tikz", ".svg": "svg",
                   ".asy": "asy", ".typ": "typst", ".py": "python",
-                  ".blender.py": "blender"}.get(ext)
-        if src.name.endswith(".blender.py"):
-            engine = "blender"
+                  ".diag": "blockdiag"}.get(ext)
+        if src.name.endswith("_diagr.py"):
+            engine = "diagrams"
         if engine is None:
             print(f"ERROR: unknown source extension {ext} (supported: .d2 "
                   f".dot .tex .svg .asy .typ .py render scripts, "
-                  f"*.blender.py)", file=sys.stderr)
+                  f"*_diagr.py diagrams, .diag blockdiag)", file=sys.stderr)
             return 3
 
     out_pdf = outdir / f"{args.name}.pdf"
@@ -469,8 +504,10 @@ def main() -> int:
             render_asymptote(src, out_pdf, out_png, args.dpi, log)
         elif engine == "typst":
             render_typst(src, out_pdf, out_png, args.dpi, log)
-        elif engine == "blender":
-            render_blender(src, out_pdf, out_png, args.dpi, log)
+        elif engine == "diagrams":
+            render_diagrams(src, out_pdf, out_png, args.dpi, log, keep_svg)
+        elif engine == "blockdiag":
+            render_blockdiag(src, out_pdf, out_png, args.dpi, log, keep_svg)
         else:
             render_svg(src, out_pdf, out_png, args.dpi, log, keep_svg)
     except PaletteError as e:
