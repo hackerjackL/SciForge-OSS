@@ -135,6 +135,8 @@ claude                  # 或 codex / cursor / trae
 
 skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX 编译 / 实验执行）需要以下可选工具。`sciforge tools-check` 检查缺失项，`sciforge tools-install` 一键安装。
 
+> 📊 **绘图工具链**：所有图（数据图、架构/流程/机制图——全领域通用）都通过唯一入口 `scripts/plotting/render_figure.py` 产出（11 引擎：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG——单一链路，禁止并行工具；PDF+PNG 双产出 + 内嵌 Nature 级审计）。完整依赖清单、国内镜像、字体与不采用工具评估：**[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**。环境自检：`python scripts/plotting/render_figure.py --doctor`。
+
 | 工具 | 用途 | 安装 | 必需性 |
 |------|------|------|--------|
 | **Python 3.10+** | 数据图、SymPy 推导、实验脚本 | 系统自带或 conda | 必需（核心计算） |
@@ -149,7 +151,7 @@ skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX
 
 **GPU/NPU**：SciForge 自动检测（experiment-execution Step 0a）——`nvidia-smi`(cuda) / `rocminfo`(rocm) / `npu-smi`(npu) / `torch.backends.mps`(Apple Silicon)，缺 GPU 自动回退 CPU + WARN，不阻塞。never hardcode `.cuda()`。
 
-**为什么不用 mermaid-cli / drawio**：mermaid-cli (`mmdc`) 渲染依赖 headless Chromium（puppeteer），headless 服务器易失败；drawio-desktop 是 GUI 应用，非 headless 友好。d2 和 graphviz/dot 都是 headless-native，服务器环境稳定。如人类后续想用 drawio GUI 手改图，可导入 d2/dot 产出的 SVG。
+**为什么不用 drawio / blender**：drawio-desktop 是 GUI 应用，非 headless 友好；Blender 无头渲染黑屏问题无法可靠修复。mermaid-cli (`mmdc`) 已集成（root 下自动 `--no-sandbox`）；pikchr、resvg、cairosvg 也已接入。完整引擎清单与评估记录：[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)。如人类后续想用 drawio GUI 手改图，可导入 d2/dot 产出的 SVG，但管线本身只用 headless 工具。
 
 ### mihomo 代理配置（文献检索必需）
 
