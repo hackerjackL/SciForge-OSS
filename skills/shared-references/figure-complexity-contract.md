@@ -136,6 +136,29 @@ SciForge-OSS 服务**全领域**：理工农医、社科人文、经管法学皆
 - **所有类型图的背景一律纯白 `#FFFFFF`**（数据图、架构图、方法论图、机制图全部），与论文白纸融为一体；莫兰迪仅用于组件/系列/填充色。数据图在 `apply_matplotlib_style()` 后覆盖 `figure.facecolor`/`axes.facecolor`；SVG 图底 `<rect fill="#FFFFFF">`。
 - **图是论文插图，不是工具海报**: 图内任何位置禁止出现内部品牌/工具名/调色板代号（SciForge、unified renderer、morandi、figure-lab 路径、渲染器版本号等）。审计 A9 层扫描图源强制拦截；标题条只放图的学术内容，工具信息一律留在 caption 与正文。
 
+### 5.5 运行时图标词汇协议（Runtime Icon Vocabulary — 抬视觉天花板，不入库）
+
+> **背景**: agent 手绘图标的艺术性有天然上限。本协议允许**运行时**借用专业开源图标词汇，同时不违反"不把图标资产库写进仓库"的原则——图标随图保存在 `figures/<name>/icons/`，来源与许可记录在图的 `revision_log.md`。
+
+**许可白名单（只从这些来源抓取，禁止其他）**:
+
+| 来源 | 许可 | 领域 |
+|------|------|------|
+| bioicons.com | 图标逐一标注（多为 CC0/CC-BY） | 生医/分子/细胞 |
+| Tabler Icons | MIT | 通用技术 |
+| Lucide | ISC | 通用技术 |
+| Feather Icons | MIT | 通用技术 |
+| Font Awesome Free（solid/regular） | CC-BY-4.0 | 通用（需署名） |
+| d2 bundled icons (icons.terrastruct.com) | 随 d2 分发 | 基础设施/云 |
+
+**强制流程（四步，缺一不可）**:
+1. **抓取**: 从白名单来源下载 SVG 到 `figures/<name>/icons/<icon>.svg`，经代理（mihomo 8099）访问；**抓取失败不阻塞**——回退到 agent 手绘（§5.1 方法论）
+2. **重着色**: 图标必须经过 `sciforge_style.recolor_icon()`（`python -c "from sciforge_style import recolor_icon; ..."`）——按 L* 明度序映射到莫兰迪系列色，中性色保留；未经重着色的原色图标进图会被 A3 审计拦截
+3. **引用**: d2 用 `icon: ./icons/<icon>.svg`；手工 SVG 用 `<image>` 或内联 `<g>` 嵌入（内联优先，保持单文件可审计）
+4. **记录**: 图的 `revision_log.md` 追加一行 `icon: <name> ← <来源 URL> (<许可>)`；CC-BY/Font Awesome 图标的署名按许可要求写入 LaTeX 致谢或补充材料
+
+**禁止**: 抓取后直接使用原色、从白名单外来源抓取、把图标库批量写入仓库、用图标绕过 A7 复杂度审计（图标是组件词汇，不替代卡片内 mini 可视化）。
+
 ## 6. 复杂度下限（Complexity Floor — 量化）
 
 | 图类型 | 组件数 | 图标/自绘占比 | 分组层级 | 附加元素（至少 1 项） |
