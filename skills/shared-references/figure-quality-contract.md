@@ -83,15 +83,14 @@ The old unified-plotting handled architecture/workflow diagrams via "JSON-spec d
 
 **Why d2 is primary (not mermaid-cli/drawio)**: mermaid-cli (`mmdc`) renders via headless Chromium (puppeteer) — a heavy, fragile dependency that fails on headless servers without a display server. drawio-desktop is a GUI app, not headless-friendly. **d2** and **graphviz/dot** are both headless-native, install cleanly, and produce vector SVG → PDF+PNG via `rsvg-convert` with no browser/chromium needed. For an AI-scientist pipeline that runs on servers, headless-native tools are mandatory. (If a human later wants to hand-edit a diagram in drawio-desktop's GUI, they can import the d2/dot-produced SVG — but the pipeline itself uses headless tools only.)
 
-**d2 pipeline steps**:
-1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com)
-2. Render: `d2 --layout=elk spec.d2 output.svg` (produces SVG intermediate)
-3. Convert: `rsvg-convert -f pdf -o output.pdf output.svg` AND `rsvg-convert -f png -d 300 -o output.png output.svg` (produces PDF+PNG)
-4. Preserve `spec.d2` as the reproducible source (equivalent to `render.py` for data plots)
+**d2 pipeline steps (v3.5 — single unified entry point)**:
+1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com); use morandi tokens for explicit styles
+2. Render through ONE tool only — `scripts/plotting/render_figure.py spec.d2 --out figures/<name>/ --label <name> --caption "..." --strict`. Internally it performs: morandi preamble injection → d2 layout (dagre auto; elk for >20 nodes, Liberation Sans fonts via `--font-*`) → deterministic palette sanitization (engine-injected theme colors remapped to tokens) → SVG → PDF + PNG (300 DPI, `rsvg-convert`, inkscape fallback) → `latex_include.tex` → embedded Nature-level audit (`figure_audit.json`)
+3. Check the audit verdict; FAIL ⇒ fix spec, re-render. Never invoke raw `d2`/`dot`/`rsvg-convert` in parallel — the unified CLI is the ONLY diagram entry point in the pipeline
 
-**d2 styling**: apply the morandi palette via d2's style blocks. d2 accepts custom colors — pass the morandi hex codes. The color audit (Step 4) checks d2 output the same as Python output.
+**d2 styling**: apply the morandi palette via d2's style blocks or rely on the injected preamble (fills `#EDE9E2`, strokes `#6E675F`, ink text `#3A3733`, node font 22px). The embedded audit checks d2 output identically to Python output.
 
-**Fallback if d2 unavailable**: graphviz/dot (also auto-layout, also vector → PDF+PNG via rsvg-convert). AI-direct SVG is the LAST resort, only for ≤ 4 node trivial diagrams.
+**Fallback if d2 unavailable**: `render_figure.py spec.dot` (graphviz engine, same CLI, same audit). AI-direct SVG is the LAST resort, only for ≤ 4 node trivial diagrams (delivered via `--engine svg` so audit still applies).
 
 ---
 
@@ -129,15 +128,22 @@ When a tool produces SVG (d2, graphviz, AI-direct, inkscape), the conversion to 
 
 | Tool | Role | Install |
 |------|------|---------|
-| `matplotlib` | Data plots (line/scatter/bar/heatmap/3D) — PDF+PNG direct | already present |
-| `d2` | Complex architecture/flow/topology diagrams — SVG intermediate | d2 install script |
-| `graphviz` (`dot`) | Fallback graph layout — SVG intermediate | apt: `graphviz` |
-| `rsvg-convert` | SVG → PDF + PNG conversion | apt: `librsvg2-bin` |
+| **`scripts/plotting/render_figure.py`** | **SINGLE unified entry point for all figures** (d2/graphviz/tikz/asy/typst/blender/SVG → dual output → embedded audit) | in-repo, stdlib only (+PIL for DPI stamp) |
+| `scripts/plotting/sciforge_style.py` | Morandi design tokens — single source of truth (validated C* ≤ 25, contrast ≥ 4.5); `apply_matplotlib_style()` loads SciencePlots `science` base under house overrides | in-repo |
+| `matplotlib` + `SciencePlots` | Data plots (line/scatter/bar/heatmap/3D) — journal-grade geometry + house palette/fonts | pip (aliyun mirror) |
+| `d2` | Complex architecture/flow/topology diagrams (invoked ONLY via render_figure.py) | d2 install script |
+| `graphviz` (`dot`) | Fallback graph layout (via render_figure.py) | apt: `graphviz` |
+| `asymptote` (`asy`) | High-end math/geometry/mechanism vector figures (via render_figure.py) | apt: `asymptote` |
+| `typst` (+ fletcher/CeTZ packages) | Fast declarative diagrams, millisecond compile (via render_figure.py) | GitHub release binary |
+| `blender` (Cycles CPU headless) | Cover-grade 3D mechanism/structure renders (via render_figure.py) | apt: `blender` |
+| `rsvg-convert` | SVG → PDF + PNG conversion (via render_figure.py) | apt: `librsvg2-bin` |
 | `inkscape` | Fallback SVG → PDF + PNG | apt: `inkscape` |
+| `pdfcrop` | Whitespace crop for asy/typst PDF deliverables (via render_figure.py) | apt: `texlive-extra-utils` |
 | `svgo` | SVG optimization (smaller intermediate files) | npm: `svgo` |
-| LaTeX `tikz`/`tikz-cd` | Theoretical diagrams (commutative, derivation trees) — PDF direct | texlive |
+| LaTeX `tikz`/`tikz-cd`/`pgfplots` | Theoretical diagrams (commutative, derivation trees) — via render_figure.py | texlive |
+| Fonts | TeX Gyre Termes/Pagella/Heros (OTF, matplotlib/LaTeX match) + Liberation Sans TTF (d2 `--font-*`) | texlive fonts + apt `fonts-liberation` |
 
-The skill auto-detects which are installed and routes accordingly (d2 preferred → graphviz fallback → AI-direct SVG last resort for ≤4 nodes).
+The unified CLI auto-detects what is installed and routes accordingly (d2 preferred → graphviz fallback → AI-direct SVG last resort for ≤4 nodes). Multiple diagram tools are consolidated INSIDE the CLI — the pipeline never calls them in parallel.
 
 ---
 

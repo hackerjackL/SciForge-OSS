@@ -1,7 +1,7 @@
 ---
 name: unified-plotting
-version: 1.1.0
-description: "Render publication-quality vector figures (PDF+PNG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
+version: 1.2.0
+description: "Render publication-quality vector figures (PDF+PNG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.5 UNIFIED SINGLE-ENTRY RENDERER: all diagram engines (d2/graphviz/tikz/SVG) consolidated behind one tool `scripts/plotting/render_figure.py` with embedded Nature-level audit. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
 ---
@@ -12,8 +12,24 @@ role: figure-renderer-and-spec-generator
 
 - **Purpose**: 从结构化数据或 JSON spec 渲染出版级矢量图
 - **Input**: 数据 (JSON/matrix) 或图表描述
-- **Output**: **PDF + PNG 双产出** (PDF for LaTeX compile, PNG for AI/human viewing) + 渲染脚本
-- **Key**: 11 种图表类型 (含 4 种理论图)；莫兰迪色系强制；数据图 Python 管线，理论图 LaTeX tikz，复杂架构图 d2；**16:9 横版默认**；**Nature 级可读性**；见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md)
+- **Output**: **PDF + PNG 双产出** (PDF for LaTeX compile, PNG for AI/human viewing) + 渲染脚本 + `figure_audit.json`
+- **Key**: 12 种图表类型 (含 4 种理论图)；莫兰迪色系强制（单一事实源 `scripts/plotting/sciforge_style.py`）；数据图 Python 管线，复杂图**统一渲染工具**；**16:9 横版默认**；**Nature 级可读性**；见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md)
+
+> **v3.5 单一入口工具（UNIFIED SINGLE-ENTRY RENDERER）**: 所有声明式图（d2 / graphviz / tikz / AI-direct SVG）只通过**一个** CLI 产出，禁止多工具并行或绕过：
+>
+> ```bash
+> python scripts/plotting/render_figure.py <spec.d2|spec.dot|spec.tex|source.svg> \
+>     --out figures/{figure_name}/ --label {figure_name} \
+>     --caption "..." --strict
+> ```
+>
+> 该工具内部自动完成：莫兰迪前导注入（d2）→ 引擎渲染（d2 自动选 dagre/elk）→ 引擎泄漏色确定性净化 → SVG→PDF+PNG 双产出（300 DPI）→ LaTeX include 片段 → 内嵌 Nature 级审计（`figure_audit.json`，verdict PASS/WARN/FAIL；`--strict` 时 FAIL 退出码 4）。数据图仍走 Python 管线（可复现性要求），但必须在脚本顶部调用 `apply_matplotlib_style()` 统一主题。依赖安装见 [`scripts/plotting/INSTALL.md`](../../../scripts/plotting/INSTALL.md)，环境自检：`python scripts/plotting/render_figure.py --doctor`。
+
+> **Agent 驱动分阶段设计工作流（借鉴 AutoFigure-Edit 的分阶段装配思想，MIT 许可；本 skill 零外部 API——"模型"就是 agent 自身，用户用自己的 Claude/Codex/AtomCode 开箱即用）**:
+> 1. **骨架（skeleton）**: 从方法段落文本抽取组件清单 + 数据流 + 分组层级，先写布局骨架（容器/行列/边），不急着画
+> 2. **填充（fill）**: 按内容类型选引擎——架构/流程用 d2，机制细节用 tikz，几何/示意用 asy，快速迭代用 typst，3D 结构用 blender，数据用 matplotlib；每个组件填莫兰迪 token 样式
+> 3. **装配（assemble）**: 全部经单一入口 `render_figure.py` 渲染（前导注入、调色板净化、双产出、LaTeX 片段一步完成）
+> 4. **审阅（review）**: 看 `figure_audit.json` verdict；WARN/FAIL 回到骨架层改 spec 重渲染——禁止手工修补 PNG/SVG 像素
 
 > **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the morandi palette + Layer 2 data-encoding colormaps are universal contracts.
 >
@@ -105,20 +121,26 @@ The non-negotiable goals:
 
 ## Morandi Palette Contract (Layer 1 — Universal)
 
-All categorical/semantic colors use the **morandi** house palette. See [`color-themes.md`](../../shared-references/color-themes.md) Layer 1 for the full contract. Summary:
+All categorical/semantic colors use the **morandi** house palette. The single source of truth is `scripts/plotting/sciforge_style.py` (`TOKENS`); the table below mirrors it. See [`color-themes.md`](../../shared-references/color-themes.md) for semantic-role mappings and legacy aliases.
 
-| Slot | Color | Hex | Use |
-|------|-------|-----|-----|
-| 1 | warm grey | `#D4CFC9` | Group fills, backgrounds |
-| 2 | dusty blue | `#8B9DAF` | Primary series |
-| 3 | sage | `#9CAF88` | Secondary series |
-| 4 | mauve | `#C7A8A8` | Tertiary series |
-| 5 | muted ochre | `#D9A05B` | Accent / highlight |
-| 6 | taupe | `#A89B8C` | Quaternary series |
-| 7 | dusty rose | `#E8C4C4` | Soft accent |
-| 8 | charcoal | `#5C5C5C` | Text, axes, final series |
+| Token | Hex | C* | Use |
+|-------|-----|----|-----|
+| ink | `#3A3733` | 3.0 | Text, axes, arrows |
+| ink-soft | `#6E675F` | 5.6 | Secondary text, strokes, gridlines |
+| canvas | `#FAF8F5` | 1.7 | Figure background |
+| surface | `#EDE9E2` | 3.9 | Default node fill / panel background |
+| surface-alt | `#E3DDD3` | 5.6 | Alternating container fill |
+| blue | `#93A7BB` | 12.9 | 1st series / hero |
+| sage | `#A4B294` | 17.2 | 2nd series / positive |
+| mauve | `#BDA5A7` | 9.3 | 3rd series |
+| ochre | `#C4A880` | 24.9 | Accent / highlight |
+| taupe | `#B0A292` | 10.4 | 4th series / baseline |
+| rose | `#D9BCBC` | 11.0 | Soft accent / annotations |
+| slate | `#97A2B2` | 9.6 | ablation-2 |
+| moss | `#A5AB91` | 14.4 | ablation-1 |
+| clay | `#C2A193` | 15.5 | negative / degradation |
 
-**NEVER use**: Tailwind high-saturation (`#2563EB` / `#10B981` / `#7C3AED` / `#EA580C`), Material Design blue (`#1565C0` / `#0D47A1`), matplotlib defaults (`tab10` / `Set2`), jet / rainbow / hsv. These violate the morandi chroma C* ≤ 25 principle.
+**NEVER use**: Tailwind high-saturation (`#2563EB` / `#10B981` / `#7C3AED` / `#EA580C`), Material Design blue (`#1565C0` / `#0D47A1`), matplotlib defaults (`tab10` / `Set2`), jet / rainbow / hsv. These violate the morandi chroma C* ≤ 25 principle. The renderer rejects them at source level; engine-injected theme colors in SVG output are deterministically remapped to tokens (`sanitize_palette`) before delivery.
 
 ## Layer 2 — Data-Encoding Colormaps (Continuous Scalar Fields)
 
@@ -159,14 +181,14 @@ If data shape is wrong, reject with a clear error message and suggest the correc
 
 ### Step 2: Choose the Renderer
 
-Based on `renderer` config (default `auto`) — v2.2 routing per [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §4:
-- **Data plot** (line/scatter/bar/heatmap/3D/etc.) → Python pipeline (matplotlib/numpy) → **output BOTH `output.pdf` AND `output.png`**
-- **Diagram plot** (architecture/workflow/topology, 5+ nodes) → **d2** (`.d2` spec → SVG → `rsvg-convert`/`inkscape` → PDF+PNG). `--layout=elk` for dense (>20 node) graphs.
-- **Diagram plot** (≤4 nodes, trivial) → AI-direct SVG (LAST resort) → `rsvg-convert` → PDF+PNG
-- **Commutative/category diagram** → LaTeX `tikz-cd` (PDF direct, then render PNG via `pdftoppm`/`magick` for viewing)
-- **Concept-map/dependency-graph** (5+ nodes) → d2 → SVG → PDF+PNG
-- **Humanities** (timeline/argument-flow/comparison) → d2 → SVG → PDF+PNG (same as STEM diagrams)
-- **Fallback chain** if d2 unavailable: `graphviz`/`dot` → SVG → PDF+PNG; if graphviz unavailable, AI-direct SVG for ≤4 nodes only; for 5+ node diagrams with no d2/graphviz, BLOCK (do not produce a small-text AI-direct figure).
+Based on `renderer` config (default `auto`) — v3.5 routing per [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §4. **Every diagram goes through the single unified CLI `scripts/plotting/render_figure.py`** (one entry point — never invoke raw `d2`/`dot`/`rsvg-convert` in parallel):
+- **Data plot** (line/scatter/bar/heatmap/3D/etc.) → Python pipeline (matplotlib/numpy, `apply_matplotlib_style()` at top) → **output BOTH `output.pdf` AND `output.png`**
+- **Diagram plot** (architecture/workflow/topology, 5+ nodes) → write `spec.d2` → `render_figure.py spec.d2` (auto-selects dagre; elk for >20 nodes) → dual PDF+PNG + audit
+- **Diagram plot** (≤4 nodes, trivial) → AI-direct `source.svg` → `render_figure.py source.svg --engine svg` → dual output + audit (LAST resort)
+- **Commutative/category diagram** → `spec.tex` (tikz/tikz-cd) → `render_figure.py spec.tex` (pdflatex → PDF → PNG)
+- **Concept-map/dependency-graph** (5+ nodes) → d2 via unified CLI
+- **Humanities** (timeline/argument-flow/comparison) → d2 via unified CLI (same as STEM diagrams)
+- **Fallback chain** if d2 unavailable: `render_figure.py spec.dot` (graphviz engine); if graphviz unavailable, AI-direct SVG for ≤4 nodes only; for 5+ node diagrams with no d2/graphviz, BLOCK (do not produce a small-text AI-direct figure).
 
 ### Step 3a: Python Pipeline (for Data Plots)
 
@@ -191,74 +213,61 @@ Write the complete Python render script (`render.py`):
 - No interactive elements
 - No text clipped at figure edges; ≥ 2pt gap between subpanels
 
-### Step 3b: d2 Pipeline (for Complex Diagrams — v2.2)
+### Step 3b: d2 Pipeline via the Unified Renderer (for Complex Diagrams — v3.5)
 
-For architecture/workflow/topology/concept-map/dependency-graph/humanities-timeline diagrams with 5+ nodes, use **d2** (replaces the old JSON-spec renderer):
+For architecture/workflow/topology/concept-map/dependency-graph/humanities-timeline diagrams with 5+ nodes, use **d2** through the single unified CLI:
 
-1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com):
+1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com). Use morandi tokens for any explicit fills (the renderer injects a morandi preamble for everything you leave unstyled):
 ```d2
 direction: right
-Input: {shape: rectangle; style.fill: "#D4CFC9"; style.stroke: "#8B9DAF"}
-Process: {shape: oval; style.fill: "#9CAF88"}
-Output: {shape: rectangle; style.fill: "#C7A8A8"}
+Input: {shape: rectangle; style.fill: "#EDE9E2"; style.stroke: "#6E675F"}
+Process: {shape: oval; style.fill: "#A4B294"}
+Output: {shape: rectangle; style.fill: "#BDA5A7"}
 Input -> Process: "feeds"
 Process -> Output: "produces"
 ```
-2. Render SVG: `d2 --layout=elk spec.d2 output.svg` (ELK engine for dense graphs; default TALA for normal)
-3. Convert to **dual output** (v2.2): `rsvg-convert -f pdf -o output.pdf output.svg` AND `rsvg-convert -f png -d 300 -o output.png output.svg` (fallback: `inkscape output.svg --export-pdf=output.pdf` and `--export-png=output.png`)
-4. **Morandi enforcement**: all `style.fill`/`style.stroke` in the `.d2` spec MUST be from the morandi palette. The renderer rejects specs with non-morandi colors.
-5. Preserve `spec.d2` as the reproducible source (equivalent to `render.py` for data plots)
-
-**d2 readability**: d2 auto-lays-out nodes with proper typography (no small-text problem). Verify the rendered SVG/PDF has readable labels (≥ 10pt equivalent) — if d2's default font is too small, set `style.font-size` in the `.d2` spec.
-
-### Step 3c: AI-Direct SVG (≤4-node trivial ONLY — v2.2 demoted)
-
-Draft the FigureSpec JSON (see main SciForge's `figure-spec` schema for the full spec):
-```json
-{
-  "canvas": {"width": 900, "height": 520},
-  "nodes": [
-    {"id": "node_a", "label": "A", "x": 180, "y": 120, "shape": "rounded"},
-    {"id": "node_b", "label": "B", "x": 350, "y": 120}
-  ],
-  "edges": [
-    {"from": "node_a", "to": "node_b", "label": "uses"}
-  ],
-  "groups": [
-    {"label": "Layer 1", "node_ids": ["node_a", "node_b"], "fill": "#D4CFC9", "stroke": "#8B9DAF"}
-  ]
-}
+2. Render via the **single entry point** (preamble injection → d2 layout → palette sanitization → PDF+PNG dual output → embedded Nature-level audit all happen inside):
+```bash
+python scripts/plotting/render_figure.py spec.d2 \
+    --out figures/{figure_name}/ --label {figure_name} \
+    --caption "..." --strict
 ```
+3. Check the printed `[audit: PASS|WARN|FAIL]` verdict (also written to `figure_audit.json`). FAIL means re-fix the spec and re-render — do not deliver.
+4. **Morandi enforcement**: all `style.fill`/`style.stroke` in the `.d2` spec MUST be morandi tokens — the renderer rejects off-palette specs (exit 2). Engine-injected theme colors are deterministically remapped to tokens before delivery.
+5. The CLI preserves `spec.d2` + `intermediate.svg` + `render.log` in the figure dir as the reproducible source (equivalent to `render.py` for data plots).
 
-**Morandi enforcement**: all `fill` and `stroke` colors in the spec MUST be from the morandi palette (Layer 1). The renderer rejects specs with non-morandi colors.
+**d2 readability**: the injected preamble sets node font-size 22px / edge 18px (≈12.7pt/10.4pt physical at 16:9 embed width — above the Nature floor) and Liberation Sans (Helvetica-metric) via d2's `--font-*` flags. The audit verifies physical text size ≥ 10pt.
 
-### Step 3c: AI-Direct SVG (for Simple Diagrams)
+### Step 3c: AI-Direct SVG (≤4-node trivial ONLY — v3.5 demoted)
 
-For simple diagrams (≤ 8 nodes, no complex auto-layout needed), the agent can hand-write the SVG directly:
+Hand-write a minimal SVG only when the diagram has ≤ 4 nodes and no auto-layout is needed. Deliver it through the unified CLI (`--engine svg`) so dual output + audit still apply:
 ```svg
-<svg width="500" height="350" xmlns="http://www.w3.org/2000/svg">
-  <rect x="50" y="50" width="120" height="60" rx="8" fill="#D4CFC9" stroke="#8B9DAF" stroke-width="2"/>
-  <text x="110" y="85" text-anchor="middle" font-family="serif" font-size="14" fill="#5C5C5C">Input</text>
-  ...
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+  <rect x="0" y="0" width="800" height="450" fill="#FAF8F5"/>
+  <rect x="80" y="160" width="200" height="90" rx="8" fill="#EDE9E2" stroke="#6E675F" stroke-width="1.5"/>
+  <text x="180" y="212" text-anchor="middle" font-family="TeX Gyre Heros, sans-serif" font-size="22" fill="#3A3733">Input</text>
+  <line x1="280" y1="205" x2="520" y2="205" stroke="#3A3733" stroke-width="2"/>
+  <rect x="520" y="160" width="200" height="90" rx="8" fill="#93A7BB" stroke="#6E675F" stroke-width="1.5"/>
+  <text x="620" y="212" text-anchor="middle" font-family="TeX Gyre Heros, sans-serif" font-size="22" fill="#3A3733">Output</text>
 </svg>
 ```
 
-**Morandi enforcement**: all `fill` and `stroke` colors in the SVG MUST be from the morandi palette. The agent must NOT use Tailwind/Material/matplotlib-default colors.
+**Morandi enforcement**: all `fill` and `stroke` colors in the SVG MUST be morandi tokens (Layer 1). The agent must NOT use Tailwind/Material/matplotlib-default colors; the unified CLI audits the SVG and rejects off-palette hexes (exit 2).
 
-**Preserved spec**: even for AI-direct SVG, save the source spec (a markdown description of what the diagram represents + the Q-id) alongside the SVG for reproducibility.
+**Preserved spec**: run the SVG through `render_figure.py source.svg --engine svg` so the source, `intermediate.svg`, and audit report are preserved beside `output.pdf`/`output.png`.
 
 ### Step 4: Render and Validate
 
-Execute the render (Python subprocess with 60s timeout, OR JSON-spec renderer, OR AI-direct SVG write):
+Execute the render (Python subprocess for data plots; unified CLI for diagrams):
 1. Create figure directory: `figures/{figure_name}/`
-2. Write `input_data.json` (or `spec.md` for AI-direct) and `render.py` (or `spec.json` / `source.md`)
-3. Execute the render
-4. Validate output:
-   - File exists and is non-empty
-   - File is valid SVG (parseable XML) or PDF (valid magic bytes)
-   - File size reasonable (SVG: < 5MB, PDF: < 10MB)
-   - **Color audit**: parse the SVG/PDF for non-morandi colors (for categorical) or non-viridis/magma (for continuous); reject if prohibited colors found
-5. Auto-generate caption from chart type + data description
+2. Write `input_data.json` + `render.py` (data) or `spec.d2` / `spec.tex` / `source.svg` (diagram)
+3. Execute: `python render.py` OR `python scripts/plotting/render_figure.py <spec> --out figures/{figure_name}/ --label {figure_name} --strict`
+4. Validate output (the unified CLI does this internally; data plots must be checked the same way):
+   - `output.pdf` + `output.png` exist, non-empty, valid magic bytes
+   - PNG ≥ 300 DPI and ≥ 1200px wide (agent-reviewable)
+   - **Color audit**: every saturated color is a morandi token (C* ≤ 25) or a Layer-2 colormap — the CLI's embedded audit writes `figure_audit.json` with verdict PASS/WARN/FAIL
+   - **Typography audit**: physical text size ≥ Nature floor (10pt diagram labels)
+5. Auto-generate caption from chart type + data description (the CLI writes `latex_include.tex` with the caption)
 
 ### Step 5: Generate LaTeX Include Snippet
 

@@ -12,10 +12,10 @@ role: external-figure-optimization-advisor
 
 ## Protocol
 
-1. **Produce**: render the first version of the diagram (d2 → SVG → PDF+PNG), per [`unified-plotting`](../meta-skills/unified-plotting/SKILL.md) and [`figure-quality-contract.md`](figure-quality-contract.md).
+1. **Produce**: render the first version of the diagram through the SINGLE unified entry point — `python scripts/plotting/render_figure.py spec.d2 --out figures/<name>/ --label <name> --caption "..." --strict` (internally: d2 → SVG → palette sanitize → PDF+PNG → embedded audit), per [`unified-plotting`](../meta-skills/unified-plotting/SKILL.md) and [`figure-quality-contract.md`](figure-quality-contract.md). The embedded audit (`figure_audit.json`) is the mechanical gate; this advisory pass is the qualitative complement.
 2. **Advisory pass** (optional, one call): send a *brief* instruction + the figure's structure (nodes, edges, layout intent, palette) to the external advisor. Ask for the **most useful improvements** (e.g. missing input/feedback edge? better layout? typography/caption fixes?) and whether the architecture narrative is logically complete.
 3. **Deploy improvements**: implement the suggested fixes where they genuinely improve the figure (e.g. add a missing literature→theory edge, add an experiment→idea feedback loop, add data/method input nodes, fix typography/caption, add a legend for data plots).
-4. **Re-render**: render v2, and confirm each adopted improvement is present. If the advisor is unreachable, mark the advisory pass as `deferred-external` and rely on the criteria table below — never block the pipeline on it.
+4. **Re-render**: re-run the same unified CLI (v2), confirm the audit verdict is PASS and each adopted improvement is present. If the advisor is unreachable, mark the advisory pass as `deferred-external` and rely on the criteria table below — never block the pipeline on it.
 
 ## Prompt template (keep it minimal)
 
