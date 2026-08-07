@@ -135,7 +135,7 @@ claude                  # 或 codex / cursor / trae
 
 skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX 编译 / 实验执行）需要以下可选工具。`sciforge tools-check` 检查缺失项，`sciforge tools-install` 一键安装。
 
-> 📊 **绘图工具链**：所有图（数据图、架构/流程/机制图——全领域通用）都通过唯一入口 `scripts/plotting/render_figure.py` 产出（11 引擎：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG——单一链路，禁止并行工具；PDF+PNG 双产出 + 内嵌 Nature 级审计）。完整依赖清单、国内镜像、字体与不采用工具评估：**[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**。环境自检：`python scripts/plotting/render_figure.py --doctor`。
+> 📊 **绘图工具链**：所有图（数据图、架构/流程/机制/组图——全领域通用）都通过唯一入口 `scripts/plotting/render_figure.py` 产出（12 引擎：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG / composite 组图——单一链路，禁止并行工具；PDF+PNG 双产出 + 内嵌 Nature 级审计）。**跨平台：Linux / macOS / Windows 均支持**（Windows 推荐 WSL2；字体按平台自动发现，无机器专属路径）。完整依赖清单、逐系统安装命令、国内镜像、字体与不采用工具评估：**[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**。环境自检：`python scripts/plotting/render_figure.py --doctor`。
 
 | 工具 | 用途 | 安装 | 必需性 |
 |------|------|------|--------|

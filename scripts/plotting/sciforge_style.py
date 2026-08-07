@@ -24,6 +24,8 @@ render paths that only need the tokens.
 from __future__ import annotations
 
 import math
+import os
+from pathlib import Path
 
 __version__ = "2.0.0"
 
@@ -104,30 +106,99 @@ D2_FONT_PX = {"node": 22, "edge": 18, "title": 28, "container": 20}
 # d2 accepts fonts ONLY as .ttf file paths via --font-* CLI flags (it
 # validates `style.font` names against a tiny builtin list and rejects
 # everything else).  Liberation Sans = metric-compatible Helvetica clone,
-# matching the sans choice for diagrams; falls back to d2's embedded
-# Source Sans Pro when the TTFs are absent.
-D2_FONT_TTF_CANDIDATES = {
-    "regular": [
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    ],
-    "bold": [
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-    ],
-    "italic": [
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf",
-    ],
+# matching the sans choice for diagrams.  Fonts are LOCATED dynamically
+# per platform (fontconfig first, then per-OS directory scan) — no
+# machine-specific absolute paths are assumed; when nothing is found d2
+# falls back to its embedded Source Sans Pro.
+D2_FONT_ROLES = {
+    "regular": ("Liberation Sans", "LiberationSans-Regular.ttf"),
+    "bold": ("Liberation Sans:style=Bold", "LiberationSans-Bold.ttf"),
+    "italic": ("Liberation Sans:style=Italic", "LiberationSans-Italic.ttf"),
 }
 
 
+def fc_match_file(family_query: str) -> str | None:
+    """Resolve a font family to a file via fontconfig (Linux/macOS/WSL)."""
+    import shutil as _shutil
+    import subprocess
+    fc = _shutil.which("fc-match")
+    if not fc:
+        return None
+    try:
+        r = subprocess.run([fc, "-f", "%{file}", family_query],
+                           capture_output=True, text=True, timeout=10)
+        p = r.stdout.strip()
+        if r.returncode == 0 and p and os.path.isfile(p):
+            return p
+    except Exception:
+        pass
+    return None
+
+
+def _font_scan_dirs() -> list[str]:
+    """Common font directories per platform (user-home-relative first, so
+    multi-user machines work without root-owned paths)."""
+    import platform as _platform
+    home = Path.home()
+    sysname = _platform.system()
+    if sysname == "Windows":
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        local = os.environ.get("LOCALAPPDATA",
+                               str(home / "AppData" / "Local"))
+        return [
+            str(home / "AppData" / "Local" / "Microsoft" / "Windows" / "Fonts"),
+            str(home / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Fonts"),
+            os.path.join(local, "Microsoft", "Windows", "Fonts"),
+            os.path.join(windir, "Fonts"),
+        ]
+    if sysname == "Darwin":
+        return [
+            str(home / "Library" / "Fonts"),
+            "/Library/Fonts",
+            "/System/Library/Fonts",
+            "/Library/TeX/texmf/fonts",
+        ]
+    return [  # Linux / other POSIX
+        str(home / ".local" / "share" / "fonts"),
+        str(home / ".fonts"),
+        "/usr/share/fonts",
+        "/usr/local/share/fonts",
+        "/usr/share/texmf/fonts",
+        "/usr/share/texlive/texmf-dist/fonts",
+    ]
+
+
+def locate_font(family_query: str, filename: str) -> str | None:
+    """Cross-platform font lookup: fontconfig -> recursive dir scan."""
+    import glob as _glob
+    p = fc_match_file(family_query)
+    if p and p.lower().endswith(".ttf"):
+        return p
+    for d in _font_scan_dirs():
+        hits = _glob.glob(os.path.join(d, "**", filename), recursive=True)
+        if hits:
+            return hits[0]
+    return None
+
+
 def d2_font_flags() -> list[str]:
-    """CLI font flags for d2 (only for TTFs that actually exist)."""
-    import os
+    """CLI font flags for d2 (cross-platform).  Silently omitted when the
+    fonts are absent — d2 then uses its embedded Source Sans Pro.  If the
+    regular face resolves, missing bold/italic reuse the regular file so
+    the family stays consistent."""
+    regular = None
+    resolved = {}
+    for role, (family, pattern) in D2_FONT_ROLES.items():
+        p = locate_font(family, pattern)
+        if p:
+            resolved[role] = p
+            if role == "regular":
+                regular = p
+    if not regular:
+        return []  # all-or-nothing: never mix Liberation with d2 builtins
     flags: list[str] = []
-    for role, paths in D2_FONT_TTF_CANDIDATES.items():
-        for p in paths:
-            if os.path.isfile(p):
-                flags += [f"--font-{role}", p]
-                break
+    for role in ("regular", "bold", "italic"):
+        flags += [f"--font-{role}", resolved.get(role, regular)]
     return flags
 
 
@@ -333,15 +404,15 @@ def apply_matplotlib_style(style: str = "academic") -> None:
     except Exception:
         pass  # SciencePlots optional — house style alone is complete
 
-    # register TeX Gyre OTFs if present (idempotent)
-    import glob as _glob
-    for path in _glob.glob(
-        "/root/.local/share/fonts/texgyre/*.otf"
-    ) + _glob.glob("/usr/share/texmf/fonts/opentype/public/tex-gyre/texgyre*.otf"):
-        try:
-            fm.fontManager.addfont(path)
-        except Exception:
-            pass
+    # register TeX Gyre OTFs if present (cross-platform discovery)
+    for tg in ("texgyretermes-regular.otf", "texgyretermes-bold.otf",
+               "texgyretermes-italic.otf", "texgyreheros-regular.otf"):
+        path = locate_font("TeX Gyre Termes", tg)
+        if path:
+            try:
+                fm.fontManager.addfont(path)
+            except Exception:
+                pass
 
     stack = FONT_STACK_SERIF if style != "sans" else FONT_STACK_SANS
     rc = {

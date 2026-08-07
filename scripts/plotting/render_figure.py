@@ -282,7 +282,7 @@ def render_mermaid(src: Path, out_pdf: Path, out_png: Path, dpi: int,
     if tmp_svg.exists():
         tmp_svg.unlink()
     cmd = ["mmdc", "-i", str(src), "-o", str(tmp_svg), "-b", "transparent"]
-    if os.geteuid() == 0:
+    if _is_root():
         cfg = outdir / "_puppeteer.json"
         cfg.write_text('{"args": ["--no-sandbox", "--disable-setuid-sandbox"]}',
                        encoding="utf-8")
@@ -412,6 +412,12 @@ def render_composite(src: Path, out_pdf: Path, out_png: Path, dpi: int,
     log.append(f"# assembled {n} panels -> {canvas_w}x{canvas_h} "
                f"({cols}x{rows} grid)")
     svg2dual(assembled, out_pdf, out_png, dpi, log, keep_svg)
+
+
+def _is_root() -> bool:
+    """Portable superuser check — os.geteuid is POSIX-only and does not
+    exist on Windows."""
+    return getattr(os, "getuid", lambda: -1)() == 0
 
 
 def render_pikchr(src: Path, out_pdf: Path, out_png: Path, dpi: int,
