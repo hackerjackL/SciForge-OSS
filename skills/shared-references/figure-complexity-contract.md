@@ -233,5 +233,5 @@ SciForge-OSS 服务**全领域**：理工农医、社科人文、经管法学皆
 ## 8. See Also
 
 - [`figure-quality-contract.md`](figure-quality-contract.md) — 格式/色板/字号/比例
-- [`figure-quality-review.md`](figure-quality-review.md) — 外部审阅顾问（可选）
+- [`figure-quality-review.md`](figure-quality-review.md) — 两级视觉审阅协议（一级=agent 原生视觉自审强制；二级=外部顾问可选；纯文本宿主降级机械审计）
 - [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — 消费者
