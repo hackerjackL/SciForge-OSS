@@ -1,6 +1,6 @@
 ---
 name: quality-gate
-version: 1.1.0
+version: 1.1.1
 description: "Final pre-writing gate checking all upstream audits passed before paper-writing finalizes. Phase 12 boundary. Invoke to enforce the quality floor before the manuscript is sealed."
 type: reference-skill
 role: pre-writing-quality-gate
@@ -156,7 +156,7 @@ Produce `quality_gate/STAGNATION_REPORT.md`:
 
 ## Phase 2: Quality Floor Gate (Universal QF-G*)
 
-OSS has **no discipline overlay**. The universal QF-G* checks below apply to every 125-problem run:
+OSS has **no discipline overlay**. The universal QF-G* checks below apply to every run:
 
 | ID | Criterion | Type | Check | PASS condition |
 |----|-----------|------|-------|----------------|
@@ -330,7 +330,7 @@ All quality-gate output files must follow the standard output protocols:
 ## Boundaries
 
 - **No discipline overlays.** OSS has no `overlays/{economics,cs-ml,physics,general}.md`. Do not reintroduce discipline-specific QF-E*/QF-C*/QF-P* or SD-E*/SD-C*/SD-P* checks — they are discipline-specific and OSS is discipline-agnostic. If a problem seems to need a discipline-specific check, the agent's runtime reasoning handles it, NOT an overlay.
-- **Universal QF-G* and SD-G* only.** The 9 quality floor + 5 self-deception checks above are the complete set for every 125-problem run.
+- **Universal QF-G* and SD-G* only.** The 9 quality floor + 5 self-deception checks above are the complete set for every run.
 - **Hard gate.** If FAIL, paper writing is blocked — no soft passes.
 - **Self-consistency check for self-deception.** The self-deception guard MUST use a structured re-verification pass — the agent re-reads claims and evidence from scratch, without relying on memory of having produced them.
 

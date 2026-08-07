@@ -2,7 +2,7 @@
 
 > **Status**: Pre-submission readiness checks for OSS papers. Used near the end of `/paper-writing` and during the final checks in `/paper-compile`.
 >
-> **Key difference from main SciForge**: OSS has **no per-venue checklists** (no NeurIPS-specific / IEEE-specific / PRL-specific / AER-specific lists). All 125 science problems draft in the **unified `elsarticle` template** (see `venue-profiles.md`). This file provides a **single universal checklist** applied to every OSS output. Venue-specific adaptations (if the human user later targets a specific journal) are deferred to submission time, not drafting.
+> **Key difference from main SciForge**: OSS has **no per-venue checklists** (no NeurIPS-specific / IEEE-specific / PRL-specific / AER-specific lists). All science problems draft in the **unified `elsarticle` template** (see `venue-profiles.md`). This file provides a **single universal checklist** applied to every OSS output. Venue-specific adaptations (if the human user later targets a specific journal) are deferred to submission time, not drafting.
 
 ---
 
@@ -14,7 +14,7 @@
 
 ---
 
-## 2. Universal Requirements (All 125 Problems)
+## 2. Universal Requirements (All Problems)
 
 Across every OSS output, the following are usually expected:
 
@@ -29,7 +29,7 @@ Across every OSS output, the following are usually expected:
 
 ## 3. The Single Unified Checklist
 
-Apply this checklist to every OSS paper draft, regardless of which of the 125 problems it addresses.
+Apply this checklist to every OSS paper draft, regardless of the problem it addresses.
 
 ### 3.1 Structure checklist
 
@@ -95,7 +95,7 @@ Apply this checklist to every OSS paper draft, regardless of which of the 125 pr
 
 ### 3.8 Logic checklist (universal invariant)
 
-- [ ] **INV-G1 PROBLEM_ANCHOR_FREEZE** — every claim in the paper traces back to the original problem statement (Q-id from `125-SCIENCE-PROBLEMS.md`). No drift to a different problem mid-paper.
+- [ ] **INV-G1 PROBLEM_ANCHOR_FREEZE** — every claim in the paper traces back to the original problem statement (user-supplied Q-id). No drift to a different problem mid-paper.
 - [ ] No unsupported assertion — every claim has a `\cref{eq:}`, `\cref{fig:}`, or `\cite{}` support
 - [ ] No verification-premise contradiction (universalized Type IV escape check) — if the verification (Section 5) contradicts the premise (Section 3), this is a fatal error, not a "discussion point"
 

@@ -1,6 +1,6 @@
 {
   "name": "@gewislab/sciforge-oss",
-  "version": "1.3.0",
+  "version": "1.1.1",
   "description": "Pure Skill-driven universal AI Scientist framework — domain-agnostic scientific reasoning engine. Markdown skills any AI agent can consume; optional toolchain for figures/literature/compile/experiments.",
   "license": "MIT",
   "type": "module",

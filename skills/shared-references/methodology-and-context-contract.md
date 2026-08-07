@@ -62,7 +62,7 @@ When self-reviewing or when delegating to a reviewer sub-agent, pass only **path
 | Literal/sub-symbolic/numerical fidelity tri-split | GPU training / long background experiment arbitration (OSS emits predicted/falsifiable output) |
 | Universal cross-disciplinary idea + methodology | Fork the whole 4-pipeline discipline orchestration |
 | Deterministic + LLM checks | Multi-agent fan-out infra (Feishu/sleep scheduling) |
-| Any domain, one Q-id at a time | Auto-iterating over all 125 problems (human supplies Q-id) |
+| Any domain, one Q-id at a time | Auto-iterating over a problem bank (this skill runs ONE user-supplied question per invocation) |
 
 **Boundary rule**: when a sub-question is out of scope, record it in the phase output as `deferred` + one-line reason, and emit the closest valid in-scope artifact — never silently pretend.
 

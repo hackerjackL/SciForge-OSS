@@ -1,6 +1,6 @@
 ---
 name: dynamic-sandbox
-version: 1.1.0
+version: 1.1.1
 description: "Execute agent-written code in an isolated sandbox for toy experiments and numerical sanity checks. Invoke when experiment-execution or theory-derivation needs to run a script and capture structured output."
 type: reference-skill
 role: computation-sandbox
