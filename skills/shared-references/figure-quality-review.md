@@ -1,23 +1,94 @@
 ---
 name: figure-quality-review
 type: shared-reference
-role: external-figure-optimization-advisor
+role: visual-figure-review-protocol
 ---
 
-# Figure Quality Review Contract (external LLM optimization advisor)
+# Figure Quality Review Contract — Two-Tier Visual Review
 
-> **Purpose**: The figure quality cannot be judged reliably by the drawing agent alone (self-confirmation bias). For top-tier **architecture diagrams, DAGs, workflow/pipeline figures and academic charts**, the drawing agent may optionally pipe the figure's structure (nodes, edges, layout intent, palette) to an **external LLM optimization advisor** to get concrete improvement suggestions, then implement and re-render. The advisor is an **assist for optimizing the drawing** — it is NOT a scoring gate, NOT part of the pipeline verdict, and never blocks a run. If the advisor is unreachable, the run continues normally (self-review against the criteria table below).
+> **Purpose**: mechanical audits (A1–A10 in `figure_audit.py`) verify
+> STRUCTURE (sizes, palette, overlaps, branding) but cannot judge visual
+> QUALITY (balance, elegance, whether the figure actually communicates).
+> This contract closes that gap with a two-tier review protocol. **Tier 1
+> requires NO external API — the host agent's own native vision is the
+> reviewer.** Text-only agents degrade gracefully to the mechanical audit.
 
-> **Discipline**: keep the prompt **minimal** (a short instruction + the figure's d2/tikz/matplotlib source or its semantic content) — the advisor should do the rigorous analysis, not be spoon-fed a recommendation. Use at most one call per figure version; never treat its output as a pass/fail gate.
+## Capability detection (first, once per run)
 
-## Protocol
+Determine the host agent's capability class and record it in the figure's
+`revision_log.md`:
 
-1. **Produce**: render the first version of the diagram through the SINGLE unified entry point — `python scripts/plotting/render_figure.py spec.d2 --out figures/<name>/ --label <name> --caption "..." --strict` (internally: d2 → SVG → palette sanitize → PDF+PNG → embedded audit), per [`unified-plotting`](../meta-skills/unified-plotting/SKILL.md) and [`figure-quality-contract.md`](figure-quality-contract.md). The embedded audit (`figure_audit.json`) is the mechanical gate; this advisory pass is the qualitative complement.
-2. **Advisory pass** (optional, one call): send a *brief* instruction + the figure's structure (nodes, edges, layout intent, palette) to the external advisor. Ask for the **most useful improvements** (e.g. missing input/feedback edge? better layout? typography/caption fixes?) and whether the architecture narrative is logically complete.
-3. **Deploy improvements**: implement the suggested fixes where they genuinely improve the figure (e.g. add a missing literature→theory edge, add an experiment→idea feedback loop, add data/method input nodes, fix typography/caption, add a legend for data plots).
-4. **Re-render**: re-run the same unified CLI (v2), confirm the audit verdict is PASS and each adopted improvement is present. If the advisor is unreachable, mark the advisory pass as `deferred-external` and rely on the criteria table below — never block the pipeline on it.
+| Class | Detection | Review path |
+|-------|-----------|-------------|
+| **V (vision-native)** | The agent can read an image file (PNG) and describe it | Tier 1 MANDATORY + Tier 2 optional |
+| **T (text-only)** | The agent cannot ingest images | Mechanical audit + structure checklist only; Tier 1 recorded as `skipped-text-only` |
 
-## Prompt template (keep it minimal)
+**Rule**: capability is a property of the HOST agent (Claude with vision,
+GPT-4o, Gemini, a vision-enabled Codex/AtomCode build...), not of this
+skill. The skill never calls an external vision API itself — if the host
+has no vision, the run continues with the mechanical gate; it never blocks
+and never fabricates a visual review.
+
+## Tier 1 — Agent-native visual self-review (MANDATORY for class V)
+
+After every render whose audit verdict is not FAIL, the agent MUST open
+`figures/<name>/output.png` (the PNG exists exactly for this — PDF is for
+LaTeX) and answer the checklist below HONESTLY before delivering. This is
+a structured inspection, not a glance: write the answers (one line each)
+into `revision_log.md`.
+
+**Visual checklist (answer every item; "looks fine" is not an answer)**:
+
+1. **Message**: can a reader state the figure's single core message in one
+   sentence without the caption? If not, the figure fails regardless of
+   how pretty it is.
+2. **Hierarchy**: does the eye land on the protagonist (ochre accent /
+   diamond / largest element) first? Are secondary elements visibly
+   quieter?
+3. **Balance**: whitespace distribution — any corner crowded while another
+   is empty? Panels in a composite visually equal-weighted?
+4. **Wiring legibility**: follow each edge with the eye — any crossing
+   that could be removed by re-routing? Any arrow entering a node from a
+   confusing direction? Any label riding a line without a halo?
+5. **Typography scan**: any text touching a border, clipped, or sitting on
+   a dark fill with dark ink? All sizes perceptibly ≥ Nature floor at the
+   PNG's native resolution?
+6. **Color discipline**: does any element look MORE saturated than the
+   rest (a smuggled non-morandi color the sanitizer can't catch, e.g. a
+   named color or rgb() triple)? Any two elements that should be
+   distinguished but look identical?
+7. **Icon quality**: do icons read at thumbnail size, or are any
+   unrecognizable blobs (→ redraw or replace via §5.5 runtime icons)?
+8. **Composite-specific**: panel labels (a)(b)(c) present, bold, in
+   reading order; no panel dwarfing its neighbors; style uniformity
+   across panels (same font/color-order/line-weight family)?
+9. **Print test**: shrink the PNG to single-column width in your head —
+   does anything become illegible?
+
+**Outcome handling** (scoped revision, complexity-contract §4.6):
+- Every "no/concern" becomes a concrete fix applied to the SOURCE (spec /
+  render.py), then re-render, then re-inspect. One issue class per pass.
+- After 3 passes on the same concern without progress → re-layout that
+  region from the skeleton (contract §4.6 rule 4), or record an explicit
+  accepted-risk note with the reason.
+- Deliver only when the checklist is fully satisfied AND the mechanical
+  audit is not FAIL.
+
+## Tier 2 — External optimization advisor (OPTIONAL, both classes)
+
+An OPTIONAL second opinion from an external LLM advisor (any reachable
+model endpoint the deployment already has — the skill itself stores no
+credentials and makes no calls). Discipline unchanged from v1:
+
+1. Keep the prompt minimal: short instruction + the figure's source or
+   structure summary — the advisor does the analysis.
+2. At most ONE call per figure version; its output is advisory, never a
+   gate verdict, never blocks a run; unreachable ⇒ `deferred-external`.
+3. Adopt suggestions only where they genuinely improve the figure; every
+   adopted change goes through the normal source-edit → re-render → audit
+   cycle.
+
+**Prompt template (keep it minimal)**:
 
 ```
 请对以下科研图的表达提出最有用的改进建议(每条一句话),并指出图形的
@@ -25,16 +96,20 @@ role: external-figure-optimization-advisor
 图源(结构概要): <nodes>, <edges>, <intent>。请严谨而克制。
 ```
 
-## Figure criteria (self-review fallback when advisor is unreachable)
+## Figure criteria (mechanical + structural baseline)
 
 | Aspect | Good threshold |
 |--------|----------------|
 | Logical completeness | all required inputs present; feedback loops shown; no dangling node |
 | Narrative clarity | single core message; caption states it |
 | Typography (Nature floor) | axis ≥ 12pt, ticks ≥ 10pt, legend ≥ 10pt |
-| Palette | morandi (chroma C* ≤ 25), or colorblind-safe if venue requires |
-| Layout | auto-layout (d2 `--layout=elk` for dense); no overlapping labels |
-| Export | PDF + PNG dual output; spec preserved for reproducibility |
+| Palette | low-chroma house tokens (C* ≤ 25); Layer-2 colormaps for continuous fields |
+| Layout | corridors/orthogonal wiring for hand SVG; no overlapping labels (A10) |
+| Export | PDF + PNG dual output; source preserved; audit verdict not FAIL |
 
 ---
-The external advisor is an optimization aid only — it never produces a gate verdict, never stores credentials in the repo, and its suggestions are adopted at the drawing agent's judgment.
+Tier 1 uses only the host agent's native vision (zero external calls);
+Tier 2 is an optional advisory aid — neither tier produces a pipeline
+gate verdict, stores credentials, or blocks a run. A text-only host
+records `visual-review: skipped-text-only` and ships on the mechanical
+audit alone.
