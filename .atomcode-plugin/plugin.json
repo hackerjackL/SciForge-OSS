@@ -1,6 +1,6 @@
 {
   "name": "sciforge-oss",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "SciForge-OSS: autonomous 21-phase research pipeline (any-domain idea → submission-ready paper). 24 skills: auto-pipeline orchestrator + domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit, and more. v3.4: human_skip, figure budget, leakage scrub gate, reproducibility statements.",
   "skills": ".atomcode/skills"
 }

@@ -1,6 +1,6 @@
 ---
 name: idea-discovery
-version: 1.1.0
+version: 1.1.1
 description: "Generate 8-12 candidate research ideas via MCTS over a DAG, with 6-axis pre-screen (novelty/feasibility/relevance/tractability/data-readiness/EG). Phase 2. Invoke after domain signature is ready, before novelty-check."
 type: meta-skill
 role: research-idea-generation
@@ -8,7 +8,7 @@ role: research-idea-generation
 
 # Idea Discovery (SciForge-OSS — Discipline-Agnostic, MCTS-Enhanced)
 
-> **Status**: Generates and pre-screens research idea candidates for a given 125-problem question. OSS merges main SciForge's `idea-creator` (MCTS iterative idea refinement + DAG node expansion) into this meta-skill. **OSS is discipline-agnostic** — there is no economics DiD/IV/RDD framing, no cs-ml SOTA framing, no physics PNV framing. The universal 4-perspective ideation (theoretical / computational / qualitative / empirical) + MCTS iteration applies to every problem.
+> **Status**: Generates and pre-screens research idea candidates for a given research question. OSS merges main SciForge's `idea-creator` (MCTS iterative idea refinement + DAG node expansion) into this meta-skill. **OSS is discipline-agnostic** — there is no economics DiD/IV/RDD framing, no cs-ml SOTA framing, no physics PNV framing. The universal 4-perspective ideation (theoretical / computational / qualitative / empirical) + MCTS iteration applies to every problem.
 
 ## Quick Reference
 
@@ -21,7 +21,7 @@ role: research-idea-generation
 
 ## Use When
 
-Use this skill when the user wants to generate and pre-screen research idea candidates for a 125-problem question.
+Use this skill when the user wants to generate and pre-screen research idea candidates for a research question.
 
 Typical prompts:
 - "Generate research ideas"
@@ -33,7 +33,7 @@ Typical prompts:
 
 ## Job
 
-Take a frozen research question (Q-id from `problems/125-SCIENCE-PROBLEMS.md`, supplied by the human user's prompt) and produce a ranked list of 8-12 research idea candidates with:
+Take a frozen research question (Q-id supplied by the human user's prompt) and produce a ranked list of 8-12 research idea candidates with:
 1. Clear framing (theoretical / computational / qualitative perspective)
 2. Pre-screened against the universal 5-axis idea-fit (novelty / feasibility / relevance / tractability / data-readiness)
 3. MCTS-iteratively refined (best ideas promoted across rounds)
@@ -50,7 +50,7 @@ Create or maintain:
 - `refine-logs/FINAL_PROPOSAL.md` — the selected idea after MCTS convergence (frozen for downstream skills)
 
 Key artifacts consumed:
-- The frozen Q-id + problem statement (from the human user's prompt — NOT auto-searched from the 125-problem index)
+- The frozen Q-id + problem statement (supplied by the human user's prompt)
 - `refine-logs/domain-signature.json` — from Phase 1b `/domain-learner` (the SOLE writer; used for perspective weight adjustment)
 - `literature/references.bib` — from `/universal-retrieval` (for novelty pre-screen)
 - `data/` — from `idea-discovery` 6-axis pre-screening's data-readiness axis (built-in)
@@ -181,7 +181,7 @@ BA 是"idea 本身错了"的回溯，phase fallback 是"执行出错"的回溯�
 
 ### Step 0: Load the Frozen Q-id
 
-The Q-id + problem statement come from the human user's prompt — NOT auto-searched from `problems/125-SCIENCE-PROBLEMS.md`. The human supplies the specific question to solve; OSS does **not** iterate over all 125 problems.
+The Q-id + problem statement come from the human user's prompt. OSS solves ONE user-supplied question per invocation — it does **not** iterate over a problem bank.
 
 Record the Q-id in `refine-logs/FINAL_PROPOSAL.md` Problem Anchor (frozen by INV-G1 for downstream skills).
 

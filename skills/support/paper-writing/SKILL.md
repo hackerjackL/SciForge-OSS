@@ -1,6 +1,6 @@
 ---
 name: paper-writing
-version: 1.1.0
+version: 1.1.1
 description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (8-class regex, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer
@@ -242,7 +242,7 @@ After writing, verify:
 | **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `refine-logs/`, `audit_report/`, `review-stage/`, `literature/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
 | **B. Phase / pipeline jargon** | `Phase [0-9]`, `toy 阶段`, `toy_gate`, `background dispatch`, `nohup`, `tmux`, `systemd`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: ?(lite\|balanced\|max\|beast)`, `role.?switch`, `senior.?reviewer`, `adversarial.?falsification` | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
 | **C. Audit-skill verdicts** | `Type I (LEAKY\|CLEAN\|WEAK)`, `Type IV (ESCAPE\|CLOSED\|N/A)`, `INV-G[0-9]`, `0 FATAL\|0 CRITICAL\|0 MAJOR.*MINOR`, `6 dimensions.*20.category`, `fidelity.*symbolic\|numerical\|qualitative`, `assurance.?contract` | Rewrite as neutral verification language ("All symbolic and numerical checks pass"; no taxonomy counts, no verdict enums) |
-| **D. Pipeline identifiers** | `Q-[A-Z]+-[A-Z0-9]+`, `INV-G[0-9]`, `problem.?anchor`, `Q-id`, `125.?problems`, `domain.?signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
+| **D. Pipeline identifiers** | `Q-[A-Z]+-[A-Z0-9]+`, `INV-G[0-9]`, `problem.?anchor`, `Q-id`, `domain.?signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
 | **E. Rendering pipeline in captions** | `Morandi`, `morandi`, `viridis`, `magma`, `plasma`, `16:9`, `render\.py`, `input_data\.json`, `color.?palette`, `chroma` | Remove — captions describe the science ("remainder decay on a log–log scale"), never the rendering toolchain |
 | **F. Internal config / debug** | `hbox_warnings`, `overfull.*pt`, `font_embedding`, `microtypesetup`, compile.log fragments, `COMPILE_REPORT`, `PAPER_PLAN` references in body | These belong in `paper/COMPILE_REPORT.json` (engineering sidecar), NEVER in the manuscript body |
 | **G. Draft comments** | `%.*Q-`, `%.*Phase`, `%.*verification_type`, `%.*evidence_type`, `%.*mode:`, `%.*INV` | Remove all internal-identifier comments from preamble/section headers; keep only standard academic comments (`% section title`) |

@@ -140,7 +140,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | **Templates** | 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) | Single unified `elsarticle` template |
 | **Experiments** | Full empirical pipeline (GPU training, benchmark binding, SOTA gate) | **Toy + Full experiments** — toy foreground gate, full background dispatch [v2.0] |
 | **Verification paths** | Implicit — assumes code/experiment available | Explicit — theory-only / computational / theory+experiment 三路可选 |
-| **Problem index** | N/A | Stub at `problems/125-SCIENCE-PROBLEMS.md` — NOT auto-searched; human supplies Q-id. 125 题为 Demo，非完整题库 |
+| **Problem source** | N/A | No bundled problem index — the human user supplies the research question (Q-id) per run |
 | **Figures** | Python pipeline mandatory (matplotlib/seaborn) | Python pipeline for data plots; AI-direct SVG allowed for simple diagrams (morandi palette still enforced) |
 | **Fidelity ladder** | 5-fidelity (text / symbolic / minimal / empirical / full) | 3-fidelity (symbolic / numerical / qualitative) — no empirical, no full |
 | **Invariants** | INV-E1~E5 (econ) + INV-C1~C4 (cs-ml) + INV-P1~P5 (physics) + INV-G1 (general) | INV-G1 only (PROBLEM_ANCHOR_FREEZE) — universal |
@@ -193,13 +193,13 @@ But the **canonical** workflow is the full 21-phase orchestrator loop — partia
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select or self-approve.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type.
 - **The orchestrator never executes research.** It delegates to the corresponding skill.
-- **125 problems are a Demo.** The framework supports any number of problems, any domain. The 125 problems index is a demonstration only.
+- **No bundled problem bank.** SciForge-OSS is a fully autonomous research skill: the human supplies one research question (any domain, any count) and the pipeline runs end-to-end on it.
 
 ---
 
 ## See Also
 
 - [`README.md`](README.md) — project overview + skill catalog + comparison with main SciForge
-- [`problems/125-SCIENCE-PROBLEMS.md`](problems/125-SCIENCE-PROBLEMS.md) — 125 problem demo index (NOT auto-searched; human supplies Q-id)
+- Problem input: the human user's prompt (Q-id + problem statement); no problem index file ships with the repo
 - [`skills/orchestrator/auto-pipeline/SKILL.md`](skills/orchestrator/auto-pipeline/SKILL.md) — the 21-phase DAG loop orchestrator
 - [`skills/shared-references/`](skills/shared-references/) — the shared contract layer (discipline-agnostic)

@@ -1,6 +1,6 @@
 ---
 name: dynamic-tooling
-version: 1.1.0
+version: 1.1.1
 description: "Build custom ad-hoc tools (parsers, converters, small CLIs) the agent needs mid-run that aren't pre-provided. Invoke when no existing tool fits a pipeline step."
 type: reference-skill
 role: tool-builder
@@ -26,7 +26,7 @@ role: tool-builder
 - "create a graph analysis utility for this specific problem"
 - "build a bridge between the sandbox output and the plotting engine"
 
-这是**力量倍增器**元技能：它让系统在运行时自我扩展能力，确保 125 个问题永远不会遇到"工具不可用"的死胡同。
+这是**力量倍增器**元技能：它让系统在运行时自我扩展能力，确保任何科研问题永远不会遇到"工具不可用"的死胡同。
 
 ## Job
 

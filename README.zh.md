@@ -13,7 +13,7 @@
 > 继承 SciForge 的纯 skill 驱动精神：**没有 `.py` 脚本，没有 bash 代码块，没有 IDE 专属语法**。
 > 任何能读 Markdown 的 AI agent（Claude Code、Cursor、Trae 等）都能消费这些 skill。
 >
-> 125 个科学问题是「AI for Scientist Anything」的 Demo 展示，全世界的问题远不止 125 个。
+> SciForge-OSS 是**全自动科研 skill**，不是解题基准：人类提供一个研究问题（任意领域），管线从想法发现到投稿级论文端到端自主跑完。
 
 ---
 
@@ -28,7 +28,7 @@
 - [验证路径：三路可选](#验证路径三路可选)
 - [多领域示例](#多领域示例)
 - [核心设计原则](#核心设计原则)
-- [125 科学问题 Demo](#125-科学问题-demo)
+- [绘图工具链](#绘图工具链)
 - [常见问题 (FAQ)](#常见问题-faq)
 - [许可证](#许可证)
 
@@ -320,9 +320,13 @@ SciForge-OSS/
 │       ├── effort-contract.md              ← effort level 定义（lite/balanced/max/beast）
 │       ├── skill-config.md                 ← skill 元信息 schema
 │       └ ... (其他通用契约)
-├── problems/
-│   └ 125-SCIENCE-PROBLEMS.md             ← 125 科学问题 Demo 索引（不自动搜索；人类给 Q-id）
-└── [删除: templates/ 占位目录、discipline-templates/、experiment-*、plugin-router、wiki-helper]
+├── scripts/
+│   └── plotting/                          ← 绘图工具链（单一入口）
+│       ├── render_figure.py               ← 统一渲染器——12 引擎、一条链路、内嵌审计
+│       ├── sciforge_style.py              ← 莫兰迪设计 token（单一事实源）
+│       ├── figure_audit.py                ← A1–A10 Nature 级审计（内嵌）
+│       └── INSTALL.md                     ← 三平台复刻手册
+└── [删除: templates/ 占位目录、discipline-templates/、experiment-*、plugin-router、wiki-helper、problems/ 题库]
 ```
 
 ## 全领域支持
@@ -408,21 +412,23 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 ```
 → 输出：药物靶点识别 + 分子动力学模拟验证
 
-## 125 科学问题 Demo
+## 绘图工具链
 
-`problems/125-SCIENCE-PROBLEMS.md` 包含 125 个科学问题，作为 **"AI for Scientist Anything" 的 Demo 展示**。全世界的问题远不止 125 个——框架设计为通用方案，可处理任意数量、任意领域的问题。
+出版级图表由**唯一入口** `scripts/plotting/render_figure.py` 产出（管线 Phase 11），**12 引擎收敛一条链路**（禁止并行工具）：matplotlib（数据图）、d2、graphviz、TikZ、Asymptote、Typst、diagrams、blockdiag 家族、mermaid、pikchr、手工装配 SVG、**composite 组图引擎**（Nature 风格 (a)(b)(c)… 面板编号，面板数硬上限 9，SCI 一区组版规范）。
 
-- 125 题是**演示题库**，不是完整题库
-- 框架支持任意数量的问题（通过 `problems/` 目录自动发现）
-- Q ID 格式灵活，无需死板命名
+- **双产出**：矢量 PDF（LaTeX 嵌入）+ 300 DPI PNG（agent 审阅）
+- **内嵌 Nature 级审计（A1–A10）**：可读性下限、莫兰迪色板（C* ≤ 25 数值校验）、16:9 默认、复杂度下限（图标密度/边密度）、视觉丰富度、**品牌泄露守卫**（图是论文插图，不是工具海报）、**文字零重叠**（附精确偏移修正建议）
+- **两级视觉审阅**：具备原生视觉的宿主 agent 按 9 项清单自审 PNG（零外部 API——宿主自身的视觉能力就是审阅者）；纯文本宿主降级机械审计
+- **期刊宽度预设**：`--width-preset nature-single|aaai-double|...`（14 种版面）
+- **跨平台**：Linux / macOS / Windows——字体按平台自动发现、无机器专属路径；见 [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)
 
 ## 常见问题 (FAQ)
 
 ### Q: SciForge-OSS 支持哪些学科？
 A: 所有学科。物理学、数学、计算机科学、医学、经济学、教育学、材料科学、地球科学、大气科学、天文学、化学、工程、传感器、光电——任何科学领域都可以使用。
 
-### Q: 125 个问题是必须的吗？
-A: 不是。125 个科学问题是「AI for Scientist Anything」的 Demo 展示。框架支持任意数量、任意领域的问题。
+### Q: 研究问题从哪里来？
+A: 由你提供。SciForge-OSS 是全自动科研 skill——人类提供一个研究问题（任意领域，Q-id 可有可无），管线端到端自主跑完。仓库不附带题库。
 
 ### Q: 需要多个 AI 模型才能运行吗？
 A: 不需要。SciForge-OSS 使用**结构化自评审**模式——同一 agent 通过角色切换（研究者→评审者→裁决者）实现对抗性评审，无需跨模型协作。

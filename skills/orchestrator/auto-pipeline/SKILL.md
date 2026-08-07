@@ -1,6 +1,6 @@
 ---
 name: auto-pipeline
-version: 1.1.0
+version: 1.1.1
 description: "SciForge-OSS autonomous 21-phase research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
@@ -23,7 +23,7 @@ role: single-question-research-orchestrator
 
 ## Use When
 
-Use this skill when the AI scientist needs to fully solve **one** of the 125 science problems end-to-end. This is the **only entry orchestrator** — it does not branch by discipline; it uses the DAG architecture to handle any scientific domain via universal meta-skills.
+Use this skill when the AI scientist needs to solve **one** user-supplied research problem end-to-end (fully autonomous research). This is the **only entry orchestrator** — it does not branch by discipline; it uses the DAG architecture to handle any scientific domain via universal meta-skills.
 
 Typical prompts:
 - "Solve Q001" / "解决 Q001：宇宙的起源与演化"
