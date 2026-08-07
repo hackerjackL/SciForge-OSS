@@ -28,12 +28,14 @@ role: figure-renderer-and-spec-generator
 > **v3.7 三项增强**: (1) **期刊宽度预设** `--width-preset nature-single|nature-double|aaai-single|...`（14 种版面，LaTeX include 自动用 mm 物理宽度，审计宽度下限自适应，见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1.5）；(2) **运行时图标词汇**——可从白名单开源库（bioicons/Tabler/Lucide/Feather/Font Awesome Free）运行时抓取专业图标，强制经 `sciforge_style.recolor_icon()` 重着色为莫兰迪后使用，来源许可记入 `revision_log.md`（契约 §5.5；抓取失败回退手绘，不阻塞）；(3) **审计自动修正建议**——`figure_audit.json` 的 `suggested_fixes` 字段对文字重叠输出精确偏移坐标（"move label X down by Npx"），按契约 §4.6 scoped revision 逐条应用。
 >
 > **v3.8 组图引擎（Composite — SCI 一区规范，契约 §7）**: 多面板组图（4/6/N 面板）经 `render_figure.py xxx.composite.json` 单一入口装配：面板（PDF/PNG）→ 网格排布 → **(a)(b)(c)… 加粗编号标签**（面板上方预留条，绝不覆盖内容）→ 双产出 + 审计。**组版决策遵循 Nature/Science/Cell 逻辑**：按叙事单元组版（同一论点/实验链才组一张）、面板数**硬上限 9**（超出渲染器直接拒绝，必须拆图或移补充材料——"一锅粥"反模式）、单图同样合法、编号随面板数连续自适应。每个面板必须**独立**满足全部审计与复杂度规则——组图装配不能拯救低质量面板。数据图（曲线/消融/热图等）作为面板融入组图，与示意图面板同图共存时风格统一（同系字体/色序/线宽）。
+>
+> **v3.9 两级视觉审阅（Visual Review — 零外部 API，见 [`figure-quality-review.md`](../../shared-references/figure-quality-review.md)）**: 机械审计（A1–A10）只验结构、不验美感；视觉质量由两级协议闭环：**一级 = agent 自身原生视觉**——宿主 agent 具备读图能力（Claude/GPT-4o/Gemini 等多模态模型）时，每次渲染后**必须打开 `output.png` 按 9 项视觉检查清单逐项自审**（信息可读性/视觉层次/留白均衡/布线可读性/排版扫描/色板纪律/图标可辨性/组图专项/缩小打印测试），答案写入 `revision_log.md`，发现问题改源重渲；**二级 = 外部顾问**（可选，部署已有模型端点才用，skill 不存凭证不发起调用）。**纯文本 agent 无法读图 → 记录 `visual-review: skipped-text-only`，以机械审计为准交付，永不阻塞**。能力判定是宿主属性：本 skill 不替宿主调外部视觉 API。
 
 > **Agent 驱动分阶段设计工作流（借鉴 AutoFigure-Edit 的分阶段装配思想，MIT 许可；本 skill 零外部 API——"模型"就是 agent 自身，用户用自己的 Claude/Codex/AtomCode 开箱即用）**:
 > 1. **骨架（skeleton）**: 从方法段落文本抽取组件清单 + 数据流 + 分组层级，先写布局骨架（容器/行列/边），不急着画
 > 2. **填充（fill）**: 按内容类型选引擎——架构/流程用 d2 或 diagrams/blockdiag（专业图标集/泳道），机制细节用 tikz，几何/示意用 asy，快速迭代用 typst，Visio 级精密图用手工装配 SVG（正交圆角布线），数据用 matplotlib；每个组件填莫兰迪 token 样式
 > 3. **装配（assemble）**: 全部经单一入口 `render_figure.py` 渲染（前导注入、调色板净化、双产出、LaTeX 片段一步完成）
-> 4. **审阅（review）**: 看 `figure_audit.json` verdict 与 `suggested_fixes`；FAIL 时按 suggested_fixes 的精确坐标逐条局部修正（契约 §4.6 scoped revision，一次一类问题）再重渲染——禁止手工修补 PNG/SVG 像素
+> 4. **审阅（review）**: 机械层看 `figure_audit.json` verdict 与 `suggested_fixes`；FAIL 时按 suggested_fixes 的精确坐标逐条局部修正（契约 §4.6 scoped revision，一次一类问题）再重渲染。**视觉层**（v3.9）：具备原生视觉的宿主 agent 必须打开 `output.png` 按 figure-quality-review.md 9 项清单逐项自审并记入 `revision_log.md`；纯文本宿主记录 skipped-text-only 后以机械审计为准。禁止手工修补 PNG/SVG 像素
 >
 > **复杂度硬约束（v3.6 — 防"小学生级别"图，全领域适用）**: 每张 5+ 节点的图必须满足 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)：≥60% 组件用**自绘图标**（d2 `icon:`，agent 现写 SVG，随图保存到 `figures/<name>/icons/`）或 TikZ `\pic` 自绘组件；连线必须容器级汇流（禁止箭头雨，边密度 ≤1.6）；至少两级分组；文字纪律（≤3 行/≤4 词）。达不到下限 = 图还没画完，继续迭代。审计 A7 层机械检查图标计数与边密度。先按契约 §0.5 判定图的**结构角色**（结构/流程/机制/网络/层级/时间/空间/数据）选引擎——领域只决定组件语义，不改变规则。
 
@@ -276,6 +278,14 @@ Execute the render (Python subprocess for data plots; unified CLI for diagrams):
    - **Typography audit**: physical text size ≥ Nature floor (10pt diagram labels)
 5. Auto-generate caption from chart type + data description (the CLI writes `latex_include.tex` with the caption)
 
+### Step 4.5: Visual Self-Review (v3.9 — mandatory for vision-capable agents)
+
+Per [`figure-quality-review.md`](../../shared-references/figure-quality-review.md):
+1. **Detect capability**: can the host agent read an image file? Vision-native (class V) ⇒ Tier 1 mandatory; text-only (class T) ⇒ record `visual-review: skipped-text-only` in `revision_log.md` and proceed on the mechanical audit.
+2. **Inspect the PNG** (it exists exactly for this; PDF is for LaTeX): open `figures/{figure_name}/output.png` and walk the 9-item visual checklist (message / hierarchy / balance / wiring legibility / typography scan / color discipline / icon quality / composite-specific / print-shrink test). Write one-line answers per item into `revision_log.md` — "looks fine" is not an answer.
+3. **Fix at source**: every concern becomes a concrete edit to the spec/render script, re-render, re-inspect — one issue class per pass (contract §4.6 scoped revision); 3 failed passes on one concern ⇒ re-layout from skeleton.
+4. **Deliver** only when the checklist is satisfied AND the mechanical audit is not FAIL. Optional Tier 2 external advisor: one minimal-prompt call per version max, advisory only, never a gate.
+
 ### Step 5: Generate LaTeX Include Snippet
 
 For each figure, generate the LaTeX-ready include snippet:
@@ -321,7 +331,7 @@ Append to `figures/FIGURE_INDEX.md`:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 > - **[Figure Quality Contract](../../shared-references/figure-quality-contract.md)** — dual output, 16:9 default, Nature readability floor, d2 pipeline
 > - **[Unified Plot Theme (v3.1)](../../shared-references/figure-quality-contract.md)** — 统一强制：数据图按学术主题（DPI=300、Arial 或系统回退字体、Nature 调色板、字号下限 title≥13/axis≥12/tick≥10、16:9 默认）、图保存矢量 PDF + PNG 双产出；架构图/流程图强制 d2 / graphviz 声明式渲染（d2→SVG→PDF+PNG），禁用徒手 SVG（>4 节点）。数据图禁止直接手写散乱样式——必须遵循统一主题契约。
-> - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — external LLM optimization advisor (optional) for top-tier architecture/DAG/academic diagrams: concrete improvement suggestions → re-render; advisory only, never a gate
+> - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — two-tier visual review protocol (Tier 1: agent-native visual self-review, MANDATORY for vision-capable hosts — read `output.png` against the 9-item checklist; Tier 2: optional external advisor; text-only hosts degrade to the mechanical audit and record `skipped-text-only`)
 
 ## Boundaries
 
