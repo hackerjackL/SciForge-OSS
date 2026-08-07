@@ -26,6 +26,8 @@ role: figure-renderer-and-spec-generator
 > 该工具内部自动完成：莫兰迪前导注入（d2）→ 引擎渲染（d2 自动选 dagre/elk）→ 引擎泄漏色确定性净化 → SVG→PDF+PNG 双产出（300 DPI）→ LaTeX include 片段 → 内嵌 Nature 级审计（`figure_audit.json`，verdict PASS/WARN/FAIL；`--strict` 时 FAIL 退出码 4）。数据图仍走 Python 管线（可复现性要求），但必须在脚本顶部调用 `apply_matplotlib_style()` 统一主题。依赖安装见 [`scripts/plotting/INSTALL.md`](../../../scripts/plotting/INSTALL.md)，环境自检：`python scripts/plotting/render_figure.py --doctor`。
 >
 > **v3.7 三项增强**: (1) **期刊宽度预设** `--width-preset nature-single|nature-double|aaai-single|...`（14 种版面，LaTeX include 自动用 mm 物理宽度，审计宽度下限自适应，见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1.5）；(2) **运行时图标词汇**——可从白名单开源库（bioicons/Tabler/Lucide/Feather/Font Awesome Free）运行时抓取专业图标，强制经 `sciforge_style.recolor_icon()` 重着色为莫兰迪后使用，来源许可记入 `revision_log.md`（契约 §5.5；抓取失败回退手绘，不阻塞）；(3) **审计自动修正建议**——`figure_audit.json` 的 `suggested_fixes` 字段对文字重叠输出精确偏移坐标（"move label X down by Npx"），按契约 §4.6 scoped revision 逐条应用。
+>
+> **v3.8 组图引擎（Composite — SCI 一区规范，契约 §7）**: 多面板组图（4/6/N 面板）经 `render_figure.py xxx.composite.json` 单一入口装配：面板（PDF/PNG）→ 网格排布 → **(a)(b)(c)… 加粗编号标签**（面板上方预留条，绝不覆盖内容）→ 双产出 + 审计。**组版决策遵循 Nature/Science/Cell 逻辑**：按叙事单元组版（同一论点/实验链才组一张）、面板数**硬上限 9**（超出渲染器直接拒绝，必须拆图或移补充材料——"一锅粥"反模式）、单图同样合法、编号随面板数连续自适应。每个面板必须**独立**满足全部审计与复杂度规则——组图装配不能拯救低质量面板。数据图（曲线/消融/热图等）作为面板融入组图，与示意图面板同图共存时风格统一（同系字体/色序/线宽）。
 
 > **Agent 驱动分阶段设计工作流（借鉴 AutoFigure-Edit 的分阶段装配思想，MIT 许可；本 skill 零外部 API——"模型"就是 agent 自身，用户用自己的 Claude/Codex/AtomCode 开箱即用）**:
 > 1. **骨架（skeleton）**: 从方法段落文本抽取组件清单 + 数据流 + 分组层级，先写布局骨架（容器/行列/边），不急着画
@@ -191,6 +193,7 @@ Based on `renderer` config (default `auto`) — v3.5 routing per [`figure-qualit
 - **Diagram plot** (≤4 nodes, trivial) → AI-direct `source.svg` → `render_figure.py source.svg --engine svg` → dual output + audit (LAST resort)
 - **Commutative/category diagram** → `spec.tex` (tikz/tikz-cd) → `render_figure.py spec.tex` (pdflatex → PDF → PNG)
 - **Concept-map/dependency-graph** (5+ nodes) → d2 via unified CLI
+- **Composite multi-panel** (4/6/N panels, Nature-style (a)(b)(c) labels) → `render_figure.py xxx.composite.json` (contract §7; panel cap 9, narrative-unit grouping)
 - **Humanities** (timeline/argument-flow/comparison) → d2 via unified CLI (same as STEM diagrams)
 - **Fallback chain** if d2 unavailable: `render_figure.py spec.dot` (graphviz engine); if graphviz unavailable, AI-direct SVG for ≤4 nodes only; for 5+ node diagrams with no d2/graphviz, BLOCK (do not produce a small-text AI-direct figure).
 
