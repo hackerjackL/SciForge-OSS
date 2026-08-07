@@ -31,6 +31,7 @@
 - [Figure toolchain](#figure-toolchain)
 - [FAQ](#faq)
 - [Acknowledgments](#acknowledgments)
+- [Stargazers over time](#stargazers-over-time)
 - [License](#license)
 
 ## What is this
@@ -435,6 +436,10 @@ We sincerely thank everyone who made SciForge-OSS possible:
 ## License
 
 This project is licensed under MIT. See [LICENSE](LICENSE).
+
+## Stargazers over time
+
+![Stargazers over time](https://atomgit.com/GewisLab/SciForge-OSS/starcharts.svg?variant=adaptive)
 
 ---
 

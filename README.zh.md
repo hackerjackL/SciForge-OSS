@@ -31,6 +31,7 @@
 - [绘图工具链](#绘图工具链)
 - [常见问题 (FAQ)](#常见问题-faq)
 - [致谢](#致谢)
+- [Star 增长趋势](#star-增长趋势)
 - [许可证](#许可证)
 
 ## 这是什么
@@ -454,6 +455,10 @@ A: 参考 [CONTRIBUTING.md](CONTRIBUTING.md)。所有 skill 是纯 Markdown 文�
 ## 许可证
 
 本项目采用 MIT 许可证。详见 [LICENSE](LICENSE)。
+
+## Star 增长趋势
+
+![Stargazers over time](https://atomgit.com/GewisLab/SciForge-OSS/starcharts.svg?variant=adaptive)
 
 ---
 
