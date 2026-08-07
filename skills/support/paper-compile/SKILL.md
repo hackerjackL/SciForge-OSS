@@ -1,6 +1,6 @@
 ---
 name: paper-compile
-version: 1.1.0
+version: 1.1.1
 description: "Compile LaTeX (elsarticle) to submission-ready PDF with zero-warnings policy + anti-deadloop escalation + table/figure overflow checks. v3.4 Step 1.5 pipeline-leakage scrub gate consumer (refuses to compile if LEAKAGE_SCRUB.json missing/FAIL, defense-in-depth re-scan). Phase 13. Invoke after paper-writing to produce main.pdf."
 type: reference-skill
 role: latex-compiler

@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.1.1] - 2026-08-07
+
+### 定位收敛 + 绘图工具链大一统（figure toolchain overhaul）
+
+**定位收敛：全自动科研 skill**
+- 删除 `problems/` 目录（125 问题 Demo 索引）——SciForge-OSS 不是解题基准，是**全自动科研 skill**：人类提供一个研究问题（任意领域），管线端到端自主跑完
+- 全部 skill 文档中的"125 问题集"表述改为通用表述（Q-id 保留为用户提供的问题锚点机制，INV-G1 冻结契约不变）
+- 版本号全链路统一至 `1.1.1`（根 SKILL.md + plugin.json + package.json + CITATION.cff + 24 子 skill + VERSIONING.md）
+
+**绘图工具链：单一入口 12 引擎 + 内嵌审计**
+- `scripts/plotting/render_figure.py` 统一渲染器：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams(mingrammer) / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG / **composite 组图**——单一链路，禁止并行工具；PDF+PNG 双产出 + 内嵌 Nature 级审计
+- 莫兰迪设计系统单一事实源 `scripts/plotting/sciforge_style.py`：14 个数值校验 token（C*≤25 + WCAG-AA 对比度），修复历史双色表矛盾；`sanitize_palette()` 引擎泄漏色确定性净化；`recolor_icon()` 运行时图标重着色
+- 内嵌审计 A1–A10：输出完整性 / DPI / 色板 / 字号下限 / 16:9 / 源码保留 / 复杂度（图标占比+边密度）/ 视觉丰富度 / **品牌泄露守卫** / **文字零重叠**（含 suggested_fixes 精确偏移建议）
+- 组图引擎（SCI 一区规范）：`.composite.json` 清单装配 (a)(b)(c)… 面板编号（上方预留条）、面板数硬上限 9（防"一锅粥"）、Nature/Science/Cell 组版决策（按叙事单元组版）、Nature 句式逐面板 caption
+- 期刊宽度预设 `--width-preset`：14 种版面（nature/science/cell/aaai/ieee/elsevier × single/1.5/double + wide），LaTeX include 自动 mm 物理宽度，审计宽度下限自适应
+- 运行时图标词汇协议（契约 §5.5）：白名单开源图标（bioicons/Tabler/Lucide/Feather/Font Awesome Free）运行时抓取 + 强制莫兰迪重着色，图标资产不入库
+- 两级视觉审阅协议（v3.9）：一级 = 宿主 agent 原生视觉自审（9 项清单，多模态宿主强制）；二级 = 外部顾问可选；纯文本宿主降级机械审计——零外部 API
+- 全领域契约：figure-complexity-contract.md（领域中立原则 §0 + 八类结构角色×引擎映射 §0.5 + 复杂度下限 §6 + 纵深技法 §6.5）、figure-quality-contract.md §1.5 期刊宽度预设、图层模型 §4.5、Scoped Revision 纪律 §4.6
+
+**跨平台可复刻性**
+- 代码消除全部机器专属假设：`os.geteuid()` → 可移植 `_is_root()`；字体动态发现（fontconfig → 三平台目录扫描，用户目录优先）；无绝对路径残留
+- `scripts/plotting/INSTALL.md` 重写为三平台复刻手册：Linux(apt/dnf/pacman) / macOS(brew) / Windows(winget/choco/scoop/MSYS2, WSL2 推荐) + 国内镜像 + 4 步验证清单
+- 明确不采用记录：blender（无头黑屏）、plotly+kaleido（headless Chrome）；Memslides/AutoFigure-Edit 仅借鉴方法论
+
+**验证**
+- 复杂图实测：四泳道架构图（14 卡片/图标/渐变/端口/干线汇流）、里程碑脊柱方法论图、等距机制图、6 面板白底复合图——审计全过、精确 16:9、elsarticle 嵌入零警告
+- 全流水完整性：433 文档链接 0 断链、24 插件符号链接有效、`--doctor` READY、figure_audit.json schema 向后兼容
+
 ## [1.1.0] - 2026-08-02
 
 ### 正式版发布（大一统版本号，取代旧编号体系）

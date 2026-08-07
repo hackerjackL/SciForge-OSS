@@ -1,6 +1,6 @@
 # Venue Profiles (SciForge-OSS — Single Template, Content-Focused)
 
-> **Status**: Single Source of Truth for the OSS paper output format. Consumed by `/paper-writing`, `/paper-compile`. OSS uses **one unified `elsarticle` template** for all 125 science problems. There are no venue-specific `.cls`/`.sty`/`.bst` files and no per-discipline overlay. The final output is **LaTeX** via the unified `elsarticle` document class.
+> **Status**: Single Source of Truth for the OSS paper output format. Consumed by `/paper-writing`, `/paper-compile`. OSS uses **one unified `elsarticle` template** for all research problems. There are no venue-specific `.cls`/`.sty`/`.bst` files and no per-discipline overlay. The final output is **LaTeX** via the unified `elsarticle` document class.
 >
 > **Scope boundary (explicit — what is NOT our job)**: OSS produces a **content-complete, citation-verified, logic-verified, code-reproducible** preprint-grade manuscript. The following are **the human senior researcher's responsibility, NOT ours** — OSS deliberately does not constrain them:
 > - **Journal template / `.cls` selection** (Nature/PRL/IEEE/ACM/Cell) — the human swaps to the target journal's class at submission time; OSS gives them clean elsarticle source to port.
@@ -19,7 +19,7 @@
 
 ## 1. The Single Template: `elsarticle` (preprint)
 
-All 125 science problems draft in the **same** LaTeX skeleton:
+All problems draft in the **same** LaTeX skeleton:
 
 | Property | Value |
 |----------|-------|
@@ -105,7 +105,7 @@ This deferred-adaptation approach is why OSS does **not** maintain a Venue → T
 
 ## 6. Adding a New Problem-Specific Convention
 
-If a 125-problem run needs a convention not in the unified template (e.g., a specific theorem environment for a math problem, or a chemistry reaction scheme):
+If a run needs a convention not in the unified template (e.g., a specific theorem environment for a math problem, or a chemistry reaction scheme):
 
 1. Add it to the run's local `main.tex` preamble (not to the unified template skeleton)
 2. Document the convention in the run's `PAPER_PLAN.md`

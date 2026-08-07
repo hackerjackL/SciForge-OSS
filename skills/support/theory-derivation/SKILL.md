@@ -1,6 +1,6 @@
 ---
 name: theory-derivation
-version: 1.1.0
+version: 1.1.1
 description: "SymPy symbolic derivation with step-by-step machine verification; theory-only path uses engine=manual. Phase 6. Invoke after method-registry to derive and verify the theoretical result."
 type: support-skill
 role: theory-builder-and-symbolic-verifier

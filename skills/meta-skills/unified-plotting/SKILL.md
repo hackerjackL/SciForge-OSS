@@ -1,6 +1,6 @@
 ---
 name: unified-plotting
-version: 1.2.0
+version: 1.1.1
 description: "Render publication-quality vector figures (PDF+PNG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.5 UNIFIED SINGLE-ENTRY RENDERER: all diagram engines (d2/graphviz/tikz/SVG) consolidated behind one tool `scripts/plotting/render_figure.py` with embedded Nature-level audit. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
@@ -156,7 +156,7 @@ For **continuous scalar fields** (heatmaps, 3D surfaces, contour plots, correlat
 
 | Discipline (OSS — always `general`) | Colormap | Why |
 |--------------------------------------|----------|-----|
-| `general` (default for all 125 problems) | `viridis` | Conservative, perceptually uniform, CB-safe |
+| `general` (universal default) | `viridis` | Conservative, perceptually uniform, CB-safe |
 | Physics-flavored problems (field plots, EM maps) | `viridis` or `magma` | Perceptually uniform; required by PRL/PRB-style figures |
 | CS/ML-flavored problems (attention maps, loss surfaces) | `viridis` | Perceptually uniform, CB-safe |
 | Math-flavored problems (function plots, convergence heatmaps) | `viridis` or `plasma` | Perceptually uniform |

@@ -1,6 +1,6 @@
 ---
 name: method-registry
-version: 1.1.0
+version: 1.1.1
 description: "Build the 8-section method registry + hash-lock Section 3 + human approval gate. Phase 5. Invoke after idea selection to pre-register the methodology before derivation."
 type: reference-skill
 role: method-registry-builder
@@ -44,7 +44,7 @@ This skill defines:
 3. The 6-state verdict schema (shared with `/invariant-check`)
 4. The bounded 3-round callback protocol (shared with `/leakage-audit`)
 
-**OSS has no discipline overlay.** Main SciForge loads `overlays/{economics,cs-ml,physics,general}.md` for discipline-specific Section 2 schema, Section 6 pitfall checklist, persona, venue standards; OSS has none. The universal schema below applies to every 125-problem run.
+**OSS has no discipline overlay.** Main SciForge loads `overlays/{economics,cs-ml,physics,general}.md` for discipline-specific Section 2 schema, Section 6 pitfall checklist, persona, venue standards; OSS has none. The universal schema below applies to every run.
 
 ## Required Workspace
 
@@ -69,7 +69,7 @@ The registry lives at `methods/METHOD_REGISTRY.md`. The structure is rigid; each
 **DISCIPLINE_CONTEXT**: general (OSS — discipline-agnostic)
 **Target Venue**: unified elsarticle preprint (see venue-profiles.md)
 **Last Updated**: [date]
-**Problem Q-id**: [from problems/125-SCIENCE-PROBLEMS.md, frozen by INV-G1]
+**Problem Q-id**: [user-supplied, frozen by INV-G1]
 
 ---
 
@@ -79,7 +79,7 @@ The frozen research question + boundary. Inherited from the orchestrator's Phase
 
 | Field | Value |
 |-------|-------|
-| Q-id | [from problems/125-SCIENCE-PROBLEMS.md] |
+| Q-id | [user-supplied] |
 | Problem statement | [verbatim from FINAL_PROPOSAL.md Problem Anchor] |
 | Scope boundary | [what is in scope, what is out] |
 | Frozen hash | [SHA256 of Problem Anchor text] |

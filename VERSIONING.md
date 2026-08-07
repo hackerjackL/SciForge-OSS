@@ -6,15 +6,15 @@
 
 ## 1. 核心原则：一个版本号，全链路统一
 
-SciForge-OSS **只有一个版本号**：**`1.1.0`**（当前正式版）。
+SciForge-OSS **只有一个版本号**：**`1.1.1`**（当前正式版）。
 
 | 位置 | 使用 | 必须与当前版本一致 |
 |------|------|---------------------|
-| 根 `./SKILL.md` frontmatter `version:` | atomcode skill-package 发布版本 | ✅ `1.1.0` |
-| `.atomcode-plugin/plugin.json` `"version"` | marketplace 插件版本 | ✅ `1.1.0` |
-| 24 个子 skill `SKILL.md` frontmatter `version:` | 每个子 skill 的版本 | ✅ `1.1.0` |
-| `README.md` 版本徽章 | 仓库主页展示 | ✅ `1.1.0` |
-| `CHANGELOG.md` 最新条目 | 变更记录 | ✅ `1.1.0` |
+| 根 `./SKILL.md` frontmatter `version:` | atomcode skill-package 发布版本 | ✅ `1.1.1` |
+| `.atomcode-plugin/plugin.json` `"version"` | marketplace 插件版本 | ✅ `1.1.1` |
+| 24 个子 skill `SKILL.md` frontmatter `version:` | 每个子 skill 的版本 | ✅ `1.1.1` |
+| `README.md` 版本徽章 | 仓库主页展示 | ✅ `1.1.1` |
+| `CHANGELOG.md` 最新条目 | 变更记录 | ✅ `1.1.1` |
 | git release tag | 发行版 | ✅ `v1.1.0` |
 | `.atomcode/` marketplace `git_commit` | 自动拉取锁定的 commit | 与 release tag 对应 |
 
@@ -24,9 +24,9 @@ SciForge-OSS **只有一个版本号**：**`1.1.0`**（当前正式版）。
 
 ## 2. 版本号规则（正式版 + 补丁）
 
-### 2.1 当前版本：`1.1.0`（正式版）
+### 2.1 当前版本：`1.1.1`（正式版）
 
-`1.1.0` 是**真正可用的正式版**——从"开发中"（0.1.0）升级为"正式发布"。
+`1.1.1` 是**真正可用的正式版**——从"开发中"（0.1.0）升级为"正式发布"。
 
 ### 2.2 补丁版本：`1.1.0.x`
 
@@ -34,20 +34,20 @@ SciForge-OSS **只有一个版本号**：**`1.1.0`**（当前正式版）。
 
 | 场景 | 版本号 | 例子 |
 |------|--------|------|
-| 当前正式版 | `1.1.0` | 初始发布 |
+| 当前正式版 | `1.1.1` | 初始发布 |
 | 第一个 bug 修复 | `1.1.0.1` | 修复了 smoke gate 的路径引用 |
 | 第二个 bug 修复 | `1.1.0.2` | 修复了 leakage scrub 漏检一类模式 |
 | ... | `1.1.0.x` | 每次修复递增 x |
 
 **补丁规则**：
 - 每个修复/文档修正 = `1.1.0.x` 的 x 递增 1
-- 补丁**不改变**主版本号 `1.1.0` 前缀——它们属于同一个正式版系列的维护
+- 补丁**不改变**主版本号 `1.1.1` 前缀——它们属于同一个正式版系列的维护
 - 补丁必须写进 `CHANGELOG.md`（见 §4），并更新**所有** 26 个文件的 version 字段
 - release tag：`v1.1.0`、`v1.1.0.1`、`v1.1.0.2`...
 
 ### 2.3 什么时候升主版本（未来）
 
-只有**功能性重大变更**才升主版本（突破 `1.1.0` 前缀）：
+只有**功能性重大变更**才升主版本（突破 `1.1.1` 前缀）：
 
 | 变更类型 | 版本号动作 | 例子 |
 |----------|-----------|------|
@@ -57,10 +57,10 @@ SciForge-OSS **只有一个版本号**：**`1.1.0`**（当前正式版）。
 
 ---
 
-## 3. 为什么选 `1.1.0` 而非 `0.1.0` 或 `1.0.0`
+## 3. 为什么选 `1.1.1` 而非 `0.1.0` 或 `1.0.0`
 
 - **`1.x.x`**：正式版语义——pipeline 已能端到端产出论文（两个真实测试 run 完成，21 阶段全跑通）
-- **`1.1.0`** 而非 `1.0.0`：`1.0.0` 是早期可用，`1.1.0` 表达"已带 v3.4 完整特性集的第一正式版"——human_skip、figure budget、leakage scrub、reproducibility statements 全部内置
+- **`1.1.1`** 而非 `1.0.0`：`1.0.0` 是早期可用，`1.1.1` 表达"已带 v3.4 完整特性集的第一正式版"——human_skip、figure budget、leakage scrub、reproducibility statements 全部内置
 - 与旧 release tag（`1.2.0`）不同：那是**错误的历史编号**（按内容版本写的），大一统后废弃
 
 ---
@@ -73,8 +73,8 @@ SciForge-OSS **只有一个版本号**：**`1.1.0`**（当前正式版）。
 2. **更新所有 26 个文件的 version 字段**：
    ```bash
    # 26 文件 = 根 SKILL.md + .atomcode-plugin/plugin.json + 24 子 skill
-   sed -i 's/^version: .*/version: 1.1.0.x/' SKILL.md
-   sed -i 's/"version": "[0-9.]*"/"version": "1.1.0.x"/' .atomcode-plugin/plugin.json
+   sed -i 's/^version: .*/version: 1.1.1.x/' SKILL.md
+   sed -i 's/"version": "[0-9.]*"/"version": "1.1.1.x"/' .atomcode-plugin/plugin.json
    # 24 子 skill 同理
    ```
 3. **更新 `CHANGELOG.md`** — 在顶部加 `## [1.1.0.x] - YYYY-MM-DD`，写明修复内容
@@ -88,7 +88,7 @@ SciForge-OSS **只有一个版本号**：**`1.1.0`**（当前正式版）。
 ## 5. 常见问题
 
 ### Q: 内容版本（v3.4）和发布版本（1.1.0）冲突吗？
-不冲突。`v3.4` 是**内容特性标识**（写在 description 里，描述"这个版本有哪些功能"），`1.1.0` 是**发布版本号**（所有 version 字段 + tag + marketplace 用）。**version 字段永远用 1.1.0.x；v3.x 只出现在 description/文档叙述里**。
+不冲突。`v3.4` 是**内容特性标识**（写在 description 里，描述"这个版本有哪些功能"），`1.1.1` 是**发布版本号**（所有 version 字段 + tag + marketplace 用）。**version 字段永远用 1.1.0.x；v3.x 只出现在 description/文档叙述里**。
 
 ### Q: 为什么子 skill 也要统一版本？
 因为 atomcode 发布向导会扫描仓库所有 SKILL.md——如果子 skill 版本混乱，发布时显示不一致。统一后任何入口读到的一致。
