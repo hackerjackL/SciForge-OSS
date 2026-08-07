@@ -3,7 +3,7 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.1-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -51,7 +51,7 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 
 ## 安装指南
 
-> **v1.1.0**：纯 Skill 包 + 可选工具链。skill 本身是纯 Markdown，任何能读 Markdown 的 AI agent 直接消费；但完整跑通（图/文献/编译/实验）需要可选工具链，见下文「工具链（可选但推荐）」。
+> **v1.1.1**：纯 Skill 包 + 可选工具链。skill 本身是纯 Markdown，任何能读 Markdown 的 AI agent 直接消费；但完整跑通（图/文献/编译/实验）需要可选工具链，见下文「工具链（可选但推荐）」。
 
 ### 方式一：克隆仓库（推荐，标准 skill 集成）
 
