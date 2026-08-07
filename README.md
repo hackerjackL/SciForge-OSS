@@ -30,6 +30,7 @@
 - [Core design principles](#core-design-principles)
 - [Figure toolchain](#figure-toolchain)
 - [FAQ](#faq)
+- [Acknowledgments](#acknowledgments)
 - [License](#license)
 
 ## What is this
@@ -422,6 +423,14 @@ A: Unified `elsarticle` LaTeX format, compilable to PDF. Theory papers use the t
 
 ### Q: How to contribute a new skill?
 A: See [CONTRIBUTING.md](CONTRIBUTING.md). All skills are pure Markdown files following a unified frontmatter format.
+
+## Acknowledgments
+
+We sincerely thank everyone who made SciForge-OSS possible:
+
+- **lhw, leader of GewisLab** — for providing the core ideas, orchestrating the project preparation, and designing the overall architecture.
+- **yjt** — as the main developer driving the implementation forward.
+- **yjt, lyh, lls, jwh, qym and all other contributors** — for their generous token support, which powers the continuous self-iteration, optimization, and bug-fixing of this repository.
 
 ## License
 
