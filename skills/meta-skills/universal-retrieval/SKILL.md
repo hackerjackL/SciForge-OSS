@@ -1,6 +1,6 @@
 ---
 name: universal-retrieval
-version: 1.1.0
+version: 1.1.1
 description: "Literature search + 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar) + v3.2 proxy auto-mount + filter-chain integrity audit. Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
 type: reference-skill
 role: academic-retriever
@@ -82,14 +82,14 @@ role: academic-retriever
 
 ## OSS 单活动条策略（升级补充）
 
-OSS 是学科无关的，125 问题跨 10+ 領域，**不能按学科硬切换源优先级**（主仓库 SciForge 有 4 学科的不同源优先级 + 引文窗口；OSS 没有）。OSS 用**统一优先级**（arXiv → S2 → CrossRef → PubMed → Web → OpenAlex，见上表），并对所有问题应用同一套参数：
+OSS 是学科无关的，真实科研问题跨 10+ 领域，**不能按学科硬切换源优先级**（主仓库 SciForge 有 4 学科的不同源优先级 + 引文窗口；OSS 没有）。OSS 用**统一优先级**（arXiv → S2 → CrossRef → PubMed → Web → OpenAlex，见上表），并对所有问题应用同一套参数：
 
 - **统一引文窗口** `min_year=2020`（主仓库有 6/12/18 月按学科变；OSS 用统一绝对年份）
 - **统一源优先级**（上表priority 1-6，无学科切换）
 - **统一检索条数** `max_papers=30`（主仓库按学科变；OSS 统一）
 - **统一验证级别** `verification_level=full`（3 层防幻觉是强制的，无学科降级路径）
 
-**OSS 没有 `discipline-context` 的源优先级覆盖**——见 [`discipline-context.md`](../../shared-references/discipline-context.md) OSS 单行契约：所有 125 问题用 `general` 行，即上表的统一优先级。如果你看到迁移自主仓库的旧代码引用 `DISCIPLINE_CONTEXT.source_priorities`，**删除该分支**——OSS 没有这种按学科切换的逻辑。
+**OSS 没有 `discipline-context` 的源优先级覆盖**——见 [`discipline-context.md`](../../shared-references/discipline-context.md) OSS 单行契约：所有问题统一用 `general` 行，即上表的统一优先级。如果你看到迁移自主仓库的旧代码引用 `DISCIPLINE_CONTEXT.source_priorities`，**删除该分支**——OSS 没有这种按学科切换的逻辑。
 
 ## 网络代理契约（v2.2 — mihomo 强制）
 

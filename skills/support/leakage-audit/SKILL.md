@@ -1,6 +1,6 @@
 ---
 name: leakage-audit
-version: 1.1.0
+version: 1.1.1
 description: "Structural audit for Type I logic gaps + Type IV empirical escape (verification contradicts premise). Phase 7. Invoke after method-registry, before paper-writing. Does NOT run code (structural only)."
 type: reference-skill
 role: structural-leakage-auditor
@@ -29,7 +29,7 @@ Typical prompts:
 
 **MANDATORY** in these situations:
 - After `/method-registry` produces `METHOD_REGISTRY.md` + `METHOD_BINDING.md`
-- Before `/paper-writing` for any 125-problem output
+- Before `/paper-writing` for any pipeline output
 - During code review in `/dynamic-sandbox` (faster pre-screen than full review)
 - During rebuttal preparation — a clean audit is the most credible defense
 
@@ -80,7 +80,7 @@ If `methods/METHOD_REGISTRY.md` does not exist, **ABORT and tell the user to run
 
 ## The Four Leakage Types (OSS Universalized)
 
-### Type I — Logic Gap (Universal, Active for ALL 125 Problems)
+### Type I — Logic Gap (Universal, Active for ALL problems)
 
 > The claimed implications do not mathematically or logically follow from the stated assumptions.
 
@@ -109,7 +109,7 @@ If `methods/METHOD_REGISTRY.md` does not exist, **ABORT and tell the user to run
 
 > The Verification step closes the loop back to the Premise, but the empirical/numerical result escapes the regime where the assumption holds.
 
-**OSS universal manifestation**: any 125 problem where the numerical verification (from `/dynamic-sandbox`) contradicts the theoretical premise (from `/theory-derivation`). This is generalized beyond physics — main SciForge had it as physics-only PNV escape; OSS applies it to any discipline where V ≠ P.
+**OSS universal manifestation**: any problem where the numerical verification (from `/dynamic-sandbox`) contradicts the theoretical premise (from `/theory-derivation`). This is generalized beyond physics — main SciForge had it as physics-only PNV escape; OSS applies it to any discipline where V ≠ P.
 
 **Detection**:
 - For each verification outcome, does it confirm the premise within the regime where the assumption holds?
@@ -140,7 +140,7 @@ If `methods/METHOD_REGISTRY.md` does not exist, **ABORT**.
 ### Step 2: Parse the Registry Chain
 
 Extract from `methods/METHOD_REGISTRY.md`:
-- Section 1: Problem Anchor (frozen — Q-id from `problems/125-SCIENCE-PROBLEMS.md`)
+- Section 1: Problem Anchor (frozen — user-supplied Q-id)
 - Section 2: Assumptions (universal schema)
 - Section 3: Method Selection (hash-locked)
 - Section 4: Outcomes (primary/secondary)
@@ -148,7 +148,7 @@ Extract from `methods/METHOD_REGISTRY.md`:
 
 ### Step 3: Run the Audit Lenses
 
-#### 3.1 Type I Audit (Logic Gap) — ACTIVE for all 125 problems
+#### 3.1 Type I Audit (Logic Gap) — ACTIVE for all problems
 
 For each implication/outcome:
 - Read the assumptions that should logically imply it

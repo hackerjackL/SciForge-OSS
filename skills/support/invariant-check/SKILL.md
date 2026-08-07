@@ -1,6 +1,6 @@
 ---
 name: invariant-check
-version: 1.1.0
+version: 1.1.1
 description: "Verify INV-G1 problem-anchor freeze (Q-id referenced in every downstream artifact). Phase 9. Invoke before result-to-claim to ensure the question hasn't drifted."
 type: reference-skill
 role: phase-boundary-verifier
@@ -36,7 +36,7 @@ The distinction is critical: a reviewer asks "is this good?"; an invariant check
 
 What this skill DOES guarantee:
 - The artifacts the next phase depends on exist at their canonical paths
-- The Problem Anchor (Q-id from `problems/125-SCIENCE-PROBLEMS.md`) is frozen and referenced throughout
+- The Problem Anchor (user-supplied Q-id) is frozen and referenced throughout
 - Verdict-carrying artifacts have a verdict in the allowed set
 
 What this skill does NOT do:
@@ -50,7 +50,7 @@ OSS has **one** active invariant. There is no discipline prefix table (main SciF
 
 | ID | Name | Trigger | Pass Condition | Fail Action | Rationale |
 |----|------|---------|----------------|-------------|-----------|
-| `INV-G1` | `PROBLEM_ANCHOR_FREEZE` | Before `/theory-derivation`, before `/logic-verification`, before `/paper-writing`, before `/result-to-claim` | The original problem statement's Q-id (from `problems/125-SCIENCE-PROBLEMS.md`, supplied by the human user's prompt) is recorded in `refine-logs/FINAL_PROPOSAL.md` AND referenced in the current phase's working artifact (derivation chain / verification audit / paper draft / claim) | BLOCK — re-anchor to the original Q-id before proceeding | Prevents problem drift mid-paper. Without this, the agent may start solving a different (easier, more familiar) problem than the one the human user supplied. The freeze forces every phase to trace back to the same Q-id. |
+| `INV-G1` | `PROBLEM_ANCHOR_FREEZE` | Before `/theory-derivation`, before `/logic-verification`, before `/paper-writing`, before `/result-to-claim` | The original problem statement's Q-id (from `the user-supplied research question`, supplied by the human user's prompt) is recorded in `refine-logs/FINAL_PROPOSAL.md` AND referenced in the current phase's working artifact (derivation chain / verification audit / paper draft / claim) | BLOCK — re-anchor to the original Q-id before proceeding | Prevents problem drift mid-paper. Without this, the agent may start solving a different (easier, more familiar) problem than the one the human user supplied. The freeze forces every phase to trace back to the same Q-id. |
 
 **No other invariants are active in OSS.** Main SciForge's `INV-E1~E5` (economics PREREG_HASH / OUTCOME_CLASSIFICATION / LEAKAGE_AUDIT_VERDICT / DATA_SOURCE_CONSISTENCY / ESTIMATOR_VERIFICATION_GATE), `INV-C1~C4` (cs-ml BENCHMARK_PROTOCOL_LOCK / ABLATION_COMPLETENESS / SEED_STRATEGY_LOCK / LEAKAGE_AUDIT_VERDICT), `INV-P1~P5` (physics PNV_SKETCH_HASH / SIMULATION_REPRODUCIBILITY / LEAKAGE_AUDIT_VERDICT / PNV_CHAIN_CLOSURE / TYPE_IV_ESCAPE_CHECK) are all **removed** — they are discipline-specific and OSS has no discipline dispatch.
 

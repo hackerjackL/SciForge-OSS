@@ -16,7 +16,7 @@
 
 A contributor should open a PR via this protocol when ALL of the following hold:
 
-1. **The learner flagged `unknown_evidence_type`** on a real 125-problem run — the contribution is grounded in observed pipeline failure, not hypothetical domain addition.
+1. **The learner flagged `unknown_evidence_type`** on a real pipeline run — the contribution is grounded in observed pipeline failure, not hypothetical domain addition.
 2. **The new evidence_type does NOT collapse into an existing type** — the contributor tried mapping the new domain to each existing type (`derivational` / `correlational` / `causal_inference` / `experimental` / `simulational` / `interpretive`) and can document why none fit (e.g., "synthetic biology's `design-build-test` cycle is not `experimental` because the truth standard is functional implementation, not reproducible measurement — that is `design` paradigm but OSS has no `design_evidence_type` row yet").
 3. **The contributor has a worked example** — a complete pipeline run on a representative problem of the new domain, with artifacts, demonstrating the adaptive matrices' proposed rows produce sensible behavior.
 

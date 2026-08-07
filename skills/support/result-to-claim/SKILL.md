@@ -1,6 +1,6 @@
 ---
 name: result-to-claim
-version: 1.1.0
+version: 1.1.1
 description: "3-fidelity claim gate (symbolic/numerical/qualitative) mapping results to claims, blocking unsupported 'supported'/'proven' language. Phase 10. Invoke to gate which claims the paper may make."
 type: reference-skill
 role: result-to-claim-gate
@@ -159,7 +159,7 @@ The confidence assessment MUST include a per-dimension breakdown. Example (full 
 
 ### Step 0: Load DISCIPLINE_CONTEXT
 
-Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../../shared-references/discipline-context.md)). There is no economics/cs-ml/physics branch — the universal 3-fidelity ladder below applies to every 125-problem run.
+Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `general` (see [`discipline-context.md`](../../shared-references/discipline-context.md)). There is no economics/cs-ml/physics branch — the universal 3-fidelity ladder below applies to every run.
 
 ### Step 1: Collect Results
 

@@ -1,6 +1,6 @@
 # Discipline Context Contract (SciForge-OSS — Discipline-Agnostic)
 
-> **Status**: Contract for the OSS skill chain. **OSS is discipline-agnostic by design** — there are no 4 parallel pipelines, no per-discipline overlay, no `DISCIPLINE_CONTEXT` block. All 125 science problems are processed by the **same single pipeline** (`/auto-pipeline`) using the **same universal meta-skills**.
+> **Status**: Contract for the OSS skill chain. **OSS is discipline-agnostic by design** — there are no 4 parallel pipelines, no per-discipline overlay, no `DISCIPLINE_CONTEXT` block. All research problems are processed by the **same single pipeline** (`/auto-pipeline`) using the **same universal meta-skills**.
 
 > **Key difference from main SciForge**: Main SciForge has 4 parallel pipelines (economics / cs-ml / physics / general) each with its own discipline overlay, reviewer persona, and framework (AIM / SOTA / PNV / none). OSS has **none of these** — the 4 meta-skills (sandbox / tooling / retrieval / plotting) + 4 support skills (theory-derivation / logic-verification / paper-writing / auto-review-loop) are universal and do NOT switch behavior by discipline. This file exists only to document that **no discipline dispatch is needed** and to point migrated skills (which may still reference `DISCIPLINE_CONTEXT` from their main-SciForge origin) at a canonical "no-op" stub.
 
@@ -8,11 +8,11 @@
 
 ## 1. Why OSS Has No DISCIPLINE_CONTEXT
 
-The 125 science problems span 10+ domains (physics, CS, biology, math, earth science, medicine, engineering, social science, chemistry, general). Hard-coding per-discipline skill behavior (like main SciForge's 4 overlays × 16 overlay files = 64 files) would:
+Real research questions span 10+ domains (physics, CS, biology, math, earth science, medicine, engineering, social science, chemistry, general). Hard-coding per-discipline skill behavior (like main SciForge's 4 overlays × 16 overlay files = 64 files) would:
 
 1. **Bloat the skill count** — defeating the OSS "4 meta-skills + universal support" design principle
 2. **Force a clustering decision** — which 10 domains collapse into which N buckets? Any choice is arbitrary and loses information
-3. **Not match the problem distribution** — many of the 125 problems are cross-disciplinary (e.g., "AI for drug discovery" spans CS + BIO + CHE); a single discipline label would misroute them
+3. **Not match the problem distribution** — many real research questions are cross-disciplinary (e.g., "AI for drug discovery" spans CS + BIO + CHE); a single discipline label would misroute them
 
 Instead, OSS uses **discipline-agnostic meta-skills** that handle any domain via runtime tooling (the agent writes domain-specific code on-the-fly in `/dynamic-sandbox`, not via pre-coded skill branches).
 
@@ -76,7 +76,7 @@ This is a **single-row collapse** of main SciForge's 4-row table. Migrated skill
 - Hardcode a domain-specific reviewer persona (e.g., "senior-ml-reviewer"). OSS uses only `senior-reviewer-agnostic`.
 
 **Always**:
-- Treat every 125-problem run as `discipline=general`.
+- Treat every run as `discipline=general`.
 - Let the agent's runtime reasoning (in `/theory-derivation`, `/dynamic-sandbox`) handle domain-specific methodology — NOT a skill overlay.
 
 ---

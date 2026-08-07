@@ -13,7 +13,7 @@
 > The pure-skill-driven spirit: **no `.py` scripts, no bash code blocks, no IDE-specific syntax**.
 > Any AI agent that can read Markdown (Claude Code, Cursor, Trae, Codex, etc.) can consume these skills.
 >
-> The 125 science problems are a "AI for Scientist Anything" demo showcase — the world's questions go far beyond 125.
+> SciForge-OSS is a **fully autonomous research skill**, not a problem-solving benchmark: the human supplies ONE research question (any domain), and the pipeline runs end-to-end from idea discovery to submission-ready paper.
 
 ---
 
@@ -28,7 +28,7 @@
 - [Verification paths: four routes](#verification-paths-four-routes)
 - [Multi-domain examples](#multi-domain-examples)
 - [Core design principles](#core-design-principles)
-- [125 Science Problems Demo](#125-science-problems-demo)
+- [Figure toolchain](#figure-toolchain)
 - [FAQ](#faq)
 - [License](#license)
 
@@ -254,8 +254,12 @@ SciForge-OSS/
 ├── CITATION.cff                      # citation metadata
 ├── package.json                     # npm distribution metadata (local CLI; not published to registry)
 ├── bin/sciforge.js                  # local CLI (init / tools-check / tools-install)
-├── problems/
-│   └── 125-SCIENCE-PROBLEMS.md      # 125-problem demo index (NOT auto-searched; human supplies Q-id)
+├── scripts/
+│   └── plotting/                    # figure toolchain (single entry point)
+│       ├── render_figure.py         # unified renderer — 12 engines, one pipeline, embedded audit
+│       ├── sciforge_style.py        # morandi design tokens (single source of truth)
+│       ├── figure_audit.py          # A1–A10 Nature-level audit (embedded)
+│       └── INSTALL.md               # cross-platform replication manual
 ├── skills/
 │   ├── orchestrator/
 │   │   └── auto-pipeline/SKILL.md   # the single entry orchestrator (21-phase DAG loop)
@@ -389,21 +393,23 @@ Each problem's `verification_type` (a canonical token: `theory-only` | `computat
 
 8. **Publication-grade, not engineering-report** — writing follows Nature/Science/top-SCI-Q1 style; the per-domain style contract (writing-principles §0) adapts prose to the domain (humanities/CS/physics/medicine/materials/earth/economics), and a hard anti-engineering-report clause forbids step-listing流水账.
 
-## 125 Science Problems Demo
+## Figure toolchain
 
-`problems/125-SCIENCE-PROBLEMS.md` contains 125 science problems as a **"AI for Scientist Anything" demo showcase**. The world's questions go far beyond 125 — the framework is a universal design that handles any number of problems in any domain.
+Publication-grade figures are produced by ONE unified entry point — `scripts/plotting/render_figure.py` (Phase 11 of the pipeline), with **12 engines behind a single chain** (never parallel tools): matplotlib (data), d2, graphviz, TikZ, Asymptote, Typst, diagrams, blockdiag-family, mermaid, pikchr, hand-assembled SVG, and the **composite multi-panel engine** (Nature-style (a)(b)(c)… panel figures, panel cap 9, SCI Q1 composition rules).
 
-- The 125 problems are a **demo index**, not a complete problem bank
-- The framework supports any number of problems (auto-discovered via the `problems/` directory)
-- Q-id format is flexible; rigid naming is not required
+- **Dual output**: vector PDF (LaTeX embed) + 300 DPI PNG (agent review)
+- **Embedded Nature-level audit (A1–A10)**: readability floors, morandi palette (C* ≤ 25 numerically validated), 16:9 default, complexity floors (icon density / edge density), visual richness, **brand-leak guard** (figures are paper figures, never tool posters), **zero text overlap** with actionable fix suggestions
+- **Two-tier visual review**: vision-capable host agents self-review the PNG against a 9-item checklist (no external API — the host's native vision is the reviewer); text-only hosts degrade to the mechanical audit
+- **Journal column-width presets**: `--width-preset nature-single|aaai-double|...` (14 venues)
+- **Cross-platform**: Linux / macOS / Windows — fonts auto-discovered per platform, no machine-specific paths; see [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)
 
 ## FAQ
 
 ### Q: Which disciplines does SciForge-OSS support?
 A: All disciplines. Physics, mathematics, computer science, medicine, economics, education, materials science, earth science, atmospheric science, astronomy, chemistry, engineering, sensors, optoelectronics — any scientific domain.
 
-### Q: Are the 125 problems required?
-A: No. The 125 science problems are a "AI for Scientist Anything" demo showcase. The framework supports any number of problems in any domain.
+### Q: Where do research problems come from?
+A: From you. SciForge-OSS is a fully autonomous research skill — the human supplies one research question (any domain, with or without a Q-id label), and the pipeline runs end-to-end on it. There is no bundled problem bank.
 
 ### Q: Does it need multiple AI models to run?
 A: No. SciForge-OSS uses a **structured self-review** mode — the same agent switches roles (researcher→reviewer→adjudicator) for adversarial review; no cross-model collaboration needed.
