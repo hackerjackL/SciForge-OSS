@@ -36,6 +36,10 @@
 
 图标资产库**不随仓库分发**；agent 运行时从白名单来源抓取专业图标（bioicons.com 生医、Tabler/Lucide/Feather 技术通用、Font Awesome Free、d2 bundled），强制经 `sciforge_style.recolor_icon()` 重着色为莫兰迪后使用，来源与许可记录在图的 `revision_log.md`。抓取失败回退 agent 手绘，不阻塞管线。国内网络经 mihomo 代理（8099）访问。
 
+## 组图装配（契约 §7，SCI 一区规范）
+
+多面板组图经 `.composite.json` 清单装配（单一入口内置 composite 引擎，无额外依赖）：`python scripts/plotting/render_figure.py fig.composite.json --out figures/figN/ --label figN --caption "..."`。面板数硬上限 9（超出直接拒绝）；(a)(b)(c)… 编号标签自动生成于面板上方预留条；按叙事单元组版（Nature/Science/Cell 逻辑）。
+
 ## 字体（与 LaTeX 正文一致的关键）
 
 ```bash

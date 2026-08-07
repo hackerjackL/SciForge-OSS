@@ -295,6 +295,125 @@ def render_mermaid(src: Path, out_pdf: Path, out_png: Path, dpi: int,
         tmp_svg.unlink()
 
 
+def render_composite(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+                     log: list, keep_svg: Path | None = None) -> None:
+    """Composite engine — assemble N pre-rendered panels into ONE figure
+    with Nature-style bold (a)(b)(c)... panel labels (contract §7).
+
+    Manifest (.composite.json, relative to the manifest file):
+      {"panels": [{"file": "../figA/output.pdf", "label": "a"}, ...],
+       "cols": 2,        // optional; default auto (<=2: n, <=4: 2, else 3)
+       "gap": 48, "margin": 60, "label_strip": 64, "width_px": 3600}
+    Panels may be PDF (rasterized at dpi) or PNG.  Each panel is scaled
+    into its grid cell (row height = tallest panel in the row), the bold
+    label lives in a reserved strip ABOVE the panel so it can never
+    occlude panel content, and the assembled SVG goes through svg2dual
+    (palette sanitize + dual output + audit) — single pipeline.
+    """
+    import base64
+    spec = json.loads(src.read_text(encoding="utf-8"))
+    panels = spec.get("panels", [])
+    if not panels:
+        raise RuntimeError("composite manifest has no panels")
+    outdir = out_pdf.parent
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    n = len(panels)
+    if n > 9:
+        raise RuntimeError(
+            f"composite has {n} panels > 9 (contract §7.0 panel cap): "
+            "split into multiple composites or move panels to "
+            "supplementary — cramming unrelated panels into one figure "
+            "is the 'figure soup' anti-pattern; this cap is enforced, "
+            "not overridable")
+    cols = spec.get("cols") or (n if n <= 2 else (2 if n <= 4 else 3))
+    cols = min(cols, n)
+    rows = -(-n // cols)  # ceil
+    gap = int(spec.get("gap", 48))
+    margin = int(spec.get("margin", 60))
+    strip = int(spec.get("label_strip", 64))
+    canvas_w = int(spec.get("width_px", 3600))
+    cell_w = (canvas_w - 2 * margin - (cols - 1) * gap) / cols
+
+    from PIL import Image
+    rasters = []
+    labels = []
+    for i, p in enumerate(panels):
+        f = (src.parent / p["file"]).resolve()
+        if not f.is_file():
+            raise RuntimeError(f"panel file missing: {p['file']}")
+        label = p.get("label") or chr(ord("a") + i)
+        labels.append(label)
+        if f.suffix.lower() == ".pdf":
+            tmp = outdir / f"_panel_{label}"
+            run(["pdftoppm", "-png", "-r", str(dpi), "-singlefile",
+                 str(f), str(tmp)], log=log)
+            f = tmp.with_suffix(".png")
+        else:
+            dst = outdir / f"panel_{label}.png"
+            if dst.resolve() != f.resolve():
+                shutil.copyfile(f, dst)
+            f = dst
+        with Image.open(f) as im:
+            pw, ph = im.size
+        rasters.append((f, pw, ph))
+        log.append(f"# panel {label}: {p['file']} ({pw}x{ph})")
+
+    # grid metrics: row height = tallest panel in the row
+    row_h = []
+    for r in range(rows):
+        hs = []
+        for c in range(cols):
+            i = r * cols + c
+            if i < n:
+                _, pw, ph = rasters[i]
+                hs.append(cell_w * ph / pw)
+        row_h.append(max(hs))
+    canvas_h = int(2 * margin + rows * strip + sum(row_h) + (rows - 1) * gap)
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'xmlns:xlink="http://www.w3.org/1999/xlink" '
+        f'viewBox="0 0 {canvas_w} {canvas_h}" '
+        f'font-family="Liberation Sans, Helvetica, sans-serif">',
+        '<g class="layer-0-bg">'
+        f'<rect x="0" y="0" width="{canvas_w}" height="{canvas_h}" '
+        'fill="#FFFFFF"/></g>',
+        '<g class="layer-1-panels">',
+    ]
+    label_parts = ['<g class="layer-3-labels">']
+    fs = max(30, int(strip * 0.62))
+    y = margin
+    for r in range(rows):
+        for c in range(cols):
+            i = r * cols + c
+            if i >= n:
+                continue
+            x = margin + c * (cell_w + gap)
+            f, pw, ph = rasters[i]
+            h = cell_w * ph / pw
+            voff = (row_h[r] - h) / 2  # vertical centering in the row
+            b64 = base64.b64encode(f.read_bytes()).decode("ascii")
+            parts.append(
+                f'<image x="{x:.0f}" y="{y + strip + voff:.0f}" '
+                f'width="{cell_w:.0f}" height="{h:.0f}" '
+                f'href="data:image/png;base64,{b64}"/>')
+            label_parts.append(
+                f'<text x="{x:.0f}" y="{y + strip - fs * 0.28:.0f}" '
+                f'font-size="{fs}" font-weight="bold" fill="#3A3733">'
+                f'({labels[i]})</text>')
+        y += strip + row_h[r] + gap
+    parts.append("</g>")
+    label_parts.append("</g>")
+    svg_text = "\n".join(parts + label_parts) + "\n</svg>\n"
+
+    assembled = outdir / "_composite.svg"
+    assembled.write_text(svg_text, encoding="utf-8")
+    log.append(f"# assembled {n} panels -> {canvas_w}x{canvas_h} "
+               f"({cols}x{rows} grid)")
+    svg2dual(assembled, out_pdf, out_png, dpi, log, keep_svg)
+
+
 def render_pikchr(src: Path, out_pdf: Path, out_png: Path, dpi: int,
                   log: list, keep_svg: Path | None = None) -> None:
     """pikchr — lightweight vector DSL for mechanism/sequence schematics
@@ -526,7 +645,7 @@ def main() -> int:
     ap.add_argument("--engine",
                     choices=["d2", "graphviz", "tikz", "svg", "asy",
                              "typst", "diagrams", "blockdiag", "mermaid",
-                             "pikchr", "python", "auto"],
+                             "pikchr", "composite", "python", "auto"],
                     default="auto")
     ap.add_argument("--layout", default=None,
                     help="d2: dagre|elk|tala  /  graphviz: dot|neato|fdp|...")
@@ -564,7 +683,9 @@ def main() -> int:
                   ".asy": "asy", ".typ": "typst", ".py": "python",
                   ".diag": "blockdiag", ".mmd": "mermaid",
                   ".mermaid": "mermaid", ".pik": "pikchr"}.get(ext)
-        if src.name.endswith("_diagr.py"):
+        if src.name.endswith(".composite.json"):
+            engine = "composite"
+        elif engine is None and src.name.endswith("_diagr.py"):
             engine = "diagrams"
         if engine is None:
             print(f"ERROR: unknown source extension {ext} (supported: .d2 "
@@ -606,6 +727,8 @@ def main() -> int:
             render_mermaid(src, out_pdf, out_png, args.dpi, log, keep_svg)
         elif engine == "pikchr":
             render_pikchr(src, out_pdf, out_png, args.dpi, log, keep_svg)
+        elif engine == "composite":
+            render_composite(src, out_pdf, out_png, args.dpi, log, keep_svg)
         else:
             render_svg(src, out_pdf, out_png, args.dpi, log, keep_svg)
     except PaletteError as e:
