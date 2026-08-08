@@ -466,6 +466,25 @@ systemctl start sfexp-{experiment_id}
 
 After dispatching the full experiment to background, the skill returns control to the orchestrator immediately. The orchestrator proceeds with other pipeline phases (writing, review, etc.) while the experiment runs.
 
+**探索预算下限（v5.1 — Exploration Budget Floor，源自 CRUX 影子评估失败模式 #4）**:
+
+**背景**（arXiv:2607.27191）：3000 美元 API 额度两次主运行都只用了约四成；探索阶段被压缩到区区几个小时；agent 在自审再度拒稿后、离截稿还有约 7 小时时**主动宣布"我写完了"**——"有钱不会花"。给更多资源不等于做更好的研究，但**未消耗最低探索预算就宣布完成**是明确的判断力缺陷。
+
+**完成判据（Return payload 的 `budget_floor` 字段，缺项不得 verdict=PASS）**:
+
+| 检查项 | 下限 | 说明 |
+|--------|------|------|
+| **技术路线探索** | ≥2 条独立技术路线被实际尝试（非仅文献调研），或 1 条路线 + 明确的路线否决证据 | "最初十几小时就放弃最有雄心的目标，此后再没做过战略级调整"是 CRUX 死法；至少试过一条替代路线或持有否决证据 |
+| **强制实验矩阵完成度** | method-registry §3.5 矩阵的组完成率 ≥100%（lite 档按其缩减后口径） | 矩阵缺组 = 未完成，不是"可选没做" |
+| **种子/重复预算消耗** | 鲁棒性组种子 ≥3（lite ≥2）全部跑完 | 半截种子数不得出均值±std 结论 |
+| **失败实验记录** | 所有失败/负向运行记录在案（RESULT.json `failed` 条目 + 原因），未隐瞒 | CRUX 日志审查未发现粉饰——保持该优点，失败必须留痕 |
+| **预算/时间余量声明** | Return payload 显式声明剩余算力/时间预算与"是否还有未尝试的可行路线" | agent 必须主动回答"还有没有没试的路"——回答"有"而未试 → 不允许宣布完成 |
+
+**硬规则**:
+1. `budget_floor.satisfied = false` 时，Return payload 的 verdict 不得为 `PASS`——只能是 `IN_PROGRESS`（继续探索）或 `BLOCKED`（资源/方向受限，附理由）
+2. **"我写完了"需要证成**：宣布完成（任何阶段）必须附 `completion_justification`：已尝试路线清单 + 每条路线的状态（成功/否决+证据）+ 剩余未试路线清单（须为空或逐条说明为何不试）
+3. 该字段由 `/auto-review-loop` 在每轮 Phase A 读取复核——发现 completion_justification 的"未试路线"非空而 agent 已停止探索 → 评审 concern 强制为 `experiment_redesign` 类（触发反缩减协议的实质性响应）
+
 **Return payload:**
 
 ```json

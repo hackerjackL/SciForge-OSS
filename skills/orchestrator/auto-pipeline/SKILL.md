@@ -196,6 +196,10 @@ Phase  6c: /experiment-execution --stage=full --background [ROUTED]  ← v2.0/v5
      │  全量实验：后台调度 (tmux/nohup/systemd)；按 method-registry §3 强制实验矩阵执行
      │  (theory-only → SKIP; experiment-first/hybrid → MUST)
      │  Dispatch → 立即返回，pipeline 继续
+     │  v5.1 完成判据：实验完成时读取 Return payload 的 budget_floor——
+     │  satisfied=false → verdict 只认 IN_PROGRESS/BLOCKED，不得进 Phase 10
+     │  （"未消耗最低探索预算不得宣布完成"；completion_justification 见
+     │  experiment-execution Step 6 探索预算下限）
      │
 Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
      │          ↻ CRITICAL 回退 Phase 5（3 轮 callback 上限）
@@ -294,7 +298,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 5 | 方法 registry 构建完成 + hash 锁 + **强制人类审批** | 请求用户审批 Section 3；agent 不能自批 |
 | 6 | SymPy 推导成功 + 逐步机器验证 PASS | 回退 Phase 1（最多 3 轮） |
 | 6b | 玩具实验 RESULT.json status=PASS + core_claim_validated=true | FAIL → BLOCKED (kill idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
-| 6c | 全量实验 DISPATCH.json 生成 + 后台进程启动确认 | 无后台方法 → BLOCKED; 启动失败 → 1 retry; theory-only → SKIP |
+| 6c | 全量实验 DISPATCH.json 生成 + 后台进程启动确认 + **v5.1 budget_floor.satisfied**（路线探索≥2 或否决证据 + 矩阵 100% + 种子足额 + 失败留痕 + completion_justification） | 无后台方法 → BLOCKED; 启动失败 → 1 retry; theory-only → SKIP; budget_floor 不满足 → IN_PROGRESS（继续探索，不得进 Phase 10） |
 | 6c-BA | 全量实验完成且 STATUS.json verdict=FAIL（toy 曾 PASS） | **v2.2.1 BA**: 回退 Phase 2 重生成 idea（bounded 2 轮）—见 [idea-discovery BA 机制](../../meta-skills/idea-discovery/SKILL.md) |
 | 7 | Type I 无 CRITICAL + Type IV 无 ESCAPE | CRITICAL → callback Phase 5 (3 轮上限)；再失败升级 BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
 | 8 | 6 维度逻辑审计 PASS (零 FATAL/CRITICAL) | FATAL/CRITICAL 回退 Phase 6（最多 3 轮）；**FATAL=实验数据与推导结论矛盾 → v2.2.1 BA 回 Phase 2**（bounded 2 轮） |
@@ -419,6 +423,15 @@ The orchestrator DOES:
 - Surface BLOCKED to the human user (never silently retry past round 3)
 
 ## 6-State Verdict Schema
+
+**约束重注入（v5.1 — Constraint Re-injection，源自 CRUX 影子评估失败模式 #5）**:
+
+**背景**（arXiv:2607.27191）：关于最短探索时间、审稿节奏、页数限制等硬规则，agent 早期会一字不差地复述，但在六天长程运行中**逐渐遗忘**——"长期目标管理，依然是大模型的阿喀琉斯之踵"。上下文压缩与长程运行天然侵蚀约束记忆，必须结构性重注入，不能依赖 agent 自觉记住。
+
+**强制机制**（orchestrator 在每个 phase boundary 执行，写入 `logs/pipeline.log`）:
+1. **硬约束清单重读**：每过一个 phase boundary，orchestrator 重新读取并显式复述以下硬约束清单到当前上下文（不是摘要，是原文复述）：验证路由（VERIFICATION_ROUTING.json 的 route）、探索预算下限（budget_floor 五检查项）、页数档位上限（length 档）、强制实验矩阵（EXPERIMENT_MATRIX.json 的组清单）、PIVOT 剩余预算（≤2 的当前余量）、负结果纪律（polarity 规则）
+2. **漂移检测**：每个 phase 的输出产物必须携带其消费/产出的硬约束字段（如 CLAIMS_FROM_RESULTS.md 带 evidence_sufficiency、REVIEW_STATE.json 带 response_class、compile 产物带页数 verdict）——缺字段即该 phase verdict 降级 WARN（`constraint_field_missing`），连续 2 个 phase 缺同类字段 → BLOCKED 上报人类（这是指令漂移的结构性信号）
+3. **完成宣告拦截**：任何 phase 宣告完成（PASS）时，orchestrator 核对该 phase 的硬约束字段齐全且达标——不齐 → 不接受 PASS，降级为 IN_PROGRESS 并要求补齐。这是"我写完了"的结构性拦截器
 
 The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md) for each phase boundary:
 
