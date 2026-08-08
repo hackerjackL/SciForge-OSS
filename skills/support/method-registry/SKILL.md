@@ -1,6 +1,6 @@
 ---
 name: method-registry
-version: 1.1.1
+version: 1.1.2
 description: "Build the 8-section method registry + hash-lock Section 3 + human approval gate. Phase 5. Invoke after idea selection to pre-register the methodology before derivation."
 type: reference-skill
 role: method-registry-builder

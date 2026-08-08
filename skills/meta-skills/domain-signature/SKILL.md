@@ -1,6 +1,6 @@
 ---
 name: domain-signature
-version: 1.1.1
+version: 1.1.2
 description: "Fast-path rule-based domain signature hint — Phase 1a (OPTIONAL). Writes domain-signature-hint.json consumed only by domain-learner as a prior. Invoke for cold-start domain detection when literature is sparse."
 type: meta-skill
 role: domain-characteristic-extractor
