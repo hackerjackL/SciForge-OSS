@@ -219,7 +219,7 @@ Step 2a: Create experiment directory
          → experiments/toy/session_{timestamp}/
 
 Step 2b: Write experiment script
-         → experiments/toy/session_{timestamp}/toy_experiment.py
+         → code/experiments/toy/session_{timestamp}/toy_experiment.py
 
 Step 2c: Execute with timeout
          → subprocess.run(timeout=timeout_toy)
@@ -279,17 +279,35 @@ Step 2e: Evaluate against success criteria
 
 **For causal_inference toys specifically** (per `discipline-writing.md` §0): `primary_metric` = recovered ATE/coefficient magnitude vs known effect; `secondary_metrics` MUST include coefficient sign and parallel-trends p-value — all three load-bearing, so `gate_logic: all_metrics_pass`.
 
-### Step 3: Toy Gate (Decision Point)
+### Step 3: Toy Gate (Decision Point — v5.0 KILL-or-PIVOT 停止协议)
 
 | RESULT.status | Action |
 |---------------|--------|
 | `PASS` | Proceed to full experiment design (Step 4) |
-| `FAIL` | **Kill the idea.** Return `BLOCKED` with reason. Do NOT proceed to full experiment. |
+| `FAIL` | **进入 KILL-or-PIVOT 决策**（见下）——不再一律 kill idea |
 | `INCONCLUSIVE` | Redesign toy experiment (bounded 1 retry). If still inconclusive → `BLOCKED`. |
 | `TIMEOUT` | Reduce scale_ratio, retry once. If still timeout → `BLOCKED`. |
 | `ERROR` | Diagnose error, fix script, retry once. If still error → `BLOCKED`. |
 
-**Hard rule**: A FAIL toy experiment **must not** proceed to full experiment. This prevents wasting compute on dead-end ideas.
+**Hard rule**: A FAIL toy experiment **must not** proceed to full experiment — 这是想法生死判，防止把算力浪费在死胡同上。
+
+**从 0 到 1 停止协议（KILL-or-PIVOT）——解决"从 0 到 1 不知道何时停"**:
+
+增量论文有边际收益信号可停；从 0 到 1 没有——必须靠**证伪即转向**。FAIL 触发条件（两者同时满足才触发，防误杀）：
+1. 负向结果**显著**（核心指标低于 baseline 且差异 > 噪声水平）
+2. 负向结果**可复现**（≥2 个随机种子同向，或 toy 重跑一次仍 FAIL）
+
+触发后进入决策（写入 `EXPERIMENT_REPORT.md` 的 `kill_or_pivot` 字段）：
+
+| 决策 | 适用 | 动作 |
+|------|------|------|
+| **PIVOT** | 问题有价值，当前方法路径证伪 | 保留问题与 RQ，换方法/换组件重设计 → 回 Phase 5（method-registry 重注册）→ 重跑 toy。**PIVOT 预算 ≤2 次**，超预算强制 KILL |
+| **KILL** | 核心假设被证伪且无可替代路径，或 PIVOT 预算耗尽 | 引用 `/kill-argument` 写杀论证 → `BLOCKED, reason: core_hypothesis_falsified` → 回 Phase 2 换 idea |
+
+**禁止行为**:
+- 禁止"继续调参硬救"——toy 已证伪核心方向时，调参不是 PIVOT 是拖延
+- 禁止把负向 toy 结果包装成"诚实的发现"继续推进（负结果纪律见 result-to-claim）
+- PIVOT 必须换**方法**（method-registry 重注册、hash 重锁），不是换超参
 
 ### Step 4: Design Full Experiment
 
@@ -314,12 +332,39 @@ If toy gate passed, design the full-scale experiment:
 
 **Background dispatch is MANDATORY for full experiments.** The agent must NOT wait in the foreground for long-running jobs.
 
+**v5.0 后台调度阈值规则（防 agent 超时）**:
+
+| 条件（任一满足即强制后台） | 动作 |
+|---------------------------|------|
+| 预估运行时间 > 15 分钟 | 后台调度（tmux/nohup/systemd），主 agent 立即返回 |
+| 实验组 ≥ 5（含基线/消融/超参组合计） | 后台调度 + subagent 委托（见下） |
+| 数据集需下载且 > 1GB | Step 0d 异步下载 + 后台实验 |
+| 预估 ≤ 15 分钟且实验组 < 5 | 允许前台，但前台硬上限 15 分钟，超时自动转后台 |
+
+**心跳与状态（后台任务必备）**: 后台脚本必须每 60 秒写一次 `STATUS.json`（state/progress/eta/last_error）——主 agent 通过轮询 STATUS.json 判活，**不做前台阻塞等待**；STATUS.json 超过 5 分钟未更新视为任务死亡，触发 Recovery Protocol。预估时间写入 `FULL_EXPERIMENT_DISPATCH.json` 的 `estimated_completion`，主 agent 据此安排轮询间隔（预估 <1h → 每 5 分钟轮询；1-6h → 每 30 分钟；>6h → 每 2 小时）。
+
+### Subagent 委托协议（v5.0 — 防超时 + 并行加速）
+
+主 agent 是**编排者**，不是执行者。满足以下条件时**必须**委托 subagent（宿主 agent 的 `task` 工具），主 agent 只做编排与聚合：
+
+| 委托场景 | 委托内容 | 主 agent 保留 |
+|---------|---------|--------------|
+| 独立实验组 ≥3（基线/消融/超参各自独立） | 每组一个 subagent 并行跑（各自独立目录 `experiments/full/group_<name>/`） | 汇总聚合 + 写 EXPERIMENT_REPORT.md |
+| 参数扫描 ≥6 个配置 | 按配置分片委托（每 subagent 2-3 个配置） | 扫描结果合并成表 |
+| 数据预处理与训练可分离 | 预处理一个 subagent 先行，训练随后 | 依赖编排 |
+
+**委托纪律**:
+1. 每个 subagent 任务指令必须自包含：数据路径、脚本路径、输出目录、完成判据——subagent 之间**零共享状态**，只通过文件系统交换
+2. subagent 产物统一写 `experiments/full/group_<name>/RESULT.json`（同 STATUS.json schema）——主 agent 聚合时只读 RESULT.json，不读 subagent 过程日志
+3. 委托失败的组 → 主 agent 本地补跑该组（bounded 1 次），再失败 → 该组标记 `failed`，聚合报告如实列出，**不伪造**
+4. subagent 数量上限 = CPU 核心数（GPU 实验 = GPU 数），防止资源争抢反而更慢
+
 ### Step 5.0: Full-Code Smoke Gate (v3.2 — MANDATORY before dispatch)
 
 > **Why this exists (honest gap)**: the toy gate (Step 3) validates the *idea's reasoning chain* at 1-10% scale; it does NOT validate that the *full-scale script itself* runs end-to-end on the real data without crashing. [`leakage-audit`](../leakage-audit/SKILL.md) and [`logic-verification`](../logic-verification/SKILL.md) are both **structural/symbolic** audits that deliberately "do not run the code" (leakage-audit boundary) — so neither catches runtime crashes. Without this gate, a full experiment can be dispatched to background, run 6+ hours, and die at the final aggregation step because of a shape mismatch or an OOM only triggered at full scale — discovered only when Phase 10 reads a `failed` STATUS.json. This gate runs a 60-second end-to-end smoke on the full script at a 1-step/1-batch slice and refuses to dispatch if it cannot complete that slice.
 
 **Procedure**:
-1. **Slice to 1 step / 1 batch**: invoke the full-scale script (`experiments/full/{script}.py`) with an override that caps it to 1 training step (ML), 1 timestep (PDE sim), 1 bootstrap iteration (causal), 1 k-point (eigenvalue), or 1 claim (interpretive). The script MUST already expose such a cap (Step 4 design rule "Add checkpointing" implies a `--max-steps`/`--max-epochs`/`--steps` flag; if it doesn't, **add one now** — this is part of full-experiment design, not optional).
+1. **Slice to 1 step / 1 batch**: invoke the full-scale script (`code/experiments/full/{script}.py`) with an override that caps it to 1 training step (ML), 1 timestep (PDE sim), 1 bootstrap iteration (causal), 1 k-point (eigenvalue), or 1 claim (interpretive). The script MUST already expose such a cap (Step 4 design rule "Add checkpointing" implies a `--max-steps`/`--max-epochs`/`--steps` flag; if it doesn't, **add one now** — this is part of full-experiment design, not optional).
 2. **Run with a 60-second foreground timeout** (`subprocess.run(timeout=60)`). This is cheap and stays in the foreground budget. The slice must: (a) import without exception, (b) load the real dataset (or a 1-row slice of it — verifying the data path + parsing are correct, not just synthetic), (c) execute 1 step of the actual computation, (d) write a checkpoint + 1 row to STATUS.json, (e) exit 0.
 3. **Verdict**:
    - Smoke `PASS` (exit 0, 1 STATUS.json row written, no exception) → proceed to dispatch the **full** run (remove the step cap). The gate's only job was to prove the script is dispatchable; it does not validate the *results* (that's Phase 10's job).
@@ -362,7 +407,7 @@ Check environment:
 ```bash
 # Create detached session
 tmux new-session -d -s "sfexp_{experiment_id}" \
-  "cd {workdir} && python experiments/full/{script}.py 2>&1 | tee experiments/full/{experiment_id}.log"
+  "cd {workdir} && python code/experiments/full/{script}.py 2>&1 | tee logs/experiments/{experiment_id}.log"
 
 # Monitor: tmux attach -t sfexp_{experiment_id}
 ```
@@ -370,7 +415,7 @@ tmux new-session -d -s "sfexp_{experiment_id}" \
 **nohup dispatch** (universal fallback):
 
 ```bash
-cd {workdir} && nohup python experiments/full/{script}.py \
+cd {workdir} && nohup python code/experiments/full/{script}.py \
   > experiments/full/{experiment_id}.log 2>&1 &
 echo $! > experiments/full/{experiment_id}.pid
 disown
@@ -385,7 +430,7 @@ cat > /etc/systemd/system/sfexp-{experiment_id}.service << 'EOF'
 Description=SciForge Experiment {experiment_id}
 [Service]
 WorkingDirectory={workdir}
-ExecStart=/usr/bin/python3 experiments/full/{script}.py
+ExecStart=/usr/bin/python3 code/experiments/full/{script}.py
 StandardOutput=append:{workdir}/experiments/full/{experiment_id}.log
 StandardError=append:{workdir}/experiments/full/{experiment_id}.log
 Restart=on-failure

@@ -112,7 +112,7 @@ On first run, copy the unified template skeleton to the working directory:
 paper/
 ├── main.tex                    ← copied from skills/support/paper-writing/templates/default/main.tex
 ├── math_commands.tex           ← copied from the unified template
-├── references.bib              ← symlink or copy from literature/references.bib
+├── references.bib              ← SYMLINK ONLY from literature/references.bib（v5.0 禁 copy——防重复）
 ├── sections/
 │   ├── 01_introduction.tex
 │   ├── 02_related_work.tex
@@ -122,7 +122,7 @@ paper/
 │   ├── 06_discussion.tex
 │   └
 │   └
-└── figures/                    ← symlink or copy from figures/
+└── figures/                    ← SYMLINK ONLY from figures/（v5.0 禁 copy——防重复；图脚本在 code/figures/）
 ```
 
 The `main.tex` preamble is **frozen** — do NOT hand-edit it. The unified template provides:
@@ -176,6 +176,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 - Narrow to the specific problem
 - State the gap clearly
 - List contributions explicitly
+- **负结果纪律（v5.0）**: contribution 列表只收录正向支撑主论点的结果（claims 的 `polarity: positive|boundary`）；`CLAIMS_FROM_RESULTS.md` 中任何 `polarity: negative` 条目出现在 contributions/Abstract/正文结论 → 自检 FAIL（`reason_code: negative_result_as_contribution`）。局部负向只进 Limitations/Discussion 作边界说明；主实验级负向应已在上游触发 KILL-or-PIVOT，不应流到写作阶段——若流到了，退回 `/experiment-execution`，不写
 - End with the paper structure roadmap
 
 > **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the 3-layer citation discipline forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".

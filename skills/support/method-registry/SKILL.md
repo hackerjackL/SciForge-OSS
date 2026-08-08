@@ -115,6 +115,40 @@ Every assumption is scored for reasonability. This is the **assumption registry*
 
 **Method Binding**: `methods/METHOD_BINDING.md` is derived from this section. Any change here MUST propagate to METHOD_BINDING.md and trigger re-audit via `/leakage-audit`.
 
+## 3.5 Mandatory Experiment Matrix (v5.0 — LOCKED with Section 3)
+
+**实测反馈**：旧管线只有主实验，补充实验（基线/消融/超参/敏感性）看运气——方法预注册阶段必须把**完整实验矩阵**锁死，事后不得增删（防止"结果出来后补一个好看的解释性实验"或"漏了审稿人必问的消融"）。
+
+**适用路由**：`experiment-first` / `hybrid`（见 [`verification-routing.md`](../../shared-references/verification-routing.md)）强制完整矩阵；`theory-only` 填 N/A。矩阵与 Section 3 一同 hash-lock——矩阵缺项时 hash-lock **拒绝生成**（`REGISTRY_HASH.txt` 写入 `BLOCKED: experiment_matrix_incomplete`）。
+
+| 实验类别 | 最低要求 | 产物 | 缺项后果 |
+|---------|---------|------|---------|
+| **主实验** | ≥1 个核心假设验证实验（对应 Section 2 的 PRIMARY outcome） | `experiments/full/group_main/` | hash-lock 拒绝 |
+| **基线对比** | **≥3 个基线**：SOTA（FRONTIER_MAP 最近工作复现）+ 经典基线 + naive（如随机/多数类/恒等） | `experiments/full/group_baseline_<name>/` | hash-lock 拒绝 |
+| **消融实验** | 方法每个**新组件**逐一去除/替换（leave-one-component-out），≥2 组 | `experiments/full/group_ablation_<k>/` | hash-lock 拒绝（单组件方法可用超参消融替代并注明） |
+| **超参扫描** | 核心超参 ≥1 个 × ≥3 个取值点（或声明"对超参不敏感"的理由） | `experiments/full/group_hyperparam/` | hash-lock 拒绝 |
+| **敏感性/鲁棒性** | 随机种子 ≥3（报告均值±std）+ ≥1 项扰动测试（数据噪声/规模缩放/分布偏移三选一） | `experiments/full/group_robustness/` | hash-lock 拒绝 |
+
+**budget_scale 参数**（算力现实性）：
+
+| 档位 | 语义 | 允许的缩减 |
+|------|------|-----------|
+| `full`（默认） | 完整矩阵按上表执行 | 无 |
+| `lite` | 算力受限（CPU-only / 时限紧） | 种子 ≥3 → ≥2；超参点 ≥3 → ≥2；基线 ≥3 不变；**任何类别不得整体删除** |
+| `pilot` | 探索性运行（toy 之后、正式之前的中间档） | 只跑主实验 + 1 个 SOTA 基线 + 种子 2；结果**不得**进论文正文，仅供决策 |
+
+**矩阵 schema**（写入 `METHOD_REGISTRY.md` 本节的表格 + `methods/EXPERIMENT_MATRIX.json` 机读版）：
+
+```json
+{"budget_scale": "full|lite|pilot",
+ "groups": [{"name": "main|baseline_<n>|ablation_<k>|hyperparam|robustness",
+             "hypothesis": "...", "script": "code/<path>",
+             "estimated_minutes": 0, "background": true, "subagents": 0}],
+ "locked_hash": "[与 Section 3 一同计算]"}
+```
+
+`estimated_minutes` 合计驱动 `/experiment-execution` 的后台调度阈值与 subagent 委托决策（v5.0 后台调度规则）。`/result-to-claim` 按矩阵逐项核对结果完整性——矩阵里有、结果里没有的组 → claim 保真度降级（不得宣称该类别的结论）。
+
 ## 4. Outcomes (Primary vs Secondary)
 
 Pre-registered outcome classification. **Cannot be changed post-hoc.**
