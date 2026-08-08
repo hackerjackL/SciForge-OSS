@@ -24,8 +24,9 @@
 - **发布清单修复**：package.json `files` 移除已删除的 `problems/`（v1.1.1 删库后遗留），补入 `scripts/`（工具链随 skill 分发）+ `LICENSE` + `VERSIONING.md`；`sciforge init` 脚手架补拷贝 `scripts/`（此前新建项目缺绘图/校验/安全扫描工具链，而 skill 以仓库相对路径引用它们）+ LICENSE/VERSIONING
 - **FIGURE_AUDITS.json 幽灵契约修复**：该产物在 output-protocol 树与 registry 登记，但产出方 unified-plotting 只字未提（违反 registry 自身的 phantom-artifact 规则）——补 Step 6.5 产出义务（每次渲染后 upsert 镜像）+ `schemas/FIGURE_AUDITS.schema.json` + validator 注册 + e2e fixture 条目（19/19 零 pending）
 - **README 双语同步至 v5.3**：项目结构树补齐 scripts 新工具（validator/security_scan/ci_check/verifiers）、tests/、fixtures/、.workflow/、schemas/、rebuttal skill；新增「质量门（v5.3）」章节（双语）；PDF+PNG 陈旧表述更正为 v4.0 的 PDF+SVG
+- **CONTRIBUTING / AGENT_GUIDE 对齐 v5.3**：CONTRIBUTING 重写（本地门控 ci_check+pytest、PR 冻结约定、英文-only skill 政策、verdict 注册流程）；AGENT_GUIDE 修复陈旧点（"17-Phase"→21、3→4 视角、补 5 个缺失 skill、补 Phase 5b EG、"OSS has no experiments" 错误表述更正为 v2.0 起即有 toy+full 实验、验证路径 3→4 条、新增 KILL 检查点与 v5.3 契约行）
 
-**验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 18/18；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK（grep 全仓扫描）。
+**验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 19/19 零 pending；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK（grep 全仓扫描）。
 
 ## [1.2.0] - 2026-08-09
 
