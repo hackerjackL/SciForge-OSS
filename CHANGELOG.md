@@ -26,8 +26,9 @@
 - **README 双语同步至 v5.3**：项目结构树补齐 scripts 新工具（validator/security_scan/ci_check/verifiers）、tests/、fixtures/、.workflow/、schemas/、rebuttal skill；新增「质量门（v5.3）」章节（双语）；PDF+PNG 陈旧表述更正为 v4.0 的 PDF+SVG
 - **CONTRIBUTING / AGENT_GUIDE 对齐 v5.3**：CONTRIBUTING 重写（本地门控 ci_check+pytest、PR 冻结约定、英文-only skill 政策、verdict 注册流程）；AGENT_GUIDE 修复陈旧点（"17-Phase"→21、3→4 视角、补 5 个缺失 skill、补 Phase 5b EG、"OSS has no experiments" 错误表述更正为 v2.0 起即有 toy+full 实验、验证路径 3→4 条、新增 KILL 检查点与 v5.3 契约行）
 - **入口清单对齐**：根 SKILL.md 与 plugin.json 技能数 24→25（support 14→16，补 publishability-score/rebuttal），description 补 v5.3 特性；"No experiment dependencies" 更正为实验友好表述；pre-commit hook 名称补测试套件
+- **EVALUATION_PROTOCOL.json 幽灵契约修复（第二例）**：method-registry §3.6 与 experiment-execution 引用 `verdicts/EVALUATION_PROTOCOL.json`，但 output-protocol 树 / registry / schemas / validator 均无登记——四处补齐（最小 schema + registry 行 + e2e fixture，validator 达 20/20 零 pending；四件套字段名未定型记入 schemas/README 已知缺口 #12）
 
-**验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 19/19 零 pending；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK（grep 全仓扫描）。
+**验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 20/20 零 pending；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK（grep 全仓扫描）。
 
 ## [1.2.0] - 2026-08-09
 
