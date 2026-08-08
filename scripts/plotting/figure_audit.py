@@ -91,11 +91,19 @@ class Report:
 
 
 def _parse_size(value: str) -> float:
-    """Normalize a CSS/SVG font-size to px."""
+    """Normalize a CSS/SVG font-size to px.
+
+    Total function: ANY unparsable input ("..", ".", "", garbage) yields
+    0.0 instead of raising — malformed numerics in a hand-edited SVG must
+    degrade to an audit WARN, never kill the render (F8).
+    """
     m = re.match(r"([\d.]+)\s*(px|pt)?", value.strip())
     if not m:
         return 0.0
-    v = float(m.group(1))
+    try:
+        v = float(m.group(1))
+    except ValueError:
+        return 0.0
     if m.group(2) == "pt":
         v /= PX_TO_PT  # pt -> px
     return v
@@ -143,8 +151,10 @@ def audit_resolution(svg: Path, rep: Report, figdir: Path | None = None) -> None
             hm = re.search(r'height="([\d.]+)', text)
             if wm and hm:
                 w, h = float(wm.group(1)), float(hm.group(1))
-    except OSError:
-        pass
+    except (OSError, ValueError):
+        # unreadable file OR malformed numerics (viewBox="0 0 .. 10",
+        # width="..") — degrade to the WARN below, never crash (F8)
+        w = h = 0.0
     if not w or not h:
         rep.add("A2", "WARN", "SVG has no readable viewBox/size — cannot "
                               "verify dimensions")
@@ -204,16 +214,20 @@ def audit_composite_raster(figdir: Path, rep: Report) -> None:
 
 def audit_palette_svg(svg_text: str, rep: Report) -> None:
     bad, seen = [], set()
-    for h in sorted(set(re.findall(r"#[0-9a-fA-F]{6}", svg_text))):
-        c = st.chroma(h)
-        L = st.rgb2lab(st.hex2rgb(h))[0]
+    # 3-/6-/8-digit hex (HEX_COLOR_RE): rsvg/inkscape render shorthand and
+    # alpha-suffixed forms too, so they are normalized to #RRGGBB before
+    # the morandi gate — otherwise saturated colors bypassed the audit (F10)
+    for h in sorted(set(st.HEX_COLOR_RE.findall(svg_text))):
+        norm = st.normalize_hex(h)
+        if norm in seen:
+            continue
+        seen.add(norm)
+        c = st.chroma(norm)
+        L = st.rgb2lab(st.hex2rgb(norm))[0]
         if c < 2.0 or L > 96 or L < 12:
             continue  # neutrals, near-white, near-black
-        if h in seen:
-            continue
-        seen.add(h)
-        if not st.is_morandi(h):
-            bad.append(f"{h} (C*={c:.1f})")
+        if not st.is_morandi(norm):
+            bad.append(f"{norm} (C*={c:.1f})")
     if bad:
         rep.add("A3", "FAIL", "off-palette colors: " + ", ".join(bad))
     else:
@@ -226,9 +240,12 @@ def audit_source_text(text: str, rep: Report) -> None:
     hexes = set(re.findall(r"#[0-9a-fA-F]{6}", text))
     # tex HTML colors: \definecolor{...}{HTML}{3A3733}
     hexes |= set(re.findall(r"\{HTML\}\{([0-9a-fA-F]{6})\}", text))
-    # asy rgb(0-1) triples
+    # asy rgb(0-1) triples (malformed numerics skipped, never a crash — F8)
     for m in re.finditer(r"rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)", text):
-        r, g, b = (min(255, int(float(x) * 255)) for x in m.groups())
+        try:
+            r, g, b = (min(255, int(float(x) * 255)) for x in m.groups())
+        except ValueError:
+            continue
         hexes.add("#%02X%02X%02X" % (r, g, b))
     bad = []
     for h in sorted(hexes):
@@ -246,7 +263,11 @@ def audit_source_text(text: str, rep: Report) -> None:
     sizes = []
     for pat in (r"\\fontsize\{([\d.]+)\}", r"fontsize\(([\d.]+)pt\)",
                 r"font-size:\s*([\d.]+)pt"):
-        sizes += [float(s) for s in re.findall(pat, text)]
+        for s in re.findall(pat, text):
+            try:
+                sizes.append(float(s))
+            except ValueError:  # malformed numerics: skip, never crash (F8)
+                continue
     if sizes and min(sizes) < st.NATURE_FLOOR["annotation"]:
         rep.add("A4", "FAIL", f"declared font size {min(sizes)}pt below floor")
     elif sizes:
@@ -289,7 +310,10 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
     if not m:
         rep.add("A5", "WARN", "no viewBox — cannot verify layout bounds")
         return
-    vb = [float(x) for x in m.group(1).split()]
+    try:
+        vb = [float(x) for x in m.group(1).split()]
+    except ValueError:
+        vb = []  # malformed numerics (viewBox="0 0 .. 10") -> WARN below (F8)
     if len(vb) != 4:
         rep.add("A5", "WARN", "malformed viewBox")
         return
@@ -298,7 +322,10 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
     for tm in re.finditer(
             r'<text[^>]*?x="([\d.-]+)"[^>]*?y="([\d.-]+)"[^>]*>(.*?)</text>',
             svg_text, re.S):
-        x = float(tm.group(1))
+        try:
+            x = float(tm.group(1))
+        except ValueError:
+            continue  # malformed coordinate: skip the element, never crash (F8)
         tag = tm.group(0)[: tm.group(0).find(">")]
         body = re.sub(r"<[^>]+>", "", tm.group(3))
         # d2 wraps multi-line labels in tspans sharing the anchor x
@@ -500,7 +527,10 @@ def _svg_viewport(svg_text: str) -> tuple[float, float, float, float]:
         num = re.match(r"\s*([\d.]+)\s*(px|pt)?\s*$", am.group(1))
         if not num:  # percentage / em / auto -> fall back to the viewBox
             return None
-        v = float(num.group(1))
+        try:
+            v = float(num.group(1))
+        except ValueError:
+            return None  # malformed numerics -> fall back to the viewBox (F8)
         return v / PX_TO_PT if num.group(2) == "pt" else v
 
     px_w, px_h = _attr_px("width"), _attr_px("height")
@@ -798,8 +828,8 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
             y = float(re.search(r'y="([\d.-]+)"', t).group(1))
             w = float(re.search(r'width="([\d.-]+)"', t).group(1))
             h = float(re.search(r'height="([\d.-]+)"', t).group(1))
-        except AttributeError:
-            continue
+        except (AttributeError, ValueError):
+            continue  # absent OR malformed numerics: skip the rect (F8)
         halos.append((x, y, x + w, y + h))
 
     def covered(t):
@@ -827,8 +857,8 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
                           float(re.search(r'y1="([\d.-]+)"', t).group(1))),
                          (float(re.search(r'x2="([\d.-]+)"', t).group(1)),
                           float(re.search(r'y2="([\d.-]+)"', t).group(1)))))
-        except AttributeError:
-            continue
+        except (AttributeError, ValueError):
+            continue  # absent OR malformed numerics: skip the line (F8)
     num_re = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
     for pm in re.finditer(r'<path[^>]*>', svg_text):
         tag = pm.group(0)

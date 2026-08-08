@@ -41,6 +41,7 @@ Exit codes: 0 = success, 2 = palette/contract violation, 3 = tool error,
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -54,7 +55,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sciforge_style as st  # noqa: E402
 import figure_audit  # noqa: E402  (internal audit module — NOT a separate tool)
 
-HEX_RE = re.compile(r"#[0-9a-fA-F]{6}\b")
+# 3-/6-/8-digit #-hex literals (F10): rsvg/inkscape render #RGB shorthand
+# and #RRGGBBAA too, so the pre-render gate must see them; the trailing
+# lookahead keeps a 6-digit literal from being parsed as the prefix of an
+# 8-digit one and rejects 4/5/7-digit garbage.  TeX {HTML}{...} stays
+# 6-digit only (xcolor rejects shorthand) — matched separately below.
+HEX_RE = st.HEX_COLOR_RE
 TOOL_TIMEOUT = 240
 
 
@@ -86,10 +92,12 @@ def which(*names: str) -> str | None:
 
 def extract_colors(text: str) -> set[str]:
     """Collect color literals from every syntax the engines accept:
-    #RRGGBB (SVG/d2/graphviz), \\definecolor{...}{HTML}{RRGGBB} (TeX),
-    and asy rgb(r,g,b) 0-1 triples.  Auditing only #-hex literals let
-    TeX/asy colors bypass the pre-render gate (fixed v5.3)."""
-    hexes = set(HEX_RE.findall(text))
+    #RGB / #RRGGBB / #RRGGBBAA (SVG/d2/graphviz — shorthand and
+    alpha-suffixed forms normalized to canonical #RRGGBB, F10),
+    \\definecolor{...}{HTML}{RRGGBB} (TeX — 6 digits ONLY; xcolor rejects
+    shorthand), and asy rgb(r,g,b) 0-1 triples.  Auditing only #-hex
+    literals let TeX/asy colors bypass the pre-render gate (fixed v5.3)."""
+    hexes = {st.normalize_hex(h) for h in HEX_RE.findall(text)}
     hexes |= set(re.findall(r"\{HTML\}\{([0-9a-fA-F]{6})\}", text))
     for m in re.finditer(r"rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)", text):
         r, g, b = (min(255, int(float(x) * 255)) for x in m.groups())
@@ -315,6 +323,17 @@ def render_mermaid(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
         tmp_svg.unlink()
 
 
+def _safe_panel_stem(label: str) -> str:
+    """Filesystem- AND TeX-safe stem for the panel_<label> copies.
+
+    Manifest labels may carry TeX/XML specials ("a_b", "x%y", "m&n"); those
+    are fine for typesetting (escaped) and XML (escaped), but must never
+    reach \\includegraphics file names or \\@namedef replacement text —
+    a bare "%" there starts a TeX comment and corrupts the definition (F9).
+    """
+    return re.sub(r"[^A-Za-z0-9._-]", "_", label) or "panel"
+
+
 def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                      log: list, keep_svg: Path | None = None) -> None:
     """Composite engine — assemble N pre-rendered panels into ONE figure
@@ -375,19 +394,20 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
         label = p.get("label") or chr(ord("a") + i)
         labels.append(label)
         local_vec = None
+        stem = _safe_panel_stem(label)
         if f.suffix.lower() == ".pdf":
             # self-contained VECTOR copy for composite.tex (the figure dir
             # stays reproducible; the TeX assembly never reaches outside)
-            dst_pdf = outdir / f"panel_{label}.pdf"
+            dst_pdf = outdir / f"panel_{stem}.pdf"
             if dst_pdf.resolve() != f.resolve():
                 shutil.copyfile(f, dst_pdf)
             local_vec = dst_pdf.name
-            tmp = outdir / f"_panel_{label}"
+            tmp = outdir / f"_panel_{stem}"
             run(["pdftoppm", "-png", "-r", str(dpi), "-singlefile",
                  str(f), str(tmp)], log=log)
             f = tmp.with_suffix(".png")
         else:
-            dst = outdir / f"panel_{label}.png"
+            dst = outdir / f"panel_{stem}.png"
             if dst.resolve() != f.resolve():
                 shutil.copyfile(f, dst)
             f = dst
@@ -442,10 +462,12 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                 f'<image x="{x:.0f}" y="{y + strip + voff:.0f}" '
                 f'width="{cell_w:.0f}" height="{h:.0f}" '
                 f'href="data:image/png;base64,{b64}"/>')
+            # XML-escape the label: manifest labels may carry &/</> which
+            # would corrupt the assembled SVG (it must stay well-formed) (F9)
             label_parts.append(
                 f'<text x="{x:.0f}" y="{y + strip - fs * 0.28:.0f}" '
                 f'font-size="{fs}" font-weight="bold" fill="{st.TOKENS["ink"]}">'
-                f'({labels[i]})</text>')
+                f'({html.escape(labels[i])})</text>')
         y += strip + row_h[r] + gap
     parts.append("</g>")
     label_parts.append("</g>")
@@ -491,6 +513,11 @@ def write_composite_tex(outdir: Path, panels: list[tuple[str, str]],
     strip) is preserved proportionally to \linewidth, so the snippet
     scales to whatever width latex_include.tex wraps it in.
 
+    Labels are TeX-escaped for typesetting (\textbf{(...)}), so manifest
+    labels carrying specials ("a_b", "x%y", "m&n") still compile; the
+    panel FILE names are assumed safe (render_composite writes them via
+    _safe_panel_stem).
+
     The file compiles standalone (pdflatex composite.tex) OR when \input
     inside a running document: after \begin{document} LaTeX lets every
     preamble-only command to \@notprerr, which makes
@@ -511,8 +538,13 @@ def write_composite_tex(outdir: Path, panels: list[tuple[str, str]],
     figdir_rel = f"figures/{outdir.name}"
     data = []
     for idx, (label, fname) in enumerate(panels, start=1):
+        # the FILE name stays verbatim (render_composite copies panels under
+        # _safe_panel_stem names), but the LABEL is typeset inside \textbf,
+        # so TeX specials must be escaped — a bare "_", "%", "&" or "#" in
+        # the replacement text breaks pdflatex (F9)
         data.append(f"\\@namedef{{sfcomp@p@{idx}@file}}{{{fname}}}")
-        data.append(f"\\@namedef{{sfcomp@p@{idx}@label}}{{{label}}}")
+        data.append(
+            f"\\@namedef{{sfcomp@p@{idx}@label}}{{{_tex_escape_text(label)}}}")
     n = len(panels)
     tex = f"""% =====================================================================
 % composite.tex — vector-faithful assembly of the composite figure
@@ -762,9 +794,13 @@ def write_latex_include(outdir: Path, name: str, caption: str | None,
                         composite: bool = False) -> None:
     # ASCII '---' + escaped label in the placeholder: a Unicode em dash
     # breaks \caption (moving argument) and labels may carry underscores
-    # — keep the shipped snippets compile-safe under stock pdflatex
-    cap = caption or (f"Figure: {_tex_escape_text(label or name)} "
-                      "(auto-caption --- replace).")
+    # — keep the shipped snippets compile-safe under stock pdflatex.
+    # A USER-supplied --caption is TeX-escaped too ("50% confidence &
+    # more" must not die on a bare %/& inside the moving argument) (F9);
+    # the auto-caption behavior is unchanged.
+    cap = (_tex_escape_text(caption) if caption is not None
+           else f"Figure: {_tex_escape_text(label or name)} "
+                "(auto-caption --- replace).")
     lab = label or name
     if width_mm:
         width_opt = f"width={width_mm}mm"
