@@ -317,6 +317,25 @@ Append to `figures/FIGURE_INDEX.md`:
 - **Readability**: Nature floor verified (axis ≥12pt, ticks ≥10pt)
 ```
 
+### Step 6.5: Update the verdict mirror (v5.3 — FIGURE_AUDITS.json)
+
+After every figure render/re-render, update the machine-readable mirror `verdicts/FIGURE_AUDITS.json` so downstream skills can check all figure audits with one flat read (the per-figure detail stays in `figures/{figure_name}/figure_audit.json`):
+
+```json
+{
+  "schema_version": "1.0",
+  "generated_at": "<UTC ISO-8601, time of this update>",
+  "figures": {
+    "{figure_name}": {
+      "verdict": "PASS | WARN | FAIL (from figure_audit.json)",
+      "audit_file": "figures/{figure_name}/figure_audit.json"
+    }
+  }
+}
+```
+
+Semantics: read the existing mirror (if present), upsert this figure's entry, rewrite the file. A figure re-rendered after fixes overwrites its own entry. Consumers (`/paper-writing`, `/paper-compile`) gate on it: any entry at FAIL blocks figure inclusion until fixed. Contract: [`artifact-registry.md`](../../shared-references/artifact-registry.md) row `verdicts/FIGURE_AUDITS.json`; schema: [`schemas/FIGURE_AUDITS.schema.json`](../../shared-references/schemas/FIGURE_AUDITS.schema.json).
+
 ## Required Workspace
 
 - `figures/` — output PDF + SVG files (dual output, v4.0)

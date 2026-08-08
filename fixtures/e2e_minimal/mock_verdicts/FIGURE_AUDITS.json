@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-09T00:01:00Z",
+  "figures": {
+    "fig_architecture": {
+      "verdict": "PASS",
+      "audit_file": "figures/fig_architecture/figure_audit.json"
+    }
+  }
+}
