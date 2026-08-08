@@ -3,7 +3,7 @@ name: sciforge-oss
 type: skill-package
 role: ai-scientist-framework
 version: 1.2.1
-description: "SciForge-OSS — pure-Skill-driven domain-agnostic automated research framework: any scientific idea → one submission-ready SCI paper. 21-phase DAG single-question loop (idea-discovery → theory-derivation → experiments → logic/leakage audits → paper-writing → compile → cross-model review → citation-audit). v3.4 adds: human_skip=true production-grade checkpoint skipping, per-section figure budget + composite grouping (Composite/Group), LaTeX pipeline leakage scrub gate (8-class regex), Reproducibility + Data Availability statements, domain-expert blind-spot review (BLINDSPOT_CHECK.json), full-code smoke gate (.SMOKE.json), proxy auto-mount + async dataset download. 24 sub-skills; the orchestrator chains them via use_skill. Invoke /sciforge-oss or /auto-pipeline to run the full pipeline."
+description: "SciForge-OSS — pure-Skill-driven domain-agnostic automated research framework: any scientific idea → one submission-ready SCI paper. 21-phase DAG single-question loop (idea-discovery → theory-derivation → experiments → logic/leakage audits → paper-writing → compile → cross-model review → citation-audit). v3.4 adds: human_skip=true production-grade checkpoint skipping, per-section figure budget + composite grouping (Composite/Group), LaTeX pipeline leakage scrub gate (8-class regex), Reproducibility + Data Availability statements, domain-expert blind-spot review (BLINDSPOT_CHECK.json), full-code smoke gate (.SMOKE.json), proxy auto-mount + async dataset download. v5.3 adds: verdict schema enforcement (verdicts/ + JSON Schemas + validator), global run-budget ledger (RUN_BUDGET.json), experiment security gate before dispatch, human checkpoint on KILL decisions, true-vector composite figures, /rebuttal skill. 25 sub-skills; the orchestrator chains them via use_skill. Invoke /sciforge-oss or /auto-pipeline to run the full pipeline."
 entry: skills/orchestrator/auto-pipeline/SKILL.md
 license: MIT
 tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
@@ -20,7 +20,7 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 |------|------|------|
 | **Orchestrator** | 1 | `/auto-pipeline` — single entry point, 21-phase DAG research loop (v3.0 Phase 5b adds AI 8-dimension EG evaluation) |
 | **Meta-Skills** | 8 | general meta-skills: idea-discovery, universal-retrieval, unified-plotting, dynamic-sandbox, dynamic-tooling, domain-learner, domain-signature, novelty-check |
-| **Support Skills** | 14 | support skills: paper-writing, paper-compile, quality-gate, auto-review-loop, theory-derivation, **experiment-execution**, logic-verification, result-to-claim, leakage-audit, citation-audit, invariant-check, kill-argument, method-registry, adversarial-falsification |
+| **Support Skills** | 16 | support skills: paper-writing, paper-compile, quality-gate, auto-review-loop, theory-derivation, **experiment-execution**, logic-verification, result-to-claim, leakage-audit, citation-audit, invariant-check, kill-argument, method-registry, adversarial-falsification, publishability-score, **rebuttal** |
 | **Shared References** | 31+ | shared config: skill-config, assurance-contract, effort-contract, color-themes, venue-profiles, **engineering-grounding-contract**, etc. |
 
 ## Included Sub-Skills
@@ -53,6 +53,8 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 - `/kill-argument` — anti-self-deception argument
 - `/method-registry` — methodology registry (mandatory human approval)
 - `/adversarial-falsification` — adversarial falsification
+- `/publishability-score` — 6-dimension final publishability evaluation
+- `/rebuttal` — point-by-point rebuttal letter after rejection (v5.3)
 
 ## Quick Start
 
@@ -68,5 +70,5 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 - **Domain-agnostic**: no discipline knowledge preset
 - **Single-question execution**: one Q-id per invocation
 - **3 fidelities**: symbolic / numerical / qualitative
-- **No experiment dependencies**: no GPU required, no training required
+- **Experiment-friendly**: toy gate on CPU; full experiments background-dispatched (GPU optional, auto-detected); agent-authored scripts pass the v5.3 security gate before dispatch
 - **Unified template**: single `elsarticle` LaTeX template

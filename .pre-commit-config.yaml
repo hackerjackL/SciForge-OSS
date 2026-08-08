@@ -7,7 +7,7 @@ repos:
   - repo: local
     hooks:
       - id: sciforge-ci-check
-        name: SciForge CI check (markdown links + version consistency + plotting)
+        name: SciForge CI check (links + versions + plotting + test suite)
         entry: python3 scripts/ci_check.py
         language: system
         pass_filenames: false
