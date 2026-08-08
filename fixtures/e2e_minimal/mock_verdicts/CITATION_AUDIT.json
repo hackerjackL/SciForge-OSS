@@ -1,0 +1,48 @@
+{
+  "audit_skill": "citation-audit",
+  "verdict": "PASS",
+  "reason_code": "all_entries_keep",
+  "summary": "2 bibliography entries audited; all 3 verification layers (context, metadata, existence) pass; every entry KEEP.",
+  "audited_input_hashes": {
+    "PROBLEM.md": "sha256:c50b0f8358cb3097ce89730b3e6b1be89149c74ac7f548cbbee282f495fdfbcb",
+    "METHOD_REGISTRY_SNIPPET.md": "sha256:2aad820cbf564f3d9590d755d551b0062b3e9e24e6aaacc4364102e4dbb3ee69"
+  },
+  "trace_path": "Q001/logs/traces/citation-audit/",
+  "thread_id": "fixture-citation-thread-q001",
+  "reviewer_model": "fixture-mock-reviewer",
+  "reviewer_reasoning": "Both entries are standard, verifiable references for the variance of the sample mean and of the sample median; citation contexts match.",
+  "generated_at": "2026-08-09T00:00:00Z",
+  "details": {
+    "total_entries": 2,
+    "counts": {
+      "KEEP": 2,
+      "FIX": 0,
+      "REPLACE": 0,
+      "REMOVE": 0
+    },
+    "per_entry": [
+      {
+        "key": "van_der_vaart_1998",
+        "verdict": "KEEP",
+        "uses": [
+          {
+            "file": "paper/sections/2_method.tex",
+            "line": 12,
+            "verdict": "CONTEXT_OK"
+          }
+        ]
+      },
+      {
+        "key": "hogg_mckean_2019",
+        "verdict": "KEEP",
+        "uses": [
+          {
+            "file": "paper/sections/2_method.tex",
+            "line": 27,
+            "verdict": "CONTEXT_OK"
+          }
+        ]
+      }
+    ]
+  }
+}

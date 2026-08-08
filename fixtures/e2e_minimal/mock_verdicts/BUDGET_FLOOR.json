@@ -1,0 +1,51 @@
+{
+  "verdict": "PASS",
+  "budget_floor": {
+    "satisfied": true,
+    "checks": {
+      "routes_explored": {
+        "required": 2,
+        "explored": 2,
+        "routes": [
+          "monte_carlo",
+          "analytic_closed_form"
+        ]
+      },
+      "matrix_completion": {
+        "percent": 100,
+        "groups_run": [
+          "main",
+          "baseline_analytic"
+        ]
+      },
+      "seed_budget": {
+        "required": 3,
+        "used": 3,
+        "seeds": [
+          42,
+          43,
+          44
+        ]
+      },
+      "failure_records": "no failed runs; nothing to record",
+      "remaining_budget_declaration": "no untried routes remain"
+    }
+  },
+  "completion_justification": [
+    {
+      "route": "monte_carlo",
+      "status": "success",
+      "evidence": "RESULT.json status=PASS, core_claim_validated=true, 3 seeds"
+    },
+    {
+      "route": "analytic_closed_form",
+      "status": "success",
+      "evidence": "ratio 2/pi ~ 0.637 < 1 agrees with Monte Carlo direction"
+    },
+    {
+      "route": "untried_routes",
+      "status": "none_remaining"
+    }
+  ],
+  "problem_id": "Q001"
+}

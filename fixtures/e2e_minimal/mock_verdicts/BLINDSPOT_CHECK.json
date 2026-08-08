@@ -1,0 +1,41 @@
+{
+  "round": 1,
+  "evidence_type": "simulational",
+  "failure_modes_checked": [
+    {
+      "mode": "numerical_instability",
+      "verdict": "checked_clear",
+      "evidence": "run_toy.py uses direct sampling and statistics.variance; no accumulating recursion",
+      "severity": "fatal",
+      "added_to_fix_list": false
+    },
+    {
+      "mode": "convergence_failure",
+      "verdict": "not_applicable",
+      "reason": "no iterative solver or optimization in the toy experiment",
+      "severity": "fatal"
+    },
+    {
+      "mode": "discretization_error",
+      "verdict": "not_applicable",
+      "reason": "no discretized domain; exact Gaussian sampling",
+      "severity": "severe"
+    },
+    {
+      "mode": "parameter_tuning_bias",
+      "verdict": "checked_clear",
+      "evidence": "run_toy.py fixes all constants a priori (N_SAMPLES, N_TRIALS, seeds); no tuning loop",
+      "severity": "fatal",
+      "added_to_fix_list": false
+    },
+    {
+      "mode": "seed_dependence",
+      "verdict": "checked_clear",
+      "evidence": "RESULT.json metrics.per_seed: variance ordering holds on seeds 42, 43, 44 individually",
+      "severity": "severe",
+      "added_to_fix_list": false
+    }
+  ],
+  "unresolved_count": 0,
+  "fatal_unresolved": 0
+}

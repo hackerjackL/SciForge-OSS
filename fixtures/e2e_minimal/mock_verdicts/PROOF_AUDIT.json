@@ -1,0 +1,38 @@
+{
+  "audit_skill": "theory-derivation",
+  "verdict": "PASS",
+  "reason_code": "all_steps_verified",
+  "summary": "3-step analytic derivation (Var(mean)=sigma^2/n; asymptotic Var(median)=(pi/2)sigma^2/n; ratio 2/pi<1) verified step by step against the frozen problem statement and the locked method selection.",
+  "audited_input_hashes": {
+    "PROBLEM.md": "sha256:c50b0f8358cb3097ce89730b3e6b1be89149c74ac7f548cbbee282f495fdfbcb",
+    "METHOD_REGISTRY_SNIPPET.md": "sha256:2aad820cbf564f3d9590d755d551b0062b3e9e24e6aaacc4364102e4dbb3ee69"
+  },
+  "trace_path": "Q001/logs/traces/theory-derivation/",
+  "reviewer_model": "fixture-mock-reviewer",
+  "reviewer_reasoning": "Each derivation step is a standard, checkable identity; the numeric cross-check at n=21 matches the closed form within Monte Carlo noise.",
+  "generated_at": "2026-08-09T00:00:00Z",
+  "details": {
+    "n_steps": 3,
+    "n_verified": 3,
+    "steps": [
+      {
+        "step": 1,
+        "claim": "Var(sample mean) = sigma^2 / n for i.i.d. draws",
+        "verdict": "verified",
+        "method": "linearity of variance for independent terms"
+      },
+      {
+        "step": 2,
+        "claim": "Asymptotic Var(sample median) = (pi/2) * sigma^2 / n for Gaussian data",
+        "verdict": "verified",
+        "method": "standard order-statistic result; corroborated numerically"
+      },
+      {
+        "step": 3,
+        "claim": "Var(mean)/Var(median) ~ 2/pi ~= 0.637 < 1",
+        "verdict": "verified",
+        "method": "arithmetic on verified steps 1-2"
+      }
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "route": "hybrid",
+  "evidence_type": "simulational",
+  "reason": "Q001 has a closed-form analytic ground truth (Var(mean)=sigma^2/n, asymptotic Var(median)=(pi/2)*sigma^2/n) AND an executable Monte Carlo computation, so the Phase 6 entry router selects the hybrid route per verification-routing.md (neither theory-only nor experiment-first alone covers both artifacts).",
+  "problem_id": "Q001",
+  "decided_at": "2026-08-09T00:00:00Z"
+}
