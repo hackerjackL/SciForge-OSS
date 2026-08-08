@@ -30,6 +30,9 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 | **Meta-skill** | `/unified-plotting` | Render publication-quality figures (morandi palette + Layer 2 data colormaps) |
 | **Meta-skill** | `/dynamic-sandbox` | Lightweight numerical sanity checks (Python/numpy, no GPU) |
 | **Meta-skill** | `/dynamic-tooling` | On-the-fly tooling for the sandbox |
+| **Meta-skill** | `/domain-learner` | Learns the domain signature from literature (sole writer, v2.8) |
+| **Meta-skill** | `/domain-signature` | Rule-based signature hint (optional fast-path, v2.8) |
+| **Meta-skill** | `/novelty-check` | 4-dim novelty evaluation + collision audit (v5.0) |
 | **Support** | `/experiment-execution` | Toy experiment (foreground) + full experiment (background dispatch) [v2.0] |
 | **Support** | `/method-registry` | Build + hash-lock the method registry (forced human approval) |
 | **Support** | `/theory-derivation` | SymPy symbolic derivation + step-by-step machine verification |
@@ -43,21 +46,25 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 | **Support** | `/auto-review-loop` | Autonomous iterative improvement via cross-model reviewer |
 | **Support** | `/citation-audit` | Final 3-layer citation verification on the paper draft |
 | **Support** | `/kill-argument` | Anti-self-deception exercise (kill your own argument) |
+| **Support** | `/adversarial-falsification` | Phase 2.5 falsification gate (hypothesis scoring + counterexamples) |
+| **Support** | `/publishability-score` | 6-dim final publishability evaluation (v2.2) |
+| **Support** | `/rebuttal` | Point-by-point rebuttal letter after rejection (v5.3) |
 
 ---
 
-## The 17-Phase DAG Loop
+## The 21-Phase DAG Loop
 
 ```
 Phase  0: load problem (freeze Q-id — INV-G1 anchor)
 Phase  1: problem understanding & decomposition (built-in reasoning)
-Phase  2: /idea-discovery [DAG branching] — 3-perspective ideas + MCTS iteration
+Phase  2: /idea-discovery [DAG branching] — 4-perspective ideas (theoretical/computational/qualitative/empirical) + MCTS iteration
 Phase  2.5: /adversarial-falsification [falsification gate] — hypothesis scoring + counterexample construction + literature adversarial check
 Phase  3: /novelty-check [DAG gate] — 4-dim evaluation + elimination
     ─── Forced human checkpoint: pick the final idea ───
 Phase  4: /universal-retrieval — literature survey + 3-layer anti-hallucination
 Phase  5: /method-registry — method binding + hash lock + forced human approval
     ─── Forced human checkpoint: approve the method registry ───
+Phase  5b: engineering-grounding evaluation [v2.9] — 5-dim EG axis weighted by domain signature
 Phase  6: /theory-derivation — SymPy symbolic derivation + step-by-step machine verification
 Phase  6b: /experiment-execution (toy) [CONDITIONAL] — v2.0 toy experiment (theory-only → SKIP)
 Phase  6c: /experiment-execution (full+bg) [CONDITIONAL] — v2.0 full-experiment background dispatch (theory-only → SKIP)
@@ -93,6 +100,8 @@ Only the human user can waive a failure past round 3; the orchestrator never sel
 
 These checkpoints are non-negotiable. The pipeline halts until the human confirms.
 
+Additionally (v5.3): the **KILL checkpoint** is ON by default — when a kill argument is produced before idea regeneration (loop-back rows L5/L7/L9/L11/L13), the orchestrator pauses for human confirmation. Delegate it with `human_skip=true` (all checkpoints) or `kill_checkpoint=false` (this one only); confirmations are recorded in `APPROVAL_LOG.txt`.
+
 ---
 
 ## Key Contracts (OSS — discipline-agnostic, single-row)
@@ -117,13 +126,16 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | `discipline-context.md` | OSS single-row (`general`) discipline contract | OSS rewritten (no 4-level fallback) |
 | `discipline-writing.md` | Universal section-by-section writing guide (no per-discipline guides) | OSS rewritten (discipline-agnostic) |
 | `color-themes.md` | Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) | Carried from OSS (already discipline-agnostic) |
+| `artifact-registry.md` + `output-protocol.md` | Artifact contracts + the single-authority workspace tree (verdicts/ unified) | OSS v5.2/v5.3 governance |
+| `schemas/` + `scripts/validate_verdicts.py` | JSON Schemas + validator for every machine-readable verdict | OSS v5.3 (schema enforcement) |
+| `verification-routing.md` | experiment-first / theory-only / hybrid routing contract | OSS v5.0 |
 
 ### Removed from OSS (discipline-specific, not applicable)
 
 | Contract | Why removed |
 |----------|-------------|
 | `discipline-templates/` (cs-ml / economics / elsevier / physics / general) | Venue-specific templates — OSS uses single unified `elsarticle` template |
-| `experiment-integrity.md` + `experiment-result-schema.md` | OSS has no experiments |
+| `experiment-integrity.md` + `experiment-result-schema.md` | Superseded — OSS experiments (toy + full, v2.0) are governed by `experiment-execution/SKILL.md` (RESULT.json / DISPATCH.json contracts + v5.3 security gate) |
 | `plugin-router.md` | Main SciForge's research-plugins routing — OSS doesn't use the plugins layer |
 | `wiki-helper-resolution.md` | Main SciForge's wiki-enrich specific — OSS doesn't use it |
 
@@ -139,7 +151,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | **Overlays** | 16 overlay files (4 skills × 4 disciplines) | None — no discipline dispatch |
 | **Templates** | 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) | Single unified `elsarticle` template |
 | **Experiments** | Full empirical pipeline (GPU training, benchmark binding, SOTA gate) | **Toy + Full experiments** — toy foreground gate, full background dispatch [v2.0] |
-| **Verification paths** | Implicit — assumes code/experiment available | Explicit — three selectable paths: theory-only / computational / theory+experiment |
+| **Verification paths** | Implicit — assumes code/experiment available | Explicit — four selectable paths: theory-only / computational / theory+experiment / qualitative |
 | **Problem source** | N/A | No bundled problem index — the human user supplies the research question (Q-id) per run |
 | **Figures** | Python pipeline mandatory (matplotlib/seaborn) | Python pipeline for data plots; AI-direct SVG allowed for simple diagrams (morandi palette still enforced) |
 | **Fidelity ladder** | 5-fidelity (text / symbolic / minimal / empirical / full) | 3-fidelity (symbolic / numerical / qualitative) — no empirical, no full |

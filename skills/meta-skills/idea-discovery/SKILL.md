@@ -17,7 +17,7 @@ role: research-idea-generation
 - **Output**: IDEA_DAG.json + FINAL_PROPOSAL.md + IDEA_DAG_VISUAL.md
 - **Key**: 4 perspectives (theoretical/computational/qualitative/empirical), 5-axis pre-screen, mandatory human approval
 
-> **No legacy pilot fallback**: main SciForge's `idea-creator` has a legacy demo/pilot experimental fallback when MCTS produces 0 promoted ideas. OSS has **no experiments** — the fallback is instead "re-run ideation with broader perspectives" (not "fall back to a demo experiment").
+> **No legacy pilot fallback**: main SciForge's `idea-creator` has a legacy demo/pilot experimental fallback when MCTS produces 0 promoted ideas. OSS has **no legacy demo/pilot-experiment fallback** — the fallback is instead "re-run ideation with broader perspectives" (a demo run is never substituted for the real toy/full experiment gates).
 
 ## Use When
 
