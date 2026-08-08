@@ -1,21 +1,21 @@
 # VERSIONING.md — SciForge-OSS 大一统版本策略
 
-> **Status (v1.2.0)**: 单一版本号策略 — 开发、release、marketplace、README、CHANGELOG、plugin manifest **全部使用同一个版本号**。不再有"内容版本 vs 发布版本 vs 框架版本"的多套编号混乱。
+> **Status (v1.2.1)**: 单一版本号策略 — 开发、release、marketplace、README、CHANGELOG、plugin manifest **全部使用同一个版本号**。不再有"内容版本 vs 发布版本 vs 框架版本"的多套编号混乱。
 
 ---
 
 ## 1. 核心原则：一个版本号，全链路统一
 
-SciForge-OSS **只有一个版本号**：**`1.2.0`**（当前正式版）。
+SciForge-OSS **只有一个版本号**：**`1.2.1`**（当前正式版）。
 
 | 位置 | 使用 | 必须与当前版本一致 |
 |------|------|---------------------|
-| 根 `./SKILL.md` frontmatter `version:` | atomcode skill-package 发布版本 | ✅ `1.2.0` |
-| `.atomcode-plugin/plugin.json` `"version"` | marketplace 插件版本 | ✅ `1.2.0` |
-| 25 个子 skill `SKILL.md` frontmatter `version:` | 每个子 skill 的版本 | ✅ `1.2.0` |
-| `README.md` 版本徽章 | 仓库主页展示 | ✅ `1.2.0` |
-| `CHANGELOG.md` 最新条目 | 变更记录 | ✅ `1.2.0` |
-| git release tag | 发行版 | ✅ `v1.2.0` |
+| 根 `./SKILL.md` frontmatter `version:` | atomcode skill-package 发布版本 | ✅ `1.2.1` |
+| `.atomcode-plugin/plugin.json` `"version"` | marketplace 插件版本 | ✅ `1.2.1` |
+| 25 个子 skill `SKILL.md` frontmatter `version:` | 每个子 skill 的版本 | ✅ `1.2.1` |
+| `README.md` 版本徽章 | 仓库主页展示 | ✅ `1.2.1` |
+| `CHANGELOG.md` 最新条目 | 变更记录 | ✅ `1.2.1` |
+| git release tag | 发行版 | ✅ `v1.2.1` |
 | `.atomcode/` marketplace `git_commit` | 自动拉取锁定的 commit | 与 release tag 对应 |
 
 **为什么这么做**：v3.2→v3.4 期间出现过 4 套编号并存（根 SKILL.md=1.2.0/1.3.0、plugin.json=3.4.0、experiment-execution=2.0.0、publishability-score=2.2.0、22 个子 skill 无 version）——读者无法判断哪个是"当前版本"。大一统后：**任何时候只有一个版本号**，任何入口读到的都是同一个。
@@ -24,9 +24,9 @@ SciForge-OSS **只有一个版本号**：**`1.2.0`**（当前正式版）。
 
 ## 2. 版本号规则（正式版 + 补丁）
 
-### 2.1 当前版本：`1.2.0`（正式版）
+### 2.1 当前版本：`1.2.1`（正式版）
 
-`1.2.0` 是**当前正式版**（1.1.0 初始发布 → 1.1.1 定位收敛与绘图工具链 → 1.1.2 管线治理：verdicts 统一 / 工作区整洁 / 回环登记 / 公平评测 / 反 AIGC 活人感 → **1.2.0 v5.3 治理加固**：verdict schema 强制 / CI / 预算总账 / 实验安全门 / KILL 人类检查点 / composite 真矢量 / rebuttal skill / SKILL.md 全英文）。
+`1.2.1` 是**当前正式版**（1.1.0 初始发布 → 1.1.1 定位收敛与绘图工具链 → 1.1.2 管线治理 → 1.2.0 v5.3 治理加固：verdict schema 强制 / CI / 预算总账 / 实验安全门 / KILL 人类检查点 / composite 真矢量 / rebuttal skill / SKILL.md 全英文 → **1.2.1 加固补丁**：CI 跑全量测试 / doctor 诚实化 / 审计陈旧清理 / rgb2lab 白点精确化 / RESULT.json 契约补齐）。
 
 ### 2.2 补丁版本：`1.2.x`
 
@@ -34,14 +34,14 @@ SciForge-OSS **只有一个版本号**：**`1.2.0`**（当前正式版）。
 
 | 场景 | 版本号 | 例子 |
 |------|--------|------|
-| 当前正式版 | `1.2.0` | v5.3 治理加固 + 全英文 skill |
-| 第一个 bug 修复 | `1.2.1` | 修复了 smoke gate 的路径引用 |
-| 第二个 bug 修复 | `1.2.2` | 修复了 leakage scrub 漏检一类模式 |
+| 当前正式版 | `1.2.1` | v5.3 治理加固 + 全英文 skill + 加固补丁 |
+| 第一个补丁 | `1.2.1` | CI 跑全量测试 + doctor 诚实化 + 审计清理 |
+| 下一个补丁 | `1.2.2` | 修复了 leakage scrub 漏检一类模式 |
 | ... | `1.2.x` | 每次修复递增 x |
 
 **补丁规则**：
 - 每个修复/文档修正 = `1.2.x` 的 x 递增 1
-- 补丁**不改变**主版本号 `1.2.0` 前缀——它们属于同一个正式版系列的维护
+- 补丁**不改变** `1.2.x` 前缀——它们属于同一个正式版系列的维护
 - 补丁必须写进 `CHANGELOG.md`（见 §4），并更新**所有** 27 个文件的 version 字段
 - release tag：`v1.2.0`、`v1.2.1`、`v1.2.2`...
 

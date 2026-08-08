@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.1] - 2026-08-09
+
+### v5.3 加固补丁（follow-up on the hardening pass）
+
+- **CI 真正跑测试**：`ci_check.py` 新增第 4 项检查 `test-suite` —— pytest 全量用例 + `validate_verdicts.py` e2e fixture + `security_scan.py --self-test`；缺 pytest 判 FAIL 而非跳过（裸克隆不能静默过 CI）。`.workflow/ci.yml` 相应安装 pytest + Pillow
+- **doctor() 诚实化**：diagrams/cairosvg 两行此前调 `which("python3")` 冒充 import 检查（包缺失也报 OK）——改为子进程真实 import（v5.3 fix）
+- **figure_audit 陈旧清理**：模块 docstring A1/A2 描述仍是 v3 PNG 时代（output.png / dpi≥300）——更新为 v4.0 PDF+SVG 契约；`audit_layout_svg` 裁剪启发式忽略 font-size 的 pt 单位（宽度高估 1/0.75）——改经 `_parse_size` 归一
+- **色彩数学精确化**：`rgb2lab` 白点除数与矩阵行和不一致（L*(white)=100.0000039）——改为以矩阵自身行和为参考白，纯白精确映射 (100, 0, 0)；`is_morandi` docstring"per channel"措辞修正为整体欧氏距离
+- **RESULT.json 契约补齐**：experiment-execution 输出 schema 此前未承诺 `core_claim_validated` / `seeds_used`，而 auto-pipeline Phase 6b toy 门控读取这两个字段——补为必填并说明门控语义
+
+**验证**：166 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS。
+
 ## [1.2.0] - 2026-08-09
 
 ### v5.3 治理加固 + 全英文化 + 工程化基础（hardening pass）
