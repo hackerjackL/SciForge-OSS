@@ -313,8 +313,12 @@ Before declaring the draft ready, perform a self-review:
 7. **Citation style consistency** — numeric OR author-year, not mixed?
 8. **Figure budget (v3.4)** — does the paper meet the per-section figure minimums from [`/unified-plotting`](../../meta-skills/unified-plotting/SKILL.md) §Figure Budget Contract? Is `figure_budget.architecture_diagram_present` true in `FIGURE_INDEX.md`? (< 4 body figures → `WARN`; < 2 total → `FAIL`)
 9. **Reproducibility + Data Availability (v3.4)** — do both back-matter statements exist (`sections/Z_reproducibility.tex`), are they `\input`'d in `main.tex` before `\bibliography`, and did the Step 3.5 scrub gate's re-grep find zero internal-path leaks in them? (missing → `FAIL, reason_code: missing_reproducibility_statement`)
+10. **反 AIGC 活人感扫描（v5.2）** — 按 [`writing-principles.md`](../../shared-references/writing-principles.md) §0.5 执行四项自检：AI 腔黑名单计数（任一类 ≥6 → FAIL `aigc_phrasing`）、句长方差抽查（std<5 词的节 → WARN `sentence_monotony`）、报告体判别抽查（Intro/Discussion 全篇报告体 → FAIL `report_style`）、破折号计数（>5 → WARN）。结果写入 `verdicts/PAPER_CLAIM_AUDIT.json` 的 `aigc_scan` 字段。另按 §0.5 领域惯例适配核对当前文风族（domain-signature 的 writing_style）的领域特定活人感要求（人文引文页码/CS 贡献证据指针/数学定理完整陈述/医学伦理声明/计量识别论证）
+11. **评测公平性透传（v5.2）** — 结果表中的每个对比核对 `CLAIMS_FROM_RESULTS.md` 的 `parity_check`/`all_seeds_reported`/`full_grid_reported` 三字段；带 `protocol_violation` 标记的实验组不得出现在主对比表；`reproduced_by_us` 基线必须在 Experimental Setup 声明复现方式
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)

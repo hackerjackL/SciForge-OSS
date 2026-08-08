@@ -257,6 +257,8 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 | `ERROR` | Skill itself failed | Internal error |
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)

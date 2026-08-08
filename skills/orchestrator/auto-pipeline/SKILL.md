@@ -297,7 +297,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 4 | 文献搜索完成 + 3 层验证通过 + 筛选链(真+全)完整性核 PASS | v2.2: **不可跳过**——即使 theory-only 也必须跑（理论问题需查重避免重复证明）；空则 WARN 但继续（需人工补救文献）；筛选链核：每篇引用至少 1 层验证 + 无 orphan 引用 + 引用覆盖核心 claim |
 | 5 | 方法 registry 构建完成 + hash 锁 + **强制人类审批** | 请求用户审批 Section 3；agent 不能自批 |
 | 6 | SymPy 推导成功 + 逐步机器验证 PASS | 回退 Phase 1（最多 3 轮） |
-| 6b | 玩具实验 RESULT.json status=PASS + core_claim_validated=true | FAIL → BLOCKED (kill idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
+| 6b | 玩具实验 RESULT.json status=PASS + core_claim_validated=true | **v5.1**: FAIL → KILL-or-PIVOT 决策（负向显著且 ≥2 种子可复现才触发：PIVOT 回 Phase 5 重注册方法（预算 ≤2）/ KILL → kill-argument 杀论证 → 回 Phase 2 换 idea）；TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
 | 6c | 全量实验 DISPATCH.json 生成 + 后台进程启动确认 + **v5.1 budget_floor.satisfied**（路线探索≥2 或否决证据 + 矩阵 100% + 种子足额 + 失败留痕 + completion_justification） | 无后台方法 → BLOCKED; 启动失败 → 1 retry; theory-only → SKIP; budget_floor 不满足 → IN_PROGRESS（继续探索，不得进 Phase 10） |
 | 6c-BA | 全量实验完成且 STATUS.json verdict=FAIL（toy 曾 PASS） | **v2.2.1 BA**: 回退 Phase 2 重生成 idea（bounded 2 轮）—见 [idea-discovery BA 机制](../../meta-skills/idea-discovery/SKILL.md) |
 | 7 | Type I 无 CRITICAL + Type IV 无 ESCAPE | CRITICAL → callback Phase 5 (3 轮上限)；再失败升级 BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
@@ -446,6 +446,32 @@ The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](.
 
 The overall pipeline verdict = the **worst** verdict across all 20 phases: `ERROR > BLOCKED > FAIL > WARN > NOT_APPLICABLE > PASS`.
 
+## 回环完整性登记表（v5.2 — Loop-Back Registry，防"链路断裂"）
+
+**实测反馈**：链路是否断裂不能靠记忆，必须靠结构。本表是**所有回环的唯一权威清单**——每个 phase 的 FAIL/WARN 出口、回环目标、预算、耗尽出口都必须在此登记；新增 phase 或回环必须同步更新本表，orchestrator 每个 phase boundary 按本表核对（表外回环 = 契约违规）。
+
+| # | 触发点 | 触发条件 | 回环目标 | 动作 | 预算 | 耗尽出口 |
+|---|--------|---------|---------|------|------|---------|
+| L1 | Phase 2.5 | WEAKENED | Phase 2 | idea 重生成 | 3 轮 | BLOCKED 上报人类 |
+| L2 | Phase 2.5 | FALSIFIED | — | idea 淘汰记入 failed_ideas.json，继续评下一个候选 | 每 idea 1 次 | 候选全灭 → BLOCKED |
+| L3 | Phase 3 | 无幸存者 | Phase 3 | 放宽 strictness 重评 | 1 轮 | BLOCKED |
+| L4 | Phase 5 | hash 锁不一致 | Phase 5 | 重建 registry | 3 轮 | BLOCKED |
+| L5 | Phase 6b toy | FAIL（负向显著且 ≥2 种子可复现） | **PIVOT → Phase 5**（换方法重注册+重锁 hash）或 **KILL → Phase 2**（kill-argument 杀论证后换 idea） | PIVOT：方法重设计；KILL：idea 重生 | PIVOT ≤2 次；KILL 走 BA | PIVOT 耗尽 → 强制 KILL；BA 耗尽 → BLOCKED + BA_EXHAUSTED |
+| L6 | Phase 6b toy | TIMEOUT/ERROR | Phase 6b | 缩放/修复重跑 | 各 1 次 | BLOCKED |
+| L7 | Phase 6c-BA | full FAIL 且 toy 曾 PASS | Phase 2 | idea 重生成 | BA ≤2 轮 | BLOCKED + BA_EXHAUSTED |
+| L8 | Phase 7 | CRITICAL | Phase 5 | 方法修补 | 3 轮 | BLOCKED + LOGIC_GAP |
+| L9 | Phase 8 | FATAL/CRITICAL | Phase 6 | 推导修正 | 3 轮 | FATAL=数据与结论矛盾 → BA 回 Phase 2（≤2 轮） |
+| L10 | Phase 14 | 分数 <6 | Phase 6 | 证据补强 | 4 轮 | BLOCKED |
+| L11 | Phase 14 | kill-argument 站住 | Phase 2 | BA idea 重生 | BA ≤2 轮 | BLOCKED + BA_EXHAUSTED |
+| L12 | Phase 13 | 超页 FAIL | Phase 12 | 删减重编译 | 至页数达标 | 删无可删 → 降 length 档重排 |
+| L13 | 反缩减 | 连续 3 轮无实质响应 | Phase 2 | 强制 KILL 路径 | — | BLOCKED |
+
+**回环纪律（硬规则）**:
+1. **每个回环必带预算**：无预算回环 = 死循环温床；预算耗尽必有一个**明确的非回环出口**（BLOCKED 上报人类或淘汰记录），禁止"再试一轮"式口头放宽
+2. **回环必换状态**：回环重入的 phase 必须消费上次失败的证据（failed_ideas.json / KILL_ARGUMENT.json / REVIEW_STATE.json 的 response_class）——原样重跑同一输入是禁止的（反死循环）
+3. **KILL 路径必过 kill-argument**：任何"换 idea"决策必须先产出 KILL_ARGUMENT.json（verdicts/）——没有杀论证的换 idea 是漂移不是止损（INV-G1 内容哈希会拦）
+4. **BA 预算全局共享**：L7/L9/L11 三个 BA 触发点共享 ≤2 轮总预算（`verdicts/BA_BUDGET.json` 记账），不是各 2 轮——防止三次 BA 叠加成 6 轮空转
+
 ## Anti-Deadloop Escalation (Universal, reused from paper-compile E16)
 
 The bounded 3-round fallback is itself bounded by a hard escalation ladder. Do NOT loop on the same failure for more than 2 fix attempts:
@@ -490,6 +516,8 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
   - **FLEXIBLE (agent discretion)**: MCTS round count (default 4, may reduce if convergence is clear), experiment scale_ratio, toy experiment design, strictness thresholds, effort level
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)

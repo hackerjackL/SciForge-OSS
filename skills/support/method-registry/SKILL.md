@@ -149,6 +149,19 @@ Every assumption is scored for reasonability. This is the **assumption registry*
 
 `estimated_minutes` 合计驱动 `/experiment-execution` 的后台调度阈值与 subagent 委托决策（v5.0 后台调度规则）。`/result-to-claim` 按矩阵逐项核对结果完整性——矩阵里有、结果里没有的组 → claim 保真度降级（不得宣称该类别的结论）。
 
+## 3.6 Evaluation Protocol Pre-registration (v5.2 — 评测公平性，随 §3.5 一同 hash-lock)
+
+**实测反馈**：评测必须"统一对比、公平、非糊弄"——指标怎么选、基线怎么跑、结果怎么报告，必须在**看结果之前**锁死，否则 agent 会（无意地）选择对自己有利的评测方式。本节与 §3.5 一同 hash-lock，实验期间不可改。
+
+**预注册四件套**（写入 `methods/EVALUATION_PROTOCOL.md` + `verdicts/EVALUATION_PROTOCOL.json` 机读版）：
+
+1. **指标锁定（metrics lock）**: PRIMARY outcome 的主指标 + 报告指标全集在此锁死（名称、计算方式、聚合方式 mean±std）。实验后**不得增删指标**——想加指标 = 改方法 = 重走 §3 hash-lock
+2. **基线公平条件（baseline parity）**: 每个基线的运行条件**逐项对齐**并列表锁定——同样的数据划分（同 split 同 seed）、同样的预处理、同样的算力预算（训练步数/epoch/时间上限）、同样的调参力度（基线也允许按其文献推荐值调参，不能"我们的方法精调、基线裸跑"）。条件不对齐的对比结果不得进论文（`/result-to-claim` 校验 `parity_check` 字段）
+3. **基线强制重算（baseline re-implementation rule）**: 引用他人论文的基线数字 = **禁止**（不同环境/版本/划分不可比）。所有基线必须在**本实验环境**用官方实现（或论文附录复现细节）重跑；官方实现不可得 → 该基线标注 `reproduced_by_us`（按论文描述复现）并在论文中声明，**不得**冒充官方结果
+4. **报告纪律（anti-cherry-picking）**: 主结果必须报告**全种子均值±std**（禁止挑最好种子）；超参扫描报告全网格（禁止只报最优点，最优点可另标注但全网格必须在附录）；负向/不显著结果如实进 Limitations（负结果纪律）。任何"选择性报告"被 `/result-to-claim` 发现 → claim 保真度降两级
+
+**执行链**：`/experiment-execution` 按本协议跑（偏离即 RESULT.json 标 `protocol_violation`）→ `/result-to-claim` 逐条核对 `parity_check` / `all_seeds_reported` / `full_grid_reported` 三字段 → 缺项或违规 = 对应 claim 不得进论文主体。
+
 ## 4. Outcomes (Primary vs Secondary)
 
 Pre-registered outcome classification. **Cannot be changed post-hoc.**
@@ -357,6 +370,8 @@ When `/leakage-audit` finds CRITICAL Type I leakage (LEAKY on a primary outcome)
    - **Do NOT silently continue** — a logic gap surviving 3 method swaps indicates the approach itself is flawed, not a method selection problem.
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
