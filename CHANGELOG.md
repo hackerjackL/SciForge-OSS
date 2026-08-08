@@ -21,6 +21,8 @@
   - verify_paper_audits 拒绝哈希逃逸工作区的 audited_input_hashes 键（`../../etc/hostname` → STALE 拒绝）
 - **shared-references 全英文化（政策收尾）**：35 个含中文的共享契约文档 + AGENT_GUIDE.md + plotting INSTALL.md 全部译为英文（零 CJK）——skill pointer-load 链路上不再有语言切换；机读内容（产物名/字段/JSON 键/代码围栏/链接/数值阈值/表格结构）逐字节保留；output-protocol 目录树结构（含 20 个 verdicts/ 固定名）字节级不变，e2e 守卫测试通过；术语表与 SKILL.md 一致（verdict / loop-back / kill argument / budget floor / gate / human voice ...）
 - **磁盘遗留二轮清理**：`.ipynb_checkpoints/`（仓库根 + scripts/plotting/）删除
+- **发布清单修复**：package.json `files` 移除已删除的 `problems/`（v1.1.1 删库后遗留），补入 `scripts/`（工具链随 skill 分发）+ `LICENSE` + `VERSIONING.md`；`sciforge init` 脚手架补拷贝 `scripts/`（此前新建项目缺绘图/校验/安全扫描工具链，而 skill 以仓库相对路径引用它们）+ LICENSE/VERSIONING
+- **FIGURE_AUDITS.json 幽灵契约修复**：该产物在 output-protocol 树与 registry 登记，但产出方 unified-plotting 只字未提（违反 registry 自身的 phantom-artifact 规则）——补 Step 6.5 产出义务（每次渲染后 upsert 镜像）+ `schemas/FIGURE_AUDITS.schema.json` + validator 注册 + e2e fixture 条目（19/19 零 pending）
 
 **验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 18/18；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK（grep 全仓扫描）。
 
