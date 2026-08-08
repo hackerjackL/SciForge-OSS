@@ -264,6 +264,10 @@ Write:
 - The exact blocker: missing object, unstable assumptions, notation conflict, unsupported approximation, or theorem-level claim without enough conditions
 - What extra assumption, reframe, or intermediate derivation would be needed
 
+### Machine-readable verdict (v5.2 — always emit)
+
+Whatever the outcome, write `verdicts/PROOF_AUDIT.json` — the step-by-step proof-verification verdict in the audit envelope (`audit_skill` / `verdict` / `reason_code` / `summary` / `audited_input_hashes` / `details` per [`assurance-contract.md`](../../shared-references/assurance-contract.md) and [`schemas/PROOF_AUDIT.schema.json`](../../shared-references/schemas/PROOF_AUDIT.schema.json)). Coherent derivation → PASS; close-but-not-coherent → WARN or FAIL with the mismatch in `details`; cannot-be-made-coherent → FAIL/BLOCKED with the blocker as `reason_code`. A missing PROOF_AUDIT.json is a chain break — never silent-skip. The narrative stays in the derivation package (`derivations/`); consumers: `/paper-writing` Phase 6 verifier, `/publishability-score`.
+
 ## Output Protocols
 > **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 

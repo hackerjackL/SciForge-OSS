@@ -421,6 +421,7 @@ The orchestrator DOES:
 - Apply the explicit quality gate for the phase boundary
 - Trigger fallback when a phase FAILs or WARNs
 - Surface BLOCKED to the human user (never silently retry past round 3)
+- Rewrite `verdicts/PIPELINE_VERDICT_SUMMARY.md` at EVERY phase boundary — the aggregated overview of all verdicts currently in `verdicts/` (per output-protocol Unified Verdict Principles #3); the human and downstream skills read pipeline verdict state from this one file
 
 ## 6-State Verdict Schema
 

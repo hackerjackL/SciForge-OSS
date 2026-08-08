@@ -513,6 +513,8 @@ After dispatching the full experiment to background, the skill returns control t
 2. **"I'm done writing" requires justification**: declaring completion (at any stage) must attach `completion_justification`: list of attempted routes + status of each route (success / rejected + evidence) + list of remaining untried routes (must be empty, or explain item by item why not tried)
 3. This field is read and re-verified by `/auto-review-loop` at each round's Phase A — if completion_justification's "untried routes" is non-empty while the agent has stopped exploring → the review concern is forced to the `experiment_redesign` class (triggering the anti-reduction protocol's substantive response)
 
+**Persistence (v5.3)**: the budget-floor evaluation is ALSO written to `verdicts/BUDGET_FLOOR.json` (machine-readable verdict per [`schemas/BUDGET_FLOOR.schema.json`](../../shared-references/schemas/BUDGET_FLOOR.schema.json): `verdict` PASS/IN_PROGRESS/BLOCKED + `budget_floor.satisfied` + the five checks + `completion_justification` when declaring done). The Return payload carries the same content; the orchestrator's Phase 6c gate reads the verdict file (payload as fallback). Never silent-skip: an unevaluated floor is written as `IN_PROGRESS`, not omitted.
+
 **Return payload:**
 
 ```json
