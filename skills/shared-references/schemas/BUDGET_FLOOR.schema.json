@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/BUDGET_FLOOR.schema.json",
+  "title": "BUDGET_FLOOR.json - exploration budget floor completion criteria",
+  "description": "Machine-readable form of the exploration budget floor (experiment-execution SKILL.md, 'Exploration Budget Floor'). Hard rules enforced by the validator as post-checks: budget_floor.satisfied=false forbids verdict PASS (only IN_PROGRESS or BLOCKED allowed); declaring completion (verdict PASS) requires completion_justification. The 5 check items (routes explored, matrix completion, seed budget, failure records, remaining-budget declaration) are documented semantically but their exact field names are not fixed by the docs - see schemas/README.md known gaps.",
+  "type": "object",
+  "required": ["verdict", "budget_floor"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "IN_PROGRESS", "BLOCKED"],
+      "description": "Return-payload verdict. PASS = floor satisfied and completion justified; IN_PROGRESS = keep exploring; BLOCKED = resource/direction limited (attach reason)."
+    },
+    "budget_floor": {
+      "type": "object",
+      "required": ["satisfied"],
+      "properties": {
+        "satisfied": {
+          "type": "boolean",
+          "description": "True only when all 5 floor checks pass (routes explored >= 2 or rejection evidence, matrix 100%, seeds complete, failures recorded, remaining budget declared)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "completion_justification": {
+      "description": "Mandatory when declaring completion: list of attempted routes + status of each (success / rejected+evidence) + remaining untried routes (must be empty or justified one by one). Shape not fixed by the docs, so presence-only is enforced (by validator post-check when verdict=PASS)."
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/RUN_BUDGET.schema.json",
+  "title": "RUN_BUDGET.json - global run budget ledger",
+  "description": "Global run budget ledger introduced in v5.3 (task P1-7). Tracks wall-clock time, API cost, pivot count, and BA review rounds consumed against configured limits, with a per-phase breakdown. Shape agreed with the pipeline team; see schemas/README.md.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "started_at",
+    "wall_clock_seconds",
+    "api_cost_usd",
+    "pivot_count",
+    "ba_rounds_used",
+    "ba_rounds_max",
+    "per_phase",
+    "limits"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Ledger schema version, e.g. 1.0."
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier of this pipeline run."
+    },
+    "started_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$",
+      "description": "Run start time (UTC ISO-8601)."
+    },
+    "wall_clock_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Wall-clock seconds elapsed since started_at."
+    },
+    "api_cost_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Cumulative API cost in USD."
+    },
+    "pivot_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PIVOT decisions taken so far (per-experiment PIVOT budget is <= 2)."
+    },
+    "ba_rounds_used": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Auto-review-loop (BA) rounds consumed."
+    },
+    "ba_rounds_max": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Configured MAX_ROUNDS for the review loop."
+    },
+    "per_phase": {
+      "type": "object",
+      "description": "Per-phase breakdown (phase key -> phase-specific accounting). Contents are phase-defined and unconstrained here.",
+      "additionalProperties": true
+    },
+    "limits": {
+      "type": "object",
+      "required": ["wall_clock_seconds_max", "api_cost_usd_max", "pivot_count_max"],
+      "properties": {
+        "wall_clock_seconds_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "api_cost_usd_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pivot_count_max": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

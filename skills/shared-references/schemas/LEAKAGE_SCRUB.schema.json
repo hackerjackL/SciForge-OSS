@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/LEAKAGE_SCRUB.schema.json",
+  "title": "LEAKAGE_SCRUB.json - pipeline-leakage scrub gate verdict",
+  "description": "Produced by /paper-writing Step 3.5 (8-class regex scrub gate, v3.3). /paper-compile refuses to compile when status != PASS (BLOCKED, reason_code: pipeline_leakage_not_scrubbed). Note: 'status' here uses the gate's own PASS|FAIL vocabulary, not the 6-state audit vocabulary.",
+  "type": "object",
+  "required": ["gate", "version", "status", "hits_found", "hits_scrubbed", "hits_remaining", "classes_seen", "checked_files"],
+  "properties": {
+    "gate": {
+      "type": "string",
+      "enum": ["pipeline-leakage-scrub"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Gate version, e.g. v3.3. Free-form so future revisions do not break validation."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PASS", "FAIL"],
+      "description": "Zero remaining hits required to PASS; any remaining hit is FAIL."
+    },
+    "hits_found": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hits_scrubbed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hits_remaining": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "classes_seen": {
+      "type": "array",
+      "description": "Leakage classes (A-H) detected during the grep pass.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-H]$"
+      }
+    },
+    "checked_files": {
+      "type": "array",
+      "description": "Files grepped (main.tex, sections/*.tex, math_commands.tex, incl. sections/Z_reproducibility.tex).",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scrubbed_to": {
+      "type": "string",
+      "description": "Rewrite target description, e.g. 'neutral academic prose'."
+    }
+  },
+  "additionalProperties": true
+}

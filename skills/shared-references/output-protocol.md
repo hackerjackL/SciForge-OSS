@@ -50,7 +50,11 @@
 │   ├── PAPER_CLAIM_AUDIT.json      ← 论文-claim 一致性（paper-writing 自检）
 │   ├── LEAKAGE_SCRUB.json          ← LaTeX 泄漏清洗门（paper-writing §3.5）
 │   ├── CITATION_AUDIT.json         ← 3 层引用核验（citation-audit）
-│   └── PUBLISHABILITY_SCORE.json   ← 发表性终评（publishability-score）
+│   ├── INVARIANT_CHECK.json        ← 不变量检查结果（invariant-check；叙述报告在 audit_report/）
+│   ├── PUBLISHABILITY_SCORE.json   ← 发表性终评（publishability-score）
+│   └── RUN_BUDGET.json             ← 全局运行预算总账（v5.3：wall_clock/api_cost/pivot_count/ba_used；
+│                                      orchestrator 每个 phase boundary 记账并核对上限；
+│                                      旧 BA_BUDGET.json 的记账并入此文件，BA_BUDGET.json 只读回退）
 ├── logs/               ← 全流程日志的【集中目录】（v5.0）
 │   ├── pipeline.log    ←   auto-pipeline 状态流水（唯一权威状态记录）
 │   ├── phase_<n>.log   ←   各阶段运行日志（各 skill 写入，不再散落）
@@ -69,6 +73,13 @@
 2. **叙述性报告留在原 stage 目录**：人读的长报告（AUTO_REVIEW.md、audit 叙述、citation 报告）不动；只有机读 verdict 迁移
 3. **单一状态文件**：`PIPELINE_STATUS.json` 只存在于 `logs/`（事件流水），各阶段不得自建 PIPELINE_STATUS 副本；orchestrator 汇总时读 `verdicts/` 全目录生成管线评判总览（`verdicts/PIPELINE_VERDICT_SUMMARY.md`，每次 phase boundary 重写）
 4. 迁移兼容：读取先查 `verdicts/`，未找到回退旧 stage 路径；写入一律 `verdicts/`
+
+## 评判 Schema 强制（v5.3 — 治"字段拼错/漏写无感知"）
+
+1. **每个 verdict JSON 必须通过 schema 校验**：字段契约由 `skills/shared-references/schemas/<NAME>.schema.json`（draft 2020-12）定义，写入方不得拼错或省略 required 字段；哈希文件（PROBLEM_HASH.txt / REGISTRY_HASH.txt）须为单行小写 sha256（64 位十六进制）
+2. **orchestrator 在每个 phase boundary 与收尾（wrap-up）运行**：`python3 scripts/validate_verdicts.py {problem_id}/verdicts/`——已注册文件按 schema 校验 + 跨字段不变量（audit 家族 6 态 verdict 词表、审计 JSON 的 audited_input_hashes）；未注册 *.json → WARN；缺失的已注册文件只记 pending，不算错误
+3. **违规处置**：默认模式 → WARN（记录并继续）；`--strict` 模式 → BLOCKED（视同 FAIL，阻断当前 phase boundary）
+4. 新增 verdict 必须先在本目录补 schema 并在 validator 注册（步骤见 `skills/shared-references/schemas/README.md`）
 
 **单一之家原则（v5.0 — 治"目录混乱 + 代码重复"）**:
 1. 每类产物有**唯一规范路径**（上表）；写入其他位置的同类产物 → 审计 WARN，写入方负责迁移
@@ -89,7 +100,7 @@
 4. **一图一文件夹**：`figures/<fig_id>/`（fig_id 与 LaTeX label 一致）——图产物不与其他产物混放
 
 **临时文件禁令（硬规则）**:
-1. 工作区根目录**只允许**目录树定义的 15 个目录 + `refine-logs/` 入口文件；任何散落的 `.py`/`.tmp`/`.bak`/`.swp`/`nohup.out`/`core.*`/`*.orig`/`__pycache__/` → 收尾清理协议删除或迁移
+1. 工作区根目录**只允许**目录树定义的 14 个目录 + `refine-logs/` 入口文件；任何散落的 `.py`/`.tmp`/`.bak`/`.swp`/`nohup.out`/`core.*`/`*.orig`/`__pycache__/` → 收尾清理协议删除或迁移
 2. **临时文件只进 `/tmp` 或 `logs/tmp/`**：调试脚本、渲染中间产物、下载缓存一律写 `/tmp`（管线外）或 `logs/tmp/`（收尾时整目录删除）；**绝不**写工作区根目录或 stage 目录
 3. 实验数据集（下载的原始数据）放 `experiments/data/<dataset_id>/`，不进 `code/`、不进工作区根
 4. `nohup.out` / 后台进程输出一律重定向到 `logs/experiments/<experiment_id>.log`（experiment-execution dispatch 命令模板强制 tee 到该路径）

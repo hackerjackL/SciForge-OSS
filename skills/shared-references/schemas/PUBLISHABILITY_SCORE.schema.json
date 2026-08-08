@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/PUBLISHABILITY_SCORE.schema.json",
+  "title": "PUBLISHABILITY_SCORE.json - final publishability assessment",
+  "description": "Produced by /publishability-score ('Output Schema' in its SKILL.md). Primary axis is main-experiment-logic-in-place (dim1): dim1 < 0.5 hard-caps total at 0.4 with verdict NOT_PUBLISHABLE_NO_MEAN. The verdict tiers are this skill's own vocabulary, not the 6-state audit vocabulary.",
+  "type": "object",
+  "required": ["q_id", "scored_at", "verdict", "total_score", "dimensions", "main_logic_gating"],
+  "properties": {
+    "q_id": {
+      "type": "string",
+      "description": "Frozen problem Q-id."
+    },
+    "scored_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["SUBMISSION_READY", "SUPPLEMENTARY_GAPS", "NEEDS_MAJOR_REVISION", "NOT_PUBLISHABLE_NO_MEAN"],
+      "description": "SUBMISSION_READY (total >= 0.80, dim1 >= 0.8) | SUPPLEMENTARY_GAPS (main logic in place, missing supplementary experiments) | NEEDS_MAJOR_REVISION | NOT_PUBLISHABLE_NO_MEAN (main experiment logic not in place - supplementary experiments cannot save it)."
+    },
+    "total_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "total = 0.25*dim1 + 0.15*(dim2+dim3+dim4+dim5+dim6); capped at 0.4 when dim1 < 0.5."
+    },
+    "dimensions": {
+      "type": "object",
+      "required": [
+        "main_experiment_logic",
+        "theoretical_rigor",
+        "empirical_completeness",
+        "writing_quality",
+        "novelty_contribution",
+        "reproducibility"
+      ],
+      "properties": {
+        "main_experiment_logic": {
+          "$comment": "dim1 - the gating axis",
+          "type": "object",
+          "required": ["score", "rationale", "evidence"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "theoretical_rigor": {
+          "type": "object",
+          "required": ["score", "rationale", "evidence"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "empirical_completeness": {
+          "type": "object",
+          "required": ["score", "rationale", "evidence"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "writing_quality": {
+          "type": "object",
+          "required": ["score", "rationale", "evidence"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "novelty_contribution": {
+          "type": "object",
+          "required": ["score", "rationale", "evidence"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "reproducibility": {
+          "type": "object",
+          "required": ["score", "rationale", "evidence"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "main_logic_gating": {
+      "type": "object",
+      "required": ["dim1_score", "gating_triggered"],
+      "properties": {
+        "dim1_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gating_triggered": {
+          "type": "boolean",
+          "description": "True when dim1 < 0.5 forced the hard cap."
+        },
+        "cap_applied": {
+          "description": "Cap applied to total_score when gating triggered (number), or null when none. Type intentionally unconstrained (null is legal)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "missing_experiments": {
+      "type": "array",
+      "description": "Actionable missing-experiments manifest; meaningful when verdict = SUPPLEMENTARY_GAPS.",
+      "items": {
+        "type": "object",
+        "required": ["type", "description", "priority", "estimated_effort_hours"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "e.g. ablation, baseline, robustness, sota, cross, significance."
+          },
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "estimated_effort_hours": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "human_next_action": {
+      "type": "string"
+    },
+    "benchmark_ready": {
+      "type": "boolean",
+      "description": "True only when verdict = SUBMISSION_READY AND dim1 = 1.0 AND dim3 >= 0.8."
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

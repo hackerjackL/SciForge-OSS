@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/BLINDSPOT_CHECK.schema.json",
+  "title": "BLINDSPOT_CHECK.json - domain-expert blind-spot review (Phase B.2)",
+  "description": "Produced by /auto-review-loop Phase B.2 per its SKILL.md. One check object per round; the docs say 'one per round, appended' while output-protocol.md fixes a single flat file - this schema validates the single latest-round object (known gap, see schemas/README.md). A fatal unresolved mode caps the round score at 5; severe caps at 6.",
+  "type": "object",
+  "required": ["round", "evidence_type", "failure_modes_checked", "unresolved_count", "fatal_unresolved"],
+  "properties": {
+    "round": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_type": {
+      "type": "string",
+      "description": "Evidence type from refine-logs/domain-signature.json that selected the failure-mode row."
+    },
+    "failure_modes_checked": {
+      "type": "array",
+      "description": "One entry per failure mode in the evidence_type row of domain-failure-modes.md.",
+      "items": {
+        "type": "object",
+        "required": ["mode", "verdict"],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "Failure-mode key from domain-failure-modes.md (e.g. endogeneity, boundary_condition_error)."
+          },
+          "verdict": {
+            "type": "string",
+            "enum": ["checked_clear", "not_applicable", "unresolved"]
+          },
+          "evidence": {
+            "type": "string",
+            "description": "file:line evidence (required for unresolved; may be 'missing')."
+          },
+          "reason": {
+            "type": "string",
+            "description": "One-clause reason for not_applicable."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["fatal", "severe"],
+            "description": "Catalog severity from domain-failure-modes.md (fatal caps score at 5, severe at 6)."
+          },
+          "added_to_fix_list": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "unresolved_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fatal_unresolved": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fallback_reason": {
+      "type": "string",
+      "description": "Present when domain-signature.json is missing and the derivational row is used as fallback (e.g. signature_missing)."
+    }
+  },
+  "additionalProperties": true
+}

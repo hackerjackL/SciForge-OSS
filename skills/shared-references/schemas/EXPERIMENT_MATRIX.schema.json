@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/EXPERIMENT_MATRIX.schema.json",
+  "title": "EXPERIMENT_MATRIX.json - mandatory experiment matrix (machine-readable)",
+  "description": "Locked with METHOD_REGISTRY.md Section 3 per method-registry SKILL.md section 3.5. budget_scale + groups + locked_hash. Hash-lock refuses to generate while the matrix is incomplete.",
+  "type": "object",
+  "required": ["budget_scale", "groups", "locked_hash"],
+  "properties": {
+    "budget_scale": {
+      "type": "string",
+      "enum": ["full", "lite", "pilot"],
+      "description": "full = complete matrix; lite = reduced seeds/hyperparam points, no category removed; pilot = main + 1 SOTA baseline + 2 seeds (decision-only, not for paper body)."
+    },
+    "groups": {
+      "type": "array",
+      "description": "Experiment groups: main / baseline_<name> / ablation_<k> / hyperparam / robustness.",
+      "items": {
+        "type": "object",
+        "required": ["name", "hypothesis", "script", "estimated_minutes", "background", "subagents"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^(main|baseline_[A-Za-z0-9_-]+|ablation_[A-Za-z0-9_-]+|hyperparam|robustness)$",
+            "description": "Group name maps to experiments/full/group_<name>/."
+          },
+          "hypothesis": {
+            "type": "string",
+            "description": "What this group tests."
+          },
+          "script": {
+            "type": "string",
+            "description": "Path under code/ (single-home rule)."
+          },
+          "estimated_minutes": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Drives background-dispatch thresholds and subagent delegation."
+          },
+          "background": {
+            "type": "boolean"
+          },
+          "subagents": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "locked_hash": {
+      "type": "string",
+      "description": "Computed together with Section 3. Kept as free-form string: the docs do not fix a format for the pre-lock draft state."
+    }
+  },
+  "additionalProperties": true
+}

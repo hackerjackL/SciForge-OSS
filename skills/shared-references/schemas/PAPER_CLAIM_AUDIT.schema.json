@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/PAPER_CLAIM_AUDIT.schema.json",
+  "title": "PAPER_CLAIM_AUDIT.json - paper-claim consistency self-check",
+  "description": "Produced by /paper-writing Step 5 self-review. No explicit JSON example exists in the docs, so this schema requires only what is actually promised: the 6-state audit verdict, audited_input_hashes (artifact-registry.md schema invariant 2), and the aigc_scan field that writing-principles.md section 0.5 writes its results into. FAIL reason codes promised by the docs include insufficient_evidence_as_finding, negative_result_as_contribution, shrinkage_only_response, aigc_phrasing, report_style, missing_reproducibility_statement.",
+  "type": "object",
+  "required": ["verdict", "reason_code", "summary", "audited_input_hashes", "generated_at"],
+  "properties": {
+    "audit_skill": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"]
+    },
+    "reason_code": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "audited_input_hashes": {
+      "type": "object",
+      "description": "SHA256 of every consumed file (paper .tex files, CLAIMS_FROM_RESULTS.md, ...) per artifact-registry.md schema invariant 2.",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(sha256:)?[0-9a-fA-F]{64}$"
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$"
+    },
+    "trace_path": {
+      "type": "string"
+    },
+    "aigc_scan": {
+      "type": "object",
+      "description": "Anti-AIGC scan results (writing-principles.md section 0.5): blacklisted-phrase counts per class (any class >= 6 -> FAIL aigc_phrasing), sentence-length variance per section (std < 5 words -> WARN sentence_monotony), report-style spot check (Intro/Discussion all report-style -> FAIL report_style), dash count (> 5 -> WARN). Internal shape is not fixed by the docs, so contents are unconstrained.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
