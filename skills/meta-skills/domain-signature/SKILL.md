@@ -139,8 +139,7 @@ The **hint** is written to `refine-logs/domain-signature-hint.json` and consumed
 | `/adversarial-falsification` | Adds domain-specific failure modes to attack vectors |
 | `/novelty-check` | Adjusts novelty thresholds based on domain norms |
 | `/theory-derivation` | Selects verification approach (derivation vs simulation vs none) |
-| `/paper-writing` | Selects writing style, citation format, section structure |
-| `/discipline-writing` | Applies domain-specific writing conventions |
+| `/paper-writing` | Selects writing style, citation format, section structure; applies domain-specific writing conventions per [`discipline-writing.md`](../../shared-references/discipline-writing.md) (a shared reference, not a standalone skill in OSS) |
 | `/result-to-claim` | Calibrates confidence based on domain feasibility |
 
 > **Note**: These consumers read `domain-signature.json` (learner output), NOT the hint file produced here.

@@ -86,6 +86,7 @@ EXPECTED_VERDICT_FILES = frozenset({
     "LEAKAGE_SCRUB.json",
     "INVARIANT_CHECK.json",
     "REVIEW_LEDGER.json",
+    "RUN_BUDGET.json",
     "PROBLEM_HASH.txt",
     "REGISTRY_HASH.txt",
 })

@@ -482,7 +482,7 @@ The overall pipeline verdict = the **worst** verdict across all 21 phases: `ERRO
 
 ```json
 {
-  "schema_version": 1, "run_id": "Q042", "started_at": "2026-08-09T01:00:00Z",
+  "schema_version": "1.0", "run_id": "Q042", "started_at": "2026-08-09T01:00:00Z",
   "wall_clock_seconds": 0, "api_cost_usd": 0.0,
   "pivot_count": 0, "ba_rounds_used": 0, "ba_rounds_max": 2,
   "per_phase": {}, "limits": {"wall_clock_seconds_max": 172800, "api_cost_usd_max": 40.0, "pivot_count_max": 2}

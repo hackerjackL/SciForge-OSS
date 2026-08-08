@@ -52,9 +52,11 @@
 │   ├── CITATION_AUDIT.json         ← 3 层引用核验（citation-audit）
 │   ├── INVARIANT_CHECK.json        ← 不变量检查结果（invariant-check；叙述报告在 audit_report/）
 │   ├── PUBLISHABILITY_SCORE.json   ← 发表性终评（publishability-score）
-│   └── RUN_BUDGET.json             ← 全局运行预算总账（v5.3：wall_clock/api_cost/pivot_count/ba_used；
-│                                      orchestrator 每个 phase boundary 记账并核对上限；
-│                                      旧 BA_BUDGET.json 的记账并入此文件，BA_BUDGET.json 只读回退）
+│   ├── RUN_BUDGET.json             ← 全局运行预算总账（v5.3：wall_clock/api_cost/pivot_count/ba_used；
+│   │                                  orchestrator 每个 phase boundary 记账并核对上限；
+│   │                                  旧 BA_BUDGET.json 的记账并入此文件，BA_BUDGET.json 只读回退）
+│   ├── FIGURE_AUDITS.json          ← 全图审计汇总镜像（unified-plotting；每图明细仍随图 figure_audit.json）
+│   └── PIPELINE_VERDICT_SUMMARY.md ← 管线评判总览（orchestrator 每个 phase boundary 重写；派生文档，唯一允许进 verdicts/ 的 .md）
 ├── logs/               ← 全流程日志的【集中目录】（v5.0）
 │   ├── pipeline.log    ←   auto-pipeline 状态流水（唯一权威状态记录）
 │   ├── phase_<n>.log   ←   各阶段运行日志（各 skill 写入，不再散落）

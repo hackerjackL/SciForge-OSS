@@ -30,7 +30,7 @@ Phase 6（theory-derivation / experiment-execution）入口，读 `refine-logs/d
 - `/theory-derivation`：接受 `route` 字段——experiment-first 下被调用时以辅助模式运行（不阻塞、不强制全步 SymPy）
 - `/experiment-execution`：experiment-first / hybrid 下的主验证执行者
 - `/method-registry`：hash-lock 前检查强制实验矩阵完整性（experiment-first / hybrid 路由下）
-- `/paper-modes`：读 `VERIFICATION_ROUTING.json` 选 section 布局（experiment 模式优先）
+- `/paper-writing`（经 [`paper-modes.md`](paper-modes.md)）：读 `VERIFICATION_ROUTING.json` 选 section 布局（experiment 模式优先）——`paper-modes` 是共享参考文档，不是 OSS 独立 skill
 
 ## 4. See Also
 

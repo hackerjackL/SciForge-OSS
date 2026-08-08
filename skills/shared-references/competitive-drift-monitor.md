@@ -12,6 +12,8 @@
 - **Invocation**: quarterly cron OR manual `/competitive-drift-monitor` invoke
 - **Key**: 不是"再写一份竞品对比"；是"检测上一次对比的差异点是否仍成立，不成立的触发更新"
 
+> **OSS status (v5.3)**: the `/competitive-drift-monitor` skill itself is **not bundled in OSS** (deferred/external) — this document is the advisory protocol for the intended automation. Until the skill ships, drift checks happen manually (or not at all); nothing in the pipeline gates on this document.
+
 ## The 4 Differentiators Under Monitor
 
 OSS claims 4 differentiators over competitors (from [`competitive-analysis.md`](competitive-analysis.md) § 一、核心差异化优势):
