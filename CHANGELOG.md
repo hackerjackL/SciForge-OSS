@@ -23,6 +23,7 @@
 - **磁盘遗留二轮清理**：`.ipynb_checkpoints/`（仓库根 + scripts/plotting/）删除
 - **发布清单修复**：package.json `files` 移除已删除的 `problems/`（v1.1.1 删库后遗留），补入 `scripts/`（工具链随 skill 分发）+ `LICENSE` + `VERSIONING.md`；`sciforge init` 脚手架补拷贝 `scripts/`（此前新建项目缺绘图/校验/安全扫描工具链，而 skill 以仓库相对路径引用它们）+ LICENSE/VERSIONING
 - **FIGURE_AUDITS.json 幽灵契约修复**：该产物在 output-protocol 树与 registry 登记，但产出方 unified-plotting 只字未提（违反 registry 自身的 phantom-artifact 规则）——补 Step 6.5 产出义务（每次渲染后 upsert 镜像）+ `schemas/FIGURE_AUDITS.schema.json` + validator 注册 + e2e fixture 条目（19/19 零 pending）
+- **README 双语同步至 v5.3**：项目结构树补齐 scripts 新工具（validator/security_scan/ci_check/verifiers）、tests/、fixtures/、.workflow/、schemas/、rebuttal skill；新增「质量门（v5.3）」章节（双语）；PDF+PNG 陈旧表述更正为 v4.0 的 PDF+SVG
 
 **验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 18/18；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK（grep 全仓扫描）。
 
