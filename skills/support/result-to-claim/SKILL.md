@@ -81,6 +81,37 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 - A **secondary** claim (mechanism/robustness) can be supported by `qualitative` fidelity — secondary claims do not gate the pipeline.
 - **Never** label a claim "proven" without `symbolic` fidelity. **Never** label a claim "supported" without at least `numerical` fidelity.
 
+### 证据充分性门控（v5.1 — Evidence Sufficiency Gate，源自 CRUX 影子评估失败模式 #1）
+
+**背景**（arXiv:2607.27191）：AI agent 在小规模合成数据上跑出负结果，把统计效力严重不足的实验包装成"发现"——自我审稿都打了 weak reject 却照常推进。"它知道自己写得不好，但不知道该怎么变好。"我们的保真度阶梯管"证据类型"，本节补上"证据**分量**"——实验型论文的常见死法不是没有数值，而是数值**轻如鸿毛**。
+
+**强制检查**（`experiment-first` / `hybrid` 路由下，每个 PRIMARY claim 逐条执行，结果写入 `CLAIMS_FROM_RESULTS.md` 的 `evidence_sufficiency` 字段）：
+
+| 检查项 | 下限 | 不达标判定 |
+|--------|------|-----------|
+| **统计效力（power）** | 实验规模对该效应有检出能力：报告样本量/训练规模 + 该规模下可检出的最小效应（或功效分析） | `underpowered` |
+| **效应量（effect size）** | 主结果报告效应量本身（差值/提升幅度），不只是 p 值；效应量需与噪声水平可比（>1× 种子间 std，或明确置信区间） | `effect_within_noise` |
+| **重复性（replication）** | ≥3 种子（lite 档 ≥2）的均值±std；单点结果不得支撑 PRIMARY claim | `single_seed` |
+| **数据规模匹配** | toy/合成数据的结果**只能**支撑 "in the tested regime" 级声明；主声明必须由 full 实验支撑 | `toy_overreach` |
+| **基线对照** | 主声明必须有 ≥1 个基线的同条件对比（强制实验矩阵的 baseline 组） | `no_baseline` |
+
+**处置**（任一检查不达标）：
+1. 该 claim 保真度**强制降级**至 `qualitative` 以下 → 不得作为 PRIMARY claim 进论文主体
+2. 若该 claim 是核心假设（FINAL_PROPOSAL 的主论点）→ 触发 `/experiment-execution` 的 **KILL-or-PIVOT**（证据不足=核心假设未获支撑，同负结果纪律）——**禁止**通过改写措辞把"效力不足的实验"变成"探索性发现"
+3. `CLAIMS_FROM_RESULTS.md` 记录每条 claim 的 `evidence_sufficiency: {power, effect_size, replication, scale, baseline}` 五字段——`/paper-writing` 自检时任何 PRIMARY claim 缺该字段或含不达标项 → FAIL（`reason_code: insufficient_evidence_as_finding`）
+
+**反包装红线**（审计钩子）：正文出现"我们首次发现/我们揭示"类强声明而对应 claim 的 sufficiency 任一项不达标 → FAIL。措辞强化不能绕过证据分量——这正是 CRUX 实验中 agent 的典型死法。
+
+**评测公平性核对（v5.2 — 消费 method-registry §3.6 预注册协议）**: 每个涉及对比的 claim 额外核对三字段（写入 `CLAIMS_FROM_RESULTS.md`）：
+
+| 字段 | 检查内容 | 不达标处置 |
+|------|---------|-----------|
+| `parity_check` | 对比双方条件逐项对齐（同 split/同预处理/同算力预算/同调参力度），来源为 RESULT.json 的条件记录 | 不对齐 → 该对比不得作为 claim 证据（`reason_code: unfair_comparison`） |
+| `all_seeds_reported` | 主结果含全种子均值±std，非单点最优值 | 单点报告 → claim 保真度降一级（`reason_code: cherry_picked_seed`） |
+| `full_grid_reported` | 超参扫描全网格可查（正文或附录），非仅最优点 | 只报最优点 → claim 保真度降一级（`reason_code: cherry_picked_config`） |
+
+另核对 RESULT.json 的 `protocol_violation` 标记——带违规标记的实验组结果**整体不得**支撑任何 claim（该组只能出现在"评测过程说明"中如实披露，不能出现在结果表的主对比里）。基线若标注 `reproduced_by_us`，论文中必须声明复现方式（Limitations 或 Experimental Setup），不得冒充官方结果。
+
 ## 4-Dimensional Joint Confidence (TDAL — locked schema)
 
 The overall confidence is computed from 4 dimensions (T × D × A × L), not just theory fidelity. **The full schema, weights, thresholds, producer/consumer contracts, and floor constraints are locked in [`../shared-references/domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md).** This section is the **producer contract** — what `/result-to-claim` MUST emit.
@@ -165,7 +196,7 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 
 Gather derivation/verification evidence from whatever sources are available in the project:
 
-1. **Symbolic derivation logs** (`derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
+1. **Symbolic derivation logs** (`code/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
 2. **Numerical sanity checks** (`derivations/{problem_id}/verification_report.md`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
 3. **Logic verification audit** (`audit_report/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
 4. **refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
@@ -214,6 +245,17 @@ Please evaluate:
 Be honest. Do not inflate claims beyond what the evidence supports.
 A qualitative "looks right" judgment does not support a "proven" claim.
 ```
+
+### 负结果纪律（v5.0 — Negative Results Discipline）
+
+**实测反馈**：agent 把负向结果包装成"诚实的发现"当作贡献点——这在真实投稿中是致命伤（审稿人不会为"我们诚实地失败了"买单）。纪律如下：
+
+1. **负结果永不作为 contribution**：`CLAIMS_FROM_RESULTS.md` 的 claims 列表只收录**正向支撑主论点**的结果；任何"我们诚实地报告了 X 失败/不如预期"不得出现在 claims、contribution 列表或 Abstract
+2. **负结果的两条合法去向**：
+   - **主实验级负向**（核心假设未获支撑）→ 不是写作问题，是方向问题：回传 `/experiment-execution` 的 **KILL-or-PIVOT 停止协议**（toy 级）或触发方法重审（full 级），论文流程暂停等待新证据——**禁止带着被证伪的核心假设继续写论文**
+   - **局部/边界负向**（某子场景、某基线、某消融组不如预期）→ 写入 **Limitations/Discussion** 作边界说明（"我们的方法在 X 条件下未显现优势，表明适用边界为 Y"），这是学术诚实的正确形态
+3. **消融/超参负向是信息不是失败**：消融显示某组件无增益 → 如实报告该组件贡献不显著（这本身是有效科学信息），但不得升格为"我们发现去除更好"这类贡献表述，除非有主实验级证据
+4. **审计钩子**：`CLAIMS_FROM_RESULTS.md` 每条 claim 带 `polarity: positive|boundary` 字段；`polarity: negative` 的条目出现在 claims 列表 → `/paper-writing` 自检 FAIL（`reason_code: negative_result_as_contribution`）
 
 ### Step 3: Parse and Normalize
 

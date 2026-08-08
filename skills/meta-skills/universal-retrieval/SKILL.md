@@ -85,6 +85,7 @@ role: academic-retriever
 OSS 是学科无关的，真实科研问题跨 10+ 领域，**不能按学科硬切换源优先级**（主仓库 SciForge 有 4 学科的不同源优先级 + 引文窗口；OSS 没有）。OSS 用**统一优先级**（arXiv → S2 → CrossRef → PubMed → Web → OpenAlex，见上表），并对所有问题应用同一套参数：
 
 - **统一引文窗口** `min_year=2020`（主仓库有 6/12/18 月按学科变；OSS 用统一绝对年份）
+- **时效硬门槛（v5.0 — 防"文献过时"）**: 检索结果中**近 2 年论文占比 ≥ 40%**（`recency_ratio` 写入 `landscape_report.md` 与核验输出 `time_span.recency_ratio`）。不达标 → WARN + **自动触发一次加窄窗口重检索**（`min_year = 当前年-2`，与原结果合并去重）；重检索后仍 <40% 且该方向活跃 → 标 `recency_gap` 回报调用方（该信号供 `/novelty-check` 撞车审计消费）。例外：古典/奠基性领域（如纯数学经典定理考据）允许低时效，但必须在报告中注明理由
 - **统一源优先级**（上表priority 1-6，无学科切换）
 - **统一检索条数** `max_papers=30`（主仓库按学科变；OSS 统一）
 - **统一验证级别** `verification_level=full`（3 层防幻觉是强制的，无学科降级路径）

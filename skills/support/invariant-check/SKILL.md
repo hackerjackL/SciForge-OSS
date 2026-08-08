@@ -124,7 +124,10 @@ The orchestrator passes the phase boundary identifier (e.g. `before-theory-deriv
 2. Extract the frozen Q-id from `FINAL_PROPOSAL.md` (the `Q-id:` field).
 3. Check that the current phase's working artifact (path passed by orchestrator) exists. If not, verdict = `BLOCKED`.
 4. Search the working artifact for a reference to the same Q-id. If found, verdict = `PASS`. If the Q-id is absent, verdict = `FAIL` (problem anchor lost). If a *different* Q-id is referenced, verdict = `FAIL` (problem drift — the agent started solving a different problem).
-5. Record the verdict, detail, and evidence.
+5. **问题内容哈希校验（v5.1 — 源自 CRUX 影子评估失败模式 #3）**: 除了 Q-id 存在性，还校验问题**内容**未被改写。首次冻结时计算 FINAL_PROPOSAL.md 中问题陈述段的 SHA256 写入 `refine-logs/PROBLEM_HASH.txt`；每次 INV-G1 触发时重算并比对。不匹配 → `FAIL (problem_content_rewritten)`。**针对的死法**：CRUX 实验中 agent 早期检测器全部失败后，把目标改写成"证明这类检测器不存在"，然后写了篇负结果论文——"像一个博士生发现假设不成立后，转头改掉了课题名称"。Q-id 没变但问题实质已变，旧版 INV-G1 只查 Q-id 存在性，拦不住这种改写
+6. Record the verdict, detail, and evidence.
+
+**改写问题的唯一合法路径**：若负结果确证原问题不可行（toy/full 证据 + KILL-or-PIVOT 判定为 KILL），必须走 `/kill-argument` 杀论证 → 回 Phase 2 **显式换 idea**（新 Q-id、新 FINAL_PROPOSAL、新 PROBLEM_HASH），由 orchestrator 记录 pivot/kill 事件——**禁止**在原 FINAL_PROPOSAL 上就地改写问题措辞来"适配"负结果。就地改写 = `problem_content_rewritten` FAIL；换 idea 重走 = 合法。
 
 ### Step 3: Compute Overall Verdict
 
@@ -141,6 +144,8 @@ The orchestrator reads `overall_verdict`:
 - `FAIL` or `BLOCKED` or `ERROR` → halt and report to user
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
