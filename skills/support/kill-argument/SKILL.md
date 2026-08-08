@@ -1,6 +1,6 @@
 ---
 name: kill-argument
-version: 1.1.1
+version: 1.1.2
 description: "Adversarial attack-defense self-review: write the single strongest 200-word rejection, then defend point-by-point and surface load-bearing unresolved issues. Phase 14 sub-step. Invoke after stable score, before submission/rebuttal."
 type: reference-skill
 role: adversarial-attack-defense-reviewer

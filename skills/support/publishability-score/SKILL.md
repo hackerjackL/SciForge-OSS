@@ -3,7 +3,7 @@ name: publishability-score
 description: "Final publishability scoring across dim1-first-axis + multi-dim. Phase 15.5. Invoke after citation-audit for the go/no-go submission verdict."
 type: support-skill
 role: paper-publishability-assessor
-version: 1.1.1
+version: 1.1.2
 ---
 > **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
 
