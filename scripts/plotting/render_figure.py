@@ -813,10 +813,8 @@ def doctor() -> int:
         ("pdflatex", ["pdflatex"], "tikz/tikz-cd theoretical diagrams"),
         ("asy", ["asy"], "Asymptote math/geometry mechanism figures"),
         ("typst", ["typst"], "Typst fletcher/CeTZ fast diagrams"),
-        ("diagrams", ["python3"], "mingrammer/diagrams as-code (python import check)"),
         ("pikchr", ["pikchr"], "pikchr vector schematic DSL"),
         ("resvg", ["resvg"], "high-fidelity SVG rasterizer (optional)"),
-        ("cairosvg", ["python3"], "pure-Python SVG converter fallback (import check)"),
         ("rsvg-convert", ["rsvg-convert"], "SVG -> PDF+PNG conversion"),
         ("inkscape", ["inkscape"], "SVG conversion fallback (optional)"),
         ("pdftoppm", ["pdftoppm"], "PDF rasterization (composite panels)"),
@@ -838,6 +836,21 @@ def doctor() -> int:
             if name == "d2":
                 core_ok = False
         print(f"  [{mark}] {name:14s} {role}")
+    # Real import checks (v5.3 fix): the diagrams/cairosvg rows previously
+    # called which("python3"), which reports OK even when the package is
+    # missing — actually import them in a subprocess instead.
+    for name, module, role in (
+            ("diagrams", "diagrams", "mingrammer/diagrams as-code"),
+            ("cairosvg", "cairosvg", "pure-Python SVG converter fallback")):
+        try:
+            r = subprocess.run([sys.executable, "-c", f"import {module}"],
+                               capture_output=True, timeout=60)
+            ok = r.returncode == 0
+        except (OSError, subprocess.TimeoutExpired):
+            ok = False
+        mark = "OK  " if ok else "opt "
+        print(f"  [{mark}] {name:14s} {role}"
+              + ("" if ok else " (not importable — optional)"))
     try:
         import PIL  # noqa: F401
         print("  [OK  ] Pillow         PNG dpi stamp + resolution audit")

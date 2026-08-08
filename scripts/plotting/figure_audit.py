@@ -6,9 +6,12 @@ render.  Running `figure_audit.py` directly is supported for re-auditing
 existing figure dirs, but the pipeline only ever calls render_figure.py.
 
 Audit layers (Nature-level):
-  A1 outputs      — output.pdf + output.png exist, non-empty, valid magic
-  A2 resolution   — PNG dpi >= 300 and width >= 1200px (agent-viewable);
-                    composite figures get an explicit WARN downgrade when
+  A1 outputs      — output.pdf + output.svg exist, non-empty, valid magic
+                    (v4.0 deliverables: PDF for LaTeX + SVG for viewing;
+                    legacy output.png only tolerated with a WARN)
+  A2 resolution   — SVG viewBox width above the adaptive floor (vector —
+                    dpi no longer applies); 16:9 aspect check; composite
+                    figures get an explicit WARN downgrade when
                     composite_meta.json says output.pdf embeds rasterized
                     panels (vector-faithful assembly is composite.tex)
   A3 palette      — every saturated color in the SVG/tex/dot source is a
@@ -301,8 +304,10 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
         # d2 wraps multi-line labels in tspans sharing the anchor x
         lines = re.findall(r"<tspan[^>]*>([^<]*)</tspan>", tm.group(3)) or [body]
         max_line = max((len(s) for s in lines), default=0) or len(body)
-        fs = re.search(r'font-size[:=]\s*"?([\d.]+)', tm.group(0))
-        est_w = max_line * (float(fs.group(1)) if fs else 16) * 0.6
+        fs = re.search(r'font-size[:=]\s*"?([\d.]+(?:px|pt)?)', tm.group(0))
+        # _parse_size normalizes pt->px (a raw pt value treated as px would
+        # overestimate the width by 1/0.75)
+        est_w = max_line * (_parse_size(fs.group(1)) if fs else 16.0) * 0.6
         if "text-anchor:middle" in tag or 'text-anchor="middle"' in tag:
             right = x + est_w / 2
             left = x - est_w / 2

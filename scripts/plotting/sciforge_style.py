@@ -233,7 +233,11 @@ def rgb2lab(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
     def f(t: float) -> float:
         return t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
 
-    fx, fy, fz = f(x / 0.95047), f(y / 1.0), f(z / 1.08883)
+    # divide by the D65 reference white implied by the matrix row sums
+    # themselves, so the reference white maps EXACTLY to L*=100, a*=b*=0
+    fx = f(x / (0.4124564 + 0.3575761 + 0.1804375))
+    fy = f(y / (0.2126729 + 0.7151522 + 0.0721750))
+    fz = f(z / (0.0193339 + 0.1191920 + 0.9503041))
     return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
 
 
@@ -371,7 +375,7 @@ def _rgb_dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
 
 def is_morandi(hexcolor: str, tol: float = 8.0) -> bool:
     """True if hexcolor is a palette token OR the canonical stroke mix of
-    one (within Euclidean sRGB tolerance `tol` per channel)."""
+    one (within Euclidean sRGB distance `tol` over the whole RGB triple)."""
     try:
         rgb = hex2rgb(hexcolor)
     except (ValueError, IndexError):
