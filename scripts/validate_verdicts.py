@@ -82,6 +82,7 @@ SCHEMA_DIR = Path(__file__).resolve().parent.parent / "skills" / "shared-referen
 REGISTRY = {
     "VERIFICATION_ROUTING.json": {"schema": "VERIFICATION_ROUTING.schema.json"},
     "EXPERIMENT_MATRIX.json": {"schema": "EXPERIMENT_MATRIX.schema.json"},
+    "EVALUATION_PROTOCOL.json": {"schema": "EVALUATION_PROTOCOL.schema.json"},
     "BUDGET_FLOOR.json": {"schema": "BUDGET_FLOOR.schema.json"},
     "PROOF_AUDIT.json": {
         "schema": "PROOF_AUDIT.schema.json",

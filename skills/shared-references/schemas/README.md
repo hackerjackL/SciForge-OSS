@@ -123,3 +123,9 @@ error rather than silently ignored, so schemas never over-promise.
     validator rather than schema-checked (see top of this file).
 11. **RUN_BUDGET.json** is newly introduced alongside v5.3 (task P1-7); its schema is
     implemented per the agreed field list and may tighten once the producer lands.
+12. **EVALUATION_PROTOCOL field names.** method-registry §3.6 documents the
+    pre-registration quartet semantically (metrics lock / baseline parity / baseline
+    re-implementation / anti-cherry-picking reporting), but no JSON field names are
+    fixed. The schema requires only `schema_version` + `generated_at`; enforcement
+    happens downstream via `parity_check` / `all_seeds_reported` / `full_grid_reported`
+    checks in result-to-claim.

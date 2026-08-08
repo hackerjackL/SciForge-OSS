@@ -39,6 +39,8 @@ After every write, append one row to `MANIFEST.md`:
 │   ├── PROBLEM_HASH.txt            ← INV-G1 problem-content hash (invariant-check)
 │   ├── REGISTRY_HASH.txt           ← method hash-lock (method-registry)
 │   ├── EXPERIMENT_MATRIX.json      ← mandatory experiment matrix (method-registry §3.5)
+│   ├── EVALUATION_PROTOCOL.json    ← pre-registered evaluation protocol quartet (method-registry §3.6; fair evaluation)
+
 │   ├── BUDGET_FLOOR.json           ← exploration budget-floor completion criteria (experiment-execution)
 │   ├── PROOF_AUDIT.json            ← step-by-step derivation verification (theory-derivation)
 │   ├── LOGIC_VERIFICATION.json     ← 6-dimension logic audit (logic-verification)
