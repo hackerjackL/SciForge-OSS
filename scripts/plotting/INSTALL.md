@@ -1,7 +1,7 @@
 # SciForge-OSS Figure Toolchain — INSTALL（跨平台复刻手册）
 
 > **单一入口**：所有图（数据图 + 架构/流程/机制/组图）只通过
-> `python scripts/plotting/render_figure.py` 产出（PDF+PNG 双产出 + 内嵌 Nature 级审计）。
+> `python scripts/plotting/render_figure.py` 产出（PDF+SVG 双产出 + 内嵌 Nature 级审计）。
 > 装完依赖后先跑自检：`python scripts/plotting/render_figure.py --doctor`
 >
 > **跨平台**：Linux / macOS / Windows 均支持。代码内**无机器专属绝对路径**——字体按

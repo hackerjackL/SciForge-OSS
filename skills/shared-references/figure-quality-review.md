@@ -20,7 +20,7 @@ Determine the host agent's capability class and record it in the figure's
 
 | Class | Detection | Review path |
 |-------|-----------|-------------|
-| **V (vision-native)** | The agent can read an image file (PNG) and describe it | Tier 1 MANDATORY + Tier 2 optional |
+| **V (vision-native)** | The agent can read the figure file (SVG) and describe it | Tier 1 MANDATORY + Tier 2 optional |
 | **T (text-only)** | The agent cannot ingest images | Mechanical audit + structure checklist only; Tier 1 recorded as `skipped-text-only` |
 
 **Rule**: capability is a property of the HOST agent (Claude with vision,
@@ -32,7 +32,7 @@ and never fabricates a visual review.
 ## Tier 1 — Agent-native visual self-review (MANDATORY for class V)
 
 After every render whose audit verdict is not FAIL, the agent MUST open
-`figures/<name>/output.png` (the PNG exists exactly for this — PDF is for
+`figures/<name>/output.svg` (the SVG exists exactly for this — PDF is for
 LaTeX) and answer the checklist below HONESTLY before delivering. This is
 a structured inspection, not a glance: write the answers (one line each)
 into `revision_log.md`.
@@ -105,7 +105,7 @@ credentials and makes no calls). Discipline unchanged from v1:
 | Typography (Nature floor) | axis ≥ 12pt, ticks ≥ 10pt, legend ≥ 10pt |
 | Palette | low-chroma house tokens (C* ≤ 25); Layer-2 colormaps for continuous fields |
 | Layout | corridors/orthogonal wiring for hand SVG; no overlapping labels (A10) |
-| Export | PDF + PNG dual output; source preserved; audit verdict not FAIL |
+| Export | PDF + SVG dual output; source preserved; audit verdict not FAIL |
 
 ---
 Tier 1 uses only the host agent's native vision (zero external calls);

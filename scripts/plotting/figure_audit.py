@@ -79,8 +79,9 @@ def _parse_size(value: str) -> float:
 
 
 def audit_outputs(figdir: Path, rep: Report) -> None:
-    pdf, png = figdir / "output.pdf", figdir / "output.png"
-    for f, magic in ((pdf, b"%PDF"), (png, b"\x89PNG")):
+    # v4.0 deliverables: output.pdf (LaTeX) + output.svg (viewing/editing)
+    pdf, svg = figdir / "output.pdf", figdir / "output.svg"
+    for f, magic in ((pdf, b"%PDF"), ):
         if not f.is_file() or f.stat().st_size == 0:
             rep.add("A1", "FAIL", f"missing or empty {f.name}")
             continue
@@ -88,37 +89,61 @@ def audit_outputs(figdir: Path, rep: Report) -> None:
             rep.add("A1", "FAIL", f"{f.name} has invalid magic bytes")
         else:
             rep.add("A1", "PASS", f"{f.name} valid ({f.stat().st_size} B)")
-
-
-def audit_resolution(png: Path, rep: Report, figdir: Path | None = None) -> None:
-    try:
-        from PIL import Image
-        with Image.open(png) as im:
-            w, h = im.size
-            dpi = im.info.get("dpi", (0, 0))[0]
-    except Exception as e:  # pragma: no cover
-        rep.add("A2", "WARN", f"PNG unreadable: {e}")
-        return
-    # adaptive width floor: a journal single-column preset legitimately
-    # renders narrower than the 1200px wide-figure default (at 300dpi a
-    # 88mm column is ~1039px); honor the preset when recorded
-    floor = 1200
-    if figdir is not None:
-        pf = figdir / "width_preset.txt"
-        if pf.is_file():
-            try:
-                mm = float(pf.read_text().split()[0])
-                floor = max(500, int(mm / 25.4 * 300 * 0.85))
-            except (ValueError, IndexError):
-                pass
-    if dpi and dpi < 290:
-        rep.add("A2", "FAIL", f"PNG dpi {dpi:.0f} < 300")
-    elif w < floor:
-        rep.add("A2", "WARN", f"PNG width {w}px < {floor} — small for agent "
-                              "review (pass --width-preset for column figs)")
+    # SVG deliverable: required for viewing/editing (legacy output.png is
+    # tolerated but no longer demanded)
+    if svg.is_file() and svg.stat().st_size > 0:
+        head = svg.read_bytes()[:64]
+        if b"<svg" in head or head.startswith(b"<?xml"):
+            rep.add("A1", "PASS", f"output.svg valid ({svg.stat().st_size} B)")
+        else:
+            rep.add("A1", "WARN", "output.svg present but has no <svg> root")
+    elif (figdir / "output.png").is_file():
+        rep.add("A1", "WARN", "legacy output.png found; v4.0 delivers "
+                              "output.svg for viewing — re-render")
     else:
-        rep.add("A2", "PASS", f"PNG {w}x{h} @ {dpi:.0f}dpi")
-    # aspect ratio — contract §1 (PNG-based so ALL engines are covered)
+        rep.add("A1", "FAIL", "missing output.svg (viewing deliverable)")
+
+
+def audit_resolution(svg: Path, rep: Report, figdir: Path | None = None) -> None:
+    """v4.0: aspect/size checks run on the SVG viewBox (vector — dpi no
+    longer applies). Legacy output.png is honored if present."""
+    w = h = 0.0
+    try:
+        text = svg.read_text(encoding="utf-8", errors="replace")
+        m = re.search(r'viewBox="([\d.\s-]+)"', text)
+        if m:
+            vb = m.group(1).split()
+            if len(vb) == 4:
+                w, h = float(vb[2]), float(vb[3])
+        if not w:
+            wm = re.search(r'width="([\d.]+)', text)
+            hm = re.search(r'height="([\d.]+)', text)
+            if wm and hm:
+                w, h = float(wm.group(1)), float(hm.group(1))
+    except OSError:
+        pass
+    if not w or not h:
+        rep.add("A2", "WARN", "SVG has no readable viewBox/size — cannot "
+                              "verify dimensions")
+    else:
+        # adaptive width floor: a journal single-column preset legitimately
+        # renders narrower than the 1200px wide-figure default
+        floor = 1200.0
+        if figdir is not None:
+            pf = figdir / "width_preset.txt"
+            if pf.is_file():
+                try:
+                    mm = float(pf.read_text().split()[0])
+                    floor = max(500.0, mm / 25.4 * 300 * 0.85)
+                except (ValueError, IndexError):
+                    pass
+        if w < floor:
+            rep.add("A2", "WARN", f"SVG width {w:.0f}px < {floor:.0f} — small "
+                                  "for agent review (pass --width-preset for "
+                                  "column figs)")
+        else:
+            rep.add("A2", "PASS", f"SVG {w:.0f}x{h:.0f} viewBox (vector)")
+    # aspect ratio — contract §1 (ALL engines covered)
     ratio = w / h if h else 0
     override = bool(figdir and (figdir / "aspect_override.txt").is_file())
     if not override and not (1.6 <= ratio <= 2.0):
@@ -183,7 +208,7 @@ def audit_source_text(text: str, rep: Report) -> None:
 
 
 def audit_typography_svg(svg_text: str, rep: Report) -> None:
-    floor = st.NATURE_FLOOR["diagram_node"]  # 10pt node label floor
+    floor = st.NATURE_FLOOR["diagram_node"]  # 12pt node label floor (v2.1)
     sizes = [_parse_size(s) for s in re.findall(
         r'font-size[:=]\s*"?([\d.]+(?:px|pt)?)"?', svg_text)]
     sizes = [s for s in sizes if s > 0]
@@ -247,7 +272,7 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
         rep.add("A5", "WARN", f"{clipped} text element(s) may clip at edge")
     else:
         rep.add("A5", "PASS", f"layout bounds ok (viewBox {vw:.0f}x{vh:.0f})")
-    # NOTE: the 16:9 aspect check lives in audit_resolution() (PNG-based)
+    # NOTE: the 16:9 aspect check lives in audit_resolution() (SVG viewBox)
     # so it covers ALL engines, not just SVG-intermediate ones.
 
 
@@ -556,9 +581,9 @@ def audit_figure(figdir: Path) -> Report:
     figdir = Path(figdir)
     rep = Report()
     audit_outputs(figdir, rep)
-    png = figdir / "output.png"
-    if png.is_file():
-        audit_resolution(png, rep, figdir)
+    out_svg = figdir / "output.svg"
+    if out_svg.is_file():
+        audit_resolution(out_svg, rep, figdir)
     svg = figdir / "intermediate.svg"
     if not svg.is_file():
         svg = next(iter(figdir.glob("*.svg")), None)

@@ -65,7 +65,7 @@
 
 | 属性 | 规则 |
 |------|------|
-| 格式 | PDF（LaTeX 嵌入，唯一交付格式）+ PNG（300 DPI，审阅用）双产出 |
+| 格式 | PDF（LaTeX 嵌入，唯一交付格式）+ SVG（查看/编辑用）双产出 |
 | 字体 | 数据图 TeX Gyre Termes（衬线，匹配 LaTeX）；d2 图 Liberation Sans（通过 CLI 字体文件注入） |
 | 字号 | 轴标签 ≥12pt, 刻度 ≥10pt, 图例 ≥10pt, 标题 ≥13pt, 注释 ≥9pt |
 | 线宽 | 主线条 ≥1.5pt, 辅助 ≥0.8pt |
@@ -82,6 +82,6 @@ Tailwind 高饱和（`#2563EB`/`#10B981`/`#7C3AED`/`#EA580C`）、Material 蓝�
 - 莫兰迪 Layer 1（C* ≤ 25）用于分类/语义
 - viridis/magma/plasma 用于连续数据
 - 无 jet/rainbow/hsv/coolwarm/bwr
-- 矢量 PDF + PNG 300dpi 双产出
+- 矢量 PDF + SVG 双产出（PDF 入 LaTeX，SVG 查看/编辑）
 - 渲染脚本 + 输入数据保留
 - 图注自包含
