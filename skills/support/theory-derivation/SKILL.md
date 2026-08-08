@@ -12,7 +12,7 @@ role: theory-builder-and-symbolic-verifier
 
 - **Purpose**: SymPy 符号推导 + 逐步机器验证；理论-only 模式用 engine=manual
 - **Input**: refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
-- **Output**: derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
+- **Output**: code/derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
 - **Key**: 每步 SymPy 验证；3 种模式 (derive/verify/simplify)；理论-only 标记 [not machine-verified]
 
 > **Status**: Bridges verbal reasoning and mathematical rigor. **OSS merges main SciForge's `formula-derivation`** (research theory-line construction — build the derivation package, freeze the invariant object, classify steps) **into this skill** (SymPy symbolic verification — derive / verify / simplify / solve with machine-checked steps). **OSS is discipline-agnostic** — no physics SI-units enforcement, no economics estimator-verification, no cs-ml convergence-rate framing. The universal derivation package schema + SymPy verification applies to every problem.
@@ -185,7 +185,7 @@ If the derivation still lacks a coherent object, stable assumptions, or an hones
 Write the structured derivation document (see Required File Structure below) AND the SymPy script:
 
 ```python
-# derivations/{problem_id}/derivation.py
+# code/derivations/{problem_id}/derivation.py
 # SymPy script for Q-id {Q-id}
 # Every step in DERIVATION_PACKAGE.md is verified by this script.
 import sympy as sp
@@ -247,7 +247,7 @@ Step 2. ...
 - ...
 
 ## SymPy Script
-[reference to derivations/{problem_id}/derivation.py]
+[reference to code/derivations/{problem_id}/derivation.py]
 ```
 
 ## Output Modes
@@ -265,6 +265,8 @@ Write:
 - What extra assumption, reframe, or intermediate derivation would be needed
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
@@ -286,7 +288,7 @@ Write:
 
 The final output is:
 1. `derivations/{problem_id}/premises.md` — starting assumptions (frozen Q-id referenced)
-2. `derivations/{problem_id}/derivation.py` — executable SymPy script (every step machine-verified)
+2. `code/derivations/{problem_id}/derivation.py` — executable SymPy script (every step machine-verified)
 3. `derivations/{problem_id}/derivation_output.md` — rendered derivation report (the structure above)
 4. `derivations/{problem_id}/verification_report.md` — verification results (boundary / dimensional / limiting cases / numerical sanity)
 5. `DERIVATION_PACKAGE.md` (or user-specified target) — the paper-ready formula document

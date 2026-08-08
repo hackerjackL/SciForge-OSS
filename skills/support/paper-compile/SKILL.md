@@ -168,18 +168,23 @@ After visual review, explicitly verify table and figure boundaries:
 - Verify no `\ref{}` points to a non-existent label
 - **Verdict**: `FAIL` if any figure/table has no text reference; `WARN` if any `\ref{}` target is undefined
 
-### Step 6: Page Count Verification
+### Step 6: Page Count Verification (v5.1 — 超页硬 FAIL，源自 CRUX 影子评估失败模式 #5)
 
 **CRITICAL**: Verify paper fits within Max pages (OSS unified default: 15).
+
+**背景**（arXiv:2607.27191）：CRUX 实验中两篇终稿**都超页**——正文超过九页限制写到第十页，按 NeurIPS 规则"本可以连审都不用审直接 desk reject"。页数硬规则是 agent 长程运行中逐渐遗忘的硬约束之一（指令漂移）。OSS 虽用弹性页面目标（8-15 页），但一旦选定 `length` 档位，该档上限就是**硬约束**。
 
 **OSS page count rule**: Main body = first page through end of Conclusion section. References and appendix are NOT counted.
 
 **Precise check**: Extract text from the PDF and locate where Conclusion ends vs References begin. If Conclusion ends mid-page and References start on the same page, the main body is that page number (e.g., if both are on page 9, main body = ~8.5 pages).
 
-If over limit:
-- Identify which sections are longest.
-- Suggest specific cuts (move proofs to appendix, compress tables, tighten writing).
-- Report: "Main body is X pages (limit: Max pages). Suggestion: move [specific content] to appendix."
+**v5.1 硬 FAIL 规则**: 主体页数 > 所选 `length` 档位上限（short≤6 / standard≤12 / long≤16，映射自 4-6/8-12/12-16 目标区间的上限）→ verdict **FAIL**（不是 WARN，不建议——直接 FAIL，`reason_code: page_limit_exceeded`），与泄漏清洗门同级。超页论文在真实投稿中是 desk reject 级缺陷，编译产物不得视为"submission-ready"。
+
+If over limit (FAIL path — 必须修复后重编译，不是给建议):
+1. Identify which sections are longest.
+2. Execute specific cuts (move proofs to appendix, compress tables, tighten writing) — 由 `/paper-writing` 回退执行，不是留给人类的建议清单。
+3. Re-compile and re-verify. 循环直至主体页数 ≤ 档位上限。
+4. FAIL 记录写入 `compile.log` 的 verdict 行 + `PAPER_PLAN.md` 的 `page_limit_exceeded: true` 字段。
 
 ### Step 6.5: Stale File Detection
 

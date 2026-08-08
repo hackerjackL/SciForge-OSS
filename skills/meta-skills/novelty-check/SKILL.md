@@ -60,6 +60,24 @@ novelty_final = 0.5 × binary_novelty + 0.5 × frontier_advance
 
 **为何必加**：一区投稿（Nature/PRL/IEEE T）的 Introduction 头 3 段必须有前沿定位 + 增量 + why-not-before；若 `/novelty-check` 不产出这三件套，`/paper-writing` 只能靠 agent 临场编造——这正是“AI 写的 Intro 读起来空泛、无具体前沿锚定”的根因。v3.2 把前沿定位前移到 novelty-check，让 Intro 的 contribution 段可追溯到 `FRONTIER_GAP.md`。
 
+**撞车审计（Collision Audit，v5.0 新增强制步）——解决"idea 有没有人做过"的盲区**:
+
+实测反馈：idea 生成时未比对已有工作，文献调研也漏检——必须显式逐篇撞车。对每个 idea 执行（用 `/universal-retrieval` 的检索结果，不足则补充定向检索）：
+
+1. **召回 TOP-5 近似工作**：按"同问题域 + 同方法族"检索，取最相似的 ≤5 篇（必须含近 2 年工作；一篇都召不回 → 检索本身存疑，标 `retrieval_suspect` 并触发重检索）
+2. **三维比对矩阵**：每篇按三维打分（0/1）——`same_problem`（同研究问题/RQ）、`same_method`（同方法族或仅差组件）、`same_data`（同数据集/基准）；写入 `novelty_report.json` 的 `collision_matrix` 字段
+3. **冲突处置树**（撞车 ≠ 死刑，按最严命中处置）：
+
+| 命中 | 判定 | 处置 |
+|------|------|------|
+| 三维全 1（同问题+同方法+同数据） | `collision_fatal` | idea 直接 FAIL——这是复现不是研究 |
+| problem+method 均 1，data 不同 | `collision_high` | 默认 FAIL；仅当能陈述**数据差异带来的科学问题差异**（非"换个数据集跑一遍"）才可降级 REVISE |
+| problem 1、method 不同 | `collision_medium` | REVISE——必须写明与最近方法的**机制级差异**（不是超参差异），写入 `differentiation.md` |
+| 仅 method 相似、problem 不同 | `collision_low` | PASS，但 Intro 必须引用并区分 |
+
+4. **时效校验**：TOP-5 中若**无近 2 年工作**而该方向活跃（FRONTIER_MAP 有该域节点）→ 标 `recency_gap`：要么检索过时（重检索），要么该 idea 撞上了冷门区（降 relevance 分）
+5. `differentiation.md` 与 `collision_matrix` 随 `novelty_report.json` 落盘，供 `/paper-writing` Intro 直接引用（"与 X 不同，我们……"必须有据可查）
+
 ### 维度 2：可行性检查
 
 对每个 idea，评估：

@@ -112,7 +112,7 @@ On first run, copy the unified template skeleton to the working directory:
 paper/
 ├── main.tex                    ← copied from skills/support/paper-writing/templates/default/main.tex
 ├── math_commands.tex           ← copied from the unified template
-├── references.bib              ← symlink or copy from literature/references.bib
+├── references.bib              ← SYMLINK ONLY from literature/references.bib（v5.0 禁 copy——防重复）
 ├── sections/
 │   ├── 01_introduction.tex
 │   ├── 02_related_work.tex
@@ -122,7 +122,7 @@ paper/
 │   ├── 06_discussion.tex
 │   └
 │   └
-└── figures/                    ← symlink or copy from figures/
+└── figures/                    ← SYMLINK ONLY from figures/（v5.0 禁 copy——防重复；图脚本在 code/figures/）
 ```
 
 The `main.tex` preamble is **frozen** — do NOT hand-edit it. The unified template provides:
@@ -176,6 +176,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 - Narrow to the specific problem
 - State the gap clearly
 - List contributions explicitly
+- **负结果纪律（v5.0）**: contribution 列表只收录正向支撑主论点的结果（claims 的 `polarity: positive|boundary`）；`CLAIMS_FROM_RESULTS.md` 中任何 `polarity: negative` 条目出现在 contributions/Abstract/正文结论 → 自检 FAIL（`reason_code: negative_result_as_contribution`）。局部负向只进 Limitations/Discussion 作边界说明；主实验级负向应已在上游触发 KILL-or-PIVOT，不应流到写作阶段——若流到了，退回 `/experiment-execution`，不写
 - End with the paper structure roadmap
 
 > **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the 3-layer citation discipline forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".
@@ -312,8 +313,12 @@ Before declaring the draft ready, perform a self-review:
 7. **Citation style consistency** — numeric OR author-year, not mixed?
 8. **Figure budget (v3.4)** — does the paper meet the per-section figure minimums from [`/unified-plotting`](../../meta-skills/unified-plotting/SKILL.md) §Figure Budget Contract? Is `figure_budget.architecture_diagram_present` true in `FIGURE_INDEX.md`? (< 4 body figures → `WARN`; < 2 total → `FAIL`)
 9. **Reproducibility + Data Availability (v3.4)** — do both back-matter statements exist (`sections/Z_reproducibility.tex`), are they `\input`'d in `main.tex` before `\bibliography`, and did the Step 3.5 scrub gate's re-grep find zero internal-path leaks in them? (missing → `FAIL, reason_code: missing_reproducibility_statement`)
+10. **反 AIGC 活人感扫描（v5.2）** — 按 [`writing-principles.md`](../../shared-references/writing-principles.md) §0.5 执行四项自检：AI 腔黑名单计数（任一类 ≥6 → FAIL `aigc_phrasing`）、句长方差抽查（std<5 词的节 → WARN `sentence_monotony`）、报告体判别抽查（Intro/Discussion 全篇报告体 → FAIL `report_style`）、破折号计数（>5 → WARN）。结果写入 `verdicts/PAPER_CLAIM_AUDIT.json` 的 `aigc_scan` 字段。另按 §0.5 领域惯例适配核对当前文风族（domain-signature 的 writing_style）的领域特定活人感要求（人文引文页码/CS 贡献证据指针/数学定理完整陈述/医学伦理声明/计量识别论证）
+11. **评测公平性透传（v5.2）** — 结果表中的每个对比核对 `CLAIMS_FROM_RESULTS.md` 的 `parity_check`/`all_seeds_reported`/`full_grid_reported` 三字段；带 `protocol_violation` 标记的实验组不得出现在主对比表；`reproduced_by_us` 基线必须在 Experimental Setup 声明复现方式
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
