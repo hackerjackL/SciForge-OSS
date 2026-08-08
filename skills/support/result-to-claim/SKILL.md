@@ -102,6 +102,16 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 
 **反包装红线**（审计钩子）：正文出现"我们首次发现/我们揭示"类强声明而对应 claim 的 sufficiency 任一项不达标 → FAIL。措辞强化不能绕过证据分量——这正是 CRUX 实验中 agent 的典型死法。
 
+**评测公平性核对（v5.2 — 消费 method-registry §3.6 预注册协议）**: 每个涉及对比的 claim 额外核对三字段（写入 `CLAIMS_FROM_RESULTS.md`）：
+
+| 字段 | 检查内容 | 不达标处置 |
+|------|---------|-----------|
+| `parity_check` | 对比双方条件逐项对齐（同 split/同预处理/同算力预算/同调参力度），来源为 RESULT.json 的条件记录 | 不对齐 → 该对比不得作为 claim 证据（`reason_code: unfair_comparison`） |
+| `all_seeds_reported` | 主结果含全种子均值±std，非单点最优值 | 单点报告 → claim 保真度降一级（`reason_code: cherry_picked_seed`） |
+| `full_grid_reported` | 超参扫描全网格可查（正文或附录），非仅最优点 | 只报最优点 → claim 保真度降一级（`reason_code: cherry_picked_config`） |
+
+另核对 RESULT.json 的 `protocol_violation` 标记——带违规标记的实验组结果**整体不得**支撑任何 claim（该组只能出现在"评测过程说明"中如实披露，不能出现在结果表的主对比里）。基线若标注 `reproduced_by_us`，论文中必须声明复现方式（Limitations 或 Experimental Setup），不得冒充官方结果。
+
 ## 4-Dimensional Joint Confidence (TDAL — locked schema)
 
 The overall confidence is computed from 4 dimensions (T × D × A × L), not just theory fidelity. **The full schema, weights, thresholds, producer/consumer contracts, and floor constraints are locked in [`../shared-references/domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md).** This section is the **producer contract** — what `/result-to-claim` MUST emit.

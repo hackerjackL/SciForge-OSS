@@ -318,6 +318,7 @@ If toy gate passed, design the full-scale experiment:
 3. **Add checkpointing** — save intermediate results every `checkpoint_interval` seconds
 4. **Add monitoring** — periodic status updates to `experiments/full/STATUS.json`
 5. **Expose a 1-step cap flag** (`--max-steps`/`--max-epochs`/`--steps`) — Step 5.0's smoke gate REQUIRES slicing the full script to 1 step; a full script with no step-cap flag is itself a design defect. Add the flag here, retroactively enforced at Step 5.0.
+6. **按预注册评测协议执行（v5.2 — 公平评测）**: 读取 `verdicts/EVALUATION_PROTOCOL.json`（method-registry §3.6 预注册），全程遵守四件套——指标不得增删、基线条件逐项对齐（同 split/同预处理/同算力预算/同调参力度）、基线一律本环境重跑（禁引用他人数字）、全种子全网格报告。任何偏离 → RESULT.json 标 `protocol_violation: <哪一条>`，该组结果不得作为对比证据（`/result-to-claim` 会拦）。**禁止事后"优化"评测方式**——看结果后想改指标/改基线条件 = 改方法 = 回 Phase 5 重走 hash-lock
 
 ### Step 5: Dispatch Full Experiment to Background
 
@@ -561,6 +562,8 @@ The skill auto-selects experiment templates based on `evidence_type`:
 - **STATUS.json polling feeds Phase 10.** Both `toy_bg` and full background jobs write `STATUS.json`. The orchestrator does NOT poll; it reads `STATUS.json` once at Phase 10 (`/result-to-claim`). If a background job is still `running`, use whatever completed results exist (foreground toy, or partial) + note "experiment pending". This is the single integration seam between background experiments and the claim gate.
 
 ## Output Protocols
+> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+
 
 > Follow the shared output protocol for all output files (versioned writes, MANIFEST logging, output language):
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — merged single source of truth
