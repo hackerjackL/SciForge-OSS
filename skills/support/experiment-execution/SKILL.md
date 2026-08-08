@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 1.2.0
+version: 1.2.1
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
@@ -267,10 +267,18 @@ Step 2e: Evaluate against success criteria
   "execution_time_seconds": 42,
   "scale_ratio": 0.1,
   "reasoning_chain_validated": true,
+  "core_claim_validated": true,
+  "seeds_used": 3,
   "kill_signal": null,
   "recommendation": "PROCEED_TO_FULL | BLOCK | REDESIGN"
 }
 ```
+
+`core_claim_validated` (bool) and `seeds_used` (int) are **mandatory**:
+the auto-pipeline Phase 6b toy gate reads both (PASS requires
+`core_claim_validated: true`; multi-seed reproducibility claims are
+checked against `seeds_used`). Omitting either degrades the gate to
+INCONCLUSIVE.
 
 **Gate logic** (`gate_logic` field) — how multiple metrics combine into the PASS/FAIL verdict:
 - `all_metrics_pass` (default): every metric's `passed` must be true. Use for problems where all criteria are load-bearing (e.g., causal inference needs correct sign AND magnitude AND parallel-trends).
