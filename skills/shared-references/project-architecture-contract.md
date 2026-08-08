@@ -65,11 +65,11 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 │       ├── checkpoints/                  ← intermediate checkpoints
 │       └── (output: *.pdf + *.png dual, v2.2)
 │
-├── figures/                              ← v2.2 unified-plotting output (dual PDF+PNG)
+├── figures/                              ← v2.2 unified-plotting output (dual PDF+SVG)
 │   ├── FIGURE_INDEX.md                   ← all generated figures index
 │   └── {figure_name}/
 │       ├── output.pdf                     ← LaTeX-embedded (the only format in the paper)
-│       ├── output.png                    ← viewing (AI/human)
+│       ├── output.svg                    ← viewing/editing (agent, browser)
 │       ├── render.py                     ← Python source (data plots) OR
 │       ├── spec.d2                        ← d2 source (diagrams) OR
 │       ├── source.md                     ← AI-direct source (≤4 nodes)
@@ -138,7 +138,7 @@ See [`project-architecture-contract.md`](./project-architecture-contract.md) § 
 ## Artifacts
 - Final paper: `output/PAPER.pdf`
 - Compiled LaTeX: `paper/main.pdf`
-- Figures: `figures/` (PDF+PNG dual)
+- Figures: `figures/` (PDF+SVG dual)
 - Full experiment: `experiments/full/` (if run)
 ```
 

@@ -1,6 +1,6 @@
 # Figure Quality Contract (SciForge-OSS — Nature-Level, Dual Output, 16:9)
 
-> **Status (v2.2)**: The single source of truth for figure QUALITY at Nature/Science publication level. Consumed by `/unified-plotting` to enforce: (1) 16:9 horizontal aspect ratio default, (2) dual PDF+PNG output (PDF for LaTeX compile, PNG for AI/agent viewing), (3) Nature-level readability standards (font sizes, line widths, layout), (4) complex architecture-diagram pipeline via d2, (5) humanities/arts figure support.
+> **Status (v2.2)**: The single source of truth for figure QUALITY at Nature/Science publication level. Consumed by `/unified-plotting` to enforce: (1) 16:9 horizontal aspect ratio default, (2) dual PDF+SVG output (PDF for LaTeX compile, SVG for agent viewing/editing), (3) Nature-level readability standards (font sizes, line widths, layout), (4) complex architecture-diagram pipeline via d2, (5) humanities/arts figure support.
 >
 > **Why this exists**: the old unified-plotting defaulted to SVG-only output, had no aspect-ratio contract, no Nature-level readability floor, and no tool pipeline for complex architecture/flow diagrams (only AI-direct SVG which produces small-text, poor-layout, non-Nature figures). This contract fixes all four.
 
@@ -36,20 +36,20 @@ Aspect ratio is the SHAPE contract; the physical WIDTH must match the target ven
 
 ---
 
-## 2. Dual Output (PDF + PNG) — Non-Negotiable
+## 2. Dual Output (PDF + SVG) — Non-Negotiable
 
 Every figure produces **BOTH** a PDF and a PNG:
 
 | Format | Purpose | Used by |
 |--------|---------|---------|
 | **PDF** (vector) | LaTeX `\includegraphics` compile — the ONLY format embedded in the compiled paper | `/paper-compile` (Phase 13) |
-| **PNG** (raster, 300+ DPI) | Human/AI viewing — quick visual check without a PDF reader; other models (that can't read PDF) can view it | `/paper-writing` visual review, `/auto-review-loop`, the human user |
+| **SVG** (vector) | Agent viewing + later manual editing — opens in any browser/viewer; the editable master | `/paper-writing` visual review (Tier 1), `/auto-review-loop`, the human user |
 
 **Why both**: LaTeX compiles cleanly only with PDF (SVG requires `inkscape` conversion which adds a fragile dependency; PNG in LaTeX loses vector quality). But the pipeline's self-review and the human user need to VIEW figures quickly — PNG is universally viewable. Producing only PDF means no agent-side visual review; producing only PNG means non-vector figures in the paper. Dual output closes both gaps.
 
-**Enforcement**: the render script MUST save both `output.pdf` AND `output.png`. The `format` config default is now `pdf+png` (was `svg`). A figure with only one format is INCOMPLETE — the skill re-runs the render to produce the missing format.
+**Enforcement**: the render script MUST save both `output.pdf` AND `output.svg`. The `format` config default is now `pdf+svg` (was `svg`). A figure with only one format is INCOMPLETE — the skill re-runs the render to produce the missing format.
 
-**SVG role**: SVG is an INTERMEDIATE format only (for d2/graphviz/tikz → PDF conversion, or for AI-direct diagram editing). The final deliverable is always PDF+PNG, never SVG-alone. If SVG is produced as an intermediate, it is converted to PDF (via `inkscape`/`rsvg-convert`/`d2 --layout=elk`) and to PNG (via the same) before delivery.
+**SVG role (v4.0)**: SVG is BOTH the viewing/editing deliverable AND the source for PDF conversion. It is NEVER embedded in LaTeX — `\includegraphics` takes the PDF only.
 
 ---
 
@@ -88,17 +88,17 @@ The old unified-plotting handled architecture/workflow diagrams via "JSON-spec d
 | Diagram complexity | Tool | Why |
 |--------------------|------|-----|
 | ≤ 4 nodes, trivial | AI-direct SVG | Fast, no tool needed |
-| 5-20 nodes, architecture/flow/pipeline | **d2** (`.d2` spec → SVG → PDF+PNG) — **primary** | Auto-layout, proper typography, readable text; no chromium dependency |
+| 5-20 nodes, architecture/flow/pipeline | **d2** (`.d2` spec → SVG → PDF+SVG) — **primary** | Auto-layout, proper typography, readable text; no chromium dependency |
 | 20+ nodes, dense graph | **d2** with `--layout=elk` (ELK engine) OR **graphviz/dot** (fallback for dense graphs) | Both handle dense layouts; dot is older but battle-tested |
 | Commutative/category diagrams | LaTeX `tikz-cd` (unchanged) | Math typography |
 | Concept maps, dependency graphs | **d2** (preferred, >5 nodes) OR graphviz/dot (fallback) | Both auto-layout; d2 typography is more modern |
-| Dense network/dependency graphs | **graphviz/dot** (`.dot` → SVG → PDF+PNG via rsvg-convert) | dot's layout algorithms (dot/neato/fdp/sfdp) are tuned for graphs |
+| Dense network/dependency graphs | **graphviz/dot** (`.dot` → SVG → PDF+SVG via rsvg-convert) | dot's layout algorithms (dot/neato/fdp/sfdp) are tuned for graphs |
 
-**Why d2 is primary (not mermaid-cli/drawio)**: mermaid-cli (`mmdc`) renders via headless Chromium (puppeteer) — a heavy, fragile dependency that fails on headless servers without a display server. drawio-desktop is a GUI app, not headless-friendly. **d2** and **graphviz/dot** are both headless-native, install cleanly, and produce vector SVG → PDF+PNG via `rsvg-convert` with no browser/chromium needed. For an AI-scientist pipeline that runs on servers, headless-native tools are mandatory. (If a human later wants to hand-edit a diagram in drawio-desktop's GUI, they can import the d2/dot-produced SVG — but the pipeline itself uses headless tools only.)
+**Why d2 is primary (not mermaid-cli/drawio)**: mermaid-cli (`mmdc`) renders via headless Chromium (puppeteer) — a heavy, fragile dependency that fails on headless servers without a display server. drawio-desktop is a GUI app, not headless-friendly. **d2** and **graphviz/dot** are both headless-native, install cleanly, and produce vector SVG → PDF+SVG via `rsvg-convert` with no browser/chromium needed. For an AI-scientist pipeline that runs on servers, headless-native tools are mandatory. (If a human later wants to hand-edit a diagram in drawio-desktop's GUI, they can import the d2/dot-produced SVG — but the pipeline itself uses headless tools only.)
 
 **d2 pipeline steps (v3.5 — single unified entry point)**:
 1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com); use morandi tokens for explicit styles
-2. Render through ONE tool only — `scripts/plotting/render_figure.py spec.d2 --out figures/<name>/ --label <name> --caption "..." --strict`. Internally it performs: morandi preamble injection → d2 layout (dagre auto; elk for >20 nodes, Liberation Sans fonts via `--font-*`) → deterministic palette sanitization (engine-injected theme colors remapped to tokens) → SVG → PDF + PNG (300 DPI, `rsvg-convert`, inkscape fallback) → `latex_include.tex` → embedded Nature-level audit (`figure_audit.json`)
+2. Render through ONE tool only — `scripts/plotting/render_figure.py spec.d2 --out figures/<name>/ --label <name> --caption "..." --strict`. Internally it performs: morandi preamble injection → d2 layout (dagre auto; elk for >20 nodes, Liberation Sans fonts via `--font-*`) → deterministic palette sanitization (engine-injected theme colors remapped to tokens) → SVG deliverable + PDF derivation (`rsvg-convert`, inkscape fallback) → `latex_include.tex` → embedded Nature-level audit (`figure_audit.json`)
 3. Check the audit verdict; FAIL ⇒ fix spec, re-render. Never invoke raw `d2`/`dot`/`rsvg-convert` in parallel — the unified CLI is the ONLY diagram entry point in the pipeline
 
 **d2 styling**: apply the morandi palette via d2's style blocks or rely on the injected preamble (fills `#EDE9E2`, strokes `#6E675F`, ink text `#3A3733`, node font 22px). The embedded audit checks d2 output identically to Python output.
@@ -113,19 +113,19 @@ Figures in humanities/arts papers (history timelines, textual-analysis flow, her
 
 | Humanities figure type | Tool | Pipeline |
 |------------------------|------|----------|
-| Timeline (historical events) | d2 (sequence diagram) OR matplotlib (horizontal timeline) | d2 → PDF+PNG |
-| Argument structure (premise→conclusion) | d2 (flowchart) | d2 → PDF+PNG |
-| Textual analysis flow | d2 (workflow) | d2 → PDF+PNG |
-| Comparative structure map | d2 (graph) | d2 → PDF+PNG |
-| Concept relation map | d2 OR AI-direct SVG (≤4 nodes) | d2 → PDF+PNG |
+| Timeline (historical events) | d2 (sequence diagram) OR matplotlib (horizontal timeline) | d2 → PDF+SVG |
+| Argument structure (premise→conclusion) | d2 (flowchart) | d2 → PDF+SVG |
+| Textual analysis flow | d2 (workflow) | d2 → PDF+SVG |
+| Comparative structure map | d2 (graph) | d2 → PDF+SVG |
+| Concept relation map | d2 OR AI-direct SVG (≤4 nodes) | d2 → PDF+SVG |
 
 **No humanities-specific deviation**: the 16:9 default, dual output, Nature-level readability, and morandi palette apply identically. A humanities figure is NOT an excuse for lower quality — a timeline diagram in a history paper must meet the same readability floor as a physics result curve.
 
 ---
 
-## 6. Conversion Toolchain (SVG → PDF + PNG)
+## 6. Conversion Toolchain (SVG → PDF + SVG)
 
-When a tool produces SVG (d2, graphviz, AI-direct, inkscape), the conversion to PDF+PNG uses:
+When a tool produces SVG (d2, graphviz, AI-direct, inkscape), the derivation of the PDF deliverable uses (the SVG deliverable is the sanitized SVG itself):
 
 | Tool | PDF conversion | PNG conversion | Availability |
 |------|---------------|----------------|-------------|
@@ -149,8 +149,8 @@ When a tool produces SVG (d2, graphviz, AI-direct, inkscape), the conversion to 
 | `asymptote` (`asy`) | High-end math/geometry/mechanism vector figures (via render_figure.py) | apt: `asymptote` |
 | `typst` (+ fletcher/CeTZ packages) | Fast declarative diagrams, millisecond compile (via render_figure.py) | GitHub release binary |
 | `diagrams` (mingrammer) + `blockdiag` 家族 | Diagram-as-code with pro icon sets / swimlane activity & sequence diagrams (via render_figure.py) | pip (aliyun mirror) |
-| `rsvg-convert` | SVG → PDF + PNG conversion (via render_figure.py) | apt: `librsvg2-bin` |
-| `inkscape` | Fallback SVG → PDF + PNG | apt: `inkscape` |
+| `rsvg-convert` | SVG → PDF conversion (via render_figure.py) | apt: `librsvg2-bin` |
+| `inkscape` | Fallback SVG → PDF | apt: `inkscape` |
 | `pdfcrop` | Whitespace crop for asy/typst PDF deliverables (via render_figure.py) | apt: `texlive-extra-utils` |
 | `svgo` | SVG optimization (smaller intermediate files) | npm: `svgo` |
 | LaTeX `tikz`/`tikz-cd`/`pgfplots` | Theoretical diagrams (commutative, derivation trees) — via render_figure.py | texlive |
@@ -166,7 +166,7 @@ The unified CLI auto-detects what is installed and routes accordingly (d2 prefer
 - **16:9 is the default.** A non-16:9 figure requires an explicit `aspect_ratio` override + documented reason.
 - **Nature readability floor is enforced.** Text below the floor is rejected at the color/quality audit (Step 4).
 - **d2 is the preferred diagram tool.** AI-direct SVG is only for ≤ 4 node trivial diagrams. For 5+ node diagrams, d2 (or graphviz fallback) is mandatory.
-- **SVG is never the final deliverable.** SVG is intermediate only; the final is PDF+PNG.
+- **SVG is the viewing/editing deliverable, never the LaTeX-embedded format.** LaTeX embeds the PDF; the SVG stays for review and manual editing.
 - **PDF is the only format embedded in LaTeX.** `\includegraphics{output.pdf}` — never `.png` (loses vector), never `.svg` (breaks pdflatex without conversion).
 - **No humanities deviation.** The same quality floor, palette, and pipeline apply to all domains.
 
