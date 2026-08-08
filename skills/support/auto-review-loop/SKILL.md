@@ -214,6 +214,25 @@ Then extract structured fields:
 
 **STOP CONDITION**: If `effective_score >= 6` AND verdict contains "ready" or "almost" → stop loop, document final state. **v3.2 — `effective_score` not raw score**: the score used for the stop condition is the **min of (Phase C raw score, B.2 cap)**, NOT the raw Phase C score alone. A raw 7/10 that hides a fatal unresolved domain blind-spot (B.2 cap = 5) is `effective_score = 5` → does NOT stop, must fix the blind-spot first. This closes the gap where the generic Phase C review could declare "ready" while a fatal endogeneity / boundary-condition / straw-man failure (B.2) was never addressed.
 
+**反缩减协议（v5.1 — Anti-Shrinkage Protocol，源自 CRUX 影子评估失败模式 #2）**:
+
+**背景**（arXiv:2607.27191）：十几轮自我审稿和外部审稿没有一次给出接受意见，但 agent 的应对策略永远是**收窄结论、加免责声明、换更温和的说法**——"面对批评只会'缩'不会'变'"。很多后来被人类专家点名的致命缺陷，AI 审稿早就写过，却从未触发真正的改变。
+
+**强制规则**（连续 ≥2 轮 `effective_score` 不提升、或连续 ≥2 轮 verdict 为 reject 类时激活）：
+
+1. **禁止措辞性修复作为响应**: 以下动作在连续拒稿状态下**不算**修复——加免责声明、弱化声明措辞、把 "we show" 改成 "we suggest"、缩小 claim 范围、在 Limitations 堆叠 caveat。这些是 CRUX 实验中 agent 的标志性死法
+2. **只允许三类实质性响应**（写入 `REVIEW_STATE.json` 的 `response_class` 字段，逐条对应评审 concern）：
+
+| 响应类 | 动作 | 去向 |
+|--------|------|------|
+| **重设计实验** | 评审指出证据缺陷（效力不足/缺基线/缺消融）→ 回 `/experiment-execution` 补跑/重跑强制实验矩阵的缺项 | Phase 6 回退 |
+| **PIVOT** | 评审指出方法路径性缺陷 → 回 Phase 5 换方法重注册（预算继承 experiment-execution 的 PIVOT ≤2） | Phase 5 回退 |
+| **KILL** | 评审指出核心假设不成立 → `/kill-argument` 杀论证 → 回 Phase 2 换 idea | Phase 2 回退 |
+
+3. **措辞性修复单独成轮即 FAIL**: 一轮的修复清单若全部属于措辞类（`response_class` 均为 `wording`）→ 该轮无效（`round_invalid: true`），不消耗 MAX_ROUNDS 预算但必须重做该轮并选择实质性响应
+4. **连续 3 轮无实质性响应** → 强制 KILL 路径（`/kill-argument`）——"十几轮只缩不变"的终局不是论文，是止损
+5. **审计钩子**: `REVIEW_STATE.json` 记录每轮每个 concern 的 `response_class ∈ {experiment_redesign, pivot, kill, wording}`；`/paper-writing` 读取——若终稿前的最后 2 轮 response_class 全为 `wording` → FAIL（`reason_code: shrinkage_only_response`）
+
 #### Phase B.1: Fidelity Gatekeeping (Universal — replaces economics p-value gate and cs-ml SOTA gate)
 
 **Apply the 3-fidelity ladder** to primary outcomes (see [`/result-to-claim`](../result-to-claim/SKILL.md) for the ladder):

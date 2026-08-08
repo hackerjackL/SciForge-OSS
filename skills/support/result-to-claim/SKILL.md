@@ -81,6 +81,27 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 - A **secondary** claim (mechanism/robustness) can be supported by `qualitative` fidelity — secondary claims do not gate the pipeline.
 - **Never** label a claim "proven" without `symbolic` fidelity. **Never** label a claim "supported" without at least `numerical` fidelity.
 
+### 证据充分性门控（v5.1 — Evidence Sufficiency Gate，源自 CRUX 影子评估失败模式 #1）
+
+**背景**（arXiv:2607.27191）：AI agent 在小规模合成数据上跑出负结果，把统计效力严重不足的实验包装成"发现"——自我审稿都打了 weak reject 却照常推进。"它知道自己写得不好，但不知道该怎么变好。"我们的保真度阶梯管"证据类型"，本节补上"证据**分量**"——实验型论文的常见死法不是没有数值，而是数值**轻如鸿毛**。
+
+**强制检查**（`experiment-first` / `hybrid` 路由下，每个 PRIMARY claim 逐条执行，结果写入 `CLAIMS_FROM_RESULTS.md` 的 `evidence_sufficiency` 字段）：
+
+| 检查项 | 下限 | 不达标判定 |
+|--------|------|-----------|
+| **统计效力（power）** | 实验规模对该效应有检出能力：报告样本量/训练规模 + 该规模下可检出的最小效应（或功效分析） | `underpowered` |
+| **效应量（effect size）** | 主结果报告效应量本身（差值/提升幅度），不只是 p 值；效应量需与噪声水平可比（>1× 种子间 std，或明确置信区间） | `effect_within_noise` |
+| **重复性（replication）** | ≥3 种子（lite 档 ≥2）的均值±std；单点结果不得支撑 PRIMARY claim | `single_seed` |
+| **数据规模匹配** | toy/合成数据的结果**只能**支撑 "in the tested regime" 级声明；主声明必须由 full 实验支撑 | `toy_overreach` |
+| **基线对照** | 主声明必须有 ≥1 个基线的同条件对比（强制实验矩阵的 baseline 组） | `no_baseline` |
+
+**处置**（任一检查不达标）：
+1. 该 claim 保真度**强制降级**至 `qualitative` 以下 → 不得作为 PRIMARY claim 进论文主体
+2. 若该 claim 是核心假设（FINAL_PROPOSAL 的主论点）→ 触发 `/experiment-execution` 的 **KILL-or-PIVOT**（证据不足=核心假设未获支撑，同负结果纪律）——**禁止**通过改写措辞把"效力不足的实验"变成"探索性发现"
+3. `CLAIMS_FROM_RESULTS.md` 记录每条 claim 的 `evidence_sufficiency: {power, effect_size, replication, scale, baseline}` 五字段——`/paper-writing` 自检时任何 PRIMARY claim 缺该字段或含不达标项 → FAIL（`reason_code: insufficient_evidence_as_finding`）
+
+**反包装红线**（审计钩子）：正文出现"我们首次发现/我们揭示"类强声明而对应 claim 的 sufficiency 任一项不达标 → FAIL。措辞强化不能绕过证据分量——这正是 CRUX 实验中 agent 的典型死法。
+
 ## 4-Dimensional Joint Confidence (TDAL — locked schema)
 
 The overall confidence is computed from 4 dimensions (T × D × A × L), not just theory fidelity. **The full schema, weights, thresholds, producer/consumer contracts, and floor constraints are locked in [`../shared-references/domain-adaptation-contract.md`](../../shared-references/domain-adaptation-contract.md).** This section is the **producer contract** — what `/result-to-claim` MUST emit.
