@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.1.2] - 2026-08-09
+
+### 管线治理四件套 + 判断力防线 + 实验优先验证（v5.0–v5.2 治理系列）
+
+**v5.0 experiment-first 全面改造**
+- 验证路由契约（`verification-routing.md`）：experiment-first 默认（toy ~20 轮作想法生死判）；theory-only 仅留给 derivational ∧ 无可执行计算（纯数学/部分人文）；theory-derivation 降级为可选辅助
+- 长实验防超时：后台调度阈值（>15min 或 ≥5 组强制后台 + STATUS.json 60s 心跳 + 轮询分级）+ subagent 委托协议（≥3 独立组或 ≥6 配置必须委托，零共享状态、RESULT.json 契约）
+- idea 撞车审计（novelty-check）：TOP-5 三维矩阵（same_problem/method/data）+ 冲突处置树 + differentiation.md；文献时效硬门槛（universal-retrieval，近 2 年 ≥40%）
+- 强制实验矩阵（method-registry §3.5，随 Section 3 hash-lock）：主实验 + 基线≥3 + 消融 + 超参 + 敏感性；budget_scale full/lite/pilot
+- 从 0 到 1 停止协议（KILL-or-PIVOT）：负向显著且 ≥2 种子可复现才触发；PIVOT ≤2 次预算
+- 负结果纪律：负结果永不作 contribution——主实验级负向回传 KILL/PIVOT，局部负向只进 Limitations；claims 带 polarity 字段
+- 目录统一（output-protocol）：`code/` 代码单一之家 + `logs/` 日志集中 + 单一之家原则 + paper-writing SYMLINK-ONLY 禁 copy
+
+**v5.1 判断力防线（源自普林斯顿 CRUX 影子评估 arXiv:2607.27191 五项失败模式）**
+- 证据充分性门控（result-to-claim）：统计效力/效应量/≥3 种子/toy 范围/基线对照五项检查；不足禁止包装成"发现"
+- 反缩减协议（auto-review-loop）：连续拒稿状态下措辞性修复作废，只允许实质响应（重设计实验/PIVOT/KILL）
+- 问题内容哈希冻结（invariant-check INV-G1）：SHA256 冻结问题陈述，禁止借负结果改写研究问题
+- 探索预算下限（experiment-execution）：≥2 技术路线 + 矩阵 100% + 种子足额 + 失败留痕；"我写完了"需 completion_justification
+- 约束重注入 + 页数硬门：phase boundary 原文复述硬约束 + 超页硬 FAIL
+
+**v5.2 治理四件套**
+- `verdicts/` 评判统一目录：16 类机读 verdict/hash/审计 JSON 收敛单一平铺目录；12 个产出方 skill 接入
+- 工作区整洁契约（output-protocol）：命名规范 / 版本号只进内容 / 临时文件禁令 / 孤儿产物治理 / 收尾清理协议
+- 回环完整性登记表（auto-pipeline）：L1–L13 全部回环唯一权威清单（触发/目标/预算/耗尽出口）；修复 6b 门控与 KILL-or-PIVOT 的矛盾断点；BA 预算全局共享 ≤2 轮
+- 公平评测（method-registry §3.6 预注册 + experiment-execution + result-to-claim）：指标锁定 / 基线同条件对齐 / 基线强制本环境重算 / 禁 cherry-picking（全种子均值±std + 全网格）
+- 反 AIGC 活人感契约（writing-principles §0.5 + paper-writing Step 5）：AI 腔黑名单 7 类可机器计数 + 活人感正向特征 + 论文体 vs 报告体判别 + 五领域惯例适配
+
+**版本号统一至 1.1.2**：根 SKILL.md + plugin.json + package.json + CITATION.cff + 24 子 skill + VERSIONING.md + README 双语徽章。
+
 ## [1.1.1] - 2026-08-07
 
 ### 定位收敛 + 绘图工具链大一统（figure toolchain overhaul）

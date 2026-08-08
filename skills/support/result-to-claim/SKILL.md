@@ -1,6 +1,6 @@
 ---
 name: result-to-claim
-version: 1.1.1
+version: 1.1.2
 description: "3-fidelity claim gate (symbolic/numerical/qualitative) mapping results to claims, blocking unsupported 'supported'/'proven' language. Phase 10. Invoke to gate which claims the paper may make."
 type: reference-skill
 role: result-to-claim-gate
