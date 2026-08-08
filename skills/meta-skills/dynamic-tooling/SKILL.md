@@ -1,6 +1,6 @@
 ---
 name: dynamic-tooling
-version: 1.1.2
+version: 1.2.0
 description: "Build custom ad-hoc tools (parsers, converters, small CLIs) the agent needs mid-run that aren't pre-provided. Invoke when no existing tool fits a pipeline step."
 type: reference-skill
 role: tool-builder
@@ -10,131 +10,131 @@ role: tool-builder
 
 ## Quick Reference
 
-- **Purpose**: 运行时生成临时工具，填补能力缺口
-- **Input**: 工具描述 + 接口契约
-- **Output**: 可执行的 Python 模块 + 注册信息
-- **Key**: 7 种工具模板 (symbolic-reasoner/statistical-modeler/knowledge-graph/formal-verifier/code-synthesizer/data-transformer/text-analyzer)
+- **Purpose**: Generate throwaway tools at runtime to fill capability gaps
+- **Input**: Tool description + interface contract
+- **Output**: Executable Python module + registration info
+- **Key**: 7 tool templates (symbolic-reasoner/statistical-modeler/knowledge-graph/formal-verifier/code-synthesizer/data-transformer/text-analyzer)
 
 ## Use When
 
-当 AI scientist 遇到标准沙盒库无法处理的计算或数据处理任务时——需要特定领域的工具、适配器或管道——使用此 skill。
+When the AI scientist hits a compute or data-processing task that the standard sandbox libraries cannot handle — needing a domain-specific tool, adapter, or pipeline — use this skill.
 
-典型 prompt：
-- "我需要一个处理化学分子式的工具"
-- "这个数据格式需要自定义解析器"
+Typical prompts:
+- "I need a tool to process chemical molecular formulas"
+- "This data format needs a custom parser"
 - "write a custom tool for this data format"
 - "create a graph analysis utility for this specific problem"
 - "build a bridge between the sandbox output and the plotting engine"
 
-这是**力量倍增器**元技能：它让系统在运行时自我扩展能力，确保任何科研问题永远不会遇到"工具不可用"的死胡同。
+This is the **force multiplier** meta-skill: it lets the system extend its own capabilities at runtime, ensuring no research problem ever hits the "tool unavailable" dead end.
 
 ## Job
 
-动态生成、测试并注册一个临时或永久的工具（Python 模块、CLI 封装器、API 适配器或数据管道），填补研究过程中发现的能力空白。工具由 AI 编写，通过执行验证，然后提供给下游 skill 使用。
+Dynamically generate, test, and register a temporary or permanent tool (Python module, CLI wrapper, API adapter, or data pipeline) to fill a capability gap discovered during research. The tool is written by the AI, validated by execution, then made available to downstream skills.
 
-不可妥协的目标：
-1. **每个工具在注册前都经过测试**——最小的冒烟测试必须通过
-2. **每个工具都有清晰的接口契约**——输入 schema、输出 schema、错误模式
-3. **失败的工具被诊断，不被丢弃**——错误随建议的修复一起返回
-4. **工具有作用域**——临时（仅会话）或持久（跨会话复用）
+Non-negotiable goals:
+1. **Every tool is tested before registration** — the minimal smoke test must pass
+2. **Every tool has a clear interface contract** — input schema, output schema, error modes
+3. **Failed tools are diagnosed, not discarded** — errors are returned together with suggested fixes
+4. **Tools are scoped** — temporary (session-only) or persistent (reused across sessions)
 
-## 配置
+## Configuration
 
-| 参数 | 类型 | 默认 | 说明 |
-|------|------|------|------|
-| `scope` | enum | `session` | `session`（临时）或 `persistent`（可复用） |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `scope` | enum | `session` | `session` (temporary) or `persistent` (reusable) |
 | `language` | enum | `python` | `python` / `julia` / `bash` |
-| `smoke_test` | bool | `true` | 生成后是否运行冒烟测试 |
-| `max_retries` | int | `2` | 最大生成+测试轮数 |
+| `smoke_test` | bool | `true` | Run the smoke test after generation |
+| `max_retries` | int | `2` | Max generation+test rounds |
 
 ## Steps
 
-### Step 1: 识别缺口
+### Step 1: Identify the Gap
 
-分析请求，确定：
-1. **缺少什么**——特定的库函数、数据格式解析器、可视化适配器、计算管道
-2. **为什么现有工具不足**——不支持的数据格式、缺少库、性能要求、领域特定逻辑
-3. **工具的作用域**——一次性工具还是可复用组件
-4. **依赖项**——工具需要什么库或外部服务
+Analyze the request and determine:
+1. **What is missing** — a specific library function, data-format parser, visualization adapter, or compute pipeline
+2. **Why existing tools are insufficient** — unsupported data format, missing library, performance requirement, domain-specific logic
+3. **The tool's scope** — one-shot tool or reusable component
+4. **Dependencies** — which libraries or external services the tool needs
 
-如果缺口可以通过安装标准库（pip install）填补，**不要创建工具**——委托给 `/dynamic-sandbox` 并附带包列表。
+If the gap can be filled by installing a standard library (pip install), **do not create a tool** — delegate to `/dynamic-sandbox` with the package list.
 
-### Step 2: 设计工具接口
+### Step 2: Design the Tool Interface
 
-在编写代码前定义工具的契约：
+Define the tool's contract before writing code:
 
 ```
 Tool Name: {name}
-Purpose: {一句话描述}
-Input: {JSON schema 或函数签名}
-Output: {JSON schema 或返回类型}
-Side Effects: {文件 I/O、网络调用、状态变更}
-Error Modes: {可能出错的地方及如何报告}
+Purpose: {one-sentence description}
+Input: {JSON schema or function signature}
+Output: {JSON schema or return type}
+Side Effects: {file I/O, network calls, state changes}
+Error Modes: {what can go wrong and how it is reported}
 ```
 
-### Step 2b: 工具模板库 (按需加载)
+### Step 2b: Tool Template Library (load on demand)
 
-如果请求的工具类型匹配以下模板之一，直接加载模板而非从头生成。模板提供预定义的输入/输出 schema、测试用例和错误处理。
+If the requested tool type matches one of the templates below, load the template directly instead of generating from scratch. Templates provide predefined input/output schemas, test cases, and error handling.
 
-| 模板类型 | 适用场景 | 输入 | 输出 | 技术栈 |
-|---------|---------|------|------|--------|
-| **symbolic-reasoner** | 数学定理证明、逻辑推导验证 | 数学命题 + 假设集 | 证明步骤 + 验证状态 | SymPy/symengine |
-| **statistical-modeler** | 假设检验、回归分析、因果推断 | 数据 + 检验类型 | 检验统计量 + p值 + 效应量 | scipy.stats/statsmodels |
-| **knowledge-graph** | 概念映射、文献网络分析 | 概念列表 + 关系类型 | 知识图谱 (JSON/GraphML) | networkx |
-| **formal-verifier** | 逻辑命题验证、模型检查 | 逻辑命题 + 推理规则 | 验证通过/反例 | Z3/pysat SMT 求解 |
-| **code-synthesizer** | 自动生成验证/模拟代码 | 问题描述 + 参数 | 可执行 Python 脚本 | AST 模板 + jinja2 |
-| **data-transformer** | 多源数据格式转换 | 源数据 + 目标格式 | 转换后数据 | pandas |
-| **text-analyzer** | 关键词提取、主题建模 | 文本 + 分析类型 | 结构化分析结果 | sklearn/nltk |
+| Template type | Use case | Input | Output | Tech stack |
+|---------------|----------|-------|--------|------------|
+| **symbolic-reasoner** | Mathematical theorem proving, logic derivation verification | Mathematical statement + assumption set | Proof steps + verification status | SymPy/symengine |
+| **statistical-modeler** | Hypothesis testing, regression analysis, causal inference | Data + test type | Test statistic + p-value + effect size | scipy.stats/statsmodels |
+| **knowledge-graph** | Concept mapping, literature network analysis | Concept list + relation types | Knowledge graph (JSON/GraphML) | networkx |
+| **formal-verifier** | Logic proposition verification, model checking | Logic proposition + inference rules | Verification passed / counterexample | Z3/pysat SMT solving |
+| **code-synthesizer** | Auto-generating verification/simulation code | Problem description + parameters | Executable Python script | AST templates + jinja2 |
+| **data-transformer** | Multi-source data format conversion | Source data + target format | Converted data | pandas |
+| **text-analyzer** | Keyword extraction, topic modeling | Text + analysis type | Structured analysis result | sklearn/nltk |
 
-**模板使用流程**：
-1. 识别请求匹配的模板类型
-2. 加载模板的输入/输出 schema
-3. 填充模板参数（领域特定的变量名、函数名）
-4. 执行 Step 3 生成实现
-5. 如果模板不匹配，回退到 Step 2 的通用设计流程
+**Template usage flow**:
+1. Identify the template type the request matches
+2. Load the template's input/output schema
+3. Fill in the template parameters (domain-specific variable names, function names)
+4. Execute Step 3 to generate the implementation
+5. If no template matches, fall back to the generic design flow of Step 2
 
-**示例**：用户请求"验证这个数学推导的正确性"
-→ 匹配 `symbolic-reasoner` 模板
-→ 输入：数学命题 + 假设集
-→ 输出：逐步骤验证结果
-→ 使用 SymPy 生成验证脚本
+**Example**: user requests "verify the correctness of this mathematical derivation"
+→ matches the `symbolic-reasoner` template
+→ input: mathematical statement + assumption set
+→ output: step-by-step verification result
+→ use SymPy to generate the verification script
 
-### Step 3: 生成实现
+### Step 3: Generate the Implementation
 
-将工具编写为自包含的 Python 模块：
-- 一个单一的入口函数（或带 `__call__` 的类）
-- 类型注解的参数和返回值
-- 带使用示例的 docstring
-- 所有已识别错误模式的错误处理
-- 无硬编码路径或凭据
-- 版本字符串（`__version__`）
+Write the tool as a self-contained Python module:
+- A single entry function (or a class with `__call__`)
+- Type-annotated parameters and return values
+- Docstring with a usage example
+- Error handling for all identified error modes
+- No hardcoded paths or credentials
+- Version string (`__version__`)
 
-**代码质量规则：**
-- 每个工具最多 200 行（如果更大，拆分为子模块）
-- 注册前必须通过 `py_compile`
-- 不得从沙盒或已安装库之外导入
-- 除非明确授权，否则不得执行 shell 命令
+**Code quality rules:**
+- Every tool at most 200 lines (split into submodules if larger)
+- Must pass `py_compile` before registration
+- Must not import from outside the sandbox or installed libraries
+- Must not execute shell commands unless explicitly authorized
 
-### Step 4: 冒烟测试
+### Step 4: Smoke Test
 
-对最小测试用例运行工具：
-1. 使用已知输入和预期输出编写测试
-2. 导入并调用工具的入口函数
-3. 将实际输出与预期输出比较（float 在容差范围内）
-4. 如果测试失败，返回错误及建议修复
+Run the tool against a minimal test case:
+1. Write a test with known input and expected output
+2. Import and invoke the tool's entry function
+3. Compare actual output with expected output (floats within tolerance)
+4. If the test fails, return the error with suggested fixes
 
-**测试通过时：**
-- 计算源文件的 SHA-256 hash
-- 注册到 `tools/registry.json`
+**When the test passes:**
+- Compute the SHA-256 hash of the source file
+- Register in `tools/registry.json`
 
-**测试失败时（最多重试 max_retries 次）：**
-- 返回 traceback
-- 建议 3 个可能的修复
-- 让调用者决定是否修复并重试
+**When the test fails (retry at most max_retries times):**
+- Return the traceback
+- Suggest 3 possible fixes
+- Let the caller decide whether to fix and retry
 
-### Step 5: 注册并文档化
+### Step 5: Register and Document
 
-**持久工具：**
+**Persistent tool:**
 ```json
 {
   "name": "tool_name",
@@ -149,12 +149,12 @@ Error Modes: {可能出错的地方及如何报告}
 }
 ```
 
-**临时工具：**
-- 写入 `tools/temp/{session_id}_{tool_name}.py`
-- 返回文件路径和使用说明
-- 不注册到 `registry.json`
+**Temporary tool:**
+- Write to `tools/temp/{session_id}_{tool_name}.py`
+- Return the file path and usage instructions
+- Do not register in `registry.json`
 
-### Step 6: 返回给调用者
+### Step 6: Return to the Caller
 
 ```json
 {
@@ -167,13 +167,13 @@ Error Modes: {可能出错的地方及如何报告}
 }
 ```
 
-## 下游 skill 调用
+## Downstream Skill Invocation
 
-- `/dynamic-sandbox` — 使用新创建的工具执行计算
-- `/unified-plotting` — 工具的绘图输出可传给此 skill 渲染
+- `/dynamic-sandbox` — uses the newly created tool to execute the computation
+- `/unified-plotting` — the tool's plot output can be passed to this skill for rendering
 
-## 共享契约引用
+## Shared Contract References
 
-- [integration-contract](../../shared-references/integration-contract.md) — skill 集成协议
-- [skill-config](../../shared-references/skill-config.md) — skill 配置契约
-- [output-manifest](../../shared-references/output-manifest.md) — 产物结构契约
+- [integration-contract](../../shared-references/integration-contract.md) — skill integration protocol
+- [skill-config](../../shared-references/skill-config.md) — skill configuration contract
+- [output-manifest](../../shared-references/output-manifest.md) — artifact structure contract

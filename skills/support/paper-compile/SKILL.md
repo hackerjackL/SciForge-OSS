@@ -1,6 +1,6 @@
 ---
 name: paper-compile
-version: 1.1.2
+version: 1.2.0
 description: "Compile LaTeX (elsarticle) to submission-ready PDF with zero-warnings policy + anti-deadloop escalation + table/figure overflow checks. v3.4 Step 1.5 pipeline-leakage scrub gate consumer (refuses to compile if LEAKAGE_SCRUB.json missing/FAIL, defense-in-depth re-scan). Phase 13. Invoke after paper-writing to produce main.pdf."
 type: reference-skill
 role: latex-compiler
@@ -10,10 +10,10 @@ role: latex-compiler
 
 ## Quick Reference
 
-- **Purpose**: LaTeX 编译 paper/main.tex → main.pdf，零警告零报错
+- **Purpose**: Compile paper/main.tex via LaTeX → main.pdf, zero warnings zero errors
 - **Input**: paper/main.tex + paper/sections/*.tex + literature/references.bib
 - **Output**: main.pdf + compile.log + COMPILE_REPORT.json
-- **Key**: 反死循环阶梯 (3 attempt per-warning → BLOCKED)；submission 级编译
+- **Key**: Anti-deadloop escalation ladder (3 attempts per-warning → BLOCKED); submission-level compilation
 
 > **Status**: LaTeX compiler for the unified `elsarticle` template. Enforces zero-warnings zero-errors at submission level. Copied from main SciForge and trimmed to OSS's single-template, discipline-agnostic design.
 >
@@ -24,10 +24,10 @@ role: latex-compiler
 Use this skill when the user wants to compile a LaTeX paper into a PDF, diagnose build errors, or verify submission readiness.
 
 Typical prompts:
-- "编译论文"
+- "compile my paper"
 - "compile paper"
 - "build PDF"
-- "生成PDF"
+- "generate PDF"
 - "fix compile errors"
 
 ## Job
@@ -168,23 +168,23 @@ After visual review, explicitly verify table and figure boundaries:
 - Verify no `\ref{}` points to a non-existent label
 - **Verdict**: `FAIL` if any figure/table has no text reference; `WARN` if any `\ref{}` target is undefined
 
-### Step 6: Page Count Verification (v5.1 — 超页硬 FAIL，源自 CRUX 影子评估失败模式 #5)
+### Step 6: Page Count Verification (v5.1 — hard FAIL on page overrun, from CRUX shadow-evaluation failure mode #5)
 
 **CRITICAL**: Verify paper fits within Max pages (OSS unified default: 15).
 
-**背景**（arXiv:2607.27191）：CRUX 实验中两篇终稿**都超页**——正文超过九页限制写到第十页，按 NeurIPS 规则"本可以连审都不用审直接 desk reject"。页数硬规则是 agent 长程运行中逐渐遗忘的硬约束之一（指令漂移）。OSS 虽用弹性页面目标（8-15 页），但一旦选定 `length` 档位，该档上限就是**硬约束**。
+**Background** (arXiv:2607.27191): In the CRUX experiment, both final drafts **exceeded the page limit** — the body ran past the nine-page limit onto a tenth page, which under NeurIPS rules "could have been desk-rejected without ever being reviewed". Hard page rules are one of the hard constraints agents gradually forget during long-horizon runs (instruction drift). OSS uses a flexible page target (8-15 pages), but once a `length` tier is chosen, its upper bound is a **hard constraint**.
 
 **OSS page count rule**: Main body = first page through end of Conclusion section. References and appendix are NOT counted.
 
 **Precise check**: Extract text from the PDF and locate where Conclusion ends vs References begin. If Conclusion ends mid-page and References start on the same page, the main body is that page number (e.g., if both are on page 9, main body = ~8.5 pages).
 
-**v5.1 硬 FAIL 规则**: 主体页数 > 所选 `length` 档位上限（short≤6 / standard≤12 / long≤16，映射自 4-6/8-12/12-16 目标区间的上限）→ verdict **FAIL**（不是 WARN，不建议——直接 FAIL，`reason_code: page_limit_exceeded`），与泄漏清洗门同级。超页论文在真实投稿中是 desk reject 级缺陷，编译产物不得视为"submission-ready"。
+**v5.1 hard FAIL rule**: main-body pages > selected `length` tier cap (short≤6 / standard≤12 / long≤16 — the upper bounds of the 4-6/8-12/12-16 target ranges) → verdict **FAIL** (not WARN, not a recommendation — direct FAIL, `reason_code: page_limit_exceeded`), same level as the leakage-scrub gate. An over-limit paper is a desk-reject-level defect in real submission; the compile output must NOT be treated as "submission-ready".
 
-If over limit (FAIL path — 必须修复后重编译，不是给建议):
+If over limit (FAIL path — fix then recompile; this is not advisory):
 1. Identify which sections are longest.
-2. Execute specific cuts (move proofs to appendix, compress tables, tighten writing) — 由 `/paper-writing` 回退执行，不是留给人类的建议清单。
-3. Re-compile and re-verify. 循环直至主体页数 ≤ 档位上限。
-4. FAIL 记录写入 `compile.log` 的 verdict 行 + `PAPER_PLAN.md` 的 `page_limit_exceeded: true` 字段。
+2. Execute specific cuts (move proofs to appendix, compress tables, tighten writing) — executed via `/paper-writing` loop-back, not a suggestion list left to the human.
+3. Re-compile and re-verify. Loop until main-body pages ≤ tier cap.
+4. Write the FAIL record to the verdict line in `compile.log` + the `page_limit_exceeded: true` field in `PAPER_PLAN.md`.
 
 ### Step 6.5: Stale File Detection
 

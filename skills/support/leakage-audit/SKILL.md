@@ -1,6 +1,6 @@
 ---
 name: leakage-audit
-version: 1.1.2
+version: 1.2.0
 description: "Structural audit for Type I logic gaps + Type IV empirical escape (verification contradicts premise). Phase 7. Invoke after method-registry, before paper-writing. Does NOT run code (structural only)."
 type: reference-skill
 role: structural-leakage-auditor
@@ -10,10 +10,10 @@ role: structural-leakage-auditor
 
 ## Quick Reference
 
-- **Purpose**: 审计 Type I 逻辑漏洞 + Type IV 逃逸 (验证与前提矛盾)
+- **Purpose**: Audit Type I logic gaps + Type IV escape (verification contradicts premise)
 - **Input**: METHOD_REGISTRY.md + METHOD_BINDING.md
 - **Output**: LEAKAGE_AUDIT.json + LEAKAGE_AUDIT.md
-- **Key**: 无学科 overlay；Type I + Type IV 通用；3 轮 callback 到 method-registry
+- **Key**: No discipline overlays; Type I + Type IV universal; 3-round callback to method-registry
 
 > **Status**: Structural auditor for the canonical leakage types that cause desk rejects. **OSS is discipline-agnostic** — there are no discipline overlays (no economics 14-class, no cs-ml 14-class, no physics 10-class). Only the universal `Type I Logic Gap` + `Type IV Empirical Escape` (generalized beyond physics) are active. Copied from main SciForge and trimmed to OSS's discipline-agnostic design.
 
@@ -91,7 +91,7 @@ If `methods/METHOD_REGISTRY.md` does not exist, **ABORT and tell the user to run
 - Are there hidden assumptions not stated that are doing the work?
 - Is the implication stronger than what the model can deliver?
 
-> **R5 收敛声明 (v2.3)**: Type I 与 `/logic-verification` 的 `LOGICAL_GAP`/`UNJUSTIFIED_ASSERTION` 关注同一逻辑正确性问题——本 audit **交叉引用** logic-verification 的裁决：若 `LOGIC_VERIFICATION.json` 已对该 claim 判定 FATAL/CRITICAL，则 Type I 直接继承（不重复判定），只追加"该方法/结果是否从假设推导"这一板块性视角；避免对同一缺口双重判罚。
+> **R5 convergence statement (v2.3)**: Type I and `/logic-verification`'s `LOGICAL_GAP`/`UNJUSTIFIED_ASSERTION` target the same logical-correctness issue — this audit **cross-references** logic-verification verdicts: if `LOGIC_VERIFICATION.json` has already judged that claim FATAL/CRITICAL, Type I inherits the verdict directly (no duplicate judging) and only adds the block-level perspective "does this method/outcome follow from the assumptions"; do not double-penalize the same gap.
 
 ### Type II — Hidden Violation (OSS: NOT APPLICABLE)
 
@@ -298,7 +298,7 @@ The audit REJECTS the project (returns FAIL) if any of:
 | G4 | Section 3 (Method Selection) is post-hoc | Pre-registration violated |
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:

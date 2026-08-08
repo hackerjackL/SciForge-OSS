@@ -1,6 +1,6 @@
 ---
 name: quality-gate
-version: 1.1.2
+version: 1.2.0
 description: "Final pre-writing gate checking all upstream audits passed before paper-writing finalizes. Phase 12 boundary. Invoke to enforce the quality floor before the manuscript is sealed."
 type: reference-skill
 role: pre-writing-quality-gate
@@ -10,10 +10,10 @@ role: pre-writing-quality-gate
 
 ## Quick Reference
 
-- **Purpose**: 前置写作质量门 — 停滞检查 + 质量底线 + 反自欺检查
-- **Input**: 所有研究产物 (derivations/ + audit_report/ + CLAIMS_FROM_RESULTS.md)
+- **Purpose**: Pre-writing quality gate — stagnation check + quality floor + anti-self-deception check
+- **Input**: All research artifacts (derivations/ + audit_report/ + CLAIMS_FROM_RESULTS.md)
 - **Output**: QUALITY_FLOOR_REPORT.md + SELF_DECEPTION_REPORT.md
-- **Key**: 硬门 (FAIL 则阻塞论文写作)；确定性检查 (Type D) + 语义检查 (Type S)
+- **Key**: Hard gate (FAIL blocks paper writing); deterministic checks (Type D) + semantic checks (Type S)
 
 > **Status**: Hard gate at the **final pre-writing boundary** — the last checkpoint before paper writing begins. **OSS is discipline-agnostic** — there are no discipline overlays (no economics QF-E*, no cs-ml QF-C*, no physics QF-P*). Only the universal QF-G* quality floor + SD-G* self-deception guard checks are active. Copied from main SciForge and trimmed to OSS's single-row design.
 
@@ -164,9 +164,9 @@ OSS has **no discipline overlay**. The universal QF-G* checks below apply to eve
 | QF-G2 | Logic audit PASS | D | `audit_report/LOGIC_VERIFICATION.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G3 | Leakage audit PASS | D | `audit_report/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G4 | Result-to-claim verdict | D | `CLAIMS_FROM_RESULTS.md` exists with `claim_supported: yes` or `partial` | claim_supported ∈ {yes, partial}; NOT `no` |
-| QF-G5 | Primary outcome fidelity | D | **CONSUME** `/result-to-claim` 的 fidelity 裁决（`CLAIMS_FROM_RESULTS.md` 中 primary outcome ≥ numerical 的逐条记录）；不重算 ladder | ≥ 1 primary at numerical+（据 result-to-claim 裁决） |
-| QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` 的 INV-G1 裁决（`refine-logs/FINAL_PROPOSAL.md` 冻结 Q-id）；不重复检查 | INV-G1 裁决 = PASS |
-| QF-G7 | Method registry hash locked | D | **CONSUME** `/method-registry` 的哈希锁验证（`methods/REGISTRY_HASH.txt` 对应 `METHOD_REGISTRY.md` Section 3）；不重复计算 | method-registry 哈希验证 = PASS |
+| QF-G5 | Primary outcome fidelity | D | **CONSUME** `/result-to-claim` fidelity verdicts (per-entry records of primary outcomes ≥ numerical in `CLAIMS_FROM_RESULTS.md`); do NOT recompute the ladder | ≥ 1 primary at numerical+ (per result-to-claim verdicts) |
+| QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` INV-G1 verdict (frozen Q-id in `refine-logs/FINAL_PROPOSAL.md`); do NOT re-check | INV-G1 verdict = PASS |
+| QF-G7 | Method registry hash locked | D | **CONSUME** `/method-registry` hash-lock verification (`methods/REGISTRY_HASH.txt` matching `METHOD_REGISTRY.md` Section 3); do NOT recompute | method-registry hash verification = PASS |
 | QF-G8 | Interpretation consistency | S | The derivation's interpretation is consistent with the declared assumptions | LLM judgment grounded in specific assumption citations |
 | QF-G9 | Scope calibration | S | Claim scope matches derivation regime (no overgeneralization) | LLM judgment comparing claim language vs. derivation regime |
 
@@ -241,7 +241,7 @@ The self-deception guard uses a **structured self-consistency check** approach:
 | SD-G4 | Symbolic proof completeness | The SymPy chain is actually complete (no hidden "TODO" / "gap" / hand-waved steps) |
 | SD-G5 | Numerical sanity independence | The numerical check used parameters independent from the symbolic proof's assumptions (not circular) |
 
-> **R4 收敛声明 (v2.3)**: SD-G* 只做**确定性优先**的结构化自查（claim↔evidence 映射、负面结果披露、作用域校准、符号链完整性、数值独立性）——**不做角色对抗**。角色切换式对抗自审是 `/kill-argument` 的职责，由 `/auto-review-loop` 在 hard/nightmare 难度调用；三处各司其职：quality-gate = 确定性结构化检查，kill-argument = 对抗自审，auto-review-loop = 跨角色外部评审。避免在三处重复执行同一检查。
+> **R4 convergence statement (v2.3)**: SD-G* performs only **determinism-first** structured self-checks (claim↔evidence mapping, negative-result disclosure, scope calibration, symbolic-chain completeness, numerical independence) — **no role-based adversariality**. Role-switching adversarial self-review is `/kill-argument`'s job, invoked by `/auto-review-loop` at hard/nightmare difficulty. Each of the three owns its lane: quality-gate = deterministic structural checks, kill-argument = adversarial self-review, auto-review-loop = cross-role external review. Do NOT repeat the same check across the three.
 
 ### Output
 

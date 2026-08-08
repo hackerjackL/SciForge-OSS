@@ -1,6 +1,6 @@
 ---
 name: method-registry
-version: 1.1.2
+version: 1.2.0
 description: "Build the 8-section method registry + hash-lock Section 3 + human approval gate. Phase 5. Invoke after idea selection to pre-register the methodology before derivation."
 type: reference-skill
 role: method-registry-builder
@@ -10,10 +10,10 @@ role: method-registry-builder
 
 ## Quick Reference
 
-- **Purpose**: 方法预注册 + hash 锁 + 强制人类审批，防止事后方法选择
+- **Purpose**: method pre-registration + hash lock + forced human approval, preventing post-hoc method selection
 - **Input**: refine-logs/FINAL_PROPOSAL.md
 - **Output**: METHOD_REGISTRY.md + REGISTRY_HASH.txt + APPROVAL_LOG.txt
-- **Key**: 8 节 schema；Section 3 (Method Selection) 锁定；假设质量评分 (新增)；强制人类审批
+- **Key**: 8-section schema; Section 3 (Method Selection) locked; assumption quality scoring (new); forced human approval
 
 > **Status**: Builds a structured `METHOD_REGISTRY.md` that locks the method selection BEFORE derivations are run, preventing post-hoc method shopping and scope creep. **OSS is discipline-agnostic** — there are no discipline overlays (no economics AIM schema, no cs-ml SOTA schema, no physics PNV schema). Only the universal 8-section schema with a Type I Logic Gap self-audit is active. Copied from main SciForge and trimmed to OSS's single-row design.
 
@@ -25,7 +25,7 @@ Typical prompts:
 - "register methods"
 - "pre-register method selection"
 - "build method registry"
-- "锁定方法选择"
+- "lock method selection"
 
 **MANDATORY** at the start of the OSS pre-writing phase (Phase 5 of `/auto-pipeline`, between `/universal-retrieval` and `/theory-derivation`).
 
@@ -117,50 +117,50 @@ Every assumption is scored for reasonability. This is the **assumption registry*
 
 ## 3.5 Mandatory Experiment Matrix (v5.0 — LOCKED with Section 3)
 
-**实测反馈**：旧管线只有主实验，补充实验（基线/消融/超参/敏感性）看运气——方法预注册阶段必须把**完整实验矩阵**锁死，事后不得增删（防止"结果出来后补一个好看的解释性实验"或"漏了审稿人必问的消融"）。
+**Field feedback**: the old pipeline had only the main experiment; supplementary experiments (baseline / ablation / hyperparameter / sensitivity) were left to luck — the method pre-registration stage must lock the **complete experiment matrix**, with no additions or removals afterward (preventing "adding a good-looking explanatory experiment after results come out" or "missing the ablation reviewers always ask for").
 
-**适用路由**：`experiment-first` / `hybrid`（见 [`verification-routing.md`](../../shared-references/verification-routing.md)）强制完整矩阵；`theory-only` 填 N/A。矩阵与 Section 3 一同 hash-lock——矩阵缺项时 hash-lock **拒绝生成**（`REGISTRY_HASH.txt` 写入 `BLOCKED: experiment_matrix_incomplete`）。
+**Applicable routing**: `experiment-first` / `hybrid` (see [`verification-routing.md`](../../shared-references/verification-routing.md)) enforce the full matrix; `theory-only` fills N/A. The matrix is hash-locked together with Section 3 — if any matrix item is missing, the hash lock **refuses to generate** (`REGISTRY_HASH.txt` gets `BLOCKED: experiment_matrix_incomplete`).
 
-| 实验类别 | 最低要求 | 产物 | 缺项后果 |
-|---------|---------|------|---------|
-| **主实验** | ≥1 个核心假设验证实验（对应 Section 2 的 PRIMARY outcome） | `experiments/full/group_main/` | hash-lock 拒绝 |
-| **基线对比** | **≥3 个基线**：SOTA（FRONTIER_MAP 最近工作复现）+ 经典基线 + naive（如随机/多数类/恒等） | `experiments/full/group_baseline_<name>/` | hash-lock 拒绝 |
-| **消融实验** | 方法每个**新组件**逐一去除/替换（leave-one-component-out），≥2 组 | `experiments/full/group_ablation_<k>/` | hash-lock 拒绝（单组件方法可用超参消融替代并注明） |
-| **超参扫描** | 核心超参 ≥1 个 × ≥3 个取值点（或声明"对超参不敏感"的理由） | `experiments/full/group_hyperparam/` | hash-lock 拒绝 |
-| **敏感性/鲁棒性** | 随机种子 ≥3（报告均值±std）+ ≥1 项扰动测试（数据噪声/规模缩放/分布偏移三选一） | `experiments/full/group_robustness/` | hash-lock 拒绝 |
+| Experiment category | Minimum requirement | Artifact | Consequence if missing |
+|---------------------|---------------------|----------|------------------------|
+| **Main experiment** | ≥1 core-hypothesis validation experiment (matching Section 2's PRIMARY outcome) | `experiments/full/group_main/` | hash-lock refusal |
+| **Baseline comparison** | **≥3 baselines**: SOTA (reproduction of the nearest FRONTIER_MAP work) + classical baseline + naive (e.g. random / majority class / identity) | `experiments/full/group_baseline_<name>/` | hash-lock refusal |
+| **Ablation** | Remove/replace each **novel component** of the method one at a time (leave-one-component-out), ≥2 groups | `experiments/full/group_ablation_<k>/` | hash-lock refusal (single-component methods may substitute a hyperparameter ablation, with a note) |
+| **Hyperparameter sweep** | ≥1 core hyperparameter × ≥3 value points (or a stated rationale for "insensitive to hyperparameters") | `experiments/full/group_hyperparam/` | hash-lock refusal |
+| **Sensitivity/robustness** | ≥3 random seeds (report mean±std) + ≥1 perturbation test (one of: data noise / scale scaling / distribution shift) | `experiments/full/group_robustness/` | hash-lock refusal |
 
-**budget_scale 参数**（算力现实性）：
+**budget_scale parameter** (compute realism):
 
-| 档位 | 语义 | 允许的缩减 |
-|------|------|-----------|
-| `full`（默认） | 完整矩阵按上表执行 | 无 |
-| `lite` | 算力受限（CPU-only / 时限紧） | 种子 ≥3 → ≥2；超参点 ≥3 → ≥2；基线 ≥3 不变；**任何类别不得整体删除** |
-| `pilot` | 探索性运行（toy 之后、正式之前的中间档） | 只跑主实验 + 1 个 SOTA 基线 + 种子 2；结果**不得**进论文正文，仅供决策 |
+| Tier | Meaning | Allowed reductions |
+|------|---------|--------------------|
+| `full` (default) | The full matrix runs per the table above | None |
+| `lite` | Compute-constrained (CPU-only / tight deadline) | Seeds ≥3 → ≥2; hyperparameter points ≥3 → ≥2; baselines ≥3 unchanged; **no category may be removed entirely** |
+| `pilot` | Exploratory run (intermediate tier after toy, before formal) | Only the main experiment + 1 SOTA baseline + 2 seeds; results **must not** enter the paper body — decision support only |
 
-**矩阵 schema**（写入 `METHOD_REGISTRY.md` 本节的表格 + `methods/EXPERIMENT_MATRIX.json` 机读版）：
+**Matrix schema** (table written into this section of `METHOD_REGISTRY.md` + machine-readable `methods/EXPERIMENT_MATRIX.json`):
 
 ```json
 {"budget_scale": "full|lite|pilot",
  "groups": [{"name": "main|baseline_<n>|ablation_<k>|hyperparam|robustness",
              "hypothesis": "...", "script": "code/<path>",
              "estimated_minutes": 0, "background": true, "subagents": 0}],
- "locked_hash": "[与 Section 3 一同计算]"}
+ "locked_hash": "[computed together with Section 3]"}
 ```
 
-`estimated_minutes` 合计驱动 `/experiment-execution` 的后台调度阈值与 subagent 委托决策（v5.0 后台调度规则）。`/result-to-claim` 按矩阵逐项核对结果完整性——矩阵里有、结果里没有的组 → claim 保真度降级（不得宣称该类别的结论）。
+The `estimated_minutes` total drives `/experiment-execution`'s background-scheduling threshold and subagent delegation decisions (v5.0 background-scheduling rules). `/result-to-claim` checks result completeness against the matrix item by item — a group present in the matrix but absent from results → claim fidelity is downgraded (no conclusion may be claimed for that category).
 
-## 3.6 Evaluation Protocol Pre-registration (v5.2 — 评测公平性，随 §3.5 一同 hash-lock)
+## 3.6 Evaluation Protocol Pre-registration (v5.2 — evaluation fairness, hash-locked together with §3.5)
 
-**实测反馈**：评测必须"统一对比、公平、非糊弄"——指标怎么选、基线怎么跑、结果怎么报告，必须在**看结果之前**锁死，否则 agent 会（无意地）选择对自己有利的评测方式。本节与 §3.5 一同 hash-lock，实验期间不可改。
+**Field feedback**: evaluation must be "uniform comparison, fair, not sloppy" — how metrics are chosen, how baselines are run, and how results are reported must all be locked **before seeing results**; otherwise the agent will (unintentionally) pick evaluation methods favorable to itself. This section is hash-locked together with §3.5 and cannot be changed during experiments.
 
-**预注册四件套**（写入 `methods/EVALUATION_PROTOCOL.md` + `verdicts/EVALUATION_PROTOCOL.json` 机读版）：
+**Pre-registration quartet** (written to `methods/EVALUATION_PROTOCOL.md` + machine-readable `verdicts/EVALUATION_PROTOCOL.json`):
 
-1. **指标锁定（metrics lock）**: PRIMARY outcome 的主指标 + 报告指标全集在此锁死（名称、计算方式、聚合方式 mean±std）。实验后**不得增删指标**——想加指标 = 改方法 = 重走 §3 hash-lock
-2. **基线公平条件（baseline parity）**: 每个基线的运行条件**逐项对齐**并列表锁定——同样的数据划分（同 split 同 seed）、同样的预处理、同样的算力预算（训练步数/epoch/时间上限）、同样的调参力度（基线也允许按其文献推荐值调参，不能"我们的方法精调、基线裸跑"）。条件不对齐的对比结果不得进论文（`/result-to-claim` 校验 `parity_check` 字段）
-3. **基线强制重算（baseline re-implementation rule）**: 引用他人论文的基线数字 = **禁止**（不同环境/版本/划分不可比）。所有基线必须在**本实验环境**用官方实现（或论文附录复现细节）重跑；官方实现不可得 → 该基线标注 `reproduced_by_us`（按论文描述复现）并在论文中声明，**不得**冒充官方结果
-4. **报告纪律（anti-cherry-picking）**: 主结果必须报告**全种子均值±std**（禁止挑最好种子）；超参扫描报告全网格（禁止只报最优点，最优点可另标注但全网格必须在附录）；负向/不显著结果如实进 Limitations（负结果纪律）。任何"选择性报告"被 `/result-to-claim` 发现 → claim 保真度降两级
+1. **Metrics lock**: the primary metric for the PRIMARY outcome + the full set of reported metrics are locked here (name, computation, aggregation mean±std). **No adding or removing metrics after experiments** — wanting to add a metric = changing the method = redoing the §3 hash lock
+2. **Baseline parity**: each baseline's run conditions are **aligned item by item** and locked in a table — same data split (same split, same seed), same preprocessing, same compute budget (training steps / epochs / time cap), same tuning effort (baselines may also be tuned per their literature-recommended values; no "our method finely tuned, baselines run raw"). Comparison results with misaligned conditions must not enter the paper (`/result-to-claim` validates the `parity_check` field)
+3. **Baseline re-implementation rule**: citing baseline numbers from other papers = **forbidden** (different environments / versions / splits are not comparable). All baselines must be re-run in **this experiment environment** using the official implementation (or the reproduction details in the paper's appendix); if no official implementation is available → label that baseline `reproduced_by_us` (reproduced per the paper description) and disclose it in the paper; it **must not** be passed off as an official result
+4. **Reporting discipline (anti-cherry-picking)**: the main result must report **all-seed mean±std** (no picking the best seed); hyperparameter sweeps report the full grid (reporting only the best point is forbidden — the best point may be annotated separately, but the full grid must appear in the appendix); negative/non-significant results go honestly into Limitations (negative-results discipline). Any "selective reporting" caught by `/result-to-claim` → claim fidelity drops two levels
 
-**执行链**：`/experiment-execution` 按本协议跑（偏离即 RESULT.json 标 `protocol_violation`）→ `/result-to-claim` 逐条核对 `parity_check` / `all_seeds_reported` / `full_grid_reported` 三字段 → 缺项或违规 = 对应 claim 不得进论文主体。
+**Enforcement chain**: `/experiment-execution` runs per this protocol (any deviation flags `protocol_violation` in RESULT.json) → `/result-to-claim` checks the three fields `parity_check` / `all_seeds_reported` / `full_grid_reported` item by item → a missing item or violation = the corresponding claim must not enter the paper body.
 
 ## 4. Outcomes (Primary vs Secondary)
 
@@ -370,7 +370,7 @@ When `/leakage-audit` finds CRITICAL Type I leakage (LEAKY on a primary outcome)
    - **Do NOT silently continue** — a logic gap surviving 3 method swaps indicates the approach itself is flawed, not a method selection problem.
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:

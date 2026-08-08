@@ -1,6 +1,6 @@
 ---
 name: adversarial-falsification
-version: 1.1.2
+version: 1.2.0
 description: "Stress-test an idea's hypotheses with domain-specific failure modes + Ouroboros basic integration (D dim). Phase 2.5 (MANDATORY). Invoke after idea-discovery, before the human checkpoint."
 type: support-skill
 role: idea-falsification-auditor
@@ -10,10 +10,10 @@ role: idea-falsification-auditor
 
 ## Quick Reference
 
-- **Purpose**: 6 维度证伪攻击 (假设评分→反例→文献对抗→类比→沙盒可行性→工程落地) 确保 idea 不是"假 trick"
+- **Purpose**: 6-dimension falsification attack (assumption scoring → counterexample → literature adversarial search → analogy → sandbox feasibility → engineering grounding) to ensure the idea is not a "fake trick"
 - **Input**: IDEA_CANDIDATES.md (from /idea-discovery)
-- **Output**: 每个 idea 的 SURVIVE/WEAKENED/FALSIFIED 判定
-- **Key**: 强制证伪 — 先试图杀死 idea，再试图证明它
+- **Output**: SURVIVE/WEAKENED/FALSIFIED verdict per idea
+- **Key**: Forced falsification — first try to kill the idea, then try to prove it
 
 > **Status**: Rigorous falsification check on every idea BEFORE it enters the derivation pipeline. **OSS forces the agent to try to disprove each idea before trying to prove it.** This prevents "fake tricks" — ideas that look good on paper but are built on unrealistic assumptions.
 >
@@ -28,7 +28,7 @@ Typical prompts:
 - "Stress test these assumptions"
 - "Kill the weakest ideas"
 - "Find the hidden failure modes"
-- "证伪这些 idea"
+- "falsify these ideas"
 
 ## Job
 
@@ -157,12 +157,12 @@ The agent computes the 8 sub-dimensions per the [Engineering Grounding Contract]
 | Regulatory Readiness | [0-10] | [BLOCKED/CONSTRAINED/HEAVY/READY] | [regulatory status] |
 | **EG Average** | **[avg]** | **[OVERALL TIER]** | |
 
-### AI Engineering Path (AI 开发路线)
+### AI Engineering Path
 - Stage 1 ([rounds range]): [cheapest falsification step — write minimal code to test trick]
 - Stage 2 ([rounds range]): [scaled verification step — 10% compute, partial code]
 - Stage 3 ([rounds range]): [full prototype — complete code, full experiment]
 
-### Downside Protection (trick 假的下行保护)
+### Downside Protection (bounded loss if the trick is fake)
 - Falsified at Stage 1 → loss: [rounds] (bounded, minimal)
 - Falsified at Stage 2 → loss: [rounds] + [compute cost]
 - Falsified at Stage 3 → loss: [rounds] + [full cost]

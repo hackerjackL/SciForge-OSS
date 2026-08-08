@@ -1,6 +1,6 @@
 ---
 name: domain-signature
-version: 1.1.2
+version: 1.2.0
 description: "Fast-path rule-based domain signature hint — Phase 1a (OPTIONAL). Writes domain-signature-hint.json consumed only by domain-learner as a prior. Invoke for cold-start domain detection when literature is sparse."
 type: meta-skill
 role: domain-characteristic-extractor
@@ -14,10 +14,10 @@ role: domain-characteristic-extractor
 
 ## Quick Reference
 
-- **Purpose**: 自动提取领域 hint (rule-based) → 仅供 learner 作 prior
-- **Input**: 问题描述 + 种子文献 + 用户提示词
-- **Output**: refine-logs/domain-signature-hint.json (hint 文件，非下游消费源)
-- **Key**: v2.8 降级为 OPTIONAL 快路径；下游 skill 不直接读 hint，只读 learner 输出的 domain-signature.json
+- **Purpose**: Auto-extract a domain hint (rule-based) → prior for the learner only
+- **Input**: Problem description + seed literature + user prompt
+- **Output**: refine-logs/domain-signature-hint.json (hint file, not consumed directly downstream)
+- **Key**: v2.8 downgraded to OPTIONAL fast path; downstream skills never read the hint, only the learner-written domain-signature.json
 
 ## Use When
 
@@ -111,23 +111,23 @@ Read the problem statement and extract domain signals:
 
 | Evidence Type | Description | Example Domains |
 |--------------|-------------|-----------------|
-| `causal_inference` | 因果推断，需要识别策略 | 经济学、计量、流行病学 |
-| `correlational` | 相关性分析，无需因果 | 社会学、心理学、教育学 |
-| `derivational` | 推导证明，无需数据 | 数学、理论物理、理论 CS |
-| `experimental` | 控制实验，随机对照 | 医学、生物学、心理学 |
-| `simulational` | 数值模拟，无真实数据 | 物理、气候、工程 |
-| `interpretive` | 文本解释，论证分析 | 人文、法学、哲学 |
+| `causal_inference` | Causal inference, requires an identification strategy | Economics, econometrics, epidemiology |
+| `correlational` | Correlational analysis, no causality required | Sociology, psychology, education |
+| `derivational` | Derivation proofs, no data required | Mathematics, theoretical physics, theoretical CS |
+| `experimental` | Controlled experiments, randomized controls | Medicine, biology, psychology |
+| `simulational` | Numerical simulation, no real data | Physics, climate, engineering |
+| `interpretive` | Textual interpretation, argument analysis | Humanities, law, philosophy |
 
 #### Methodology Pattern Detection
 
 | Pattern | Detected From | Typical Domains |
 |---------|--------------|-----------------|
-| `difference_in_differences` | "treatment group", "control group", "pre-post" | 经济学、政策评估 |
-| `instrumental_variables` | "instrument", "exogenous variation", "2SLS" | 经济学、计量 |
-| `structural_equation` | "SEM", "path analysis", "latent variable" | 心理学、社会学 |
-| `machine_learning` | "neural network", "training", "test set" | CS、工程、生物信息 |
-| `theorem_proof` | "theorem", "lemma", "proof", "proposition" | 数学、理论 CS |
-| `controlled_trial` | "RCT", "randomized", "placebo", "double-blind" | 医学、临床 |
+| `difference_in_differences` | "treatment group", "control group", "pre-post" | Economics, policy evaluation |
+| `instrumental_variables` | "instrument", "exogenous variation", "2SLS" | Economics, econometrics |
+| `structural_equation` | "SEM", "path analysis", "latent variable" | Psychology, sociology |
+| `machine_learning` | "neural network", "training", "test set" | CS, engineering, bioinformatics |
+| `theorem_proof` | "theorem", "lemma", "proof", "proposition" | Mathematics, theoretical CS |
+| `controlled_trial` | "RCT", "randomized", "placebo", "double-blind" | Medicine, clinical |
 
 ### Step 4: Consume Signature
 

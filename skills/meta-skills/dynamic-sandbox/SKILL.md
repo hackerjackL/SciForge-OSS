@@ -1,6 +1,6 @@
 ---
 name: dynamic-sandbox
-version: 1.1.2
+version: 1.2.0
 description: "Execute agent-written code in an isolated sandbox for toy experiments and numerical sanity checks. Invoke when experiment-execution or theory-derivation needs to run a script and capture structured output."
 type: reference-skill
 role: computation-sandbox
@@ -10,117 +10,117 @@ role: computation-sandbox
 
 ## Quick Reference
 
-- **Purpose**: 运行 Python/Julia 科学计算 (NumPy/SciPy/SymPy)
-- **Input**: 验证脚本 + 参数
-- **Output**: 结构化结果 (JSON/CSV) + 执行的代码
-- **Key**: 无 GPU，仅数值 sanity check；代码 + 随机种子保留
+- **Purpose**: run Python/Julia scientific computation (NumPy/SciPy/SymPy)
+- **Input**: verification script + parameters
+- **Output**: structured results (JSON/CSV) + executed code
+- **Key**: no GPU, numerical sanity checks only; code + random seed retained
 
 ## Use When
 
-当 AI scientist 需要对任何科学问题进行数值计算、符号验证、仿真或数据分析时——无论学科——使用此 skill。
+Use this skill whenever the AI scientist needs numerical computation, symbolic verification, simulation, or data analysis for any scientific question — regardless of discipline.
 
-典型 prompt：
-- "验证这个数学推导"
-- "计算这个方程"
+Typical prompts:
+- "verify this mathematical derivation"
+- "compute this equation"
 - "run numerical simulation"
 - "verify this formula with actual numbers"
 - "generate synthetic data for this hypothesis"
 
-这是替代传统"做实验"的核心元技能。任何科学问题——从量子力学到教育统计——最终都归结为数学方程、矩阵运算或统计分析，这个沙盒都能处理。
+This is the core meta-skill replacing traditional "running experiments". Any scientific question — from quantum mechanics to educational statistics — ultimately reduces to mathematical equations, matrix operations, or statistical analysis, and this sandbox handles them all.
 
 ## Job
 
-提供一个预装了完整科学计算栈的 Python/Julia 沙盒环境。AI scientist 针对问题现场编写验证代码；此 skill 负责执行代码、捕获输出/错误、返回结构化结果。
+Provide a Python/Julia sandbox environment preloaded with the full scientific-computing stack. The AI scientist writes verification code on the spot for the problem; this skill executes the code, captures output/errors, and returns structured results.
 
-**skill 不理解科学——它只运行代码并返回数据。**
+**The skill does not understand science — it only runs code and returns data.**
 
-不可妥协的目标：
-1. **每次计算都可复现**——代码 + 随机种子 + 输入数据都保留
-2. **每个结果都可验证**——输出是结构化的（JSON/CSV），不只在终端输出中
-3. **错误被捕获，不被吞没**——失败的运算返回完整 traceback
-4. **沙盒没有学科偏见**——PDE 求解器和统计检验同等对待
+Non-negotiable goals:
+1. **Every computation is reproducible** — code + random seed + input data are all retained
+2. **Every result is verifiable** — output is structured (JSON/CSV), not only in terminal output
+3. **Errors are captured, not swallowed** — failed operations return the full traceback
+4. **The sandbox has no discipline bias** — PDE solvers and statistical tests are treated equally
 
-## 预装库
+## Preinstalled Libraries
 
-### Python（默认）
+### Python (default)
 ```
 numpy, scipy, sympy, matplotlib, pandas, statsmodels, sklearn,
 networkx, itertools, functools, math, cmath, random, json, csv
 ```
 
-### 按需（代码中检测到自动安装）
+### On demand (auto-installed when detected in code)
 ```
 biopython, rdkit, astropy, qiskit, tensorflow, torch, transformers
 ```
 
-## 配置
+## Configuration
 
-| 参数 | 类型 | 默认 | 说明 |
-|------|------|------|------|
-| `language` | enum | `python` | `python` 或 `julia` |
-| `timeout` | int | `300` | 每个脚本最大执行秒数（v2.1: 对齐 experiment-execution toy 的 5min 前台预算，避免 sandbox 120s 误杀 toy） |
-| `seed` | int | `42` | 随机种子，保证可复现 |
-| `packages` | list | `[]` | 额外 pip 包 |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `language` | enum | `python` | `python` or `julia` |
+| `timeout` | int | `300` | Max execution seconds per script (v2.1: aligned with experiment-execution toy's 5min foreground budget, preventing the sandbox's 120s from killing toy runs by mistake) |
+| `seed` | int | `42` | Random seed, guarantees reproducibility |
+| `packages` | list | `[]` | Extra pip packages |
 | `output_format` | enum | `json` | `json` / `csv` / `markdown` |
 
 ## Steps
 
-### Step 1: 解析计算请求
+### Step 1: Parse the Computation Request
 
-提取：
-1. **领域上下文**——什么科学领域（用于库选择，而非逻辑）
-2. **计算类型**——符号推导、数值模拟、统计分析、数据转换
-3. **输入数据**——结构化数据、公式或参数
-4. **预期输出形状**——数值、矩阵、方程、图表、数据文件
+Extract:
+1. **Domain context** — which scientific field (for library selection, not logic)
+2. **Computation type** — symbolic derivation, numerical simulation, statistical analysis, data transformation
+3. **Input data** — structured data, formulas, or parameters
+4. **Expected output shape** — numbers, matrix, equation, plot, data file
 
-如果请求太模糊（"explore this data"），要求调用者提供具体的计算计划。
+If the request is too vague ("explore this data"), ask the caller for a concrete computation plan.
 
-### Step 2: 生成沙盒代码
+### Step 2: Generate Sandbox Code
 
-编写一个自包含的 Python 脚本：
-- 在顶部设置随机种子
-- 导入所有需要的库
-- 从 `input.json` 读取输入（如适用）
-- 执行计算
-- 将结构化输出写入 `output.json`
-- 处理边界情况（空输入、除零、收敛失败）
-- 包含内联注释解释方法
+Write a self-contained Python script:
+- Set the random seed at the top
+- Import all required libraries
+- Read inputs from `input.json` (if applicable)
+- Perform the computation
+- Write structured output to `output.json`
+- Handle edge cases (empty input, division by zero, convergence failure)
+- Include inline comments explaining the approach
 
-**代码质量规则：**
-- 无交互式图表（使用 `plt.savefig()` 矢量格式）
-- 无硬编码路径
-- 每个非平凡函数必须有 docstring
-- 每个函数至少处理一个错误情况
-- 输出结构必须是可解析的，不能是自由文本 print
+**Code quality rules:**
+- No interactive plots (use `plt.savefig()` in vector format)
+- No hardcoded paths
+- Every non-trivial function must have a docstring
+- Every function handles at least one error case
+- Output structure must be parseable — no free-text prints
 
-### Step 3: 执行并捕获
+### Step 3: Execute and Capture
 
-在隔离子进程中运行脚本：
-1. 创建会话目录：`sandbox/session_{timestamp}/`
-2. 写入 `code.py` 和 `input.json`
-3. 用 `subprocess.run(timeout={timeout}s)` 执行
-4. 捕获 stdout、stderr 和 return code
+Run the script in an isolated subprocess:
+1. Create session directory: `sandbox/session_{timestamp}/`
+2. Write `code.py` and `input.json`
+3. Execute with `subprocess.run(timeout={timeout}s)`
+4. Capture stdout, stderr, and return code
 
-**成功时：**
-- 读取 `output.json`
-- 计算 `code.py + input.json + output.json` 的 SHA-256 hash
-- 注册到 `sandbox/MANIFEST.json`
+**On success:**
+- Read `output.json`
+- Compute the SHA-256 hash of `code.py + input.json + output.json`
+- Register in `sandbox/MANIFEST.json`
 
-**失败时：**
-- 向调用者返回完整 traceback
-- 建议 3 个可能的修复（库未安装、语法错误、逻辑错误）
-- 不要静默重试——让调用者决定是否修复并重试
+**On failure:**
+- Return the full traceback to the caller
+- Suggest 3 possible fixes (library not installed, syntax error, logic error)
+- Do not silently retry — let the caller decide whether to fix and retry
 
-### Step 4: 验证输出
+### Step 4: Validate Output
 
-对照 Step 1 中声明的预期形状检查输出：
-- 如果期望矩阵 → 验证输出是 2D 数组
-- 如果期望标量 → 验证输出是数值
-- 如果期望图表 → 验证 `artifacts/` 包含非空 SVG 文件
+Check the output against the expected shape declared in Step 1:
+- Matrix expected → verify the output is a 2D array
+- Scalar expected → verify the output is a number
+- Plot expected → verify `artifacts/` contains a non-empty SVG file
 
-如果验证失败，返回结构化错误。
+If validation fails, return a structured error.
 
-### Step 5: 返回结构化结果
+### Step 5: Return Structured Result
 
 ```json
 {
@@ -134,18 +134,18 @@ biopython, rdkit, astropy, qiskit, tensorflow, torch, transformers
 }
 ```
 
-## 输出产物
+## Output Artifacts
 
-- `sandbox/session_{timestamp}/code.py` — 可复现的脚本
-- `sandbox/session_{timestamp}/output.json` — 结构化结果
-- `sandbox/session_{timestamp}/artifacts/*.svg` — 矢量图
+- `sandbox/session_{timestamp}/code.py` — the reproducible script
+- `sandbox/session_{timestamp}/output.json` — structured results
+- `sandbox/session_{timestamp}/artifacts/*.svg` — vector plots
 
-## 调用下游 skill
+## Invoking Downstream Skills
 
-- `/dynamic-tooling` — 当标准库不足时，让此 skill 动态创建工具
-- `/theory-derivation` — 当需要符号推导时，先调用推导再数值验证
+- `/dynamic-tooling` — when the standard libraries are insufficient, let this skill create tools dynamically
+- `/theory-derivation` — when symbolic derivation is needed, invoke the derivation first, then verify numerically
 
-## 共享契约引用
+## Shared Contract References
 
-- [effort-contract](../../shared-references/effort-contract.md) — 努力等级定义
-- [output-manifest](../../shared-references/output-manifest.md) — 产物结构契约
+- [effort-contract](../../shared-references/effort-contract.md) — effort level definitions
+- [output-manifest](../../shared-references/output-manifest.md) — artifact structure contract

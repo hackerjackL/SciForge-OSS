@@ -1,6 +1,6 @@
 ---
 name: theory-derivation
-version: 1.1.2
+version: 1.2.0
 description: "SymPy symbolic derivation with step-by-step machine verification; theory-only path uses engine=manual. Phase 6. Invoke after method-registry to derive and verify the theoretical result."
 type: support-skill
 role: theory-builder-and-symbolic-verifier
@@ -10,10 +10,10 @@ role: theory-builder-and-symbolic-verifier
 
 ## Quick Reference
 
-- **Purpose**: SymPy 符号推导 + 逐步机器验证；理论-only 模式用 engine=manual
+- **Purpose**: SymPy symbolic derivation + step-by-step machine verification; theory-only mode uses engine=manual
 - **Input**: refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
 - **Output**: code/derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
-- **Key**: 每步 SymPy 验证；3 种模式 (derive/verify/simplify)；理论-only 标记 [not machine-verified]
+- **Key**: SymPy verification at every step; 3 modes (derive/verify/simplify); theory-only steps marked [not machine-verified]
 
 > **Status**: Bridges verbal reasoning and mathematical rigor. **OSS merges main SciForge's `formula-derivation`** (research theory-line construction — build the derivation package, freeze the invariant object, classify steps) **into this skill** (SymPy symbolic verification — derive / verify / simplify / solve with machine-checked steps). **OSS is discipline-agnostic** — no physics SI-units enforcement, no economics estimator-verification, no cs-ml convergence-rate framing. The universal derivation package schema + SymPy verification applies to every problem.
 
@@ -24,11 +24,11 @@ Use this skill when the AI scientist needs to:
 2. **Symbolically verify** — perform symbolic computation, check if a derivation is mathematically correct, solve equations / DEs symbolically
 
 Typical prompts:
-- "推导这个公式" / "verify this mathematical derivation"
+- "derive this formula" / "verify this mathematical derivation"
 - "perform symbolic integration" / "solve this differential equation symbolically"
 - "build a theory line" / "organize assumptions"
-- "把说明文档变成可写进论文的公式文档"
-- "这几段公式之间逻辑不通"
+- "turn the notes into a paper-ready formula document"
+- "the logic between these formula passages does not hold"
 
 **Use `/logic-verification` only after the exact claim is fixed, the assumptions are stable, and the notation is settled.** This skill is for the upstream construction + symbolic verification phase.
 
@@ -265,7 +265,7 @@ Write:
 - What extra assumption, reframe, or intermediate derivation would be needed
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:

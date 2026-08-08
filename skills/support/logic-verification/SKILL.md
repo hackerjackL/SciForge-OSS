@@ -1,6 +1,6 @@
 ---
 name: logic-verification
-version: 1.1.2
+version: 1.2.0
 description: "6-dimension logical consistency audit + 20-category issue taxonomy + acceptance gate (zero FATAL/CRITICAL). Phase 8. Invoke to rigorously verify a derivation/argument/proof."
 type: support-skill
 role: logical-consistency-auditor
@@ -10,10 +10,10 @@ role: logical-consistency-auditor
 
 ## Quick Reference
 
-- **Purpose**: 6 维度逻辑一致性审计 + 20 分类问题体系
+- **Purpose**: 6-dimension logical consistency audit + 20-category issue taxonomy
 - **Input**: derivations/{problem_id}/derivation_output.md
 - **Output**: LOGIC_VERIFICATION.md + LOGIC_VERIFICATION.json
-- **Key**: 结构化证明检查 (非跨模型)；20 类问题；3 轮上限；验收门控 (零 FATAL/CRITICAL)
+- **Key**: Structured proof checking (not cross-model); 20 issue categories; 3-round cap; acceptance gate (zero FATAL/CRITICAL)
 
 > **Status**: Rigorous logical verification of a derivation / argument / paper draft via structured proof checking. **OSS merges main SciForge's `proof-checker`** (20-category issue taxonomy, 2-axis severity, side-condition checklists, acceptance gate) **into this skill**. **OSS is discipline-agnostic** — no LaTeX `align*` environment-specific checks, no physics SI-units enforcement, no economics estimator-verification. The universal 6-dimension logical consistency audit applies to every problem.
 
@@ -22,8 +22,8 @@ role: logical-consistency-auditor
 Use this skill when asked to rigorously verify a mathematical derivation, logical argument, or paper draft — identify gaps via structured proof checking with the 20-category issue taxonomy, fix each gap with full derivations, re-check until convergence, and generate a detailed audit report.
 
 Typical prompts:
-- "检查证明" / "verify proof" / "proof check"
-- "审证明" / "check this derivation"
+- "check the proof" / "verify proof" / "proof check"
+- "audit the proof" / "check this derivation"
 - "rigorously verify this theory paper's proofs"
 - "verify the logical consistency of this argument"
 
@@ -257,7 +257,7 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 | `ERROR` | Skill itself failed | Internal error |
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:

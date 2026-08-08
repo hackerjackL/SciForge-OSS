@@ -1,6 +1,6 @@
 ---
 name: unified-plotting
-version: 1.1.2
+version: 1.2.0
 description: "Render publication-quality vector figures (PDF+SVG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.5 UNIFIED SINGLE-ENTRY RENDERER: all diagram engines (d2/graphviz/tikz/SVG) consolidated behind one tool `scripts/plotting/render_figure.py` with embedded Nature-level audit. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
@@ -10,12 +10,12 @@ role: figure-renderer-and-spec-generator
 
 ## Quick Reference
 
-- **Purpose**: 从结构化数据或 JSON spec 渲染出版级矢量图
-- **Input**: 数据 (JSON/matrix) 或图表描述
-- **Output**: **PDF + SVG 双产出** (PDF for LaTeX compile, SVG for agent viewing/editing) + 渲染脚本 + `figure_audit.json`
-- **Key**: 12 种图表类型 (含 4 种理论图)；莫兰迪色系强制（单一事实源 `scripts/plotting/sciforge_style.py`）；数据图 Python 管线，复杂图**统一渲染工具**；**16:9 横版默认**；**Nature 级可读性**；见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md)（格式）与 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)（复杂与美观下限）
+- **Purpose**: Render publication-quality vector figures from structured data or JSON specs
+- **Input**: Data (JSON/matrix) or a chart description
+- **Output**: **PDF + SVG dual output** (PDF for LaTeX compile, SVG for agent viewing/editing) + render script + `figure_audit.json`
+- **Key**: 12 chart types (incl. 4 theoretical); morandi palette enforced (single source of truth `scripts/plotting/sciforge_style.py`); data plots via the Python pipeline, complex diagrams via the **unified render tool**; **16:9 landscape default**; **Nature-level readability**; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) (format) and [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md) (complexity and aesthetics floor)
 
-> **v3.5 单一入口工具（UNIFIED SINGLE-ENTRY RENDERER）**: 所有声明式图（d2 / graphviz / tikz / AI-direct SVG）只通过**一个** CLI 产出，禁止多工具并行或绕过：
+> **v3.5 single entry point tool (UNIFIED SINGLE-ENTRY RENDERER)**: all declarative diagrams (d2 / graphviz / tikz / AI-direct SVG) are produced through **one** CLI only; parallel multi-tool runs or bypassing are forbidden:
 >
 > ```bash
 > python scripts/plotting/render_figure.py <spec.d2|spec.dot|spec.tex|source.svg> \
@@ -23,21 +23,21 @@ role: figure-renderer-and-spec-generator
 >     --caption "..." --strict
 > ```
 >
-> 该工具内部自动完成：莫兰迪前导注入（d2）→ 引擎渲染（d2 自动选 dagre/elk）→ 引擎泄漏色确定性净化 → SVG→PDF+SVG 双产出→ LaTeX include 片段 → 内嵌 Nature 级审计（`figure_audit.json`，verdict PASS/WARN/FAIL；`--strict` 时 FAIL 退出码 4）。数据图仍走 Python 管线（可复现性要求），但必须在脚本顶部调用 `apply_matplotlib_style()` 统一主题。依赖安装见 [`scripts/plotting/INSTALL.md`](../../../scripts/plotting/INSTALL.md)，环境自检：`python scripts/plotting/render_figure.py --doctor`。
+> The tool automatically completes internally: morandi preamble injection (d2) → engine render (d2 auto-selects dagre/elk) → deterministic sanitization of engine-leaked colors → SVG→PDF+SVG dual output → LaTeX include snippet → embedded Nature-level audit (`figure_audit.json`, verdict PASS/WARN/FAIL; under `--strict`, FAIL exits with code 4). Data plots still go through the Python pipeline (reproducibility requirement) but must call `apply_matplotlib_style()` at the top of the script to apply the unified theme. See [`scripts/plotting/INSTALL.md`](../../../scripts/plotting/INSTALL.md) for dependency installation; environment self-check: `python scripts/plotting/render_figure.py --doctor`.
 >
-> **v3.7 三项增强**: (1) **期刊宽度预设** `--width-preset nature-single|nature-double|aaai-single|...`（14 种版面，LaTeX include 自动用 mm 物理宽度，审计宽度下限自适应，见 [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1.5）；(2) **运行时图标词汇**——可从白名单开源库（bioicons/Tabler/Lucide/Feather/Font Awesome Free）运行时抓取专业图标，强制经 `sciforge_style.recolor_icon()` 重着色为莫兰迪后使用，来源许可记入 `revision_log.md`（契约 §5.5；抓取失败回退手绘，不阻塞）；(3) **审计自动修正建议**——`figure_audit.json` 的 `suggested_fixes` 字段对文字重叠输出精确偏移坐标（"move label X down by Npx"），按契约 §4.6 scoped revision 逐条应用。
+> **v3.7 three enhancements**: (1) **Journal width presets** `--width-preset nature-single|nature-double|aaai-single|...` (14 layouts; the LaTeX include automatically uses the physical width in mm, and the audit's width floor adapts automatically; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1.5); (2) **Runtime icon vocabulary** — professional icons can be fetched at runtime from whitelisted open-source libraries (bioicons/Tabler/Lucide/Feather/Font Awesome Free), mandatorily recolored to morandi via `sciforge_style.recolor_icon()` before use, with the source license recorded in `revision_log.md` (contract §5.5; on fetch failure, fall back to hand-drawn icons — non-blocking); (3) **Audit auto-fix suggestions** — the `suggested_fixes` field of `figure_audit.json` outputs precise offset coordinates for text overlaps ("move label X down by Npx"); apply them one by one per contract §4.6 scoped revision.
 >
-> **v3.8 组图引擎（Composite — SCI 一区规范，契约 §7）**: 多面板组图（4/6/N 面板）经 `render_figure.py xxx.composite.json` 单一入口装配：面板（PDF/PNG）→ 网格排布 → **(a)(b)(c)… 加粗编号标签**（面板上方预留条，绝不覆盖内容）→ 双产出 + 审计。**组版决策遵循 Nature/Science/Cell 逻辑**：按叙事单元组版（同一论点/实验链才组一张）、面板数**硬上限 9**（超出渲染器直接拒绝，必须拆图或移补充材料——"一锅粥"反模式）、单图同样合法、编号随面板数连续自适应。每个面板必须**独立**满足全部审计与复杂度规则——组图装配不能拯救低质量面板。数据图（曲线/消融/热图等）作为面板融入组图，与示意图面板同图共存时风格统一（同系字体/色序/线宽）。
+> **v3.8 composite figure engine (Composite — SCI Zone-1 norm, contract §7)**: multi-panel composite figures (4/6/N panels) are assembled via the single entry point `render_figure.py xxx.composite.json`: panels (PDF/PNG) → grid layout → **(a)(b)(c)… bold panel labels** (reserved strip above each panel, never covering content) → dual output + audit. **Composition decisions follow Nature/Science/Cell logic**: compose by narrative unit (only panels belonging to the same argument/experiment chain share one figure), panel count **hard cap 9** (beyond it the renderer rejects outright — split the figure or move panels to supplementary material — the "everything-in-one-pot" anti-pattern), single-panel figures remain equally legal, numbering adapts continuously to the panel count. Every panel must **independently** satisfy all audit and complexity rules — composite assembly cannot rescue low-quality panels. Data plots (curves/ablations/heatmaps, etc.) join composite figures as panels; when coexisting in one figure with schematic panels, the style must be unified (same font family / color sequence / line width).
 >
-> **v3.9 两级视觉审阅（Visual Review — 零外部 API，见 [`figure-quality-review.md`](../../shared-references/figure-quality-review.md)）**: 机械审计（A1–A10）只验结构、不验美感；视觉质量由两级协议闭环：**一级 = agent 自身原生视觉**——宿主 agent 具备读图能力（Claude/GPT-4o/Gemini 等多模态模型）时，每次渲染后**必须打开 `output.svg` 按 9 项视觉检查清单逐项自审**（信息可读性/视觉层次/留白均衡/布线可读性/排版扫描/色板纪律/图标可辨性/组图专项/缩小打印测试），答案写入 `revision_log.md`，发现问题改源重渲；**二级 = 外部顾问**（可选，部署已有模型端点才用，skill 不存凭证不发起调用）。**纯文本 agent 无法读图 → 记录 `visual-review: skipped-text-only`，以机械审计为准交付，永不阻塞**。能力判定是宿主属性：本 skill 不替宿主调外部视觉 API。
+> **v3.9 two-tier visual review (Visual Review — zero external API, see [`figure-quality-review.md`](../../shared-references/figure-quality-review.md))**: the mechanical audit (A1–A10) verifies structure only, not aesthetics; visual quality is closed by a two-tier protocol: **Tier 1 = the agent's own native vision** — when the host agent can read images (multimodal models such as Claude/GPT-4o/Gemini), after every render it **must open `output.svg` and self-review item by item against the 9-item visual checklist** (message readability / visual hierarchy / whitespace balance / wiring legibility / typography scan / palette discipline / icon discriminability / composite-specific / print-shrink test), write the answers into `revision_log.md`, and fix at source + re-render when problems are found; **Tier 2 = external advisor** (optional — used only when the deployment already has a model endpoint; the skill stores no credentials and initiates no calls). **A text-only agent cannot read images → record `visual-review: skipped-text-only`, deliver per the mechanical audit, never block**. Capability detection is a host attribute: this skill never calls an external vision API on the host's behalf.
 
-> **Agent 驱动分阶段设计工作流（借鉴 AutoFigure-Edit 的分阶段装配思想，MIT 许可；本 skill 零外部 API——"模型"就是 agent 自身，用户用自己的 Claude/Codex/AtomCode 开箱即用）**:
-> 1. **骨架（skeleton）**: 从方法段落文本抽取组件清单 + 数据流 + 分组层级，先写布局骨架（容器/行列/边），不急着画
-> 2. **填充（fill）**: 按内容类型选引擎——架构/流程用 d2 或 diagrams/blockdiag（专业图标集/泳道），机制细节用 tikz，几何/示意用 asy，快速迭代用 typst，Visio 级精密图用手工装配 SVG（正交圆角布线），数据用 matplotlib；每个组件填莫兰迪 token 样式
-> 3. **装配（assemble）**: 全部经单一入口 `render_figure.py` 渲染（前导注入、调色板净化、双产出、LaTeX 片段一步完成）
-> 4. **审阅（review）**: 机械层看 `figure_audit.json` verdict 与 `suggested_fixes`；FAIL 时按 suggested_fixes 的精确坐标逐条局部修正（契约 §4.6 scoped revision，一次一类问题）再重渲染。**视觉层**（v3.9）：具备原生视觉的宿主 agent 必须打开 `output.svg` 按 figure-quality-review.md 9 项清单逐项自审并记入 `revision_log.md`；纯文本宿主记录 skipped-text-only 后以机械审计为准。禁止手工修补 PNG/SVG 像素
+> **Agent-driven staged design workflow (borrows AutoFigure-Edit's staged assembly idea, MIT licensed; this skill has zero external API — the "model" is the agent itself, and users get it out of the box with their own Claude/Codex/AtomCode)**:
+> 1. **Skeleton**: extract the component list + data flow + grouping hierarchy from the methods-section text; write the layout skeleton first (containers/rows-columns/edges), do not rush to draw
+> 2. **Fill**: pick the engine by content type — architecture/flow via d2 or diagrams/blockdiag (professional icon sets / swimlanes), mechanism detail via tikz, geometry/schematics via asy, fast iteration via typst, Visio-grade precision figures via hand-assembled SVG (orthogonal rounded-corner routing), data via matplotlib; fill every component with morandi token styles
+> 3. **Assemble**: render everything through the single entry point `render_figure.py` (preamble injection, palette sanitization, dual output, LaTeX snippet — all completed in one step)
+> 4. **Review**: the mechanical layer reads the `figure_audit.json` verdict and `suggested_fixes`; on FAIL, apply local fixes item by item using the precise coordinates in suggested_fixes (contract §4.6 scoped revision, one issue class per pass), then re-render. **Visual layer** (v3.9): a host agent with native vision must open `output.svg`, self-review item by item against the 9-item checklist in figure-quality-review.md, and record into `revision_log.md`; a text-only host records skipped-text-only and delivers per the mechanical audit. Manual pixel patching of PNG/SVG is forbidden
 >
-> **复杂度硬约束（v3.6 — 防"小学生级别"图，全领域适用）**: 每张 5+ 节点的图必须满足 [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md)：≥60% 组件用**自绘图标**（d2 `icon:`，agent 现写 SVG，随图保存到 `figures/<name>/icons/`）或 TikZ `\pic` 自绘组件；连线必须容器级汇流（禁止箭头雨，边密度 ≤1.6）；至少两级分组；文字纪律（≤3 行/≤4 词）。达不到下限 = 图还没画完，继续迭代。审计 A7 层机械检查图标计数与边密度。先按契约 §0.5 判定图的**结构角色**（结构/流程/机制/网络/层级/时间/空间/数据）选引擎——领域只决定组件语义，不改变规则。
+> **Complexity hard constraint (v3.6 — anti-"elementary-school-level" figures, applies to all domains)**: every figure with 5+ nodes must satisfy [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md): ≥60% of components use **self-drawn icons** (d2 `icon:`; the agent writes the SVG on the fly and saves it alongside the figure into `figures/<name>/icons/`) or TikZ `\pic` self-drawn components; edges must consolidate into container-level buses (arrow rain forbidden, edge density ≤1.6); at least two grouping levels; text discipline (≤3 lines / ≤4 words). Below the floor = the figure is not finished yet — keep iterating. Audit layer A7 mechanically checks icon count and edge density. First judge the figure's **structural role** (structure/flow/mechanism/network/hierarchy/temporal/spatial/data) per contract §0.5 to pick the engine — the domain only determines component semantics, not the rules.
 
 > **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the morandi palette + Layer 2 data-encoding colormaps are universal contracts.
 >
@@ -50,10 +50,10 @@ role: figure-renderer-and-spec-generator
 Use this skill when the AI scientist needs to generate publication-quality academic figures from structured data or diagram specs.
 
 Typical prompts:
-- "画这个数据的图表" / "plot the simulation results"
+- "Plot a chart of this data" / "plot the simulation results"
 - "generate a figure showing the relationship between X and Y"
 - "create a system architecture diagram" / "render a 3D surface plot"
-- "架构图" / "workflow 图" / "pipeline 图"
+- "Architecture diagram" / "workflow diagram" / "pipeline diagram"
 - "figure spec" / "draw architecture"
 
 **Not for**: format conversion (format conversion is done inline within this skill in OSS; no `/drawio-export`).
@@ -83,7 +83,7 @@ The non-negotiable goals:
 | **Architecture** | layered, hub-and-spoke, multi-plane | System architecture, workflow | **d2** (5+ nodes, `--layout=elk` for dense) OR AI-direct SVG (≤4 nodes) |
 | **Scientific** | errorbar, filled-curve, quiver, streamplot | Error ranges, vector fields | Python (data) |
 | **Theoretical** | commutative-diagram, derivation-tree, concept-map, dependency-graph, counterexample-plot | Proof structures, concept relations, theorem dependencies | LaTeX `tikz-cd` (commutative) OR **d2** (concept-map, dependency-graph, 5+ nodes) OR AI-direct SVG (≤4 nodes) |
-| **Engineering Path** | ai-dev-path | AI 开发路线三段式时间轴（Stage 1/2/3 轮次+投资+风险节点+downside protection） | **d2** (sequence/timeline) OR LaTeX `tikz`/`pgfplots` → PDF |
+| **Engineering Path** | ai-dev-path | AI development roadmap three-stage timeline (Stage 1/2/3 rounds + investment + risk nodes + downside protection) | **d2** (sequence/timeline) OR LaTeX `tikz`/`pgfplots` → PDF |
 | **Humanities/Arts** | timeline, argument-structure, textual-flow, comparison-map | Historical timelines, argument maps, hermeneutic diagrams | **d2** (all — same pipeline as STEM, see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §5) |
 | **Composite / Group** (v3.4 — NEW) | subfigure-grid, panel-2x2, panel-1x3, panel-2x3, inset-zoom, dual-axis | Multi-panel figures (a/b/c/d panels sharing one caption), grouped result comparisons, inset detail + overview | Python (`matplotlib` `subplots`/`gridspec`) for data panels OR d2 multi-graph for diagram panels → **single composite PDF+SVG**; LaTeX side: `\usepackage{subcaption}` + `\begin{figure}\subfloat{...}\subfloat{...}\end{figure}` OR single rendered PDF embedded with panel labels (a/b/c) baked into the image |
 
@@ -330,7 +330,7 @@ Append to `figures/FIGURE_INDEX.md`:
 > Follow these shared protocols for all output files:
 > - **[Output Protocol](../../shared-references/output-protocol.md)** — versioned writes + MANIFEST logging + output language (merged single source of truth)
 > - **[Figure Quality Contract](../../shared-references/figure-quality-contract.md)** — dual output, 16:9 default, Nature readability floor, d2 pipeline
-> - **[Unified Plot Theme (v3.1)](../../shared-references/figure-quality-contract.md)** — 统一强制：数据图按学术主题（TeX Gyre 学术字体、Nature 调色板、字号下限 title≥13/axis≥12/tick≥10、16:9 默认）、图保存矢量 PDF + SVG 双产出；架构图/流程图强制 d2 / graphviz 声明式渲染（d2→SVG→PDF+SVG），禁用徒手 SVG（>4 节点）。数据图禁止直接手写散乱样式——必须遵循统一主题契约。
+> - **[Unified Plot Theme (v3.1)](../../shared-references/figure-quality-contract.md)** — unified enforcement: data plots follow the academic theme (TeX Gyre academic fonts, Nature palette, font-size floors title≥13/axis≥12/tick≥10, 16:9 default), figures saved with vector PDF + SVG dual output; architecture/flow diagrams are mandatorily rendered via d2 / graphviz declarative rendering (d2→SVG→PDF+SVG); freehand SVG is forbidden (>4 nodes). Data plots must not be hand-written with scattered ad-hoc styles — they must follow the unified theme contract.
 > - **[Figure Quality Review](../../shared-references/figure-quality-review.md)** — two-tier visual review protocol (Tier 1: agent-native visual self-review, MANDATORY for vision-capable hosts — read `output.svg` against the 9-item checklist; Tier 2: optional external advisor; text-only hosts degrade to the mechanical audit and record `skipped-text-only`)
 
 ## Boundaries

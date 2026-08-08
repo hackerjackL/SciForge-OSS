@@ -1,6 +1,6 @@
 ---
 name: result-to-claim
-version: 1.1.2
+version: 1.2.0
 description: "3-fidelity claim gate (symbolic/numerical/qualitative) mapping results to claims, blocking unsupported 'supported'/'proven' language. Phase 10. Invoke to gate which claims the paper may make."
 type: reference-skill
 role: result-to-claim-gate
@@ -10,10 +10,10 @@ role: result-to-claim-gate
 
 ## Quick Reference
 
-- **Purpose**: 3 保真度 claim 门控 (symbolic/numerical/qualitative) + 置信度评估
+- **Purpose**: 3-fidelity claim gate (symbolic/numerical/qualitative) + confidence assessment
 - **Input**: derivations/{problem_id}/ + audit_report/LOGIC_VERIFICATION.json
-- **Output**: CLAIMS_FROM_RESULTS.md (含置信度评估)
-- **Key**: 理论置信度 vs 落地置信度分离输出；primary outcome 需 ≥ numerical fidelity
+- **Output**: CLAIMS_FROM_RESULTS.md (with confidence assessment)
+- **Key**: theoretical confidence vs grounding confidence emitted separately; primary outcomes require ≥ numerical fidelity
 
 > **Status**: Gate that decides what claims the derivation/verification results support. **OSS is discipline-agnostic** — there is no economics p-value significance gate, no cs-ml SOTA gate. The gate uses a universal **3-fidelity claim ladder** (symbolic / numerical / qualitative) adapted from main SciForge's 5-fidelity filter. Copied from main SciForge and trimmed to OSS's no-experiment, no-benchmark design.
 
@@ -24,7 +24,7 @@ Use this skill when derivation/verification completes and you need to judge what
 Typical prompts:
 - "What do these results actually show"
 - "Can I claim X from these numbers"
-- "结果支持什么 claim"
+- "What claims do the results support"
 - "Result-to-claim gate"
 - "Are my claims supported by the derivation"
 - "Before paper writing: check claim support"
@@ -81,36 +81,36 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 - A **secondary** claim (mechanism/robustness) can be supported by `qualitative` fidelity — secondary claims do not gate the pipeline.
 - **Never** label a claim "proven" without `symbolic` fidelity. **Never** label a claim "supported" without at least `numerical` fidelity.
 
-### 证据充分性门控（v5.1 — Evidence Sufficiency Gate，源自 CRUX 影子评估失败模式 #1）
+### Evidence Sufficiency Gate (v5.1 — from CRUX shadow-evaluation failure mode #1)
 
-**背景**（arXiv:2607.27191）：AI agent 在小规模合成数据上跑出负结果，把统计效力严重不足的实验包装成"发现"——自我审稿都打了 weak reject 却照常推进。"它知道自己写得不好，但不知道该怎么变好。"我们的保真度阶梯管"证据类型"，本节补上"证据**分量**"——实验型论文的常见死法不是没有数值，而是数值**轻如鸿毛**。
+**Background** (arXiv:2607.27191): an AI agent got negative results on small-scale synthetic data, then packaged a severely underpowered experiment as a "discovery" — its own self-review scored it a weak reject, yet it proceeded as usual. "It knew its writing was bad, but not how to make it better." Our fidelity ladder governs evidence *type*; this section adds evidence **weight** — the common death of an experiment-based paper is not the absence of numbers, but numbers that weigh nothing.
 
-**强制检查**（`experiment-first` / `hybrid` 路由下，每个 PRIMARY claim 逐条执行，结果写入 `CLAIMS_FROM_RESULTS.md` 的 `evidence_sufficiency` 字段）：
+**Mandatory checks** (under `experiment-first` / `hybrid` routing; run per PRIMARY claim; results written to the `evidence_sufficiency` field in `CLAIMS_FROM_RESULTS.md`):
 
-| 检查项 | 下限 | 不达标判定 |
-|--------|------|-----------|
-| **统计效力（power）** | 实验规模对该效应有检出能力：报告样本量/训练规模 + 该规模下可检出的最小效应（或功效分析） | `underpowered` |
-| **效应量（effect size）** | 主结果报告效应量本身（差值/提升幅度），不只是 p 值；效应量需与噪声水平可比（>1× 种子间 std，或明确置信区间） | `effect_within_noise` |
-| **重复性（replication）** | ≥3 种子（lite 档 ≥2）的均值±std；单点结果不得支撑 PRIMARY claim | `single_seed` |
-| **数据规模匹配** | toy/合成数据的结果**只能**支撑 "in the tested regime" 级声明；主声明必须由 full 实验支撑 | `toy_overreach` |
-| **基线对照** | 主声明必须有 ≥1 个基线的同条件对比（强制实验矩阵的 baseline 组） | `no_baseline` |
+| Check | Floor | Fail verdict |
+|-------|-------|--------------|
+| **Statistical power** | The experiment scale can detect the effect: report sample size / training scale + the minimum detectable effect at that scale (or a power analysis) | `underpowered` |
+| **Effect size** | The main result reports the effect size itself (difference / improvement magnitude), not just a p-value; the effect must be comparable to the noise level (>1× between-seed std, or an explicit confidence interval) | `effect_within_noise` |
+| **Replication** | Mean±std over ≥3 seeds (lite tier ≥2); single-point results must not support a PRIMARY claim | `single_seed` |
+| **Data-scale match** | Toy/synthetic-data results can **only** support "in the tested regime"-level statements; primary claims must be supported by full experiments | `toy_overreach` |
+| **Baseline comparison** | Primary claims require a same-conditions comparison against ≥1 baseline (the baseline group of the mandatory experiment matrix) | `no_baseline` |
 
-**处置**（任一检查不达标）：
-1. 该 claim 保真度**强制降级**至 `qualitative` 以下 → 不得作为 PRIMARY claim 进论文主体
-2. 若该 claim 是核心假设（FINAL_PROPOSAL 的主论点）→ 触发 `/experiment-execution` 的 **KILL-or-PIVOT**（证据不足=核心假设未获支撑，同负结果纪律）——**禁止**通过改写措辞把"效力不足的实验"变成"探索性发现"
-3. `CLAIMS_FROM_RESULTS.md` 记录每条 claim 的 `evidence_sufficiency: {power, effect_size, replication, scale, baseline}` 五字段——`/paper-writing` 自检时任何 PRIMARY claim 缺该字段或含不达标项 → FAIL（`reason_code: insufficient_evidence_as_finding`）
+**Handling** (any check fails):
+1. The claim's fidelity is **force-downgraded** to at most `qualitative` → it must not enter the paper body as a PRIMARY claim
+2. If the claim is the core hypothesis (the main thesis of FINAL_PROPOSAL) → trigger `/experiment-execution`'s **KILL-or-PIVOT** (insufficient evidence = core hypothesis unsupported, same as the negative-results discipline) — rewriting wording to turn an "underpowered experiment" into an "exploratory finding" is **forbidden**
+3. `CLAIMS_FROM_RESULTS.md` records the five `evidence_sufficiency: {power, effect_size, replication, scale, baseline}` fields for every claim — on `/paper-writing` self-check, any PRIMARY claim missing this field or containing a failed item → FAIL (`reason_code: insufficient_evidence_as_finding`)
 
-**反包装红线**（审计钩子）：正文出现"我们首次发现/我们揭示"类强声明而对应 claim 的 sufficiency 任一项不达标 → FAIL。措辞强化不能绕过证据分量——这正是 CRUX 实验中 agent 的典型死法。
+**Anti-packaging red line** (audit hook): if the body contains a strong statement of the "we are the first to find / we reveal" type while any sufficiency item of the corresponding claim fails → FAIL. Stronger wording cannot bypass evidence weight — this is exactly the typical agent death in the CRUX experiments.
 
-**评测公平性核对（v5.2 — 消费 method-registry §3.6 预注册协议）**: 每个涉及对比的 claim 额外核对三字段（写入 `CLAIMS_FROM_RESULTS.md`）：
+**Evaluation-fairness check (v5.2 — consumes the method-registry §3.6 pre-registration protocol)**: every claim involving a comparison gets three extra field checks (written to `CLAIMS_FROM_RESULTS.md`):
 
-| 字段 | 检查内容 | 不达标处置 |
-|------|---------|-----------|
-| `parity_check` | 对比双方条件逐项对齐（同 split/同预处理/同算力预算/同调参力度），来源为 RESULT.json 的条件记录 | 不对齐 → 该对比不得作为 claim 证据（`reason_code: unfair_comparison`） |
-| `all_seeds_reported` | 主结果含全种子均值±std，非单点最优值 | 单点报告 → claim 保真度降一级（`reason_code: cherry_picked_seed`） |
-| `full_grid_reported` | 超参扫描全网格可查（正文或附录），非仅最优点 | 只报最优点 → claim 保真度降一级（`reason_code: cherry_picked_config`） |
+| Field | Check | Failure handling |
+|-------|-------|------------------|
+| `parity_check` | The compared sides' conditions are aligned item by item (same split / same preprocessing / same compute budget / same tuning effort), sourced from RESULT.json condition records | Not aligned → the comparison cannot serve as claim evidence (`reason_code: unfair_comparison`) |
+| `all_seeds_reported` | The main result contains all-seed mean±std, not a single best point | Single-point reporting → claim fidelity drops one level (`reason_code: cherry_picked_seed`) |
+| `full_grid_reported` | The full hyperparameter-sweep grid is inspectable (body or appendix), not only the best point | Reporting only the best point → claim fidelity drops one level (`reason_code: cherry_picked_config`) |
 
-另核对 RESULT.json 的 `protocol_violation` 标记——带违规标记的实验组结果**整体不得**支撑任何 claim（该组只能出现在"评测过程说明"中如实披露，不能出现在结果表的主对比里）。基线若标注 `reproduced_by_us`，论文中必须声明复现方式（Limitations 或 Experimental Setup），不得冒充官方结果。
+Also check the `protocol_violation` flag in RESULT.json — results from a violation-flagged experiment group **as a whole** must not support any claim (the group may only be disclosed honestly in an "evaluation process notes" section, not in the main comparison of the results table). If a baseline is labeled `reproduced_by_us`, the paper must state the reproduction method (Limitations or Experimental Setup) and must not pass it off as an official result.
 
 ## 4-Dimensional Joint Confidence (TDAL — locked schema)
 
@@ -167,7 +167,7 @@ The confidence assessment MUST include a per-dimension breakdown. Example (full 
 ### Data Availability Confidence: 0.725 (MODERATE)
 - Ouroboros report: 0.85
 - OSS data check: DATA_READY (1.0)
-- Theory-only flag: 0.0 (非 theory-only 问题，需要真实数据)
+- Theory-only flag: 0.0 (not a theory-only problem; real data required)
 - Weighted: 0.5×0.85 + 0.3×1.0 + 0.2×0.0 = 0.725
 
 ### Domain Adaptation Confidence: 0.80 (STRONG)
@@ -183,7 +183,7 @@ The confidence assessment MUST include a per-dimension breakdown. Example (full 
 
 ### Joint Confidence: 0.85 × 0.725 × 0.80 × 0.755 = 0.37
 **Verdict**: WEAK — needs strengthening before publication
-**Weakest dimension**: Data Availability (0.725) — Ouroboros 数据得分偏低且非 theory-only，需更可靠数据源或补充 theory-only 限定
+**Weakest dimension**: Data Availability (0.725) — Ouroboros data score low and not theory-only; need a more reliable data source or an explicit theory-only qualification
 ```
 
 ## Workflow
@@ -246,16 +246,16 @@ Be honest. Do not inflate claims beyond what the evidence supports.
 A qualitative "looks right" judgment does not support a "proven" claim.
 ```
 
-### 负结果纪律（v5.0 — Negative Results Discipline）
+### Negative Results Discipline (v5.0)
 
-**实测反馈**：agent 把负向结果包装成"诚实的发现"当作贡献点——这在真实投稿中是致命伤（审稿人不会为"我们诚实地失败了"买单）。纪律如下：
+**Field feedback**: agents package negative results as "honest findings" and offer them as contributions — in real submissions this is fatal (reviewers do not buy "we honestly failed"). The discipline:
 
-1. **负结果永不作为 contribution**：`CLAIMS_FROM_RESULTS.md` 的 claims 列表只收录**正向支撑主论点**的结果；任何"我们诚实地报告了 X 失败/不如预期"不得出现在 claims、contribution 列表或 Abstract
-2. **负结果的两条合法去向**：
-   - **主实验级负向**（核心假设未获支撑）→ 不是写作问题，是方向问题：回传 `/experiment-execution` 的 **KILL-or-PIVOT 停止协议**（toy 级）或触发方法重审（full 级），论文流程暂停等待新证据——**禁止带着被证伪的核心假设继续写论文**
-   - **局部/边界负向**（某子场景、某基线、某消融组不如预期）→ 写入 **Limitations/Discussion** 作边界说明（"我们的方法在 X 条件下未显现优势，表明适用边界为 Y"），这是学术诚实的正确形态
-3. **消融/超参负向是信息不是失败**：消融显示某组件无增益 → 如实报告该组件贡献不显著（这本身是有效科学信息），但不得升格为"我们发现去除更好"这类贡献表述，除非有主实验级证据
-4. **审计钩子**：`CLAIMS_FROM_RESULTS.md` 每条 claim 带 `polarity: positive|boundary` 字段；`polarity: negative` 的条目出现在 claims 列表 → `/paper-writing` 自检 FAIL（`reason_code: negative_result_as_contribution`）
+1. **Negative results are never contributions**: the claims list in `CLAIMS_FROM_RESULTS.md` only includes results that **positively support the main thesis**; no "we honestly report that X failed / fell short of expectation" may appear in claims, the contribution list, or the Abstract
+2. **Two legitimate destinations for negative results**:
+   - **Main-experiment-level negative** (core hypothesis unsupported) → not a writing problem, a direction problem: route back to `/experiment-execution`'s **KILL-or-PIVOT stop protocol** (toy level) or trigger a method re-examination (full level); the paper pipeline pauses pending new evidence — **continuing to write the paper on a falsified core hypothesis is forbidden**
+   - **Local/boundary negative** (a sub-scenario, baseline, or ablation group falls short) → write into **Limitations/Discussion** as a boundary statement ("our method shows no advantage under condition X, indicating the applicability boundary is Y") — this is the correct form of academic honesty
+3. **Ablation/hyperparameter negatives are information, not failure**: an ablation shows a component adds no gain → report honestly that the component's contribution is not significant (valid scientific information in itself), but do not elevate it to a contribution claim such as "we found removal is better" without main-experiment-level evidence
+4. **Audit hook**: every claim in `CLAIMS_FROM_RESULTS.md` carries a `polarity: positive|boundary` field; an entry with `polarity: negative` appearing in the claims list → `/paper-writing` self-check FAIL (`reason_code: negative_result_as_contribution`)
 
 ### Step 3: Parse and Normalize
 
@@ -389,12 +389,12 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 - **Basis**: SymPy derivation status, logic verification results, proof completeness
 - **Risks**: [remaining theoretical gaps]
 
-### OSS Sandbox Grounding (来自 Phase 5a, 重算)
+### OSS Sandbox Grounding (from Phase 5a, recomputed)
 - **Score**: [0-10]
 - **Basis**: OSS sandbox feasibility, adversarial falsification results, analogy mapping, prior probability
 - **Risks**: [assumptions that may not hold in OSS sandbox]
 
-### Engineering Grounding (来自 Phase 5b, 继承, 不重算)
+### Engineering Grounding (from Phase 5b, inherited, not recomputed)
 - **Score**: [0-10] (inherited from `refine-logs/ENGINEERING_GROUNDING.md` eg_average)
 - **Report**: See `refine-logs/ENGINEERING_GROUNDING.md` for full 8-dim breakdown + downside protection
 - **Risks**: [engineering risks from Phase 5b — compute, deps, ai_dev_cycle, reproducibility, capital, code_complexity, temporal_maturity, regulatory]
