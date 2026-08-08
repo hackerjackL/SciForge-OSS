@@ -22,8 +22,10 @@
     "SKILL.md",
     "README.md",
     "CHANGELOG.md",
+    "LICENSE",
+    "VERSIONING.md",
     "CITATION.cff",
-    "problems/",
+    "scripts/",
     "bin/"
   ],
   "bin": {
