@@ -21,21 +21,37 @@
 | 2026-07-20 14:30 | /idea-discovery | refine-logs/IDEA_CANDIDATES.md | idea-discovery | 12 ideas generated |
 ```
 
-## 产物目录结构
+## 产物目录结构（v5.0 — logs/ 集中 + code/ 单一之家）
 
 ```
 {problem_id}/
-├── refine-logs/        ← idea-discovery + novelty-check 产物
+├── refine-logs/        ← idea-discovery + novelty-check 产物（决策类文档）
 ├── literature/         ← universal-retrieval 产物
 ├── methods/            ← method-registry 产物
-├── derivations/        ← theory-derivation 产物
+├── derivations/        ← theory-derivation 产物（仅 .md 文档；脚本归 code/）
+├── code/               ← 算法与源代码的【单一之家】（v5.0 新增）
+│   ├── derivations/    ←   推导/符号验证脚本（原 derivations/*.py 迁入）
+│   ├── experiments/    ←   实验脚本（toy/full/消融/超参，含 group_<name>/）
+│   ├── figures/        ←   渲染脚本（render.py / spec.d2 / *.composite.json）
+│   └── utils/          ←   共享工具函数
+├── logs/               ← 全流程日志的【集中目录】（v5.0 新增）
+│   ├── pipeline.log    ←   auto-pipeline 状态流水（唯一权威状态记录）
+│   ├── phase_<n>.log   ←   各阶段运行日志（各 skill 写入，不再散落）
+│   └── experiments/    ←   实验 STATUS.json 汇总镜像（原 experiments/*/STATUS.json 的聚合视图）
 ├── audit_report/       ← logic-verification + leakage-audit 产物
-├── figures/            ← unified-plotting 产物
+├── figures/            ← unified-plotting 产物（PDF+SVG 交付；脚本归 code/figures/）
+├── experiments/        ← experiment-execution 产物（RESULT.json/数据；脚本归 code/experiments/）
 ├── paper/              ← paper-writing + paper-compile 产物
 ├── review-stage/       ← auto-review-loop 产物
 ├── citation_audit/     ← citation-audit 产物
 └── output/             ← 最终归档
 ```
+
+**单一之家原则（v5.0 — 治"目录混乱 + 代码重复"）**:
+1. 每类产物有**唯一规范路径**（上表）；写入其他位置的同类产物 → 审计 WARN，写入方负责迁移
+2. **代码只在 `code/` 一处存在**：实验/推导/渲染脚本一律归 `code/` 对应子目录；`derivations/`、`figures/`、`experiments/` 只放**产物与文档**（.md/.json/PDF/SVG/数据），**绝不放脚本**——这消灭了"论文写作时代码被复制进 paper/ 一遍"的重复现象（paper/ 内无代码副本，代码引用只走 Reproducibility 声明指向 `code/`）
+3. **日志只在 `logs/` 集中**：各阶段不再各自建日志文件散落根目录；`pipeline.log` 是唯一权威状态流水（含 PIPELINE_STATUS 事件），各 skill 的过程日志写 `logs/phase_<n>.log`
+4. 迁移兼容：读取时先查新规范路径，未找到回退旧路径（向后兼容旧运行目录）；写入一律新路径
 
 ## 路径回退规则
 

@@ -72,7 +72,7 @@ Locate the derivation directory and research artifacts:
 
 - Find the derivation output (`derivations/{problem_id}/derivation_output.md`) — the primary theory/derivation document
 - Find the claims file (`CLAIMS_FROM_RESULTS.md`) — validated claims from `/result-to-claim`
-- Find the SymPy script (`derivations/{problem_id}/derivation.py`) — the executable proof
+- Find the SymPy script (`code/derivations/{problem_id}/derivation.py`) — the executable proof
 - Find the verification report (`derivations/{problem_id}/verification_report.md`) — numerical sanity checks
 - If a paper draft exists (`paper/main.tex` + `paper/sections/*.tex`), include it as additional context
 

@@ -165,7 +165,7 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 
 Gather derivation/verification evidence from whatever sources are available in the project:
 
-1. **Symbolic derivation logs** (`derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
+1. **Symbolic derivation logs** (`code/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
 2. **Numerical sanity checks** (`derivations/{problem_id}/verification_report.md`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
 3. **Logic verification audit** (`audit_report/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
 4. **refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
@@ -214,6 +214,17 @@ Please evaluate:
 Be honest. Do not inflate claims beyond what the evidence supports.
 A qualitative "looks right" judgment does not support a "proven" claim.
 ```
+
+### 负结果纪律（v5.0 — Negative Results Discipline）
+
+**实测反馈**：agent 把负向结果包装成"诚实的发现"当作贡献点——这在真实投稿中是致命伤（审稿人不会为"我们诚实地失败了"买单）。纪律如下：
+
+1. **负结果永不作为 contribution**：`CLAIMS_FROM_RESULTS.md` 的 claims 列表只收录**正向支撑主论点**的结果；任何"我们诚实地报告了 X 失败/不如预期"不得出现在 claims、contribution 列表或 Abstract
+2. **负结果的两条合法去向**：
+   - **主实验级负向**（核心假设未获支撑）→ 不是写作问题，是方向问题：回传 `/experiment-execution` 的 **KILL-or-PIVOT 停止协议**（toy 级）或触发方法重审（full 级），论文流程暂停等待新证据——**禁止带着被证伪的核心假设继续写论文**
+   - **局部/边界负向**（某子场景、某基线、某消融组不如预期）→ 写入 **Limitations/Discussion** 作边界说明（"我们的方法在 X 条件下未显现优势，表明适用边界为 Y"），这是学术诚实的正确形态
+3. **消融/超参负向是信息不是失败**：消融显示某组件无增益 → 如实报告该组件贡献不显著（这本身是有效科学信息），但不得升格为"我们发现去除更好"这类贡献表述，除非有主实验级证据
+4. **审计钩子**：`CLAIMS_FROM_RESULTS.md` 每条 claim 带 `polarity: positive|boundary` 字段；`polarity: negative` 的条目出现在 claims 列表 → `/paper-writing` 自检 FAIL（`reason_code: negative_result_as_contribution`）
 
 ### Step 3: Parse and Normalize
 

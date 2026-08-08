@@ -65,7 +65,7 @@ Phase 2.5: /adversarial-falsification → 读取签名 → 加载领域失败模
 Phase 2.5b: (Phase 5b EG) → 读取签名 → 领域特定 EG 子维加权（Compute/N/A 判定）
 Phase 3:  /novelty-check         → 读取签名 → 调整评估权重
 Phase 5:  /method-registry       → 读取签名 → 调整假设评分标准
-Phase 6:  /theory-derivation     → 读取签名 → 选择验证方法
+Phase 6:  /verification-routing  → 读取签名 → 路由判定（experiment-first 默认 / theory-only 例外 / hybrid）→ 写 VERIFICATION_ROUTING.json，再分发 Phase 6a/6b/6c
 Phase 10: /result-to-claim       → 读取签名 → 校准置信度
 Phase 12: /paper-writing         → 读取签名 → 选择写作风格/引用格式
 ```
@@ -170,22 +170,31 @@ Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
      │                                                 │
 Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批       ← 新增
      │
-Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
+Phase  6: /verification-routing — 验证路由判定 [MUST]                ← v5.0
+     │  读 domain-signature.evidence_type + 可计算性信号 →
+     │  experiment-first（默认）/ theory-only（例外：derivational ∧ 无可执行计算）/ hybrid
+     │  → 写 refine-logs/VERIFICATION_ROUTING.json（route/evidence_type/reason）
+     │  见 shared-references/verification-routing.md
+     │
+Phase  6a: /theory-derivation — 符号推导 + 逐步机器验证 [ROUTED]
+     │  theory-only / hybrid → MUST（主验证或并行主验证）
+     │  experiment-first → OPTIONAL 辅助（有推导结构才走；不阻塞、不强制全步 SymPy）
      │          ↻ 失败回退 Phase 1（最多 3 轮）
-     │          (理论-only: engine=manual, 标记为 [not machine-verified])
+     │          (theory-only: engine=manual, 标记为 [not machine-verified])
      │
-     │  ── 实验执行层 (v2.0) ── 仅非 theory-only 路径 ──
+     │  ── 实验执行层 (v2.0, v5.0 默认主验证) ──
      │
-Phase  6b: /experiment-execution --stage=toy [CONDITIONAL]            ← v2.0
-     │  玩具实验：最小规模验证核心思维链
-     │  (theory-only → SKIP; computational/experiment → MUST)
+Phase  6b: /experiment-execution --stage=toy [ROUTED]                 ← v2.0/v5.0
+     │  玩具实验：最小规模（~20 轮量级）验证"想法方向对不对"（想法生死判）
+     │  (theory-only → SKIP; experiment-first/hybrid → MUST)
      │  前台硬上限 5 分钟；预计 > 5 分钟 → 也挂后台 (toy_bg)
-     │  Gate: PASS → Phase 6c; FAIL → BLOCKED (kill idea)
+     │  Gate: PASS → Phase 6c; FAIL → KILL-or-PIVOT 决策（见 experiment-execution
+     │  从 0 到 1 停止协议；负向显著且 ≥2 种子可复现才触发；PIVOT ≤2 次预算）
      │  (toy_bg 完成后再判 Gate，不等前台)
      │
-Phase  6c: /experiment-execution --stage=full --background [CONDITIONAL] ← v2.0
-     │  全量实验：后台调度 (tmux/nohup/systemd)
-     │  (theory-only → SKIP; computational/experiment → MUST)
+Phase  6c: /experiment-execution --stage=full --background [ROUTED]  ← v2.0/v5.0
+     │  全量实验：后台调度 (tmux/nohup/systemd)；按 method-registry §3 强制实验矩阵执行
+     │  (theory-only → SKIP; experiment-first/hybrid → MUST)
      │  Dispatch → 立即返回，pipeline 继续
      │
 Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
@@ -245,9 +254,10 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 3: novelty-check | MUST | — |
 | 4: universal-retrieval | MUST | v2.2: 不可跳过 — 即使 theory-only 也必须跑（理论问题需查重避免重复证明）；走 mihomo 代理（规则模式）访问 arxiv/s2/crossref |
 | 5: method-registry | MUST | — |
-| 6: theory-derivation | MUST | — |
-| 6b: experiment-execution (toy) | CONDITIONAL | v2.0: theory-only → SKIP; computational/experiment → MUST |
-| 6c: experiment-execution (full+bg) | CONDITIONAL | v2.0: theory-only → SKIP; computational/experiment → MUST (background dispatch mandatory) |
+| 6: verification-routing | MUST | v5.0: Phase 6 入口路由判定 → VERIFICATION_ROUTING.json（experiment-first 默认） |
+| 6a: theory-derivation | ROUTED | v5.0: theory-only/hybrid → MUST；experiment-first → OPTIONAL 辅助（不阻塞） |
+| 6b: experiment-execution (toy) | ROUTED | v5.0: theory-only → SKIP；experiment-first/hybrid → MUST（想法生死判，FAIL → KILL-or-PIVOT） |
+| 6c: experiment-execution (full+bg) | ROUTED | v5.0: theory-only → SKIP；experiment-first/hybrid → MUST（background dispatch + 强制实验矩阵） |
 | 7: leakage-audit | MUST | — |
 | 8: logic-verification | MUST | — |
 | 9: invariant-check | MUST | — |
