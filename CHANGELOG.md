@@ -9,8 +9,18 @@
 - **figure_audit 陈旧清理**：模块 docstring A1/A2 描述仍是 v3 PNG 时代（output.png / dpi≥300）——更新为 v4.0 PDF+SVG 契约；`audit_layout_svg` 裁剪启发式忽略 font-size 的 pt 单位（宽度高估 1/0.75）——改经 `_parse_size` 归一
 - **色彩数学精确化**：`rgb2lab` 白点除数与矩阵行和不一致（L*(white)=100.0000039）——改为以矩阵自身行和为参考白，纯白精确映射 (100, 0, 0)；`is_morandi` docstring"per channel"措辞修正为整体欧氏距离
 - **RESULT.json 契约补齐**：experiment-execution 输出 schema 此前未承诺 `core_claim_validated` / `seeds_used`，而 auto-pipeline Phase 6b toy 门控读取这两个字段——补为必填并说明门控语义
+- **verdicts/ 树补全**：`FIGURE_AUDITS.json` 与 `PIPELINE_VERDICT_SUMMARY.md` 此前只在注释中出现——补进 output-protocol verdicts/ 树（单一权威规则：树外无 verdict 文件）；e2e fixture 补 `RUN_BUDGET.json`，validator 达 18/18 零 pending
+- **孤儿引用二轮清扫**：`/discipline-writing`、`/paper-modes`（实为共享参考文档，消费者表改正为 `/paper-writing` 经文档消费）、`/competitive-drift-monitor`（标注 deferred/advisory）
+- **对抗性自审加固（9 项 MAJOR 全修，新增 95 个回归测试）**：
+  - security_scan 六类 BLOCKED 级绕过封堵：subprocess 列表形 ssh/scp/curl、内联 `socket().connect()`、内联 `dict(os.environ)` 外泄（allowlist 不得豁免）、拼接凭证路径（常量折叠）、os.open/shutil/Path 变量三条 /etc 写入向量、`codecs.decode` base64 exec；**移除脚本旁 security_allowlist.txt 自动加载**（agent 不得自写豁免，仅 `--allow` 显式传入）
+  - figure_audit 畸形数值崩溃修复（`font-size=".."` 等 → WARN 而非 traceback，渲染管线不再被杀）
+  - composite 标签/用户 caption 的 TeX 转义 + SVG 标签 XML 转义（`a_b`/`x%y`/`m&n` 类标签此前使产出的 .tex 编译失败、SVG 不成良构）
+  - 色板门禁补 `#RGB`/`#RRGGBBAA` 形态（此前饱和越界色以短写/带 alpha 形态溜过 A3）
+  - validate_verdicts 严格 JSON（拒绝 NaN/Infinity——此前可绕过数值界限检查；深嵌套 RecursionError → 干净 FAIL）
+  - ci_check 链接扫描加固（代码围栏内示例不检查、嵌套括号/尖括号目标、query 剥离、scheme-relative 外链、Python version 类误报）
+  - verify_paper_audits 拒绝哈希逃逸工作区的 audited_input_hashes 键（`../../etc/hostname` → STALE 拒绝）
 
-**验证**：166 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS。
+**验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 18/18。
 
 ## [1.2.0] - 2026-08-09
 
