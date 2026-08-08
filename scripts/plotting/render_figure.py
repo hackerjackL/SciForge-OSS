@@ -1,26 +1,30 @@
 #!/usr/bin/env python3
 """SciForge-OSS unified figure renderer — one CLI for all engines.
 
-Renders a figure SOURCE to the mandatory DUAL OUTPUT (output.pdf +
-output.png), enforcing the morandi design system
+Renders a figure SOURCE to the mandatory deliverable pair (output.pdf
+for LaTeX + output.svg for viewing/editing), enforcing the morandi design system
 (`sciforge_style.py`).  Supported sources:
 
-  d2        spec.d2        -> [preamble inject] -> d2 (dagre/elk) -> svg -> pdf+png
-  graphviz  spec.dot       -> dot/neato/fdp     -> svg -> pdf+png
-  tikz      spec.tex       -> pdflatex (standalone) -> pdfcrop -> pdf -> png
-  asy       spec.asy       -> asy -f pdf        -> pdfcrop -> pdf -> png
-  typst     spec.typ       -> typst compile     -> pdfcrop -> pdf -> png
+  d2        spec.d2        -> [preamble inject] -> d2 (dagre/elk) -> svg -> pdf+svg
+  graphviz  spec.dot       -> dot/neato/fdp     -> svg -> pdf+svg
+  tikz      spec.tex       -> pdflatex (standalone) -> pdfcrop -> pdf + svg view
+  asy       spec.asy       -> asy -f pdf        -> pdfcrop -> pdf + svg view
+  typst     spec.typ       -> typst compile     -> pdfcrop -> pdf + svg view
   diagrams  spec_diagr.py  -> mingrammer/diagrams (Python diagram-as-code,
-                              bundled pro icon sets) -> svg -> pdf+png
-  blockdiag spec.diag      -> blockdiag/actdiag/seqdiag/nwdiag -> svg -> pdf+png
-  svg       source.svg     -> rsvg-convert      -> pdf+png  (agent hand-assembly)
+                              bundled pro icon sets) -> svg -> pdf+svg
+  blockdiag spec.diag      -> blockdiag/actdiag/seqdiag/nwdiag -> svg -> pdf+svg
+  svg       source.svg     -> rsvg-convert      -> pdf+svg  (agent hand-assembly)
+
+v4.0 deliverable model: PDF (LaTeX embeds ONLY this) + SVG (agent viewing
+and later manual editing). No PNG — one folder per figure keeps source,
+deliverables, audit and latex_include together.
 
 Usage:
   python render_figure.py spec.d2  --out figures/arch/ --name output \
          [--layout elk] [--pad 80] [--dpi 300] [--no-preamble] [--caption "..."]
 
 Outputs written next to --out (default: next to the source):
-  output.pdf  output.png  latex_include.tex  render.log  figure_audit.json
+  output.pdf  output.svg  latex_include.tex  render.log  figure_audit.json
 The ORIGINAL source file is copied beside them (spec.d2 / spec.dot / ...)
 so the figure directory is self-contained and reproducible.
 
@@ -93,7 +97,7 @@ def palette_check(text: str, src_name: str, svg: bool = False) -> list[str]:
     return bad
 
 
-def render_d2(src: Path, out_pdf: Path, out_png: Path, layout: str,
+def render_d2(src: Path, out_pdf: Path, out_svg: Path, layout: str,
               pad: int, dpi: int, inject: bool, log: list,
               keep_svg: Path | None = None) -> None:
     spec = src.read_text(encoding="utf-8")
@@ -123,14 +127,14 @@ def render_d2(src: Path, out_pdf: Path, out_png: Path, layout: str,
         cmd = ["d2", "--layout", layout, "--pad", str(pad)] + \
             st.d2_font_flags() + [str(tmp_d2), str(tmp_svg)]
         run(cmd, cwd=str(outdir), log=log)
-        svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+        svg_deliver(tmp_svg, out_pdf, out_svg, log, keep_svg)
     finally:
         for f in (tmp_d2, tmp_svg):
             if f.exists():
                 f.unlink()
 
 
-def render_graphviz(src: Path, out_pdf: Path, out_png: Path, layout: str,
+def render_graphviz(src: Path, out_pdf: Path, out_svg: Path, layout: str,
                     dpi: int, log: list, keep_svg: Path | None = None) -> None:
     spec = src.read_text(encoding="utf-8")
     bad = palette_check(spec, src.name)
@@ -140,10 +144,10 @@ def render_graphviz(src: Path, out_pdf: Path, out_png: Path, layout: str,
     with tempfile.TemporaryDirectory() as td:
         tmp_svg = Path(td) / "render.svg"
         run([engine, "-Tsvg", str(src), "-o", str(tmp_svg)], log=log)
-        svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+        svg_deliver(tmp_svg, out_pdf, out_svg, log, keep_svg)
 
 
-def render_tikz(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_tikz(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                 log: list) -> None:
     tex = src.read_text(encoding="utf-8")
     if r"\documentclass" not in tex:
@@ -171,35 +175,32 @@ def render_tikz(src: Path, out_pdf: Path, out_png: Path, dpi: int,
         run(["pdflatex", "-interaction=nonstopmode", "-halt-on-error",
              "render.tex"], cwd=td, log=log)
         shutil.copyfile(Path(td) / "render.pdf", out_pdf)
-    run(["pdftoppm", "-png", "-r", str(dpi), "-singlefile",
-         str(out_pdf), str(out_png.with_suffix(""))], log=log)
+    pdf_to_svg(out_pdf, out_svg, log)
 
 
 def render_python(src: Path, outdir: Path, dpi: int, log: list) -> None:
     """Data-plot pipeline: run the figure's render.py inside outdir.
 
-    The script MUST save `output.pdf` and `output.png` in its CWD (the
-    figure dir) and call apply_matplotlib_style() first.  After running,
-    the PNG dpi is stamped and both files are validated; the unified CLI
-    then adds latex_include.tex + the embedded audit, keeping data plots
-    on the same single-entry contract as diagrams.
+    The script MUST save `output.pdf` in its CWD (the figure dir; saving
+    output.png too is tolerated but NOT required — v4.0 delivers PDF+SVG)
+    and call apply_matplotlib_style() first.  After running the CLI
+    derives output.svg via pdf_to_svg, then adds latex_include.tex + the
+    embedded audit, keeping data plots on the same single-entry contract.
     """
     if src.resolve() != (outdir / src.name).resolve():
         shutil.copyfile(src, outdir / src.name)
         src = outdir / src.name
     run([sys.executable, str(src)], cwd=str(outdir), log=log)
-    png = outdir / "output.png"
-    if png.is_file():
-        stamp_png_dpi(png, dpi)
+    pdf_to_svg(outdir / "output.pdf", outdir / "output.svg", log)
 
 
-def render_diagrams(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_diagrams(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                     log: list, keep_svg: Path | None = None) -> None:
     """mingrammer/diagrams — diagram-as-code with bundled pro icon sets.
 
     Convention: the spec script writes its Diagram to the file name in
     environment variable SF_OUT (no extension).  We pass SF_OUT, run the
-    script with outformat='svg' expected, then convert via svg2dual.
+    script with outformat='svg' expected, then deliver via svg_deliver.
     The spec SHOULD set graph_attr bgcolor/fontname per the skill docs.
     """
     outdir = out_pdf.parent
@@ -227,10 +228,10 @@ def render_diagrams(src: Path, out_pdf: Path, out_png: Path, dpi: int,
         raise RuntimeError("diagrams script produced no SVG — write "
                            "Diagram(filename=os.environ.get('SF_OUT','output'), "
                            "outformat='svg', show=False)")
-    svg2dual(cand[0], out_pdf, out_png, dpi, log, keep_svg)
+    svg_deliver(cand[0], out_pdf, out_svg, log, keep_svg)
 
 
-def render_blockdiag(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_blockdiag(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                      log: list, keep_svg: Path | None = None) -> None:
     """blockdiag family (blockdiag/actdiag/seqdiag/nwdiag) — swimlane
     activity & sequence diagrams.  Tool auto-selected by spec keyword;
@@ -263,12 +264,12 @@ def render_blockdiag(src: Path, out_pdf: Path, out_png: Path, dpi: int,
         log.append("[stderr] " + r.stderr.strip()[:4000])
     if r.returncode != 0 or not tmp_svg.is_file():
         raise RuntimeError(f"{tool} failed:\n{r.stderr[:3000]}")
-    svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+    svg_deliver(tmp_svg, out_pdf, out_svg, log, keep_svg)
     if tmp_svg.exists():
         tmp_svg.unlink()
 
 
-def render_mermaid(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_mermaid(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                    log: list, keep_svg: Path | None = None) -> None:
     """mermaid-cli (mmdc) — flowchart/sequence/class/state diagrams.
 
@@ -290,12 +291,12 @@ def render_mermaid(src: Path, out_pdf: Path, out_png: Path, dpi: int,
     run(cmd, log=log)
     if not tmp_svg.is_file():
         raise RuntimeError("mmdc produced no SVG")
-    svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+    svg_deliver(tmp_svg, out_pdf, out_svg, log, keep_svg)
     if tmp_svg.exists():
         tmp_svg.unlink()
 
 
-def render_composite(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                      log: list, keep_svg: Path | None = None) -> None:
     """Composite engine — assemble N pre-rendered panels into ONE figure
     with Nature-style bold (a)(b)(c)... panel labels (contract §7).
@@ -307,8 +308,8 @@ def render_composite(src: Path, out_pdf: Path, out_png: Path, dpi: int,
     Panels may be PDF (rasterized at dpi) or PNG.  Each panel is scaled
     into its grid cell (row height = tallest panel in the row), the bold
     label lives in a reserved strip ABOVE the panel so it can never
-    occlude panel content, and the assembled SVG goes through svg2dual
-    (palette sanitize + dual output + audit) — single pipeline.
+    occlude panel content, and the assembled SVG goes through svg_deliver
+    (palette sanitize + PDF/SVG deliverables + audit) — single pipeline.
     """
     import base64
     spec = json.loads(src.read_text(encoding="utf-8"))
@@ -411,7 +412,7 @@ def render_composite(src: Path, out_pdf: Path, out_png: Path, dpi: int,
     assembled.write_text(svg_text, encoding="utf-8")
     log.append(f"# assembled {n} panels -> {canvas_w}x{canvas_h} "
                f"({cols}x{rows} grid)")
-    svg2dual(assembled, out_pdf, out_png, dpi, log, keep_svg)
+    svg_deliver(assembled, out_pdf, out_svg, log, keep_svg)
 
 
 def _is_root() -> bool:
@@ -420,12 +421,12 @@ def _is_root() -> bool:
     return getattr(os, "getuid", lambda: -1)() == 0
 
 
-def render_pikchr(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_pikchr(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                   log: list, keep_svg: Path | None = None) -> None:
     """pikchr — lightweight vector DSL for mechanism/sequence schematics
     (SQLite project, compiled from the pikchr.org tarball; INSTALL.md).
-    Produces SVG via --svg-only, then the shared svg2dual path handles
-    palette sanitization, dual output and audit — single pipeline."""
+    Produces SVG via --svg-only, then the shared svg_deliver path handles
+    palette sanitization, PDF+SVG deliverables and audit — single pipeline."""
     outdir = out_pdf.parent
     outdir.mkdir(parents=True, exist_ok=True)
     tmp_svg = outdir / "_render.svg"
@@ -435,12 +436,12 @@ def render_pikchr(src: Path, out_pdf: Path, out_png: Path, dpi: int,
     if r.returncode != 0:
         raise RuntimeError(f"pikchr failed:\n{r.stderr[:3000]}")
     tmp_svg.write_text(r.stdout, encoding="utf-8")
-    svg2dual(tmp_svg, out_pdf, out_png, dpi, log, keep_svg)
+    svg_deliver(tmp_svg, out_pdf, out_svg, log, keep_svg)
     if tmp_svg.exists():
         tmp_svg.unlink()
 
 
-def render_asymptote(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_asymptote(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                      log: list) -> None:
     """Asymptote — publication vector engine for geometry/mechanism figures."""
     asy = src.read_text(encoding="utf-8")
@@ -457,12 +458,10 @@ def render_asymptote(src: Path, out_pdf: Path, out_png: Path, dpi: int,
             shutil.copyfile(cropped, out_pdf)
         else:
             shutil.copyfile(Path(td) / "render.pdf", out_pdf)
-    run(["pdftoppm", "-png", "-r", str(dpi), "-singlefile",
-         str(out_pdf), str(out_png.with_suffix(""))], log=log)
-    stamp_png_dpi(out_png, dpi)
+    pdf_to_svg(out_pdf, out_svg, log)
 
 
-def render_typst(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_typst(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                  log: list) -> None:
     """Typst (fletcher/CeTZ) — fast declarative diagrams."""
     typ = src.read_text(encoding="utf-8")
@@ -478,24 +477,24 @@ def render_typst(src: Path, out_pdf: Path, out_png: Path, dpi: int,
             shutil.copyfile(cropped, out_pdf)
         else:
             shutil.copyfile(Path(td) / "render.pdf", out_pdf)
-    run(["pdftoppm", "-png", "-r", str(dpi), "-singlefile",
-         str(out_pdf), str(out_png.with_suffix(""))], log=log)
-    stamp_png_dpi(out_png, dpi)
+    pdf_to_svg(out_pdf, out_svg, log)
 
 
-def render_svg(src: Path, out_pdf: Path, out_png: Path, dpi: int,
+def render_svg(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                log: list, keep_svg: Path | None = None) -> None:
     svg = src.read_text(encoding="utf-8")
     bad = palette_check(svg, src.name, svg=True)
     if bad:
         raise PaletteError(bad)
-    svg2dual(src, out_pdf, out_png, dpi, log, keep_svg)
+    svg_deliver(src, out_pdf, out_svg, log, keep_svg)
 
 
-def svg2dual(svg: Path, out_pdf: Path, out_png: Path, dpi: int,
-             log: list, keep_intermediate: Path | None = None) -> None:
-    # Deterministic palette sanitization BEFORE delivery: engine-injected
-    # theme colors (d2/graphviz defaults) are remapped to morandi tokens.
+def svg_deliver(svg: Path, out_pdf: Path, out_svg: Path,
+                log: list, keep_intermediate: Path | None = None) -> None:
+    """v4.0 deliverables: SVG (viewing/editing) + PDF (LaTeX) — no PNG.
+
+    Deterministic palette sanitization BEFORE delivery: engine-injected
+    theme colors (d2/graphviz defaults) are remapped to morandi tokens."""
     text = svg.read_text(encoding="utf-8")
     text, n = st.sanitize_palette(text)
     if n:
@@ -503,37 +502,36 @@ def svg2dual(svg: Path, out_pdf: Path, out_png: Path, dpi: int,
         log.append(f"# palette sanitized: {n} engine-injected colors remapped")
     if keep_intermediate is not None:
         shutil.copyfile(svg, keep_intermediate)
+    out_svg.parent.mkdir(parents=True, exist_ok=True)
+    if svg.resolve() != out_svg.resolve():
+        shutil.copyfile(svg, out_svg)
     conv = which("rsvg-convert", "inkscape")
     if conv == "rsvg-convert":
         run(["rsvg-convert", "-f", "pdf", "-o", str(out_pdf), str(svg)], log=log)
-        run(["rsvg-convert", "-f", "png", "-d", str(dpi), "-p", str(dpi),
-             "-o", str(out_png), str(svg)], log=log)
     elif conv == "inkscape":
         run(["inkscape", str(svg), f"--export-filename={out_pdf}"], log=log)
-        run(["inkscape", str(svg), f"--export-filename={out_png}",
-             f"--export-dpi={dpi}"], log=log)
     else:
-        # last-resort pure-Python fallback: cairosvg (pdf + png), so the
-        # pipeline still works on a minimal python-only host
         try:
             import cairosvg
         except ImportError:
             raise RuntimeError("no SVG converter found (need rsvg-convert, "
                                "inkscape, or pip install cairosvg)")
         cairosvg.svg2pdf(url=str(svg), write_to=str(out_pdf))
-        cairosvg.svg2png(url=str(svg), write_to=str(out_png), dpi=dpi)
         log.append("# cairosvg python fallback used")
-    stamp_png_dpi(out_png, dpi)
 
 
-def stamp_png_dpi(png: Path, dpi: int) -> None:
-    """Ensure the PNG carries pHYs dpi metadata (rsvg-convert omits it)."""
-    try:
-        from PIL import Image
-        with Image.open(png) as im:
-            im.save(png, dpi=(dpi, dpi))
-    except Exception:
-        pass  # metadata-only; never fail a render over it
+def pdf_to_svg(pdf: Path, out_svg: Path, log: list) -> None:
+    """Derive the SVG deliverable from a PDF-native render (tikz/asy/typst/
+    python data plots). pdftocairo preferred; dvisvgm --pdf as fallback."""
+    out_svg.parent.mkdir(parents=True, exist_ok=True)
+    if which("pdftocairo"):
+        run(["pdftocairo", "-svg", str(pdf), str(out_svg)], log=log)
+    elif which("dvisvgm"):
+        run(["dvisvgm", "--pdf", str(pdf), "-o", str(out_svg)], log=log)
+    else:
+        log.append("# WARN: no pdf->svg converter (pdftocairo/dvisvgm); "
+                   "SVG deliverable skipped")
+
 
 
 class PaletteError(RuntimeError):
@@ -601,7 +599,8 @@ def doctor() -> int:
         ("cairosvg", ["python3"], "pure-Python SVG converter fallback (import check)"),
         ("rsvg-convert", ["rsvg-convert"], "SVG -> PDF+PNG conversion"),
         ("inkscape", ["inkscape"], "SVG conversion fallback (optional)"),
-        ("pdftoppm", ["pdftoppm"], "PDF -> PNG rasterization"),
+        ("pdftoppm", ["pdftoppm"], "PDF rasterization (composite panels)"),
+        ("pdftocairo", ["pdftocairo"], "PDF -> SVG viewing deliverable"),
         ("pdfcrop", ["pdfcrop"], "PDF whitespace crop"),
         ("svgo", ["svgo"], "SVG optimization (optional)"),
     ]
@@ -700,7 +699,7 @@ def main() -> int:
             return 3
 
     out_pdf = outdir / f"{args.name}.pdf"
-    out_png = outdir / f"{args.name}.png"
+    out_svg = outdir / f"{args.name}.svg"
     keep_svg = outdir / "intermediate.svg" if engine in ("d2", "graphviz", "svg") else None
     log: list[str] = [f"# SciForge render_figure — engine={engine} src={src.name}"]
     try:
@@ -711,32 +710,32 @@ def main() -> int:
                 inject = False
                 log.append("# dense spec: preamble skipped (layout-time guard; "
                            "palette compliance guaranteed by sanitize_palette)")
-            render_d2(src, out_pdf, out_png, layout, args.pad, args.dpi,
+            render_d2(src, out_pdf, out_svg, layout, args.pad, args.dpi,
                       inject, log, keep_svg)
         elif engine == "graphviz":
-            render_graphviz(src, out_pdf, out_png, args.layout or "dot",
+            render_graphviz(src, out_pdf, out_svg, args.layout or "dot",
                             args.dpi, log, keep_svg)
         elif engine == "python":
             outdir.mkdir(parents=True, exist_ok=True)
             render_python(src, outdir, args.dpi, log)
         elif engine == "tikz":
-            render_tikz(src, out_pdf, out_png, args.dpi, log)
+            render_tikz(src, out_pdf, out_svg, args.dpi, log)
         elif engine == "asy":
-            render_asymptote(src, out_pdf, out_png, args.dpi, log)
+            render_asymptote(src, out_pdf, out_svg, args.dpi, log)
         elif engine == "typst":
-            render_typst(src, out_pdf, out_png, args.dpi, log)
+            render_typst(src, out_pdf, out_svg, args.dpi, log)
         elif engine == "diagrams":
-            render_diagrams(src, out_pdf, out_png, args.dpi, log, keep_svg)
+            render_diagrams(src, out_pdf, out_svg, args.dpi, log, keep_svg)
         elif engine == "blockdiag":
-            render_blockdiag(src, out_pdf, out_png, args.dpi, log, keep_svg)
+            render_blockdiag(src, out_pdf, out_svg, args.dpi, log, keep_svg)
         elif engine == "mermaid":
-            render_mermaid(src, out_pdf, out_png, args.dpi, log, keep_svg)
+            render_mermaid(src, out_pdf, out_svg, args.dpi, log, keep_svg)
         elif engine == "pikchr":
-            render_pikchr(src, out_pdf, out_png, args.dpi, log, keep_svg)
+            render_pikchr(src, out_pdf, out_svg, args.dpi, log, keep_svg)
         elif engine == "composite":
-            render_composite(src, out_pdf, out_png, args.dpi, log, keep_svg)
+            render_composite(src, out_pdf, out_svg, args.dpi, log, keep_svg)
         else:
-            render_svg(src, out_pdf, out_png, args.dpi, log, keep_svg)
+            render_svg(src, out_pdf, out_svg, args.dpi, log, keep_svg)
     except PaletteError as e:
         print("PALETTE AUDIT FAIL", file=sys.stderr)
         for v in e.violations:
@@ -756,7 +755,7 @@ def main() -> int:
                         WIDTH_PRESETS.get(args.width_preset)
                         if args.width_preset else None)
     (outdir / "render.log").write_text("\n".join(log), encoding="utf-8")
-    for f in (out_pdf, out_png):
+    for f in (out_pdf, out_svg):
         if not f.is_file() or f.stat().st_size == 0:
             print(f"RENDER FAIL: missing/empty {f}", file=sys.stderr)
             return 3
@@ -768,7 +767,7 @@ def main() -> int:
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     verdict = report["verdict"]
     print(f"OK {out_pdf} ({out_pdf.stat().st_size} B) + "
-          f"{out_png} ({out_png.stat().st_size} B)  [audit: {verdict}]")
+          f"{out_svg} ({out_svg.stat().st_size} B)  [audit: {verdict}]")
     for c in report["checks"]:
         if c["status"] != "PASS":
             print(f"   {c['status']:4s} {c['layer']} {c['msg']}")
