@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 1.1.2
+version: 1.2.0
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
@@ -108,43 +108,43 @@ Read `FINAL_PROPOSAL.md` and `domain-signature.json` to determine:
 
 ### Step 0p: Network Proxy Auto-Mount (MANDATORY before any dataset/model download)
 
-**绝对禁止因网络问题跳过数据集/模型/依赖下载**（用户硬要求）。toy/full 实验常需从 GitHub / HuggingFace / ModelScope / arXiv / Zenodo / Kaggle / OpenNeuro 等拉取数据集或预训练权重；本 skill 在任何网络请求前必须先完成代理挂载，逻辑与 `universal-retrieval` 的「代理自主检测」对齐（同一份 `literature/.proxy-resolved.json` 可复用）：
+**Never skip dataset/model/dependency downloads due to network problems** (user hard requirement). Toy/full experiments often need to pull datasets or pretrained weights from GitHub / HuggingFace / ModelScope / arXiv / Zenodo / Kaggle / OpenNeuro, etc.; this skill must complete proxy mounting before any network request, with logic aligned to `universal-retrieval`'s "Proxy Auto-Detection" (the same `literature/.proxy-resolved.json` can be reused):
 
-1. **复用已探测代理**：若 `literature/.proxy-resolved.json` 存在且 `detected_at` 距今 < 1h，或环境变量 `http_proxy`/`https_proxy`/`ALL_PROXY` 已设，直接复用，跳过探测。
-2. **候选端口探测**（与 universal-retrieval 同序列）：`8099`（mihomo mixed-port）→ `7890`（Clash HTTP）→ `7892`（Clash SOCKS）→ `1080` → `8080`。逐个 `socket.connect_ex(('127.0.0.1',<port>), timeout=2)`，TCP 通后再经该代理 GET `https://huggingface.co` 或 `https://github.com`（`timeout=3s`，期望 2xx/3xx）双检。第一个双检通过即选中。
-3. **挂载**：写入 `experiments/.proxy-resolved.json`（实验侧副本，与 `literature/.proxy-resolved.json` 同 schema），并对后续所有下载设 `http_proxy`/`https_proxy`。
-4. **全部候选不可达** → **绝不放弃下载**：(a) 直连试 1 次（`timeout=10s`）；(b) 直连失败 → 转入「Step 0d 异步下载」（nohup 后台），下载 verdict 降为 `WARN`，**永不降级为 SKIP/NOT_APPLICABLE/网络原因 BLOCKED**。网络只能把 PASS 降到 WARN。
-5. **重探测**：已挂载代理连续超时 2 次 → 删 `.proxy-resolved.json` 回步骤 2 重探测。
-6. **下载产物归档**：所有下载的数据集/权重写 `experiments/datasets/` 或 `experiments/weights/`，并在 `experiments/.downloads.json` 登记 `{source, url, sha256, size_bytes, downloaded_at, via_proxy:bool, method:"foreground|nohup"}`，供 Phase 10 result-to-claim 与 Phase 15 citation-audit 回溯。
+1. **Reuse an already-probed proxy**: if `literature/.proxy-resolved.json` exists with `detected_at` < 1h old, or the environment variables `http_proxy`/`https_proxy`/`ALL_PROXY` are already set, reuse directly and skip probing.
+2. **Candidate port probing** (same sequence as universal-retrieval): `8099` (mihomo mixed-port) → `7890` (Clash HTTP) → `7892` (Clash SOCKS) → `1080` → `8080`. Try each with `socket.connect_ex(('127.0.0.1',<port>), timeout=2)`; after TCP succeeds, double-check via that proxy with a GET to `https://huggingface.co` or `https://github.com` (`timeout=3s`, expect 2xx/3xx). The first candidate passing both checks is selected.
+3. **Mount**: write `experiments/.proxy-resolved.json` (the experiment-side copy, same schema as `literature/.proxy-resolved.json`), and set `http_proxy`/`https_proxy` for all subsequent downloads.
+4. **All candidates unreachable** → **never give up on the download**: (a) try direct connection once (`timeout=10s`); (b) if direct fails → move to "Step 0d Async Dataset Download" (nohup background) and downgrade the download verdict to `WARN` — **never downgrade to SKIP/NOT_APPLICABLE/BLOCKED for network reasons**. Network can only downgrade PASS to WARN.
+5. **Re-probing**: if the mounted proxy times out 2 consecutive times → delete `.proxy-resolved.json` and return to step 2 to re-probe.
+6. **Download artifact archiving**: write all downloaded datasets/weights to `experiments/datasets/` or `experiments/weights/`, and register them in `experiments/.downloads.json` with `{source, url, sha256, size_bytes, downloaded_at, via_proxy:bool, method:"foreground|nohup"}`, for traceability by Phase 10 result-to-claim and Phase 15 citation-audit.
 
-### Step 0d: Async Dataset Download (nohup — 用户硬要求：大文件/长任务后台异步)
+### Step 0d: Async Dataset Download (nohup — user hard requirement: large files/long tasks async in background)
 
-大型数据集（HLE ~数 GB、PaperBench、NatureBench、ImageNet、COCO、Pile、OpenWebText、HF Hub 模型权重）或环境依赖（`pip install`、conda env、`huggingface-cli download`、`modelscope download`）预计耗时较长时**必须用 `nohup` 后台异步下载，立刻切其他代码重构/测试任务**，遵循 [`background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md)：
+When large datasets (HLE ~several GB, PaperBench, NatureBench, ImageNet, COCO, Pile, OpenWebText, HF Hub model weights) or environment dependencies (`pip install`, conda env, `huggingface-cli download`, `modelscope download`) are expected to take a long time, **you MUST download asynchronously in the background via `nohup` and immediately switch to other code-refactoring/test tasks**, following [`background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md):
 
-**0d.0 — 先查本地已有数据集注册表（v3.2 — 避免重下已存在的 benchmark）**：在发起任何下载前，本 skill **必须先查本地 benchmark 注册表**——工作区常有 `/root/autodl-tmp/datasets/`（或项目根的 `datasets/`）已预置好 HLE / NatureBench / PaperBench 等 benchmark（含 `README.md` + `INDEX.md` + parquet/csv）。查表顺序：
-1. 读 `datasets/README.md`（benchmark 注册表）+ 各 `datasets/<name>/INDEX.md`——若目标数据集已在册且文件齐全（如 `datasets/PaperBench/train.parquet` 存在且 size > 0），**直接 symlink 或 copy 到 `experiments/datasets/<name>/`**，在 `.downloads.json` 记 `method: "local_registry", via_proxy: false, source: "local datasets/<name>"`，**跳过网络下载**。
-2. 若在册但文件缺失（如 HLE 全量 parquet 因 gated 未下完，只有 README/eval.yaml）→ 走下面的 nohup 异步下载补全缺失部分（gated 数据集需先 `huggingface-cli login`）。
-3. 若完全不在册 → 走下面的 nohup 异步下载全量。
-**绝对禁止**：在已存在 `datasets/<name>/` 的情况下重新从 HF 下载同一数据集——浪费带宽 + 时间 + 可能拿到不同版本。
+**0d.0 — Check the local dataset registry first (v3.2 — avoid re-downloading existing benchmarks)**: before initiating any download, this skill **must first check the local benchmark registry** — the workspace often has benchmarks such as HLE / NatureBench / PaperBench pre-provisioned under `/root/autodl-tmp/datasets/` (or the project-root `datasets/`) (with `README.md` + `INDEX.md` + parquet/csv). Lookup order:
+1. Read `datasets/README.md` (benchmark registry) + each `datasets/<name>/INDEX.md` — if the target dataset is already registered with complete files (e.g., `datasets/PaperBench/train.parquet` exists and size > 0), **directly symlink or copy it into `experiments/datasets/<name>/`**, record `method: "local_registry", via_proxy: false, source: "local datasets/<name>"` in `.downloads.json`, and **skip the network download**.
+2. If registered but with missing files (e.g., HLE full parquet incomplete because it is gated, only README/eval.yaml present) → use the nohup async download below to complete the missing parts (gated datasets require `huggingface-cli login` first).
+3. If not registered at all → use the nohup async download below for the full dataset.
+**Strictly forbidden**: re-downloading the same dataset from HF when `datasets/<name>/` already exists — wastes bandwidth + time + risks fetching a different version.
 
-1. **触发阈值**：单文件/批次预计 > 2min 或体积 > 100MB → MUST 后台；2-5min/≤100MB → SHOULD 后台（agent 自主）；<2min/≤100MB → 前台。
-2. **nohup 调度**（与 Step 5 同栈，tmux→nohup→systemd 降级）：
+1. **Trigger thresholds**: single file/batch estimated > 2min or size > 100MB → MUST background; 2-5min/≤100MB → SHOULD background (agent's judgment); <2min/≤100MB → foreground.
+2. **nohup dispatch** (same stack as Step 5, tmux→nohup→systemd fallback):
    ```bash
    cd {workdir} && nohup bash -c '
      export http_proxy="{proxy_url}" https_proxy="{proxy_url}" ALL_PROXY="{proxy_url}"
-     {download_command}   # 如: huggingface-cli download <repo> --local-dir experiments/datasets/<name>
-                          # 或: wget -c <url> -O experiments/datasets/<name>
-                          # 或: pip install -r requirements-exp.txt
+     {download_command}   # e.g.: huggingface-cli download <repo> --local-dir experiments/datasets/<name>
+                          # or: wget -c <url> -O experiments/datasets/<name>
+                          # or: pip install -r requirements-exp.txt
    ' > experiments/downloads/{name}.log 2>&1 &
    echo $! > experiments/downloads/{name}.pid
    disown
    ```
-3. **立即返回**：调度后**不等待**，前台立即切到 Step 1（设计 toy）/其他 phase；下载状态在 Phase 10（result-to-claim）回收——读 `experiments/downloads/{name}.STATUS.json`，若 `status=running` 用已下完的部分继续 toy（缩 scale），若 `failed` 按 Recovery Protocol 重试 1 次，仍失败 verdict WARN + 记录 `source_status: unavailable`。
-4. **多下载并行**：多个独立数据集/依赖可并行各起一个 nohup job（不同 `{name}`），互不阻塞；每个写独立 `.pid`/`.log`/`.STATUS.json`。
-5. **下载完整性核**：完成后对每个文件算 sha256 写入 `experiments/.downloads.json`（步骤 0p·6）；哈希与上游公布的（HuggingFace/HF Hub 的 `LFS` sha256、Zenodo 的 checksum）比对，不符 → WARN + 重下 1 次。
-6. **断点续传**：优先用支持 `-c`/`--resume`/`--local-dir-use-symlinks False` 的工具（`wget -c`、`aria2c -c`、`huggingface-cli download` 自带断点）；STATUS.json 记录 `resume_from` 字段。
+3. **Return immediately**: after dispatching, **do not wait**; the foreground immediately switches to Step 1 (design the toy) / other phases; download status is collected at Phase 10 (result-to-claim) — read `experiments/downloads/{name}.STATUS.json`; if `status=running`, continue the toy with whatever has finished downloading (reduce scale); if `failed`, retry once per the Recovery Protocol; if still failing, verdict WARN + record `source_status: unavailable`.
+4. **Parallel downloads**: multiple independent datasets/dependencies may each launch their own nohup job in parallel (different `{name}`), without blocking each other; each writes its own `.pid`/`.log`/`.STATUS.json`.
+5. **Download integrity check**: after completion, compute the sha256 of each file and write it to `experiments/.downloads.json` (step 0p·6); compare the hash against the upstream-published one (HuggingFace/HF Hub `LFS` sha256, Zenodo checksum); mismatch → WARN + re-download once.
+6. **Resume support**: prefer tools that support `-c`/`--resume`/`--local-dir-use-symlinks False` (`wget -c`, `aria2c -c`, `huggingface-cli download` with built-in resume); STATUS.json records the `resume_from` field.
 
-**绝对禁止**：因下载慢/超时而跳过数据集获取、改用纯合成数据替代真实数据集（除非 domain-signature 明确允许）、或把 toy gate PASS 建立在未下完的残缺数据上而不标记。
+**Strictly forbidden**: skipping dataset acquisition because downloads are slow/timed out, substituting purely synthetic data for the real dataset (unless domain-signature explicitly allows it), or basing a toy gate PASS on incomplete, not-fully-downloaded data without flagging it.
 
 ### Step 0a: Device Detection (v2.2 — CPU/GPU/NPU auto-detect)
 
@@ -224,16 +224,16 @@ Step 2b: Write experiment script
 Step 2c: Execute with timeout
          → subprocess.run(timeout=timeout_toy)
 
-**P5 Dry-Run 早停（v3.1）**: toy 执行应在 1%-5% 子集 / 3-5min 硬上限下先做 dry-run，三类早停自动触发并把反馈送回 idea 修正循环，避免全量算力浪费：
+**P5 Dry-Run early stopping (v3.1)**: toy execution should first dry-run on a 1%-5% subset / 3-5min hard cap; three early-stop types trigger automatically and feed back into the idea-revision loop, avoiding waste of full-scale compute:
 
-| 早停原因 | 触发条件 | 反馈动作 |
+| Early-stop reason | Trigger | Feedback action |
 |----------|----------|----------|
-| `UNCAUGHT_EXCEPTION` | 运行脚本抛异常（import/语法/运行时） | 回 Phase 6b 修代码（1 retry） |
-| `LOSS_EXPLOSION` | 输出出现 NaN/Inf 或指标绝对值 > 阈值 | 回 Phase 6 检查推导假设（reformulate） |
-| `BELOW_BASELINE` | 指标 > 1.5× baseline | 回 Phase 2 重生成 idea（bounded 2 轮） |
-| `DRY_RUN_TIMEOUT` | 超硬上限 | 降 scale 重试一次；仍超时 → toy gate BLOCKED |
+| `UNCAUGHT_EXCEPTION` | script throws an exception (import/syntax/runtime) | loop back to Phase 6b to fix the code (1 retry) |
+| `LOSS_EXPLOSION` | output contains NaN/Inf or metric absolute value > threshold | loop back to Phase 6 to check derivation assumptions (reformulate) |
+| `BELOW_BASELINE` | metric > 1.5× baseline | loop back to Phase 2 to regenerate the idea (bounded 2 rounds) |
+| `DRY_RUN_TIMEOUT` | exceeds the hard cap | reduce scale and retry once; still timeout → toy gate BLOCKED |
 
-早停判定全部机械（无 LLM cost）；dry-run `PASS` 才进入正常 RESULT.json 门控流程。
+All early-stop decisions are mechanical (no LLM cost); only a `PASS` dry-run proceeds to the normal RESULT.json gating flow.
 
 Step 2d: Capture output
          → stdout, stderr, return code, RESULT.json
@@ -279,35 +279,35 @@ Step 2e: Evaluate against success criteria
 
 **For causal_inference toys specifically** (per `discipline-writing.md` §0): `primary_metric` = recovered ATE/coefficient magnitude vs known effect; `secondary_metrics` MUST include coefficient sign and parallel-trends p-value — all three load-bearing, so `gate_logic: all_metrics_pass`.
 
-### Step 3: Toy Gate (Decision Point — v5.0 KILL-or-PIVOT 停止协议)
+### Step 3: Toy Gate (Decision Point — v5.0 KILL-or-PIVOT stopping protocol)
 
 | RESULT.status | Action |
 |---------------|--------|
 | `PASS` | Proceed to full experiment design (Step 4) |
-| `FAIL` | **进入 KILL-or-PIVOT 决策**（见下）——不再一律 kill idea |
+| `FAIL` | **Enter the KILL-or-PIVOT decision** (see below) — no longer uniformly kill the idea |
 | `INCONCLUSIVE` | Redesign toy experiment (bounded 1 retry). If still inconclusive → `BLOCKED`. |
 | `TIMEOUT` | Reduce scale_ratio, retry once. If still timeout → `BLOCKED`. |
 | `ERROR` | Diagnose error, fix script, retry once. If still error → `BLOCKED`. |
 
-**Hard rule**: A FAIL toy experiment **must not** proceed to full experiment — 这是想法生死判，防止把算力浪费在死胡同上。
+**Hard rule**: A FAIL toy experiment **must not** proceed to full experiment — this is the life-or-death verdict on the idea, preventing compute waste on dead ends.
 
-**从 0 到 1 停止协议（KILL-or-PIVOT）——解决"从 0 到 1 不知道何时停"**:
+**Zero-to-one stopping protocol (KILL-or-PIVOT) — solves "zero-to-one never knows when to stop"**:
 
-增量论文有边际收益信号可停；从 0 到 1 没有——必须靠**证伪即转向**。FAIL 触发条件（两者同时满足才触发，防误杀）：
-1. 负向结果**显著**（核心指标低于 baseline 且差异 > 噪声水平）
-2. 负向结果**可复现**（≥2 个随机种子同向，或 toy 重跑一次仍 FAIL）
+Incremental papers have marginal-gain signals to stop on; zero-to-one does not — it must rely on **pivot on falsification**. FAIL trigger conditions (both must hold simultaneously, to prevent false kills):
+1. The negative result is **significant** (core metric below baseline and the difference > noise level)
+2. The negative result is **reproducible** (same direction under ≥2 random seeds, or a single toy re-run still FAILs)
 
-触发后进入决策（写入 `EXPERIMENT_REPORT.md` 的 `kill_or_pivot` 字段）：
+Once triggered, enter the decision (written to the `kill_or_pivot` field of `EXPERIMENT_REPORT.md`):
 
-| 决策 | 适用 | 动作 |
+| Decision | Applies when | Action |
 |------|------|------|
-| **PIVOT** | 问题有价值，当前方法路径证伪 | 保留问题与 RQ，换方法/换组件重设计 → 回 Phase 5（method-registry 重注册）→ 重跑 toy。**PIVOT 预算 ≤2 次**，超预算强制 KILL |
-| **KILL** | 核心假设被证伪且无可替代路径，或 PIVOT 预算耗尽 | 引用 `/kill-argument` 写杀论证 → `BLOCKED, reason: core_hypothesis_falsified` → 回 Phase 2 换 idea |
+| **PIVOT** | problem is valuable, current method path falsified | keep the problem and RQ, redesign with a different method/component → loop back to Phase 5 (method-registry re-registration) → re-run the toy. **PIVOT budget ≤2**; over budget forces KILL |
+| **KILL** | core hypothesis falsified with no viable alternative path, or PIVOT budget exhausted | invoke `/kill-argument` to write the kill argument → `BLOCKED, reason: core_hypothesis_falsified` → loop back to Phase 2 to change the idea |
 
-**禁止行为**:
-- 禁止"继续调参硬救"——toy 已证伪核心方向时，调参不是 PIVOT 是拖延
-- 禁止把负向 toy 结果包装成"诚实的发现"继续推进（负结果纪律见 result-to-claim）
-- PIVOT 必须换**方法**（method-registry 重注册、hash 重锁），不是换超参
+**Forbidden behaviors**:
+- "Keep tuning to force-rescue" is forbidden — when the toy has already falsified the core direction, tuning is stalling, not PIVOT
+- Repackaging negative toy results as "honest findings" to keep going is forbidden (negative-result discipline: see result-to-claim)
+- PIVOT must change the **method** (method-registry re-registration, hash re-lock), not the hyperparameters
 
 ### Step 4: Design Full Experiment
 
@@ -318,47 +318,66 @@ If toy gate passed, design the full-scale experiment:
 3. **Add checkpointing** — save intermediate results every `checkpoint_interval` seconds
 4. **Add monitoring** — periodic status updates to `experiments/full/STATUS.json`
 5. **Expose a 1-step cap flag** (`--max-steps`/`--max-epochs`/`--steps`) — Step 5.0's smoke gate REQUIRES slicing the full script to 1 step; a full script with no step-cap flag is itself a design defect. Add the flag here, retroactively enforced at Step 5.0.
-6. **按预注册评测协议执行（v5.2 — 公平评测）**: 读取 `verdicts/EVALUATION_PROTOCOL.json`（method-registry §3.6 预注册），全程遵守四件套——指标不得增删、基线条件逐项对齐（同 split/同预处理/同算力预算/同调参力度）、基线一律本环境重跑（禁引用他人数字）、全种子全网格报告。任何偏离 → RESULT.json 标 `protocol_violation: <哪一条>`，该组结果不得作为对比证据（`/result-to-claim` 会拦）。**禁止事后"优化"评测方式**——看结果后想改指标/改基线条件 = 改方法 = 回 Phase 5 重走 hash-lock
+6. **Execute per the pre-registered evaluation protocol (v5.2 — fair evaluation)**: read `verdicts/EVALUATION_PROTOCOL.json` (method-registry §3.6 pre-registration) and obey the four-part contract throughout — metrics must not be added/removed, baseline conditions aligned item by item (same split / same preprocessing / same compute budget / same tuning effort), all baselines re-run in this environment (citing others' numbers is forbidden), report across all seeds and the full grid. Any deviation → mark `protocol_violation: <which clause>` in RESULT.json, and that result set must not serve as comparison evidence (`/result-to-claim` will block it). **Post-hoc "optimizing" the evaluation is forbidden** — wanting to change metrics/baseline conditions after seeing results = changing the method = loop back to Phase 5 and redo hash-lock
 
 ### Step 5: Dispatch Full Experiment to Background
 
-**The full-experiment dispatch sequence is FIXED and top-to-bottom — the agent MUST execute Step 5.0 (smoke) → Step 5.1 (method select) → Step 5.2 (dispatch) → Step 6 (return) in this exact order. Dispatching a full experiment WITHOUT first running Step 5.0 is a contract violation — the agent must NEVER skip the smoke gate because it's "only a 1-step slice".**
+**The full-experiment dispatch sequence is FIXED and top-to-bottom — the agent MUST execute Step 5.00 (security gate) → Step 5.0 (smoke) → Step 5.1 (method select) → Step 5.2 (dispatch) → Step 6 (return) in this exact order. Dispatching a full experiment WITHOUT first running Step 5.00 and Step 5.0 is a contract violation — the agent must NEVER skip the security gate or the smoke gate because it's "only a static scan" / "only a 1-step slice".**
 
-1. **Step 5.0 — Full-Code Smoke Gate** (v3.2, MANDATORY — see below; produces `.SMOKE.json`)
-2. **Step 5.1 — Dispatch Method Selection** (tmux → nohup → systemd)
-3. **Step 5.2 — Execute Dispatch** (writes `FULL_EXPERIMENT_DISPATCH.json`)
-4. **Step 6 — Return to Orchestrator** (immediate, do not wait)
+1. **Step 5.00 — Security Gate** (v5.3, MANDATORY — see below; verdict recorded in `FULL_EXPERIMENT_DISPATCH.json` as `security_gate`)
+2. **Step 5.0 — Full-Code Smoke Gate** (v3.2, MANDATORY — see below; produces `.SMOKE.json`)
+3. **Step 5.1 — Dispatch Method Selection** (tmux → nohup → systemd)
+4. **Step 5.2 — Execute Dispatch** (writes `FULL_EXPERIMENT_DISPATCH.json`)
+5. **Step 6 — Return to Orchestrator** (immediate, do not wait)
 
 > **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Step 5.0 was a **buried subsection** between Step 5 (dispatch) and Step 5.1 (method) — the agent read the numbered Step 4→5→6 chain and **silently skipped 5.0** because it was not in the explicit execution list. The Q-SGD-BS-GAP test run confirmed this: `experiments/full/` has `FULL_EXPERIMENT_DISPATCH.json` + `STATUS.json` (state=DONE, 184s) but **NO `.SMOKE.json`** — the full experiment ran successfully by luck (the script happened to work), but the smoke gate that v3.2 mandates to catch a 6-hour-late crash never executed. This is the same buried-subsection bug class as the auto-review-loop B.2 fix. The `.SMOKE.json` file is the load-bearing evidence — a full dispatch that completes without first writing `.SMOKE.json` is invalid regardless of whether the experiment ultimately succeeded.
 
 **Background dispatch is MANDATORY for full experiments.** The agent must NOT wait in the foreground for long-running jobs.
 
-**v5.0 后台调度阈值规则（防 agent 超时）**:
+**v5.0 background dispatch threshold rules (prevent agent timeouts)**:
 
-| 条件（任一满足即强制后台） | 动作 |
+| Condition (any one forces background) | Action |
 |---------------------------|------|
-| 预估运行时间 > 15 分钟 | 后台调度（tmux/nohup/systemd），主 agent 立即返回 |
-| 实验组 ≥ 5（含基线/消融/超参组合计） | 后台调度 + subagent 委托（见下） |
-| 数据集需下载且 > 1GB | Step 0d 异步下载 + 后台实验 |
-| 预估 ≤ 15 分钟且实验组 < 5 | 允许前台，但前台硬上限 15 分钟，超时自动转后台 |
+| Estimated runtime > 15 min | background dispatch (tmux/nohup/systemd), main agent returns immediately |
+| Experiment groups ≥ 5 (counting baselines/ablations/hyperparameter combos together) | background dispatch + subagent delegation (see below) |
+| Dataset must be downloaded and > 1GB | Step 0d async download + background experiment |
+| Estimated ≤ 15 min and experiment groups < 5 | foreground allowed, but foreground hard cap 15 min; on timeout auto-convert to background |
 
-**心跳与状态（后台任务必备）**: 后台脚本必须每 60 秒写一次 `STATUS.json`（state/progress/eta/last_error）——主 agent 通过轮询 STATUS.json 判活，**不做前台阻塞等待**；STATUS.json 超过 5 分钟未更新视为任务死亡，触发 Recovery Protocol。预估时间写入 `FULL_EXPERIMENT_DISPATCH.json` 的 `estimated_completion`，主 agent 据此安排轮询间隔（预估 <1h → 每 5 分钟轮询；1-6h → 每 30 分钟；>6h → 每 2 小时）。
+**Heartbeat and status (mandatory for background tasks)**: background scripts must write `STATUS.json` every 60 seconds (state/progress/eta/last_error) — the main agent judges liveness by polling STATUS.json and **must not block-wait in the foreground**; if STATUS.json is not updated for more than 5 minutes the task is considered dead, triggering the Recovery Protocol. The estimated completion time is written to `estimated_completion` in `FULL_EXPERIMENT_DISPATCH.json`; the main agent sets its polling interval accordingly (estimated <1h → poll every 5 min; 1-6h → every 30 min; >6h → every 2 hours).
 
-### Subagent 委托协议（v5.0 — 防超时 + 并行加速）
+### Subagent Delegation Protocol (v5.0 — timeout prevention + parallel speedup)
 
-主 agent 是**编排者**，不是执行者。满足以下条件时**必须**委托 subagent（宿主 agent 的 `task` 工具），主 agent 只做编排与聚合：
+The main agent is an **orchestrator**, not an executor. When the following conditions hold, it **must** delegate to subagents (the host agent's `task` tool); the main agent only orchestrates and aggregates:
 
-| 委托场景 | 委托内容 | 主 agent 保留 |
+| Delegation scenario | Delegated work | Main agent keeps |
 |---------|---------|--------------|
-| 独立实验组 ≥3（基线/消融/超参各自独立） | 每组一个 subagent 并行跑（各自独立目录 `experiments/full/group_<name>/`） | 汇总聚合 + 写 EXPERIMENT_REPORT.md |
-| 参数扫描 ≥6 个配置 | 按配置分片委托（每 subagent 2-3 个配置） | 扫描结果合并成表 |
-| 数据预处理与训练可分离 | 预处理一个 subagent 先行，训练随后 | 依赖编排 |
+| Independent experiment groups ≥3 (baselines/ablations/hyperparameters each independent) | one subagent per group running in parallel (each in its own directory `experiments/full/group_<name>/`) | summary aggregation + writing EXPERIMENT_REPORT.md |
+| Parameter sweep ≥6 configurations | shard by configuration (2-3 configurations per subagent) | merging sweep results into a table |
+| Data preprocessing separable from training | one preprocessing subagent runs first, training follows | dependency orchestration |
 
-**委托纪律**:
-1. 每个 subagent 任务指令必须自包含：数据路径、脚本路径、输出目录、完成判据——subagent 之间**零共享状态**，只通过文件系统交换
-2. subagent 产物统一写 `experiments/full/group_<name>/RESULT.json`（同 STATUS.json schema）——主 agent 聚合时只读 RESULT.json，不读 subagent 过程日志
-3. 委托失败的组 → 主 agent 本地补跑该组（bounded 1 次），再失败 → 该组标记 `failed`，聚合报告如实列出，**不伪造**
-4. subagent 数量上限 = CPU 核心数（GPU 实验 = GPU 数），防止资源争抢反而更慢
+**Delegation discipline**:
+1. Every subagent task instruction must be self-contained: data paths, script paths, output directory, completion criteria — subagents share **zero shared state** and exchange only through the filesystem
+2. Subagent artifacts uniformly go to `experiments/full/group_<name>/RESULT.json` (same schema as STATUS.json) — when aggregating, the main agent reads RESULT.json only, never subagent process logs
+3. A group whose delegation failed → the main agent re-runs that group locally (bounded 1 time); if it fails again → mark the group `failed` and list it truthfully in the aggregation report — **never fabricate**
+4. Subagent count cap = number of CPU cores (GPU experiments = number of GPUs), preventing resource contention from slowing things down
+
+### Step 5.00: Security Gate (v5.3 — MANDATORY before smoke/dispatch)
+
+> **Why this exists (P1-8 gap)**: full-mode experiment scripts are agent-authored and had been executed directly on the host with no security scan — toy mode already runs inside [`dynamic-sandbox`](../../meta-skills/dynamic-sandbox/SKILL.md), but full mode had no isolation at all. The gate is a static scan (executes nothing) and MUST run before Step 5.0, because the smoke slice already *executes* the script: no agent-authored full-mode code may run on the host, even as a 1-step slice, before being scanned.
+
+Before dispatching ANY full-mode experiment script, run the scanner (exit 0 = PASS/WARN, exit 3 = BLOCKED):
+
+```bash
+python3 scripts/security_scan.py code/experiments/full/{script}.py   # add --json for machine-readable output
+```
+
+| Verdict | Action |
+|---------|--------|
+| `PASS` | Record `security_gate: "PASS"` in `FULL_EXPERIMENT_DISPATCH.json`; proceed to Step 5.0 |
+| `WARN` | Record `security_gate: "WARN"` + the finding list in `FULL_EXPERIMENT_DISPATCH.json`; proceed only with a logged justification (`security_gate_justification`) — never silence findings |
+| `BLOCKED` | The run is REFUSED. Record `security_gate: "BLOCKED"` + reason in `FULL_EXPERIMENT_DISPATCH.json` and surface to the human — never auto-bypass; a rewritten script must pass a fresh scan before dispatch |
+
+**Scope & notes**: the gate binds agent-authored scripts; user-provided scripts are exempt from blocking but are still scanned advisory (findings recorded the same way). Allowlist entries (`security_allowlist.txt` next to the script, or `--allow FILE`) are echoed in the scan report for auditability, and a `host:` exemption never exonerates credential access or exfiltration findings. Containerization (`docker`/`podman`, never `--privileged`) remains the recommended stronger isolation when available; toy mode keeps using `dynamic-sandbox`. `FULL_EXPERIMENT_DISPATCH.json` (the full-mode DISPATCH.json) now carries `security_gate` — the artifact-registry owner may mirror this field into the artifact registry later.
 
 ### Step 5.0: Full-Code Smoke Gate (v3.2 — MANDATORY before dispatch)
 
@@ -467,24 +486,24 @@ systemctl start sfexp-{experiment_id}
 
 After dispatching the full experiment to background, the skill returns control to the orchestrator immediately. The orchestrator proceeds with other pipeline phases (writing, review, etc.) while the experiment runs.
 
-**探索预算下限（v5.1 — Exploration Budget Floor，源自 CRUX 影子评估失败模式 #4）**:
+**Exploration budget floor (v5.1 — Exploration Budget Floor, from CRUX shadow-evaluation failure mode #4)**:
 
-**背景**（arXiv:2607.27191）：3000 美元 API 额度两次主运行都只用了约四成；探索阶段被压缩到区区几个小时；agent 在自审再度拒稿后、离截稿还有约 7 小时时**主动宣布"我写完了"**——"有钱不会花"。给更多资源不等于做更好的研究，但**未消耗最低探索预算就宣布完成**是明确的判断力缺陷。
+**Background** (arXiv:2607.27191): of a $3000 API budget, both main runs used only about 40%; the exploration phase was squeezed into a mere few hours; after its self-review rejected the draft again, with ~7 hours left before the deadline, the agent **proactively declared "I'm done writing"** — "having budget but not knowing how to spend it". More resources do not guarantee better research, but **declaring completion while the minimum exploration budget is unspent** is a clear judgment defect.
 
-**完成判据（Return payload 的 `budget_floor` 字段，缺项不得 verdict=PASS）**:
+**Completion criteria (the `budget_floor` field of the Return payload; verdict=PASS is forbidden if any item is missing)**:
 
-| 检查项 | 下限 | 说明 |
+| Check item | Floor | Notes |
 |--------|------|------|
-| **技术路线探索** | ≥2 条独立技术路线被实际尝试（非仅文献调研），或 1 条路线 + 明确的路线否决证据 | "最初十几小时就放弃最有雄心的目标，此后再没做过战略级调整"是 CRUX 死法；至少试过一条替代路线或持有否决证据 |
-| **强制实验矩阵完成度** | method-registry §3.5 矩阵的组完成率 ≥100%（lite 档按其缩减后口径） | 矩阵缺组 = 未完成，不是"可选没做" |
-| **种子/重复预算消耗** | 鲁棒性组种子 ≥3（lite ≥2）全部跑完 | 半截种子数不得出均值±std 结论 |
-| **失败实验记录** | 所有失败/负向运行记录在案（RESULT.json `failed` 条目 + 原因），未隐瞒 | CRUX 日志审查未发现粉饰——保持该优点，失败必须留痕 |
-| **预算/时间余量声明** | Return payload 显式声明剩余算力/时间预算与"是否还有未尝试的可行路线" | agent 必须主动回答"还有没有没试的路"——回答"有"而未试 → 不允许宣布完成 |
+| **Technical-route exploration** | ≥2 independent technical routes actually attempted (not just literature survey), or 1 route + explicit route-rejection evidence | "Abandoning the most ambitious goal within the first dozen hours and making no strategic-level adjustment afterward" is the CRUX death mode; at least one alternative route must have been tried, or rejection evidence held |
+| **Mandatory experiment matrix completion** | group completion rate of the method-registry §3.5 matrix ≥100% (lite tier uses its reduced scope) | a matrix missing groups = incomplete, not "optional and skipped" |
+| **Seed/replication budget consumed** | robustness-group seeds ≥3 (lite ≥2) all finished | partial seed counts must not produce mean±std conclusions |
+| **Failed-experiment records** | all failed/negative runs recorded (RESULT.json `failed` entries + reasons), nothing concealed | the CRUX log audit found no whitewashing — keep this strength; failures must leave a trace |
+| **Remaining budget/time declaration** | the Return payload explicitly declares remaining compute/time budget and "whether any viable route remains untried" | the agent must proactively answer "are there untried paths" — answering "yes" without trying them → completion may not be declared |
 
-**硬规则**:
-1. `budget_floor.satisfied = false` 时，Return payload 的 verdict 不得为 `PASS`——只能是 `IN_PROGRESS`（继续探索）或 `BLOCKED`（资源/方向受限，附理由）
-2. **"我写完了"需要证成**：宣布完成（任何阶段）必须附 `completion_justification`：已尝试路线清单 + 每条路线的状态（成功/否决+证据）+ 剩余未试路线清单（须为空或逐条说明为何不试）
-3. 该字段由 `/auto-review-loop` 在每轮 Phase A 读取复核——发现 completion_justification 的"未试路线"非空而 agent 已停止探索 → 评审 concern 强制为 `experiment_redesign` 类（触发反缩减协议的实质性响应）
+**Hard rules**:
+1. When `budget_floor.satisfied = false`, the Return payload verdict must not be `PASS` — only `IN_PROGRESS` (continue exploring) or `BLOCKED` (resource/direction constrained, with reasons)
+2. **"I'm done writing" requires justification**: declaring completion (at any stage) must attach `completion_justification`: list of attempted routes + status of each route (success / rejected + evidence) + list of remaining untried routes (must be empty, or explain item by item why not tried)
+3. This field is read and re-verified by `/auto-review-loop` at each round's Phase A — if completion_justification's "untried routes" is non-empty while the agent has stopped exploring → the review concern is forced to the `experiment_redesign` class (triggering the anti-reduction protocol's substantive response)
 
 **Return payload:**
 
@@ -562,7 +581,7 @@ The skill auto-selects experiment templates based on `evidence_type`:
 - **STATUS.json polling feeds Phase 10.** Both `toy_bg` and full background jobs write `STATUS.json`. The orchestrator does NOT poll; it reads `STATUS.json` once at Phase 10 (`/result-to-claim`). If a background job is still `running`, use whatever completed results exist (foreground toy, or partial) + note "experiment pending". This is the single integration seam between background experiments and the claim gate.
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `verdicts/` (for filenames see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
 
 > Follow the shared output protocol for all output files (versioned writes, MANIFEST logging, output language):
