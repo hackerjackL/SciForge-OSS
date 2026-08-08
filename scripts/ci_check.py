@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SciForge-OSS single CI entry point (python3 stdlib only, zero deps).
 
-Runs three checks and prints a PASS/FAIL summary table:
+Runs four checks and prints a PASS/FAIL summary table:
 
   1. markdown-links       every .md file in the repo (skipping .git):
                           relative markdown links ](path) and <img src>
@@ -13,6 +13,10 @@ Runs three checks and prints a PASS/FAIL summary table:
   3. plotting-module      py_compile the four plotting modules, then run
                           `render_figure.py --doctor` and require exit 0
                           (non-zero => toolchain DEGRADED => CI failure).
+  4. test-suite           the repo's own gates, executed end-to-end:
+                          pytest tests/ (missing pytest => FAIL with hint),
+                          validate_verdicts.py on the e2e mock-verdict
+                          fixture, and security_scan.py --self-test.
 
 Exit code: 0 when all checks pass, 1 otherwise.
 """
@@ -168,11 +172,70 @@ def check_plotting(root: Path) -> tuple[bool, list[str]]:
     return (ok, messages)
 
 
+def check_test_suite(root: Path) -> tuple[bool, list[str]]:
+    """Return (ok, messages). Execute the repo's own gates end-to-end.
+
+    The test suite is the gate — a missing pytest is a FAIL, not a skip,
+    so a bare checkout cannot silently pass CI without running the tests.
+    """
+    messages: list[str] = []
+    ok = True
+
+    def run_step(label: str, cmd: list[str], timeout: int = 600) -> bool:
+        try:
+            proc = subprocess.run(cmd, cwd=root, capture_output=True,
+                                  text=True, timeout=timeout)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            messages.append(f"{label}: could not run ({exc})")
+            return False
+        if proc.returncode == 0:
+            tail = (proc.stdout or "").strip().splitlines()
+            summary = tail[-1].strip() if tail else "exit 0"
+            messages.append(f"{label}: PASS ({summary[:100]})")
+            return True
+        tail = (proc.stdout or proc.stderr or "").strip().splitlines()[-4:]
+        messages.append(f"{label}: FAIL (exit {proc.returncode}); "
+                        + " | ".join(line.strip() for line in tail))
+        return False
+
+    try:
+        import pytest  # noqa: F401
+        ok &= run_step("pytest tests/",
+                       [sys.executable, "-m", "pytest", "tests/", "-q"])
+    except ImportError:
+        ok = False
+        messages.append("pytest tests/: FAIL (pytest not installed — "
+                        "`pip install pytest`; the suite is mandatory)")
+
+    validator = root / "scripts/validate_verdicts.py"
+    fixture = root / "fixtures/e2e_minimal/mock_verdicts"
+    if validator.is_file() and fixture.is_dir():
+        ok &= run_step("validate_verdicts e2e fixture",
+                       [sys.executable, str(validator), str(fixture)])
+    else:
+        ok = False
+        messages.append("validate_verdicts e2e fixture: FAIL "
+                        "(scripts/validate_verdicts.py or "
+                        "fixtures/e2e_minimal/mock_verdicts missing)")
+
+    scanner = root / "scripts/security_scan.py"
+    if scanner.is_file():
+        ok &= run_step("security_scan --self-test",
+                       [sys.executable, str(scanner), "--self-test"])
+    else:
+        ok = False
+        messages.append("security_scan --self-test: FAIL "
+                        "(scripts/security_scan.py missing)")
+
+    return (ok, messages)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="ci_check.py",
         description="SciForge-OSS single CI entry point: markdown link "
-                    "scan + version consistency + plotting module check.",
+                    "scan + version consistency + plotting module + "
+                    "test suite.",
     )
     parser.add_argument(
         "--repo-root", type=Path, default=DEFAULT_ROOT,
@@ -190,6 +253,7 @@ def main(argv: list[str] | None = None) -> int:
         "markdown-links": lambda: check_markdown_links(root),
         "version-consistency": lambda: check_version_consistency(root),
         "plotting-module": lambda: check_plotting(root),
+        "test-suite": lambda: check_test_suite(root),
     }
 
     results: dict[str, tuple[bool, list[str]]] = {}

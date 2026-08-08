@@ -8,8 +8,10 @@
 #     instance reads that path instead, copy this file there unchanged.
 #   - Schema is Gitea/GitHub-Actions style: name / on / jobs.<id>.steps,
 #     plain `run:` shell steps, stages serial / jobs parallel.
-#   - The runner needs git, bash, and python3 (>= 3.8). Nothing else:
-#     scripts/ci_check.py is Python stdlib only (no pip installs).
+#   - The runner needs git, bash, and python3 (>= 3.8). ci_check.py itself
+#     is stdlib-only; its test-suite check executes pytest (mandatory —
+#     missing pytest is a FAIL, not a skip) and render_figure.py --doctor
+#     needs Pillow, so both are pip-installed below.
 #
 # Contributors without AtomGit CI get the same gate via
 # .pre-commit-config.yaml (repo: local hook running the same command).
@@ -23,8 +25,13 @@ jobs:
   ci-check:
     runs-on: ubuntu-latest
     steps:
-      # Minimal pair: checkout + the single CI command.
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Run SciForge CI checks (links + versions + plotting)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: pip install pytest Pillow
+      - name: Run SciForge CI checks (links + versions + plotting + tests)
         run: python3 scripts/ci_check.py
