@@ -24,6 +24,7 @@
 - [Architecture: DAG-driven research loop](#architecture-dag-driven-research-loop)
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
+- [Quality gates (v5.3)](#quality-gates-v53)
 - [Full-domain support](#full-domain-support)
 - [Verification paths: four routes](#verification-paths-four-routes)
 - [Multi-domain examples](#multi-domain-examples)
@@ -49,7 +50,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 | **Dynamic Sandbox** | Compute engine | Run arbitrary Python/Julia scientific computation (NumPy/SciPy/SymPy) — numerical sanity check |
 | **Dynamic Tooling** | Tool factory | When tools are insufficient at runtime, dynamically write and register temporary tools |
 | **Universal Retrieval** | Literature search | Multi-source academic search (arXiv/S2/CrossRef/PubMed/Web/OpenAlex) + 3-layer anti-hallucination verification |
-| **Unified Plotting** | Figure rendering | Structured data → publication-quality vector figures (PDF+PNG); Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) |
+| **Unified Plotting** | Figure rendering | Structured data → publication-quality vector figures (PDF+SVG); Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) |
 
 ## Installation
 
@@ -257,18 +258,25 @@ SciForge-OSS/
 ├── package.json                     # npm distribution metadata (local CLI; not published to registry)
 ├── bin/sciforge.js                  # local CLI (init / tools-check / tools-install)
 ├── scripts/
-│   └── plotting/                    # figure toolchain (single entry point)
-│       ├── render_figure.py         # unified renderer — 12 engines, one pipeline, embedded audit
-│       ├── sciforge_style.py        # morandi design tokens (single source of truth)
-│       ├── figure_audit.py          # A1–A10 Nature-level audit (embedded)
-│       └── INSTALL.md               # cross-platform replication manual
+│   ├── plotting/                    # figure toolchain (single entry point)
+│   │   ├── render_figure.py         # unified renderer — 12 engines, one pipeline, embedded audit
+│   │   ├── sciforge_style.py        # morandi design tokens (single source of truth)
+│   │   ├── figure_audit.py          # A1–A10 Nature-level audit (embedded)
+│   │   └── INSTALL.md               # cross-platform replication manual
+│   ├── validate_verdicts.py         # v5.3: verdict JSON schema validator (stdlib-only)
+│   ├── security_scan.py             # v5.3: static pre-dispatch scan for agent-authored experiments
+│   ├── ci_check.py                  # v5.3: single CI entry point (links/versions/plotting/tests)
+│   └── verifiers/                   # external artifact verifiers (review ledger, paper audits)
+├── tests/                           # v5.3: 260+ pytest cases (palette, audits, validator, e2e smoke)
+├── fixtures/e2e_minimal/            # v5.3: minimal end-to-end fixture (toy experiment + full verdict trail)
+├── .workflow/ci.yml                 # AtomGit Actions CI (same gate as ci_check.py)
 ├── skills/
 │   ├── orchestrator/
 │   │   └── auto-pipeline/SKILL.md   # the single entry orchestrator (21-phase DAG loop)
 │   ├── meta-skills/                 # 8 universal meta-skills
 │   │   ├── idea-discovery/          # MCTS-enhanced idea generation (4 perspectives incl. empirical)
 │   │   ├── universal-retrieval/     # literature search + 3-layer anti-hallucination (mihomo proxy)
-│   │   ├── unified-plotting/        # publication-quality figures (PDF+PNG dual; 16:9; d2 for diagrams)
+│   │   ├── unified-plotting/        # publication-quality figures (PDF+SVG dual; 16:9; d2 for diagrams)
 │   │   ├── dynamic-sandbox/         # lightweight numerical sanity checks (Python/numpy)
 │   │   ├── dynamic-tooling/         # on-the-fly tooling for the sandbox
 │   │   ├── domain-learner/          # learns domain signature from literature (sole writer)
@@ -289,10 +297,14 @@ SciForge-OSS/
 │   │   ├── method-registry/         # method registry + hash lock
 │   │   ├── citation-audit/          # final 3-layer citation verification
 │   │   ├── adversarial-falsification/  # adversarial falsification
-│   │   └── publishability-score/    # 6-dim publishability score (new v2.2)
+│   │   ├── publishability-score/    # 6-dim publishability score (new v2.2)
+│   │   └── rebuttal/                # point-by-point rebuttal letter after rejection (new v5.3)
 │   └── shared-references/           # shared contracts (discipline-agnostic)
+│       ├── artifact-registry.md     # single source of truth for cross-skill artifacts
+│       ├── output-protocol.md       # single authority for the workspace directory tree
+│       ├── schemas/                 # v5.3: JSON Schemas for every machine-readable verdict
 │       ├── paper-modes.md           # 5-mode selector (theory/experiment/computational/survey/hybrid)
-│       ├── figure-quality-contract.md  # 16:9, PDF+PNG dual, Nature readability, d2 pipeline
+│       ├── figure-quality-contract.md  # 16:9, PDF+SVG dual, Nature readability, d2 pipeline
 │       ├── project-architecture-contract.md  # GitHub-style project tree + cleanliness audit
 │       ├── background-dispatch-protocol.md     # >5min background dispatch
 │       ├── citation-discipline.md   # 3-layer anti-hallucination
@@ -307,6 +319,21 @@ SciForge-OSS/
 └── templates/
     └── (paper-writing/templates/default/ — unified elsarticle skeleton)
 ```
+
+## Quality gates (v5.3)
+
+The pipeline is guarded by machine-checkable gates, not prose promises:
+
+| Gate | What enforces it |
+|------|------------------|
+| **Verdict schemas** | every machine-readable verdict in a run's `verdicts/` must validate against `shared-references/schemas/*.schema.json` — `scripts/validate_verdicts.py` runs at every phase boundary and at wrap-up (misspelled/omitted fields are caught) |
+| **Run budget ledger** | `verdicts/RUN_BUDGET.json` caps wall-clock / API cost / PIVOT / BA rounds per effort level; the orchestrator books every boundary and BLOCKs + escalates to the human on breach |
+| **KILL checkpoint** | killing an idea pauses for human confirmation by default (`human_skip=true` or `kill_checkpoint=false` to delegate) |
+| **Experiment security gate** | agent-authored full-experiment scripts pass `scripts/security_scan.py` before dispatch (credential access / env exfiltration / destructive ops / non-allowlisted egress → BLOCKED) |
+| **Figure contract** | unified renderer + embedded A1–A10 Nature-level audit; composite figures deliver true-vector LaTeX assembly (`composite.tex`), raster previews are audit-downgraded |
+| **Repo CI** | `scripts/ci_check.py` (AtomGit Actions + pre-commit): markdown link scan, repo-wide version consistency, plotting `--doctor`, and the full pytest suite incl. the e2e smoke fixture |
+
+Developer quick checks: `python3 scripts/ci_check.py` · `python3 -m pytest tests/ -q` · `python3 scripts/plotting/render_figure.py --doctor`.
 
 ## Full-domain support
 

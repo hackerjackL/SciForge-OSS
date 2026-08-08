@@ -24,6 +24,7 @@
 - [架构：DAG 驱动的科研闭环](#架构dag-驱动的科研闭环)
 - [快速开始](#快速开始)
 - [项目结构](#项目结构)
+- [质量门（v5.3）](#质量门v53)
 - [全领域支持](#全领域支持)
 - [验证路径：三路可选](#验证路径三路可选)
 - [多领域示例](#多领域示例)
@@ -137,7 +138,7 @@ claude                  # 或 codex / cursor / trae
 
 skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX 编译 / 实验执行）需要以下可选工具。`sciforge tools-check` 检查缺失项，`sciforge tools-install` 一键安装。
 
-> 📊 **绘图工具链**：所有图（数据图、架构/流程/机制/组图——全领域通用）都通过唯一入口 `scripts/plotting/render_figure.py` 产出（12 引擎：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG / composite 组图——单一链路，禁止并行工具；PDF+PNG 双产出 + 内嵌 Nature 级审计）。**跨平台：Linux / macOS / Windows 均支持**（Windows 推荐 WSL2；字体按平台自动发现，无机器专属路径）。完整依赖清单、逐系统安装命令、国内镜像、字体与不采用工具评估：**[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**。环境自检：`python scripts/plotting/render_figure.py --doctor`。
+> 📊 **绘图工具链**：所有图（数据图、架构/流程/机制/组图——全领域通用）都通过唯一入口 `scripts/plotting/render_figure.py` 产出（12 引擎：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG / composite 组图——单一链路，禁止并行工具；PDF+SVG 双产出 + 内嵌 Nature 级审计）。**跨平台：Linux / macOS / Windows 均支持**（Windows 推荐 WSL2；字体按平台自动发现，无机器专属路径）。完整依赖清单、逐系统安装命令、国内镜像、字体与不采用工具评估：**[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**。环境自检：`python scripts/plotting/render_figure.py --doctor`。
 
 | 工具 | 用途 | 安装 | 必需性 |
 |------|------|------|--------|
@@ -145,8 +146,8 @@ skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX
 | **texlive (pdflatex/latexmk/bibtex)** | Phase 13 零警告 PDF 编译 | `apt install texlive-latex-base texlive-latex-extra texlive-science texlive-publishers texlive-bibtex-extra texlive-lang-chinese latexmk` | 必需（论文编译） |
 | **d2** (v0.7+) | 复杂架构/流程/拓扑图（headless-native，主用） | `curl -fsSL https://d2lang.com/install.sh \| sh -s --` | 推荐（图） |
 | **graphviz/dot** | 密集网络/依赖图（d2 兜底） | `apt install graphviz` | 推荐（图兜底） |
-| **rsvg-convert** (librsvg) | SVG → PDF+PNG 转换（d2/graphviz 输出转双格式） | `apt install librsvg2-bin` | 推荐（图双产出） |
-| **inkscape** | rsvg-convert 兜底（SVG→PDF+PNG） | `apt install inkscape` | 可选（图兜底） |
+| **rsvg-convert** (librsvg) | SVG → PDF 转换（d2/graphviz 输出转交付格式） | `apt install librsvg2-bin` | 推荐（图双产出） |
+| **inkscape** | rsvg-convert 兜底（SVG→PDF） | `apt install inkscape` | 可选（图兜底） |
 | **svgo** | SVG 优化（减小中间文件） | `npm install -g svgo` | 可选（图优化） |
 | **mihomo** (或任意 HTTP/SOCKS5 代理) | Phase 4 文献检索访问 arxiv/s2/crossref/openalex/huggingface | 见 [mihomo 文档](https://wiki.metacubex.one/)，规则模式 `mode: rule`，`mixed-port: 8099` | 必需（文献检索，CN 环境直连 arxiv 会超时） |
 | **PyTorch** (可选) | ML/深度学习实验（CPU/GPU/NPU） | `pip install torch` 或 conda | 可选（仅 ML 问题；CPU/GPU 自动检测） |
@@ -283,14 +284,16 @@ SciForge-OSS/
 ├── AGENT_GUIDE.md                          ← AI agent 入口（从这里开始读）
 ├── README.md                               ← 人类阅读
 ├── skills/
-│   ├── meta-skills/                        ← 6 个元技能
+│   ├── meta-skills/                        ← 8 个元技能
 │   │   ├── dynamic-sandbox/SKILL.md        ← 计算沙盒（数值 sanity check，无 GPU）
 │   │   ├── dynamic-tooling/SKILL.md        ← 工具制造
 │   │   ├── universal-retrieval/SKILL.md    ← 学术检索 + 3 层防幻觉（6 源）
 │   │   ├── unified-plotting/SKILL.md       ← 矢量图表渲染（莫兰迪 + Layer 2 数据热图）
 │   │   ├── idea-discovery/SKILL.md         ← [DAG] 多视角创意 + MCTS 迭代
-│   │   └ novelty-check/SKILL.md           ← [DAG] 新颖性验证+淘汰
-│   ├── support/                            ← 13 个支持技能
+│   │   ├── novelty-check/SKILL.md          ← [DAG] 新颖性验证+淘汰
+│   │   ├── domain-learner/SKILL.md         ← 从文献学习领域签名（唯一写入方）
+│   │   └── domain-signature/SKILL.md       ← 规则式签名提示（可选快路径）
+│   ├── support/                            ← 17 个支持技能
 │   │   ├── theory-derivation/SKILL.md      ← SymPy 推导 + 逐步机器验证
 │   │   ├── logic-verification/SKILL.md     ← 6 维度逻辑审计（跨模型对抗）
 │   │   ├── paper-writing/SKILL.md          ← 统一 elsarticle 模板写作
@@ -302,10 +305,17 @@ SciForge-OSS/
 │   │   ├── quality-gate/SKILL.md           ← 终极前置写作门（universal QF-G* + SD-G*）
 │   │   ├── auto-review-loop/SKILL.md       ← 跨模型迭代评审 + kill-argument 反自欺
 │   │   ├── citation-audit/SKILL.md         ← 最终 3 层引用防幻觉验证
-│   │   └ kill-argument/SKILL.md           ← 反自欺练习（kill your own argument）
+│   │   ├── kill-argument/SKILL.md          ← 反自欺练习（kill your own argument）
+│   │   ├── experiment-execution/SKILL.md   ← toy + full + 后台派发 + 安全门（v5.3）
+│   │   ├── adversarial-falsification/SKILL.md ← Phase 2.5 对抗证伪
+│   │   ├── publishability-score/SKILL.md   ← 6 维发表性终评
+│   │   └── rebuttal/SKILL.md               ← 拒稿后逐点申诉信（v5.3 新增）
 │   ├── orchestrator/                       ← 1 个编排器
 │   │   └ auto-pipeline/SKILL.md  ← 21 阶段 DAG 闭环（单题执行，v2.9 新增 Phase 5b EG）
-│   └ shared-references/                  ← 共享契约（学科无关）
+│   └── shared-references/                  ← 共享契约（学科无关）
+│       ├── artifact-registry.md            ← 跨 skill 产物唯一登记处（SSoT）
+│       ├── output-protocol.md              ← 工作区目录树唯一权威（verdicts/ 统一）
+│       ├── schemas/                        ← v5.3：全部机读 verdict 的 JSON Schema
 │       ├── idea-dag-schema.md              ← DAG 节点 schema
 │       ├── mcts-search-protocol.md         ← MCTS 迭代协议（UCB1 + 有界轮次）
 │       ├── multi-fidelity-evaluation.md    ← 3 保真度筛选
@@ -323,13 +333,35 @@ SciForge-OSS/
 │       ├── skill-config.md                 ← skill 元信息 schema
 │       └ ... (其他通用契约)
 ├── scripts/
-│   └── plotting/                          ← 绘图工具链（单一入口）
-│       ├── render_figure.py               ← 统一渲染器——12 引擎、一条链路、内嵌审计
-│       ├── sciforge_style.py              ← 莫兰迪设计 token（单一事实源）
-│       ├── figure_audit.py                ← A1–A10 Nature 级审计（内嵌）
-│       └── INSTALL.md                     ← 三平台复刻手册
+│   ├── plotting/                          ← 绘图工具链（单一入口）
+│   │   ├── render_figure.py               ← 统一渲染器——12 引擎、一条链路、内嵌审计
+│   │   ├── sciforge_style.py              ← 莫兰迪设计 token（单一事实源）
+│   │   ├── figure_audit.py                ← A1–A10 Nature 级审计（内嵌）
+│   │   └── INSTALL.md                     ← 三平台复刻手册
+│   ├── validate_verdicts.py               ← v5.3：verdict JSON schema 校验器（纯 stdlib）
+│   ├── security_scan.py                   ← v5.3：agent 实验脚本派发前静态安全扫描
+│   ├── ci_check.py                        ← v5.3：CI 单一入口（断链/版本/plotting/测试）
+│   └── verifiers/                         ← 外部产物校验器（评审台账、论文审计）
+├── tests/                                 ← v5.3：260+ pytest 用例（色板/审计/校验器/e2e 冒烟）
+├── fixtures/e2e_minimal/                  ← v5.3：最小端到端 fixture（toy 实验 + 完整 verdict 链）
+├── .workflow/ci.yml                       ← AtomGit Actions CI（与 ci_check.py 同一门控）
 └── [删除: templates/ 占位目录、discipline-templates/、experiment-*、plugin-router、wiki-helper、problems/ 题库]
 ```
+
+## 质量门（v5.3）
+
+管线由机器可检查的门控守护，而不是纸面承诺：
+
+| 门控 | 执行者 |
+|------|--------|
+| **Verdict Schema 强制** | 运行工作区 `verdicts/` 里每个机读 verdict 必须通过 `shared-references/schemas/*.schema.json` 校验——`scripts/validate_verdicts.py` 在每个 phase boundary 与收尾运行（拼错/漏字段会被拦截） |
+| **运行预算总账** | `verdicts/RUN_BUDGET.json` 按 effort 档位约束墙钟 / API 成本 / PIVOT / BA 轮次；orchestrator 每个 boundary 记账，超限 BLOCKED 上报人类 |
+| **KILL 人类检查点** | 杀掉 idea 前默认暂停等人类确认（`human_skip=true` 或 `kill_checkpoint=false` 才全自动） |
+| **实验安全门** | agent 自写的全量实验脚本派发前先过 `scripts/security_scan.py`（凭证访问 / env 外泄 / 破坏性操作 / 未授权外发 → BLOCKED） |
+| **图契约** | 统一渲染器 + 内嵌 A1–A10 Nature 级审计；组图交付真矢量 LaTeX 装配（`composite.tex`），栅格预览被审计降级标注 |
+| **仓库 CI** | `scripts/ci_check.py`（AtomGit Actions + pre-commit）：md 断链扫描、全仓版本一致性、plotting `--doctor`、全量 pytest（含 e2e 冒烟 fixture） |
+
+开发者快速自检：`python3 scripts/ci_check.py` · `python3 -m pytest tests/ -q` · `python3 scripts/plotting/render_figure.py --doctor`。
 
 ## 全领域支持
 
@@ -418,7 +450,7 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 
 出版级图表由**唯一入口** `scripts/plotting/render_figure.py` 产出（管线 Phase 11），**12 引擎收敛一条链路**（禁止并行工具）：matplotlib（数据图）、d2、graphviz、TikZ、Asymptote、Typst、diagrams、blockdiag 家族、mermaid、pikchr、手工装配 SVG、**composite 组图引擎**（Nature 风格 (a)(b)(c)… 面板编号，面板数硬上限 9，SCI 一区组版规范）。
 
-- **双产出**：矢量 PDF（LaTeX 嵌入）+ 300 DPI PNG（agent 审阅）
+- **双产出**：矢量 PDF（LaTeX 嵌入）+ SVG（agent 审阅/编辑）
 - **内嵌 Nature 级审计（A1–A10）**：可读性下限、莫兰迪色板（C* ≤ 25 数值校验）、16:9 默认、复杂度下限（图标密度/边密度）、视觉丰富度、**品牌泄露守卫**（图是论文插图，不是工具海报）、**文字零重叠**（附精确偏移修正建议）
 - **两级视觉审阅**：具备原生视觉的宿主 agent 按 9 项清单自审 PNG（零外部 API——宿主自身的视觉能力就是审阅者）；纯文本宿主降级机械审计
 - **期刊宽度预设**：`--width-preset nature-single|aaai-double|...`（14 种版面）
