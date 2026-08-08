@@ -28,6 +28,12 @@ Outputs written next to --out (default: next to the source):
 The ORIGINAL source file is copied beside them (spec.d2 / spec.dot / ...)
 so the figure directory is self-contained and reproducible.
 
+Composite engine extras (figure-quality-contract "PDF vector embed"):
+  composite.tex (vector-faithful assembly via \\includegraphics on the
+  panel PDFs) + composite_meta.json (raster-preview metadata for the
+  audit downgrade) + panel_<label>.pdf local copies.  output.pdf is then
+  a raster PREVIEW and latex_include.tex \\input's composite.tex instead.
+
 Exit codes: 0 = success, 2 = palette/contract violation, 3 = tool error,
 4 = audit FAIL under --strict.
 """
@@ -78,14 +84,28 @@ def which(*names: str) -> str | None:
     return None
 
 
-def palette_check(text: str, src_name: str, svg: bool = False) -> list[str]:
-    """Return violations: hex colors present that are not morandi-compliant.
+def extract_colors(text: str) -> set[str]:
+    """Collect color literals from every syntax the engines accept:
+    #RRGGBB (SVG/d2/graphviz), \\definecolor{...}{HTML}{RRGGBB} (TeX),
+    and asy rgb(r,g,b) 0-1 triples.  Auditing only #-hex literals let
+    TeX/asy colors bypass the pre-render gate (fixed v5.3)."""
+    hexes = set(HEX_RE.findall(text))
+    hexes |= set(re.findall(r"\{HTML\}\{([0-9a-fA-F]{6})\}", text))
+    for m in re.finditer(r"rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)", text):
+        r, g, b = (min(255, int(float(x) * 255)) for x in m.groups())
+        hexes.add("#%02X%02X%02X" % (r, g, b))
+    return hexes
 
+
+def palette_check(text: str, src_name: str, svg: bool = False) -> list[str]:
+    """Return violations: colors present that are not morandi-compliant.
+
+    Covers #hex, TeX {HTML}{...} and asy rgb() literals (extract_colors).
     White-lists: pure white/black/none and near-neutrals are allowed (frame
     geometry).  Every SATURED off-palette color is a violation.
     """
     bad = []
-    for h in sorted(set(HEX_RE.findall(text))):
+    for h in sorted(extract_colors(text)):
         r, g, b = st.hex2rgb(h)
         L, _, _ = st.rgb2lab((r, g, b))
         c = st.chroma(h)
@@ -154,17 +174,16 @@ def render_tikz(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
         tex = ("\\documentclass[tikz,border=8pt]{standalone}\n"
                "\\usepackage{tikz,tikz-cd}\n\\begin{document}\n"
                + tex + "\n\\end{document}\n")
-    # morandi palette for tikz
-    inject = (
-        "\\definecolor{sfink}{HTML}{3A3733}\n"
-        "\\definecolor{sfsurface}{HTML}{EDE9E2}\n"
-        "\\definecolor{sfblue}{HTML}{93A7BB}\n"
-        "\\definecolor{sfsage}{HTML}{A4B294}\n"
-        "\\definecolor{sfmauve}{HTML}{BDA5A7}\n"
-        "\\definecolor{sfochre}{HTML}{C4A880}\n"
-        "\\definecolor{sftaupe}{HTML}{B0A292}\n"
-        "\\definecolor{sfrose}{HTML}{D9BCBC}\n"
-    )
+    # morandi palette for tikz — generated from the LIVE design tokens so
+    # the injected colors can never drift from sciforge_style (v5.3 fix:
+    # the previously hardcoded v2.0 hexes diverged from the v2.1 tokens
+    # and failed the A3 palette audit on every tikz render).
+    inject = "\n".join(
+        "\\definecolor{sf%s}{HTML}{%s}"
+        % (name.replace("-", ""), st.TOKENS[name].lstrip("#"))
+        for name in ("ink", "surface", "blue", "sage", "mauve",
+                     "ochre", "taupe", "rose")
+    ) + "\n"
     tex = tex.replace("\\begin{document}", "\\begin{document}\n" + inject, 1)
     bad = palette_check(tex, src.name)
     if bad:
@@ -310,6 +329,14 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
     label lives in a reserved strip ABOVE the panel so it can never
     occlude panel content, and the assembled SVG goes through svg_deliver
     (palette sanitize + PDF/SVG deliverables + audit) — single pipeline.
+
+    Vector embed (PDF vector contract): the assembled output.pdf embeds
+    RASTERIZED panels, so in addition this engine (a) copies every panel
+    PDF into the figure dir (panel_<label>.pdf) and writes composite.tex,
+    a graphicx-only LaTeX snippet re-assembling the SAME grid from the
+    vector panel PDFs (primary delivery — latex_include.tex \\input's
+    it), and (b) writes composite_meta.json so the audit downgrades
+    honestly (A2 WARN, not FAIL).
     """
     import base64
     spec = json.loads(src.read_text(encoding="utf-8"))
@@ -339,13 +366,22 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
     from PIL import Image
     rasters = []
     labels = []
+    tex_panels: list[tuple[str, str]] = []   # (label, local file for TeX)
+    panels_meta: list[dict] = []             # for composite_meta.json
     for i, p in enumerate(panels):
         f = (src.parent / p["file"]).resolve()
         if not f.is_file():
             raise RuntimeError(f"panel file missing: {p['file']}")
         label = p.get("label") or chr(ord("a") + i)
         labels.append(label)
+        local_vec = None
         if f.suffix.lower() == ".pdf":
+            # self-contained VECTOR copy for composite.tex (the figure dir
+            # stays reproducible; the TeX assembly never reaches outside)
+            dst_pdf = outdir / f"panel_{label}.pdf"
+            if dst_pdf.resolve() != f.resolve():
+                shutil.copyfile(f, dst_pdf)
+            local_vec = dst_pdf.name
             tmp = outdir / f"_panel_{label}"
             run(["pdftoppm", "-png", "-r", str(dpi), "-singlefile",
                  str(f), str(tmp)], log=log)
@@ -355,6 +391,13 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
             if dst.resolve() != f.resolve():
                 shutil.copyfile(f, dst)
             f = dst
+        # PNG-only panels keep no vector copy: composite.tex embeds the
+        # local PNG then (graphicx handles both); local_pdf records
+        # whichever local file the assembly references.
+        local_file = local_vec or f.name
+        tex_panels.append((label, local_file))
+        panels_meta.append({"label": label, "source": p["file"],
+                            "local_pdf": local_file})
         with Image.open(f) as im:
             pw, ph = im.size
         rasters.append((f, pw, ph))
@@ -401,7 +444,7 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
                 f'href="data:image/png;base64,{b64}"/>')
             label_parts.append(
                 f'<text x="{x:.0f}" y="{y + strip - fs * 0.28:.0f}" '
-                f'font-size="{fs}" font-weight="bold" fill="#3A3733">'
+                f'font-size="{fs}" font-weight="bold" fill="{st.TOKENS["ink"]}">'
                 f'({labels[i]})</text>')
         y += strip + row_h[r] + gap
     parts.append("</g>")
@@ -413,6 +456,145 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
     log.append(f"# assembled {n} panels -> {canvas_w}x{canvas_h} "
                f"({cols}x{rows} grid)")
     svg_deliver(assembled, out_pdf, out_svg, log, keep_svg)
+
+    # Vector-faithful assembly + downgrade honesty (PDF vector contract):
+    # output.pdf embeds rasterized panels, so ALSO deliver composite.tex
+    # (same grid, vector panel PDFs) and composite_meta.json telling the
+    # audit this figure's PDF panels are rasters at <dpi>.
+    write_composite_tex(outdir, tex_panels, cols, rows,
+                        {"canvas_w": canvas_w, "gap": gap, "margin": margin,
+                         "label_strip": strip}, dpi)
+    meta = {
+        "engine": "composite",
+        "raster_panels": True,
+        "vector_assembly": "composite.tex",
+        "dpi": dpi,
+        "panels": panels_meta,
+        "cols": cols,
+        "rows": rows,
+    }
+    (outdir / "composite_meta.json").write_text(
+        json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    log.append(f"# vector assembly written: composite.tex "
+               f"({n} panel copies, {cols}x{rows} grid); "
+               f"output.pdf is a raster preview at {dpi} dpi")
+
+
+def write_composite_tex(outdir: Path, panels: list[tuple[str, str]],
+                        cols: int, rows: int, geom: dict, dpi: int) -> None:
+    r"""Write composite.tex — the vector-faithful assembly of the grid.
+
+    Re-assembles the SAME cols x rows grid from the local panel copies
+    (panel_<label>.pdf) with bold (a)(b)... labels in a reserved strip
+    ABOVE each panel.  Pure graphicx + minipage + \textbf (no subcaption
+    package required).  All manifest geometry (cols, gap, margin, label
+    strip) is preserved proportionally to \linewidth, so the snippet
+    scales to whatever width latex_include.tex wraps it in.
+
+    The file compiles standalone (pdflatex composite.tex) OR when \input
+    inside a running document: after \begin{document} LaTeX lets every
+    preamble-only command to \@notprerr, which makes
+    \ifx\documentclass\@notprerr a reliable in-body detector.
+    """
+    cw = float(geom["canvas_w"])
+    margin_f = geom["margin"] / cw
+    gap_f = geom["gap"] / cw
+    strip_f = geom["label_strip"] / cw
+    cell_f = (1.0 - 2.0 * margin_f - (cols - 1) * gap_f) / cols
+    # label size follows the raster preview: max(30, strip*0.62) px
+    label_fs_f = max(30.0, geom["label_strip"] * 0.62) / cw
+    # panel search path for the \input case: \input does NOT change the
+    # relative-file base, so panels are found via \graphicspath (graphicx
+    # builtin).  Convention matches latex_include.tex: figures/<dir>/.
+    # (Standalone compiles inside the figure dir still find the panels via
+    # the cwd; a non-existent graphicspath entry is skipped harmlessly.)
+    figdir_rel = f"figures/{outdir.name}"
+    data = []
+    for idx, (label, fname) in enumerate(panels, start=1):
+        data.append(f"\\@namedef{{sfcomp@p@{idx}@file}}{{{fname}}}")
+        data.append(f"\\@namedef{{sfcomp@p@{idx}@label}}{{{label}}}")
+    n = len(panels)
+    tex = f"""% =====================================================================
+% composite.tex — vector-faithful assembly of the composite figure
+% (auto-generated by the composite engine — do not edit by hand).
+%
+% This file re-assembles the SAME {cols}x{rows} panel grid as output.pdf,
+% but embeds the panels AS VECTORS (\\includegraphics on the local
+% panel_*.pdf copies).  output.pdf is a RASTER PREVIEW of this assembly
+% (panels rasterized at {dpi} dpi — see composite_meta.json); the paper
+% should use this file, which latex_include.tex \\input's.
+%
+% Grid geometry follows the .composite.json manifest, scaled
+% proportionally to \\linewidth: cols={cols}, gap, margin and the reserved
+% label strip ABOVE each panel (bold (a)(b)... labels can never occlude
+% panel content).  Requires only graphicx — plain minipage + \\textbf
+% labels, no subcaption package.
+%
+% Compiles standalone (pdflatex composite.tex) or when \\input inside a
+% running document that loaded graphicx.  \\input it exactly once.
+% =====================================================================
+\\makeatletter
+\\ifx\\documentclass\\@notprerr
+  % \\input-ed inside a running document body — nothing to set up
+  \\let\\sfcomp@start\\relax
+  \\let\\sfcomp@stop\\relax
+\\else
+  % compiled standalone — minimal wrapper
+  \\documentclass[border=2pt]{{standalone}}
+  \\usepackage{{graphicx}}
+  \\def\\sfcomp@start{{\\begin{{document}}}}
+  \\def\\sfcomp@stop{{\\end{{document}}}}
+\\fi
+\\graphicspath{{{{{figdir_rel}/}}}}
+% ---- manifest geometry, scaled to \\linewidth (= manifest width_px) ----
+\\newlength{{\\sfcomp@margin}}\\setlength{{\\sfcomp@margin}}{{{margin_f:.5f}\\linewidth}}
+\\newlength{{\\sfcomp@gap}}\\setlength{{\\sfcomp@gap}}{{{gap_f:.5f}\\linewidth}}
+\\newlength{{\\sfcomp@strip}}\\setlength{{\\sfcomp@strip}}{{{strip_f:.5f}\\linewidth}}
+\\newlength{{\\sfcomp@cellw}}\\setlength{{\\sfcomp@cellw}}{{{cell_f:.5f}\\linewidth}}
+\\newlength{{\\sfcomp@labelsize}}\\setlength{{\\sfcomp@labelsize}}{{{label_fs_f:.5f}\\linewidth}}
+\\def\\sfcomp@cols{{{cols}}}
+% ---- panel data (label + local vector file per grid cell) ----
+{chr(10).join(data)}
+\\newcounter{{sfcomp@i}}
+\\newcommand{{\\sfcomp@emit}}{{% one grid cell: label strip + panel
+  \\begin{{minipage}}[c]{{\\sfcomp@cellw}}%
+    \\centering
+    \\parbox[c][\\sfcomp@strip][c]{{\\linewidth}}{{%
+      \\fontsize{{\\sfcomp@labelsize}}{{1.2\\sfcomp@labelsize}}\\selectfont
+      \\textbf{{(\\@nameuse{{sfcomp@p@\\thesfcomp@i @label}})}}}}%
+    \\par\\nointerlineskip
+    \\includegraphics[width=\\linewidth]{{\\@nameuse{{sfcomp@p@\\thesfcomp@i @file}}}}%
+  \\end{{minipage}}%
+}}
+\\newcommand{{\\sfcomp@loop}}[1]{{% grid loop over the #1 panels
+  \\ifnum\\value{{sfcomp@i}}<#1\\relax
+    \\stepcounter{{sfcomp@i}}%
+    \\sfcomp@emit
+    \\ifnum\\value{{sfcomp@i}}=#1\\relax
+      \\hspace*{{\\sfcomp@margin}}\\par      % last cell: close the row
+    \\else
+      \\@tempcnta=\\value{{sfcomp@i}}\\relax
+      \\divide\\@tempcnta by \\sfcomp@cols\\relax
+      \\multiply\\@tempcnta by \\sfcomp@cols\\relax
+      \\ifnum\\value{{sfcomp@i}}=\\@tempcnta
+        % end of row: outer margin, row break, gap, next row's margin
+        \\hspace*{{\\sfcomp@margin}}\\par\\vspace{{\\sfcomp@gap}}\\hspace*{{\\sfcomp@margin}}%
+      \\else
+        \\hspace{{\\sfcomp@gap}}%           % between columns
+      \\fi
+    \\fi
+    \\sfcomp@loop{{#1}}%
+  \\fi
+}}
+\\sfcomp@start
+\\vspace*{{\\sfcomp@margin}}%                % top margin
+\\noindent\\hspace*{{\\sfcomp@margin}}%       % left margin (row start)
+\\sfcomp@loop{{{n}}}
+\\vspace{{\\sfcomp@margin}}%                 % bottom margin
+\\sfcomp@stop
+\\makeatother
+"""
+    (outdir / "composite.tex").write_text(tex, encoding="utf-8")
 
 
 def _is_root() -> bool:
@@ -562,9 +744,27 @@ WIDTH_PRESETS = {
 }
 
 
+def _tex_escape_text(s: str) -> str:
+    """Escape TeX specials for use in typeset text (captions).  Paths and
+    \\label keys are NOT escaped — underscores are legal there."""
+    out = []
+    specials = {"\\": "\\textbackslash{}", "&": "\\&", "%": "\\%",
+                "$": "\\$", "#": "\\#", "_": "\\_",
+                "{": "\\{", "}": "\\}",
+                "~": "\\textasciitilde{}", "^": "\\textasciicircum{}"}
+    for ch in s:
+        out.append(specials.get(ch, ch))
+    return "".join(out)
+
+
 def write_latex_include(outdir: Path, name: str, caption: str | None,
-                        label: str | None, width_mm: int | None = None) -> None:
-    cap = caption or f"Figure: {label or name} (auto-caption — replace)."
+                        label: str | None, width_mm: int | None = None,
+                        composite: bool = False) -> None:
+    # ASCII '---' + escaped label in the placeholder: a Unicode em dash
+    # breaks \caption (moving argument) and labels may carry underscores
+    # — keep the shipped snippets compile-safe under stock pdflatex
+    cap = caption or (f"Figure: {_tex_escape_text(label or name)} "
+                      "(auto-caption --- replace).")
     lab = label or name
     if width_mm:
         width_opt = f"width={width_mm}mm"
@@ -572,6 +772,26 @@ def write_latex_include(outdir: Path, name: str, caption: str | None,
             f"{width_mm} mm\n", encoding="utf-8")
     else:
         width_opt = "width=0.9\\textwidth"
+    if composite:
+        # Composite figures: output.pdf embeds RASTERIZED panels (preview
+        # only) — the vector-faithful delivery is composite.tex, which
+        # \includegraphics'es the panel PDFs as vectors.  The minipage
+        # wrapper gives composite.tex the same physical width the
+        # includegraphics variant would (its geometry is \linewidth-based).
+        inner_w = f"{width_mm}mm" if width_mm else "0.9\\textwidth"
+        (outdir / "latex_include.tex").write_text(
+            "% Composite figure — vector-faithful assembly: composite.tex\n"
+            "% embeds the panel PDFs as vectors; output.pdf is a raster\n"
+            "% preview only (see composite_meta.json).\n"
+            "\\begin{figure}[htbp]\n"
+            "    \\centering\n"
+            f"    \\begin{{minipage}}{{{inner_w}}}\n"
+            f"        \\input{{figures/{lab}/composite.tex}}\n"
+            "    \\end{minipage}\n"
+            f"    \\caption{{{cap}}}\n"
+            f"    \\label{{fig:{lab}}}\n"
+            "\\end{figure}\n", encoding="utf-8")
+        return
     (outdir / "latex_include.tex").write_text(
         "\\begin{figure}[htbp]\n"
         "    \\centering\n"
@@ -753,7 +973,8 @@ def main() -> int:
     write_latex_include(outdir, args.name, args.caption,
                         args.label or outdir.name,
                         WIDTH_PRESETS.get(args.width_preset)
-                        if args.width_preset else None)
+                        if args.width_preset else None,
+                        engine == "composite")
     (outdir / "render.log").write_text("\n".join(log), encoding="utf-8")
     for f in (out_pdf, out_svg):
         if not f.is_file() or f.stat().st_size == 0:
