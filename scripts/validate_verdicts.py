@@ -392,8 +392,17 @@ def validate_json_file(filename, filepath):
     except OSError as exc:
         return "FAIL", ["cannot read file: %s" % exc]
 
+    def _reject_constant(c):
+        # NaN/Infinity are Python json extensions, not RFC-8259; they also
+        # sail through numeric bounds checks (NaN compares False to
+        # everything). Verdict files must be strict JSON.
+        raise ValueError("non-standard JSON constant %r is not allowed" % c)
+
     try:
-        data = json.loads(raw)
+        data = json.loads(raw, parse_constant=_reject_constant)
+    except RecursionError:
+        return "FAIL", ["invalid JSON: nesting too deep to parse "
+                        "(possible malformed/adversarial file)"]
     except ValueError as exc:
         note = "invalid JSON: %s" % exc
         if filename == "REVIEW_LEDGER.json" and len(raw.splitlines()) > 1:

@@ -161,6 +161,17 @@ PYEOF
             continue
         fi
 
+        # Containment: audited inputs must stay inside the workspace. A key
+        # that escapes it (e.g. "../../etc/hostname" or an absolute path
+        # outside) is an audit-integrity violation — refuse, do not hash.
+        local resolved ws_resolved
+        resolved="$(realpath -m -- "$candidate" 2>/dev/null || echo "$candidate")"
+        ws_resolved="$(realpath -m -- "$WS" 2>/dev/null || echo "$WS")"
+        if [[ "$resolved" != "$ws_resolved"/* ]]; then
+            echo "STALE: ${name}: audited input escapes the workspace (refusing to hash): $key" >&2
+            exit 1
+        fi
+
         actual=$(sha256sum "$candidate" | cut -d' ' -f1)
         if [[ "${actual,,}" != "${expected,,}" ]]; then
             echo "STALE: ${name}: hash mismatch for $key (audited ${expected:0:12}... != current ${actual:0:12}...)" >&2

@@ -56,6 +56,69 @@ def iter_markdown_files(root: Path):
         yield path
 
 
+def _strip_code_fences(text: str) -> str:
+    """Blank out fenced code blocks (``` / ~~~) so documentation EXAMPLES
+    of links do not count as links. Line structure is preserved so line
+    numbers stay correct."""
+    out_lines: list[str] = []
+    fence: str | None = None
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if fence is None and (stripped.startswith("```") or
+                              stripped.startswith("~~~")):
+            fence = stripped[:3]
+            out_lines.append("")
+            continue
+        if fence is not None:
+            if stripped.startswith(fence):
+                fence = None
+            out_lines.append("")
+            continue
+        out_lines.append(line)
+    return "\n".join(out_lines)
+
+
+def _extract_md_links(text: str) -> list[tuple[int, str]]:
+    """(line, target) pairs for inline markdown links. Handles one level of
+    balanced parens in the target (docs/parens_(nested).md), <wrapped
+    targets with spaces>, and plain targets. Reference-style links are
+    intentionally not resolved (rare in this repo)."""
+    links: list[tuple[int, str]] = []
+    i = 0
+    while True:
+        i = text.find("](", i)
+        if i < 0:
+            break
+        j = i + 2
+        target: list[str] = []
+        if j < len(text) and text[j] == "<":
+            end = text.find(">", j + 1)
+            if end < 0:
+                i = j
+                continue
+            target.append(text[j + 1:end])
+            j = end + 1
+        else:
+            depth = 0
+            k = j
+            while k < len(text):
+                ch = text[k]
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    if depth == 0:
+                        break
+                    depth -= 1
+                elif ch in "\n" and depth == 0:
+                    break  # malformed; stop at line end
+                target.append(ch)
+                k += 1
+            j = k + 1
+        links.append((text.count("\n", 0, i) + 1, "".join(target)))
+        i = j
+    return links
+
+
 def check_markdown_links(root: Path) -> tuple[bool, list[str]]:
     """Return (ok, list of 'file:line -> target' broken-link reports)."""
     broken: list[str] = []
@@ -65,20 +128,21 @@ def check_markdown_links(root: Path) -> tuple[bool, list[str]]:
         except OSError as exc:
             broken.append(f"{md}:0 -> unreadable ({exc})")
             continue
-        targets: list[tuple[int, str]] = []
-        for regex in (MD_LINK_RE, IMG_SRC_RE):
-            for m in regex.finditer(text):
-                line = text.count("\n", 0, m.start()) + 1
-                targets.append((line, m.group(1)))
+        text = _strip_code_fences(text)
+        targets: list[tuple[int, str]] = _extract_md_links(text)
+        for m in IMG_SRC_RE.finditer(text):
+            targets.append((text.count("\n", 0, m.start()) + 1, m.group(1)))
         for line, target in targets:
             tgt = target.strip().strip("<>")
             if not tgt or tgt.startswith("#"):
                 continue  # pure anchor
+            if tgt.startswith("//"):
+                continue  # scheme-relative external URL
             if tgt.lower().startswith(SKIP_SCHEMES):
                 continue  # external link
-            path_part = unquote(tgt.split("#", 1)[0])
+            path_part = unquote(tgt.split("#", 1)[0].split("?", 1)[0])
             if not path_part:
-                continue  # was only an anchor after all
+                continue  # was only an anchor / query after all
             if path_part.startswith("/"):
                 # repo-root-absolute convention (GitHub/AtomGit style)
                 candidates = [root / path_part.lstrip("/"), Path(path_part)]
@@ -118,7 +182,15 @@ def check_version_consistency(root: Path) -> tuple[bool, list[str]]:
         if not path.is_file():
             continue  # absence is tolerated; only explicit mentions are checked
         versions: list[str] = []
+        in_fence = False
         for line in path.read_text(errors="replace").splitlines():
+            if line.lstrip().startswith(("```", "~~~")):
+                in_fence = not in_fence
+                continue
+            # code-fence examples and toolchain versions ("Python version
+            # 3.12.4") are not release-version claims
+            if in_fence or re.search(r"python\s+version", line, re.I):
+                continue
             if "version" not in line.lower():
                 continue
             versions.extend(
