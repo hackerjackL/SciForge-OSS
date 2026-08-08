@@ -8,7 +8,7 @@
 
 ## 1. Aspect Ratio (16:9 Horizontal Default)
 
-All figures default to **16:9 horizontal** (横版) aspect ratio. This is the Nature/Science figure standard for wide multi-panel layouts.
+All figures default to **16:9 horizontal** (landscape) aspect ratio. This is the Nature/Science figure standard for wide multi-panel layouts.
 
 | Ratio | When | Aspect (w:h) |
 |-------|------|-------------|
@@ -148,7 +148,7 @@ When a tool produces SVG (d2, graphviz, AI-direct, inkscape), the derivation of 
 | `graphviz` (`dot`) | Fallback graph layout (via render_figure.py) | apt: `graphviz` |
 | `asymptote` (`asy`) | High-end math/geometry/mechanism vector figures (via render_figure.py) | apt: `asymptote` |
 | `typst` (+ fletcher/CeTZ packages) | Fast declarative diagrams, millisecond compile (via render_figure.py) | GitHub release binary |
-| `diagrams` (mingrammer) + `blockdiag` 家族 | Diagram-as-code with pro icon sets / swimlane activity & sequence diagrams (via render_figure.py) | pip (aliyun mirror) |
+| `diagrams` (mingrammer) + `blockdiag` family | Diagram-as-code with pro icon sets / swimlane activity & sequence diagrams (via render_figure.py) | pip (aliyun mirror) |
 | `rsvg-convert` | SVG → PDF conversion (via render_figure.py) | apt: `librsvg2-bin` |
 | `inkscape` | Fallback SVG → PDF | apt: `inkscape` |
 | `pdfcrop` | Whitespace crop for asy/typst PDF deliverables (via render_figure.py) | apt: `texlive-extra-utils` |
@@ -175,8 +175,8 @@ The unified CLI auto-detects what is installed and routes accordingly (d2 prefer
 ## 9. See Also
 
 - [`color-themes.md`](color-themes.md) — morandi palette (Layer 1) + viridis/magma (Layer 2)
-- [`figure-complexity-contract.md`](figure-complexity-contract.md) — 复杂与美观下限（组件丰富度/连线治理/图标自绘方法论/组图规范）
-- [`figure-quality-review.md`](figure-quality-review.md) — 两级视觉审阅协议（agent 原生视觉自审 + 可选外部顾问；纯文本宿主降级机械审计）
+- [`figure-complexity-contract.md`](figure-complexity-contract.md) — complexity & aesthetics floors (component richness / wiring governance / hand-drawn-icon methodology / composite-figure conventions)
+- [`figure-quality-review.md`](figure-quality-review.md) — two-tier visual review protocol (agent-native visual self-review + optional external advisor; text-only hosts degrade to the mechanical audit)
 - [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — consumer of this contract
 - [`../support/paper-compile/SKILL.md`](../support/paper-compile/SKILL.md) — consumes the PDF figures
 - [`writing-principles.md`](writing-principles.md) — figure caption style

@@ -1,19 +1,19 @@
 # Output Protocol (SciForge-OSS — Merged)
 
-> **核心**: 每次输出写两个版本——时间戳版（历史） + 固定名版（最新）。
+> **Core**: every output is written in two versions — a timestamped version (history) + a fixed-name version (latest).
 
-## 版本化写入
+## Versioned Writes
 
-1. 写入时间戳文件：`{FILENAME}_{YYYYMMDD_HHmmss}.md`
-2. 复制到固定名文件：`{FILENAME}.md`（覆盖最新版）
-3. 下游 skill 始终读固定名文件
+1. Write the timestamped file: `{FILENAME}_{YYYYMMDD_HHmmss}.md`
+2. Copy to the fixed-name file: `{FILENAME}.md` (overwritten with the latest version)
+3. Downstream skills always read the fixed-name file
 
-**需要时间戳的**：IDEA_REPORT.md, FINAL_PROPOSAL.md, AUTO_REVIEW.md, paper/main.tex, 状态文件
-**不需要时间戳的**：append-only 文件 (findings.md)、按轮次编号的文件 (round_N_*.md)、MANIFEST.md
+**Timestamped**: IDEA_REPORT.md, FINAL_PROPOSAL.md, AUTO_REVIEW.md, paper/main.tex, status files
+**Not timestamped**: append-only files (findings.md), per-round numbered files (round_N_*.md), MANIFEST.md
 
-## Manifest 记录
+## Manifest Records
 
-每次写入后，在 `MANIFEST.md` 追加一行：
+After every write, append one row to `MANIFEST.md`:
 
 ```markdown
 | Timestamp | Skill | File | Stage | Description |
@@ -21,110 +21,110 @@
 | 2026-07-20 14:30 | /idea-discovery | refine-logs/IDEA_CANDIDATES.md | idea-discovery | 12 ideas generated |
 ```
 
-## 产物目录结构（v5.2 — verdicts/ 评判统一 + logs/ 集中 + code/ 单一之家）
+## Artifact Directory Tree (v5.2 — unified verdicts in verdicts/ + centralized logs in logs/ + single home in code/)
 
 ```
 {problem_id}/
-├── refine-logs/        ← idea-discovery + novelty-check 产物（决策类文档）
-├── literature/         ← universal-retrieval 产物
-├── methods/            ← method-registry 产物（METHOD_REGISTRY.md/METHOD_BINDING.md）
-├── derivations/        ← theory-derivation 产物（仅 .md 文档；脚本归 code/）
-├── code/               ← 算法与源代码的【单一之家】（v5.0）
-│   ├── derivations/    ←   推导/符号验证脚本（原 derivations/*.py 迁入）
-│   ├── experiments/    ←   实验脚本（toy/full/消融/超参，含 group_<name>/）
-│   ├── figures/        ←   渲染脚本（render.py / spec.d2 / *.composite.json）
-│   └── utils/          ←   共享工具函数
-├── verdicts/           ← 全流程评判产物的【统一目录】（v5.2 新增）
-│   ├── VERIFICATION_ROUTING.json   ← 验证路由判定（Phase 6 入口）
-│   ├── PROBLEM_HASH.txt            ← INV-G1 问题内容哈希（invariant-check）
-│   ├── REGISTRY_HASH.txt           ← 方法 hash-lock（method-registry）
-│   ├── EXPERIMENT_MATRIX.json      ← 强制实验矩阵（method-registry §3.5）
-│   ├── BUDGET_FLOOR.json           ← 探索预算下限完成判据（experiment-execution）
-│   ├── PROOF_AUDIT.json            ← 推导逐步验证（theory-derivation）
-│   ├── LOGIC_VERIFICATION.json     ← 6 维逻辑审计（logic-verification）
-│   ├── LEAKAGE_AUDIT.json          ← Type I/IV 审计（leakage-audit）
-│   ├── BLINDSPOT_CHECK.json        ← 领域盲区审计（auto-review-loop B.2）
-│   ├── REVIEW_STATE.json           ← 评审轮次状态 + response_class（auto-review-loop）
-│   ├── REVIEW_LEDGER.json          ← 评审意见台账（auto-review-loop）
-│   ├── KILL_ARGUMENT.json          ← 杀论证（kill-argument）
-│   ├── PAPER_CLAIM_AUDIT.json      ← 论文-claim 一致性（paper-writing 自检）
-│   ├── LEAKAGE_SCRUB.json          ← LaTeX 泄漏清洗门（paper-writing §3.5）
-│   ├── CITATION_AUDIT.json         ← 3 层引用核验（citation-audit）
-│   ├── INVARIANT_CHECK.json        ← 不变量检查结果（invariant-check；叙述报告在 audit_report/）
-│   ├── PUBLISHABILITY_SCORE.json   ← 发表性终评（publishability-score）
-│   ├── RUN_BUDGET.json             ← 全局运行预算总账（v5.3：wall_clock/api_cost/pivot_count/ba_used；
-│   │                                  orchestrator 每个 phase boundary 记账并核对上限；
-│   │                                  旧 BA_BUDGET.json 的记账并入此文件，BA_BUDGET.json 只读回退）
-│   ├── FIGURE_AUDITS.json          ← 全图审计汇总镜像（unified-plotting；每图明细仍随图 figure_audit.json）
-│   └── PIPELINE_VERDICT_SUMMARY.md ← 管线评判总览（orchestrator 每个 phase boundary 重写；派生文档，唯一允许进 verdicts/ 的 .md）
-├── logs/               ← 全流程日志的【集中目录】（v5.0）
-│   ├── pipeline.log    ←   auto-pipeline 状态流水（唯一权威状态记录）
-│   ├── phase_<n>.log   ←   各阶段运行日志（各 skill 写入，不再散落）
-│   └── experiments/    ←   实验 STATUS.json 汇总镜像
-├── audit_report/       ← logic-verification + leakage-audit 的【叙述性报告】（.md；机读 verdict 归 verdicts/）
-├── figures/            ← unified-plotting 产物（PDF+SVG 交付 + figure_audit.json 随图；汇总 verdict 镜像 verdicts/FIGURE_AUDITS.json）
-├── experiments/        ← experiment-execution 产物（RESULT.json/数据；脚本归 code/experiments/）
-├── paper/              ← paper-writing + paper-compile 产物（编译产物与 .tex；评判归 verdicts/）
-├── review-stage/       ← auto-review-loop 的【叙述性产物】（AUTO_REVIEW.md；机读 verdict 归 verdicts/）
-├── citation_audit/     ← citation-audit 的【叙述性报告】（机读 verdict 归 verdicts/）
-└── output/             ← 最终归档（submission bundle）
+├── refine-logs/        ← idea-discovery + novelty-check artifacts (decision-style documents)
+├── literature/         ← universal-retrieval artifacts
+├── methods/            ← method-registry artifacts (METHOD_REGISTRY.md/METHOD_BINDING.md)
+├── derivations/        ← theory-derivation artifacts (.md documents only; scripts go to code/)
+├── code/               ← the [single home] for algorithms and source code (v5.0)
+│   ├── derivations/    ←   derivation/symbolic-verification scripts (formerly derivations/*.py, moved here)
+│   ├── experiments/    ←   experiment scripts (toy/full/ablation/hyperparameter, incl. group_<name>/)
+│   ├── figures/        ←   rendering scripts (render.py / spec.d2 / *.composite.json)
+│   └── utils/          ←   shared utility functions
+├── verdicts/           ← the [unified directory] for all pipeline verdict artifacts (new in v5.2)
+│   ├── VERIFICATION_ROUTING.json   ← verification routing decision (Phase 6 entry point)
+│   ├── PROBLEM_HASH.txt            ← INV-G1 problem-content hash (invariant-check)
+│   ├── REGISTRY_HASH.txt           ← method hash-lock (method-registry)
+│   ├── EXPERIMENT_MATRIX.json      ← mandatory experiment matrix (method-registry §3.5)
+│   ├── BUDGET_FLOOR.json           ← exploration budget-floor completion criteria (experiment-execution)
+│   ├── PROOF_AUDIT.json            ← step-by-step derivation verification (theory-derivation)
+│   ├── LOGIC_VERIFICATION.json     ← 6-dimension logic audit (logic-verification)
+│   ├── LEAKAGE_AUDIT.json          ← Type I/IV audit (leakage-audit)
+│   ├── BLINDSPOT_CHECK.json        ← domain blind-spot audit (auto-review-loop B.2)
+│   ├── REVIEW_STATE.json           ← review-round state + response_class (auto-review-loop)
+│   ├── REVIEW_LEDGER.json          ← review-comment ledger (auto-review-loop)
+│   ├── KILL_ARGUMENT.json          ← kill argument (kill-argument)
+│   ├── PAPER_CLAIM_AUDIT.json      ← paper-claim consistency (paper-writing self-check)
+│   ├── LEAKAGE_SCRUB.json          ← LaTeX leakage scrub gate (paper-writing §3.5)
+│   ├── CITATION_AUDIT.json         ← 3-layer citation verification (citation-audit)
+│   ├── INVARIANT_CHECK.json        ← invariant-check result (invariant-check; narrative report lives in audit_report/)
+│   ├── PUBLISHABILITY_SCORE.json   ← final publishability score (publishability-score)
+│   ├── RUN_BUDGET.json             ← global run-budget ledger (v5.3: wall_clock/api_cost/pivot_count/ba_used;
+│   │                                  the orchestrator books entries and checks the caps at every phase boundary;
+│   │                                  bookkeeping from the old BA_BUDGET.json is merged into this file, BA_BUDGET.json remains as a read-only fallback)
+│   ├── FIGURE_AUDITS.json          ← all-figure audit summary mirror (unified-plotting; per-figure detail still ships with each figure_audit.json)
+│   └── PIPELINE_VERDICT_SUMMARY.md ← pipeline verdict overview (rewritten by the orchestrator at every phase boundary; derived document, the only .md allowed inside verdicts/)
+├── logs/               ← the [central directory] for all pipeline logs (v5.0)
+│   ├── pipeline.log    ←   auto-pipeline status stream (the single authoritative status record)
+│   ├── phase_<n>.log   ←   per-phase run logs (written by each skill, no longer scattered)
+│   └── experiments/    ←   experiment STATUS.json summary mirror
+├── audit_report/       ← [narrative reports] from logic-verification + leakage-audit (.md; machine-readable verdicts go to verdicts/)
+├── figures/            ← unified-plotting artifacts (PDF+SVG deliverables + figure_audit.json per figure; summary verdict mirror verdicts/FIGURE_AUDITS.json)
+├── experiments/        ← experiment-execution artifacts (RESULT.json/data; scripts go to code/experiments/)
+├── paper/              ← paper-writing + paper-compile artifacts (compiled output and .tex; verdicts go to verdicts/)
+├── review-stage/       ← [narrative artifacts] from auto-review-loop (AUTO_REVIEW.md; machine-readable verdicts go to verdicts/)
+├── citation_audit/     ← [narrative report] from citation-audit (machine-readable verdicts go to verdicts/)
+└── output/             ← final archive (submission bundle)
 ```
 
-**评判统一原则（v5.2 — 治"评判文件散落难追溯"）**:
-1. **机读评判一律归 `verdicts/`**：所有 `*.json` verdict / hash / 审计结论写 `verdicts/`（文件名固定如上表，不加阶段前缀、不嵌套子目录——一个平铺目录扫一遍即知全管线评判状态）
-2. **叙述性报告留在原 stage 目录**：人读的长报告（AUTO_REVIEW.md、audit 叙述、citation 报告）不动；只有机读 verdict 迁移
-3. **单一状态文件**：`PIPELINE_STATUS.json` 只存在于 `logs/`（事件流水），各阶段不得自建 PIPELINE_STATUS 副本；orchestrator 汇总时读 `verdicts/` 全目录生成管线评判总览（`verdicts/PIPELINE_VERDICT_SUMMARY.md`，每次 phase boundary 重写）
-4. 迁移兼容：读取先查 `verdicts/`，未找到回退旧 stage 路径；写入一律 `verdicts/`
+**Unified Verdict Principles (v5.2 — cures "scattered verdict files that are hard to trace")**:
+1. **All machine-readable verdicts go to `verdicts/`**: every `*.json` verdict / hash / audit conclusion is written to `verdicts/` (filenames are fixed as in the table above; no stage prefixes, no nested subdirectories — one flat directory, and a single scan reveals the verdict state of the entire pipeline)
+2. **Narrative reports stay in their original stage directories**: long human-readable reports (AUTO_REVIEW.md, audit narratives, citation reports) do not move; only machine-readable verdicts migrate
+3. **Single status file**: `PIPELINE_STATUS.json` exists only in `logs/` (event stream); no stage may create its own PIPELINE_STATUS copy; at summarization time the orchestrator reads the entire `verdicts/` directory to generate the pipeline verdict overview (`verdicts/PIPELINE_VERDICT_SUMMARY.md`, rewritten at every phase boundary)
+4. Migration compatibility: reads check `verdicts/` first and fall back to the old stage path if not found; writes always go to `verdicts/`
 
-## 评判 Schema 强制（v5.3 — 治"字段拼错/漏写无感知"）
+## Verdict Schema Enforcement (v5.3 — cures "misspelled/omitted fields going unnoticed")
 
-1. **每个 verdict JSON 必须通过 schema 校验**：字段契约由 `skills/shared-references/schemas/<NAME>.schema.json`（draft 2020-12）定义，写入方不得拼错或省略 required 字段；哈希文件（PROBLEM_HASH.txt / REGISTRY_HASH.txt）须为单行小写 sha256（64 位十六进制）
-2. **orchestrator 在每个 phase boundary 与收尾（wrap-up）运行**：`python3 scripts/validate_verdicts.py {problem_id}/verdicts/`——已注册文件按 schema 校验 + 跨字段不变量（audit 家族 6 态 verdict 词表、审计 JSON 的 audited_input_hashes）；未注册 *.json → WARN；缺失的已注册文件只记 pending，不算错误
-3. **违规处置**：默认模式 → WARN（记录并继续）；`--strict` 模式 → BLOCKED（视同 FAIL，阻断当前 phase boundary）
-4. 新增 verdict 必须先在本目录补 schema 并在 validator 注册（步骤见 `skills/shared-references/schemas/README.md`）
+1. **Every verdict JSON must pass schema validation**: the field contract is defined by `skills/shared-references/schemas/<NAME>.schema.json` (draft 2020-12); writers must not misspell or omit required fields; hash files (PROBLEM_HASH.txt / REGISTRY_HASH.txt) must be a single-line lowercase sha256 (64 hex characters)
+2. **The orchestrator runs it at every phase boundary and at wrap-up**: `python3 scripts/validate_verdicts.py {problem_id}/verdicts/` — registered files are schema-validated plus cross-field invariants (the 6-state verdict vocabulary of the audit family, audited_input_hashes of audit JSONs); unregistered *.json → WARN; a missing registered file is only recorded as pending, not an error
+3. **Handling violations**: default mode → WARN (record and continue); `--strict` mode → BLOCKED (treated as FAIL, blocks the current phase boundary)
+4. A new verdict must first have its schema added in this directory and be registered in the validator (steps in `skills/shared-references/schemas/README.md`)
 
-**单一之家原则（v5.0 — 治"目录混乱 + 代码重复"）**:
-1. 每类产物有**唯一规范路径**（上表）；写入其他位置的同类产物 → 审计 WARN，写入方负责迁移
-2. **代码只在 `code/` 一处存在**：实验/推导/渲染脚本一律归 `code/` 对应子目录；`derivations/`、`figures/`、`experiments/` 只放**产物与文档**（.md/.json/PDF/SVG/数据），**绝不放脚本**——这消灭了"论文写作时代码被复制进 paper/ 一遍"的重复现象（paper/ 内无代码副本，代码引用只走 Reproducibility 声明指向 `code/`）
-3. **日志只在 `logs/` 集中**：各阶段不再各自建日志文件散落根目录；`pipeline.log` 是唯一权威状态流水（含 PIPELINE_STATUS 事件），各 skill 的过程日志写 `logs/phase_<n>.log`
-4. 迁移兼容：读取时先查新规范路径，未找到回退旧路径（向后兼容旧运行目录）；写入一律新路径
+**Single-Home Principle (v5.0 — cures "directory chaos + code duplication")**:
+1. Every artifact class has a **unique canonical path** (table above); artifacts of the same class written elsewhere → audit WARN, and the writer is responsible for migrating them
+2. **Code exists in exactly one place, `code/`**: experiment/derivation/rendering scripts all go into the corresponding subdirectory of `code/`; `derivations/`, `figures/`, `experiments/` hold **only artifacts and documents** (.md/.json/PDF/SVG/data), **never scripts** — this eliminates the "code gets copied into paper/ once more during paper writing" duplication (no code copies inside paper/; code references go only through the Reproducibility statement pointing at `code/`)
+3. **Logs are centralized only in `logs/`**: stages no longer each create their own log files scattered in the root directory; `pipeline.log` is the single authoritative status stream (containing the PIPELINE_STATUS events), and each skill's process logs go to `logs/phase_<n>.log`
+4. Migration compatibility: reads check the new canonical path first and fall back to the old path if not found (backward compatible with old run directories); writes always use the new path
 
-## 路径回退规则
+## Path Fallback Rules
 
-读取时先查找 stage-scoped 路径，未找到则回退到根级路径（向后兼容）。写入始终使用 stage-scoped 路径。
+On reads, the stage-scoped path is tried first; if not found, fall back to the root-level path (backward compatibility). Writes always use the stage-scoped path.
 
-## 工作区整洁契约（v5.2 — Workspace Hygiene，治"工作区混乱/重复/垃圾文件"）
+## Workspace Hygiene Contract (v5.2 — cures "workspace chaos/duplication/junk files")
 
-**命名规范（全管线强制）**:
-1. **文件名全大写 + 下划线**（`CLAIMS_FROM_RESULTS.md`、`REGISTRY_HASH.txt`）用于**契约性产物**（被下游 skill 按固定名读取的）；**小写 + 连字符**（`derivation_output.md` 类叙述产物）用于阶段内部产物——一眼区分"契约文件"与"过程文件"
-2. **版本号只进内容不进文件名**：禁止 `report_v2.md`、`final_FINAL.tex`、`draft3.py`——迭代用版本化写入（本节上方）与 `revision_log.md`，文件名保持稳定（下游按固定名引用，改名即断链）
-3. **实验目录**：`experiments/full/group_<name>/`（name = 实验矩阵的组名）；**禁止** `exp1/`、`test2/`、`new_folder/` 这类无语义命名
-4. **一图一文件夹**：`figures/<fig_id>/`（fig_id 与 LaTeX label 一致）——图产物不与其他产物混放
+**Naming conventions (enforced across the whole pipeline)**:
+1. **UPPERCASE + underscores** (`CLAIMS_FROM_RESULTS.md`, `REGISTRY_HASH.txt`) for **contract artifacts** (read by downstream skills under a fixed name); **lowercase + hyphens** (`derivation_output.md`-style narrative artifacts) for intra-stage artifacts — "contract files" and "process files" become distinguishable at a glance
+2. **Version numbers go into content, never into filenames**: `report_v2.md`, `final_FINAL.tex`, `draft3.py` are forbidden — iterate via versioned writes (see above in this section) and `revision_log.md`; filenames stay stable (downstream consumers reference them by fixed name; renaming breaks the link)
+3. **Experiment directories**: `experiments/full/group_<name>/` (name = the group name from the experiment matrix); **forbidden**: semantic-free names like `exp1/`, `test2/`, `new_folder/`
+4. **One folder per figure**: `figures/<fig_id>/` (fig_id identical to the LaTeX label) — figure artifacts are never mixed with other artifacts
 
-**临时文件禁令（硬规则）**:
-1. 工作区根目录**只允许**目录树定义的 14 个目录 + `refine-logs/` 入口文件；任何散落的 `.py`/`.tmp`/`.bak`/`.swp`/`nohup.out`/`core.*`/`*.orig`/`__pycache__/` → 收尾清理协议删除或迁移
-2. **临时文件只进 `/tmp` 或 `logs/tmp/`**：调试脚本、渲染中间产物、下载缓存一律写 `/tmp`（管线外）或 `logs/tmp/`（收尾时整目录删除）；**绝不**写工作区根目录或 stage 目录
-3. 实验数据集（下载的原始数据）放 `experiments/data/<dataset_id>/`，不进 `code/`、不进工作区根
-4. `nohup.out` / 后台进程输出一律重定向到 `logs/experiments/<experiment_id>.log`（experiment-execution dispatch 命令模板强制 tee 到该路径）
+**Temporary-file ban (hard rules)**:
+1. The workspace root directory **allows only** the 14 directories defined in the directory tree + the `refine-logs/` entry file; any stray `.py`/`.tmp`/`.bak`/`.swp`/`nohup.out`/`core.*`/`*.orig`/`__pycache__/` → deleted or migrated by the wrap-up cleanup protocol
+2. **Temporary files go only into `/tmp` or `logs/tmp/`**: debug scripts, rendering intermediates, and download caches are all written to `/tmp` (outside the pipeline) or `logs/tmp/` (whole directory deleted at wrap-up); **never** into the workspace root or stage directories
+3. Experiment datasets (downloaded raw data) go into `experiments/data/<dataset_id>/`, not into `code/`, not into the workspace root
+4. `nohup.out` / background-process output must always be redirected to `logs/experiments/<experiment_id>.log` (the experiment-execution dispatch command template forces a tee to that path)
 
-**孤儿产物治理**:
-1. **孤儿 = 无上游引用的产物**：每个阶段产物必须被至少一个下游契约引用（MANIFEST 的 `consumer` 字段）；MANIFEST 写入时 consumer 为空 → WARN `orphan_artifact`
-2. **被否决分支的产物**：KILL/PIVOT 后，被否决 idea 的产物**不删除**（审计追溯需要），统一移入 `refine-logs/abandoned/<idea_id>/` 归档——保持活跃工作区只有当前 idea 的产物，历史可查不碍眼
-3. **重复产物零容忍**：同一内容出现在两个路径（如代码在 `code/` 又在 `paper/`）→ 审计 FAIL `duplicate_artifact`；symlink 是唯一合法的"同一产物多处可见"机制
+**Orphan-artifact governance**:
+1. **Orphan = an artifact with no upstream reference**: every stage artifact must be referenced by at least one downstream contract (the MANIFEST's `consumer` field); a MANIFEST entry written with an empty consumer → WARN `orphan_artifact`
+2. **Artifacts of rejected branches**: after a KILL/PIVOT, the artifacts of the rejected idea are **not deleted** (audit tracing needs them) but moved en masse into the `refine-logs/abandoned/<idea_id>/` archive — the active workspace keeps only the current idea's artifacts; history stays inspectable but out of the way
+3. **Zero tolerance for duplicate artifacts**: the same content present at two paths (e.g., code in both `code/` and `paper/`) → audit FAIL `duplicate_artifact`; symlinks are the only legitimate "same artifact visible in multiple places" mechanism
 
-**收尾清理协议（每个 phase boundary + 管线终态执行）**:
-1. 扫描工作区：删除 `logs/tmp/`、空目录、`*.pyc`/`__pycache__/`、0 字节文件（保留有契约引用的）
-2. 核对 MANIFEST：活跃产物全部在规范路径、全部有 consumer；违规项迁移/告警（不静默删除有内容文件）
-3. 写 `logs/pipeline.log` 一条清理事件（删了什么、迁了什么）——清理动作本身可审计
-4. 管线终态（Phase 17 归档）：`output/` submission bundle 只含交付物（paper PDF + LaTeX 源 + figures PDF/SVG + 引用 bib），**不含**中间产物——打包前逐文件核对清单
+**Wrap-up cleanup protocol (executed at every phase boundary + at the pipeline end state)**:
+1. Scan the workspace: delete `logs/tmp/`, empty directories, `*.pyc`/`__pycache__/`, 0-byte files (keep anything with a contract reference)
+2. Reconcile with the MANIFEST: every active artifact is at its canonical path and has a consumer; violators are migrated/warned (files with content are never silently deleted)
+3. Write one cleanup event to `logs/pipeline.log` (what was deleted, what was migrated) — the cleanup action itself is auditable
+4. Pipeline end state (Phase 17 archive): the `output/` submission bundle contains only deliverables (paper PDF + LaTeX sources + figures PDF/SVG + citation bib), **not** intermediate artifacts — verify the checklist file by file before packing
 
-## 过期状态检测
+## Stale-State Detection
 
-状态文件 (REVIEW_STATE.json 等) 的默认过期阈值：24 小时。过期时警告用户，可继续或重新开始。
+Default staleness threshold for status files (REVIEW_STATE.json etc.): 24 hours. When stale, warn the user, who may continue or start over.
 
-## 输出语言 (Output Language)
+## Output Language
 
-尊重项目的语言设置（`language=chinese` 时输出中文，默认英文；图表/代码注释使用英文标识符）。论文正文与标题语言遵循 pipeline 启动时的语言声明；不可在单一交付物中混用语言。
+Respect the project's language setting (`language=chinese` outputs Chinese, English by default; figures and code comments use English identifiers). The language of the paper body and title follows the language declaration made at pipeline start; languages must not be mixed inside a single deliverable.
 
 ---
-> **单一权威 (single source of truth)**：输出版本化、Manifest 记录、产物目录、路径回退、过期检测与语言规则全部由此文件统一定义。各 SKILL.md 只需 pointer-load 本文件（`../../shared-references/output-protocol.md`），不再内联三行重复块。
+> **Single source of truth**: output versioning, Manifest records, the artifact directory tree, path fallback, stale-state detection, and language rules are all defined centrally by this file. Each SKILL.md only needs to pointer-load this file (`../../shared-references/output-protocol.md`) instead of inlining duplicated three-line blocks.

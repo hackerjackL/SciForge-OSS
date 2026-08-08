@@ -18,7 +18,7 @@ Determine the output language using this priority:
 
 - Code, shell commands, file paths, directory names
 - Paper titles, author names, venue names, BibTeX entries
-- Technical terms with no standard Chinese translation (keep English, optionally annotate: "attention mechanism (注意力机制)")
+- Technical terms with no standard Chinese translation (keep the English term; optionally annotate it with the Chinese equivalent in parentheses, e.g., "attention mechanism" followed by its Chinese gloss)
 - LaTeX content — paper-writing workflow always outputs English for venue submission
 - JSON state files — keys and structure remain English
 - **Machine-parsed markers** — never localize the following, regardless of language setting:

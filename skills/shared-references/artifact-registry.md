@@ -65,7 +65,7 @@ This registry closes both gaps by being the **single, machine-checkable** list o
 
 ### v5.2 machine-readable verdict artifacts (verdicts/ — unified judgment directory)
 
-Per the single-authority rule above, every machine-readable verdict lives flat in `verdicts/` with a fixed name (defined in [`output-protocol.md`](output-protocol.md) §产物目录结构). The registry rows below record producer/consumer contracts; the directory layout itself belongs to `output-protocol.md`. Narrative reports stay in their stage directories (registered in the other tables).
+Per the single-authority rule above, every machine-readable verdict lives flat in `verdicts/` with a fixed name (defined in [`output-protocol.md`](output-protocol.md) §Artifact Directory Tree). The registry rows below record producer/consumer contracts; the directory layout itself belongs to `output-protocol.md`. Narrative reports stay in their stage directories (registered in the other tables).
 
 | Artifact | Path | Producer | Consumers | Schema enforced by | Verifier |
 |---|---|---|---|---|---|

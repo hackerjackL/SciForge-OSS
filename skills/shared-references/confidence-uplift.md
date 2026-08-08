@@ -6,11 +6,11 @@
 
 ## Quick Reference
 
-- **Purpose**: 从"评估置信度"升级为"提高置信度"——三机制主动拉升 TDAL
+- **Purpose**: upgrade from "evaluating confidence" to "improving confidence" — three mechanisms proactively raise TDAL
 - **Input**: CLAIMS_FROM_RESULTS.md (TDAL verdict + weakest_dimension) from Phase 10
 - **Output**: refine-logs/confidence-uplift-plan.json (uplift actions + expected lift + budget)
 - **Invocation**: verdict ≤ WEK → MUST invoke; verdict MODERATE + weakest_dimension identifiable → SHOULD invoke; verdict STRONG → skip
-- **Key**: 上限是 bounded uplift loop (≤ 3 rounds per mechanism); 不能把 UNSUPPORTED 强拖到 STRONG——UNSUPPORTED 触发 BLOCK 后 uplift 走人工审批通道
+- **Key**: the cap is a bounded uplift loop (≤ 3 rounds per mechanism); UNSUPPORTED cannot be force-dragged to STRONG — once UNSUPPORTED triggers BLOCK, uplift goes through the human-approval channel
 
 ## Three Mechanisms
 
@@ -152,7 +152,7 @@ Continue to Mechanism 3 for further lift (0.364 → push toward MODERATE 0.5).
 
 **Target**: TDAL `theoretical` (T) when full proof is too ambitious but partial proofs are achievable. **Last-resort lever** — invoked after Mechanism 1 exhausted AND Mechanism 2 cannot hedge.
 
-**Logic**: Do NOT attempt to verify the entire theory at once. Verify the **core assumption** first → if it passes, the claim is "half-grounded" (≈ 60% landing per the v2.7路线图 estimate). Then incrementally verify extensions. Each increment lifts T by a discrete step.
+**Logic**: Do NOT attempt to verify the entire theory at once. Verify the **core assumption** first → if it passes, the claim is "half-grounded" (≈ 60% landing per the v2.7 roadmap estimate). Then incrementally verify extensions. Each increment lifts T by a discrete step.
 
 **Workflow**:
 

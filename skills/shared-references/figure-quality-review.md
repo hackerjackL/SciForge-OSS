@@ -91,9 +91,10 @@ credentials and makes no calls). Discipline unchanged from v1:
 **Prompt template (keep it minimal)**:
 
 ```
-请对以下科研图的表达提出最有用的改进建议(每条一句话),并指出图形的
-逻辑是否完整(有无缺失的输入/反馈边/数据节点)。
-图源(结构概要): <nodes>, <edges>, <intent>。请严谨而克制。
+Please propose the most useful improvement suggestions for how the following
+scientific figure communicates (one sentence each), and state whether the
+figure's logic is complete (any missing input/feedback edges/data nodes?).
+Figure source (structure summary): <nodes>, <edges>, <intent>. Be rigorous and restrained.
 ```
 
 ## Figure criteria (mechanical + structural baseline)

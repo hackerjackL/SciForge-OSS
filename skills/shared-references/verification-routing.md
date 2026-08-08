@@ -1,40 +1,40 @@
 # Verification Routing Contract (SciForge-OSS — Experiment-First by Default)
 
-> **Status (v1.0)**: 决定"这篇论文的验证方式"的路由契约。实测反馈（v5.0）：旧管线默认任何论文都先走符号/理论推导、实验只是补充验证——对有数据、可计算的问题是**本末倒置**，且符号验证本身被判定"无意义"。本契约把验证路由**前移到 Phase 6 入口**：先判路由，再选验证链。
+> **Status (v1.0)**: The routing contract that decides "how this paper gets verified". Field feedback (v5.0): the old pipeline defaulted every paper to symbolic/theoretical derivation first, with experiments serving only as supplementary verification — for problems that have data and are computable, this is **putting the cart before the horse**, and symbolic verification itself was judged "meaningless". This contract moves verification routing **upfront to the Phase 6 entry**: decide the route first, then choose the verification chain.
 
-## 1. 路由规则（入口判定，一次定终身）
+## 1. Routing rules (entry-point decision, decided once and final)
 
-Phase 6（theory-derivation / experiment-execution）入口，读 `refine-logs/domain-signature.json` 的 `evidence_type` + 问题自身的可计算性信号，按下表路由，写入 `refine-logs/VERIFICATION_ROUTING.json`：
+At the Phase 6 (theory-derivation / experiment-execution) entry, read `evidence_type` from `refine-logs/domain-signature.json` plus the problem's own computability signals, route per the table below, and write to `refine-logs/VERIFICATION_ROUTING.json`:
 
-| 路由 | 触发条件 | 验证链 |
+| Route | Trigger condition | Verification chain |
 |------|---------|--------|
-| **experiment-first（默认）** | `evidence_type` ∈ {correlational, causal_inference, simulational, empirical, experimental}，或问题涉及数据集/训练/仿真/实证 | `/experiment-execution` 主验证：toy 快速验证（~20 轮量级）→ 主实验 → 强制实验矩阵（method-registry §3）。`/theory-derivation` **降级为可选辅助**（仅当方法有可推导结构且推导能指导实现时才走；无推导不阻塞） |
-| **theory-only（例外）** | `evidence_type = derivational` 且问题**无数据、无可执行计算**（纯数学证明、部分人文/哲学论证、概念性理论构建） | `/theory-derivation`（engine=sympy 或 manual）主验证 + `/logic-verification`；不跑实验，但 toy 级数值 sanity（若可行）仍鼓励 |
-| **hybrid（显式声明）** | 论文贡献同时依赖理论结果与实验验证（如"定理 + 算法"型工作） | 理论推导与实验并行推进，两者都是主验证；`verification_type = theory+experiment` |
+| **experiment-first (default)** | `evidence_type` ∈ {correlational, causal_inference, simulational, empirical, experimental}, or the problem involves datasets/training/simulation/empirical work | `/experiment-execution` as primary verification: toy quick verification (~20 rounds scale) → main experiment → mandatory experiment matrix (method-registry §3). `/theory-derivation` **is demoted to optional auxiliary** (only followed when the method has derivable structure and the derivation can guide implementation; lack of derivation does not block) |
+| **theory-only (exception)** | `evidence_type = derivational` and the problem has **no data and no executable computation** (pure mathematical proofs, some humanities/philosophical argumentation, conceptual theory construction) | `/theory-derivation` (engine=sympy or manual) as primary verification + `/logic-verification`; no experiment is run, but toy-level numerical sanity checks (when feasible) are still encouraged |
+| **hybrid (explicit declaration)** | The paper's contribution depends on both theoretical results and experimental verification (e.g., "theorem + algorithm" style work) | Theory derivation and experiments advance in parallel; both are primary verifications; `verification_type = theory+experiment` |
 
-**判定纪律**:
-1. **默认 experiment-first**——拿不准就按实验路由，因为"有东西可跑"的论文占绝大多数
-2. theory-only 必须满足**双条件**（derivational ∧ 无可执行计算），只满足一条仍按 experiment-first
-3. 路由结果写入 `VERIFICATION_ROUTING.json`（route/evidence_type/reason 三字段），下游 skill 只读不改
-4. 人文/社科无数据问题 → theory-only 合法（"没有东西的就是没有办法"）；但只要存在可收集数据或可仿真对象，优先 experiment-first
+**Decision discipline**:
+1. **experiment-first by default** — when in doubt, route by experiment, because the vast majority of papers "have something that can be run"
+2. theory-only must satisfy the **double condition** (derivational ∧ no executable computation); satisfying only one still routes to experiment-first
+3. The routing result is written to `VERIFICATION_ROUTING.json` (three fields: route/evidence_type/reason); downstream skills read it only, never modify it
+4. Data-less humanities/social-science problems → theory-only is legitimate ("when there is nothing, there is simply no way"); but as long as collectable data or simulatable objects exist, experiment-first takes priority
 
-## 2. experiment-first 的验证形态
+## 2. Verification forms under experiment-first
 
-1. **Toy 快速验证**（idea 级）：小规模（~20 轮训练 / 1-10% 数据 / 合成已知效应数据）验证"这个想法方向对不对"——这是**想法生死判**，不是论文实验
-2. **主实验**（论文级）：按 method-registry §3 强制实验矩阵执行（主实验 + 基线对比 + 消融 + 超参 + 敏感性）
-3. **理论辅助**（可选）：有推导结构时补充理论分析，放正文 Theory 小节或附录；**不要求** SymPy 全步验证，手推 + 数值交叉核对即可
+1. **Toy quick verification** (idea level): small scale (~20 rounds of training / 1-10% of data / synthetic data with known effects) verifies "is this idea heading in the right direction" — this is a **life-or-death verdict for the idea**, not a paper experiment
+2. **Main experiment** (paper level): executed per the mandatory experiment matrix in method-registry §3 (main experiment + baseline comparison + ablation + hyperparameters + sensitivity)
+3. **Theory auxiliary** (optional): when derivable structure exists, supplement with theoretical analysis, placed in a Theory subsection of the main text or in an appendix; full-step SymPy verification is **not required** — hand derivation + numerical cross-checking suffices
 
-## 3. 与各 skill 的关系
+## 3. Relationships with each skill
 
-- `/auto-pipeline` Phase 6 入口调用本契约完成路由，再分发
-- `/theory-derivation`：接受 `route` 字段——experiment-first 下被调用时以辅助模式运行（不阻塞、不强制全步 SymPy）
-- `/experiment-execution`：experiment-first / hybrid 下的主验证执行者
-- `/method-registry`：hash-lock 前检查强制实验矩阵完整性（experiment-first / hybrid 路由下）
-- `/paper-writing`（经 [`paper-modes.md`](paper-modes.md)）：读 `VERIFICATION_ROUTING.json` 选 section 布局（experiment 模式优先）——`paper-modes` 是共享参考文档，不是 OSS 独立 skill
+- `/auto-pipeline` invokes this contract at the Phase 6 entry to complete routing, then dispatches
+- `/theory-derivation`: accepts the `route` field — when invoked under experiment-first it runs in auxiliary mode (non-blocking, does not enforce full-step SymPy)
+- `/experiment-execution`: the primary-verification executor under experiment-first / hybrid
+- `/method-registry`: checks the completeness of the mandatory experiment matrix before hash-locking (under experiment-first / hybrid routes)
+- `/paper-writing` (via [`paper-modes.md`](paper-modes.md)): reads `VERIFICATION_ROUTING.json` to choose the section layout (experiment mode preferred) — `paper-modes` is a shared reference document, not a standalone OSS skill
 
 ## 4. See Also
 
-- [`methodology-and-context-contract.md`](methodology-and-context-contract.md) — 充分性停止规则
-- [`../support/experiment-execution/SKILL.md`](../support/experiment-execution/SKILL.md) — 实验执行（toy→full + 后台调度）
-- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — 理论推导（辅助模式）
-- [`../support/method-registry/SKILL.md`](../support/method-registry/SKILL.md) — 强制实验矩阵
+- [`methodology-and-context-contract.md`](methodology-and-context-contract.md) — sufficiency stopping rule
+- [`../support/experiment-execution/SKILL.md`](../support/experiment-execution/SKILL.md) — experiment execution (toy→full + background scheduling)
+- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — theory derivation (auxiliary mode)
+- [`../support/method-registry/SKILL.md`](../support/method-registry/SKILL.md) — mandatory experiment matrix

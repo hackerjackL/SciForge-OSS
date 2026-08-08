@@ -637,7 +637,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input**:
 ```
-/auto-pipeline "Q001: 宇宙的起源与演化"
+/auto-pipeline "Q001: The origin and evolution of the universe"
 ```
 
 **Expected Behavior**:
@@ -670,7 +670,7 @@ Output: Humanities-style paper with argument-counterargument structure
 
 **Input**:
 ```
-/auto-pipeline "Q001: 宇宙的起源与演化" — ouroboros
+/auto-pipeline "Q001: The origin and evolution of the universe" — ouroboros
 ```
 
 **Expected Behavior**:

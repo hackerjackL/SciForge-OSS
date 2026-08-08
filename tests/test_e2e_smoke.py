@@ -48,7 +48,7 @@ PIPELINE_SKILL = REPO_ROOT / "skills" / "orchestrator" / "auto-pipeline" / "SKIL
 EXPECTED_PHASE_COUNT = 21
 
 # Stage directories under {problem_id}/. Authority: the tree block in
-# skills/shared-references/output-protocol.md (section "产物目录结构", v5.2).
+# skills/shared-references/output-protocol.md (section "Artifact Directory Tree", v5.2).
 # test_output_protocol_tree_matches_hardcoded_dirs keeps both in sync.
 EXPECTED_STAGE_DIRS = frozenset({
     "refine-logs",

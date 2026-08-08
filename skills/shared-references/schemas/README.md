@@ -2,7 +2,7 @@
 
 Machine-enforceable field contracts for the machine-readable verdict artifacts that
 live flat in each research workspace's `verdicts/` directory (directory layout
-authoritatively defined in [`../output-protocol.md`](../output-protocol.md) §产物目录结构;
+authoritatively defined in [`../output-protocol.md`](../output-protocol.md) §Artifact Directory Tree;
 artifact contracts registered in [`../artifact-registry.md`](../artifact-registry.md)).
 
 Before this directory existed, every field promise in the skill docs was prose-only:

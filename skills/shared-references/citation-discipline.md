@@ -1,40 +1,40 @@
 # Citation Discipline (SciForge-OSS — Condensed)
 
-> **核心**: 每篇引用必须通过 3 层防幻觉验证。没有论文凭记忆捏造。
+> **Core**: Every citation must pass 3 layers of anti-hallucination verification. No paper is ever fabricated from memory.
 
-## 3 层防幻觉验证协议
+## 3-Layer Anti-Hallucination Verification Protocol
 
-### 第 1 层：arXiv 批量验证
-- 收集 arXiv ID，以 40 个为一批查询 `http://export.arxiv.org/api/query`
-- 验证标题、作者、摘要、分类一致
-- 状态：`verified` / `unverified` / `error`
+### Layer 1: arXiv Batch Verification
+- Collect arXiv IDs and query `http://export.arxiv.org/api/query` in batches of 40
+- Verify that the title, authors, abstract, and category match
+- Status: `verified` / `unverified` / `error`
 
-### 第 2 层：CrossRef DOI 验证
-- 对有 DOI 的论文查询 `https://api.crossref.org/works/{doi}`
-- 验证 DOI 可解析、标题匹配、至少一个作者匹配
-- 状态：`verified` / `unverified` / `error`
+### Layer 2: CrossRef DOI Verification
+- For papers with a DOI, query `https://api.crossref.org/works/{doi}`
+- Verify that the DOI resolves, the title matches, and at least one author matches
+- Status: `verified` / `unverified` / `error`
 
-### 第 3 层：Semantic Scholar 模糊匹配
-- 查询 `https://api.semanticscholar.org/graph/v1/paper/search?query={title}`
-- 验证标题、作者、year 匹配
-- 状态：`verified` / `unverified` / `error`
+### Layer 3: Semantic Scholar Fuzzy Matching
+- Query `https://api.semanticscholar.org/graph/v1/paper/search?query={title}`
+- Verify that the title, authors, and year match
+- Status: `verified` / `unverified` / `error`
 
-## 最终验证检查清单
+## Final Verification Checklist
 
-- 每篇引用使用 `\cite{key}`，key 在 `references.bib` 中存在
-- 每篇引用至少有 1 层验证通过（最好是 3 层）
-- 无 `\cite{TODO}`、`\cite{forthcoming}`、`\cite{arxiv:TODO}`
-- 每篇引用在正文中实际被引用（无 orphan 引用）
-- BibTeX 条目从已验证源生成，不手写
+- Every citation uses `\cite{key}`, and the key exists in `references.bib`
+- Every citation passes at least 1 layer of verification (preferably all 3 layers)
+- No `\cite{TODO}`, `\cite{forthcoming}`, or `\cite{arxiv:TODO}`
+- Every citation is actually cited in the body text (no orphan citations)
+- BibTeX entries are generated from verified sources, never hand-written
 
-## BibTeX 管理规则
+## BibTeX Management Rules
 
-- 从 arXiv/CrossRef/S2 自动生成 BibTeX，不手写
-- 每个条目包含 `verification_status: verified` 标签
-- 同一论文引用统一 key，不重复
-- 不包含无法验证的条目
+- BibTeX is generated automatically from arXiv/CrossRef/S2, never hand-written
+- Every entry includes the `verification_status: verified` tag
+- The same paper uses a unified key with no duplicates
+- Entries that cannot be verified are not included
 
-## 常用模板
+## Common Template
 
 ```
 @article{key,
@@ -49,9 +49,9 @@
 }
 ```
 
-## 快速参考
+## Quick Reference
 
-- **3 层验证**: arXiv → CrossRef → Semantic Scholar
-- **禁止**: `\cite{TODO}`, `\cite{forthcoming}`, 手写 BibTeX
-- **强制**: 每篇引用至少 1 层验证通过
-- **输出**: `literature/references.bib` + `VERIFICATION_LOG.md`
+- **3-layer verification**: arXiv → CrossRef → Semantic Scholar
+- **Forbidden**: `\cite{TODO}`, `\cite{forthcoming}`, hand-written BibTeX
+- **Mandatory**: every citation passes at least 1 layer of verification
+- **Output**: `literature/references.bib` + `VERIFICATION_LOG.md`

@@ -6,7 +6,7 @@
 
 ## Quick Reference
 
-- **Purpose**: 锁定 MANIFEST.md append-only 协议，全仓 output 文件统一登记
+- **Purpose**: locks the MANIFEST.md append-only protocol; all output files repo-wide registered uniformly
 - **Producer**: every skill appends a row after dual-writing its output
 - **Consumer**: pre-flight check at every skill entry reads MANIFEST.md to verify prerequisites
 - **Output**: MANIFEST.md at project root (append-only, never rewrite)

@@ -258,7 +258,7 @@ The universal rules above apply to all disciplines. Additionally, each disciplin
 
 ## 7. Noise Handling (Anti-False-Trick Mechanism)
 
-The user's core concern: "early good signal may be a local false optimum (伪 Trick)." MCTS handles this through two mechanisms:
+The user's core concern: "early good signal may be a local false optimum (false trick)." MCTS handles this through two mechanisms:
 
 ### 7.1 UCB Exploration Bonus
 

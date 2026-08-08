@@ -6,7 +6,7 @@
 
 ## Quick Reference
 
-- **Purpose**: 锁定双写本版本化协议（timestamped + fixed-name），全仓 output 文件统一
+- **Purpose**: locks the dual-write versioning protocol (timestamped + fixed-name), uniform for all output files repo-wide
 - **Producer**: every skill that writes an output file
 - **Consumer**: downstream skills read fixed-name; auditors read timestamped
 - **Output**: timestamped + fixed-name file pair per output

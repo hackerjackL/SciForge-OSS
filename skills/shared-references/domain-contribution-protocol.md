@@ -6,11 +6,11 @@
 
 ## Quick Reference
 
-- **Purpose**: 开放领域签名 PR 通道，把 unknown_evidence_type 转为 first-class 支持签名
+- **Purpose**: Open domain signature PR channel, turning unknown_evidence_type into first-class supported signatures
 - **Input**: community PR proposing new `evidence_type` + matrix rows + worked example
 - **Output**: merged PR → adaptive matrices extended; v2.8 schema_version bump
 - **Invocation**: contributor submits PR per this protocol; OSS core team reviews against the merge contract
-- **Key**: 不是任意领域加 row；schema_version 必须 bump；worked example + falsification test 是硬约束
+- **Key**: Not arbitrary per-domain row additions; schema_version must be bumped; worked example + falsification test are hard constraints
 
 ## When to Contribute
 
