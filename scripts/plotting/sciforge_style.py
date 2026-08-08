@@ -31,24 +31,26 @@ __version__ = "2.0.0"
 
 # --------------------------------------------------------------------------
 # Layer 1 — morandi design tokens (all C* <= 25, validated)
+# v2.1 palette refinement: deeper, moodier, more editorial — tested
+# feedback round found v2.0 "not premium enough". Same validation gates.
 # --------------------------------------------------------------------------
 TOKENS: dict[str, str] = {
     # ink & grounds (text, axes, backgrounds)
-    "ink": "#3A3733",          # primary text / axes / arrows
-    "ink-soft": "#6E675F",     # secondary text, strokes, gridlines
-    "canvas": "#FAF8F5",       # figure background
+    "ink": "#35322E",          # primary text / axes / arrows
+    "ink-soft": "#665F57",     # secondary text, strokes, gridlines
+    "canvas": "#FFFFFF",       # figure background — PURE WHITE (v2.1)
     "surface": "#EDE9E2",      # default node fill / panel background
     "surface-alt": "#E3DDD3",  # alternating container fill
     # categorical series (ordered by visual priority)
-    "blue": "#93A7BB",         # 1st series / hero method
-    "sage": "#A4B294",         # 2nd series / positive improvement
-    "mauve": "#BDA5A7",        # 3rd series
-    "ochre": "#C4A880",        # accent / highlight (max C* in palette)
-    "taupe": "#B0A292",        # 4th series / baseline
-    "rose": "#D9BCBC",         # soft accent / annotations fill
-    "slate": "#97A2B2",        # ablation-2
-    "moss": "#A5AB91",         # ablation-1
-    "clay": "#C2A193",         # negative / degradation
+    "blue": "#8AA1BC",         # 1st series / hero method
+    "sage": "#97A98D",         # 2nd series / positive improvement
+    "mauve": "#B49CA1",        # 3rd series
+    "ochre": "#BCA27B",        # accent / highlight (max C* in palette)
+    "taupe": "#A99C8B",        # 4th series / baseline
+    "rose": "#D3B4B4",         # soft accent / annotations fill
+    "slate": "#8D9BAE",        # ablation-2
+    "moss": "#9BA384",         # ablation-1
+    "clay": "#B99585",         # negative / degradation
 }
 
 # Semantic roles consumed by paper figures (old role names preserved so
@@ -87,21 +89,26 @@ FONT_FAMILY_SANS = "TeX Gyre Heros"      # optional sans
 FONT_STACK_SERIF = ["TeX Gyre Termes", "Liberation Serif", "DejaVu Serif"]
 FONT_STACK_SANS = ["TeX Gyre Heros", "Liberation Sans", "DejaVu Sans"]
 
+# --------------------------------------------------------------------------
+# Typography (Nature floor) — v2.1: floors raised globally (test feedback:
+# "all figures' font sizes run small")
+# --------------------------------------------------------------------------
 NATURE_FLOOR = {
-    "axis_label": 12.0,
-    "tick_label": 10.0,
-    "legend": 10.0,
-    "title": 13.0,
-    "annotation": 9.0,
-    "diagram_node": 10.0,   # physical pt equivalent for d2/graphviz text
-    "diagram_edge": 9.0,
+    "axis_label": 13.0,
+    "tick_label": 11.0,
+    "legend": 11.0,
+    "title": 15.0,
+    "annotation": 10.0,
+    "diagram_node": 12.0,   # physical pt equivalent for d2/graphviz text
+    "diagram_edge": 10.0,
 }
-LINEWIDTH = {"primary": 1.5, "secondary": 0.8, "diagram_stroke": 1.5}
-MARKER_SIZE_MIN = 6.0
+LINEWIDTH = {"primary": 1.6, "secondary": 0.9, "diagram_stroke": 1.5}
+MARKER_SIZE_MIN = 6.5
 
 # d2 font sizes are SVG px; at the default ~1000px render width embedded at
-# 8in, 1px ≈ 0.58pt.  22px ≈ 12.7pt node labels — clears the Nature floor.
-D2_FONT_PX = {"node": 22, "edge": 18, "title": 28, "container": 20}
+# 8in, 1px ≈ 0.58pt.  26px ≈ 15pt node labels — clears the raised 12pt
+# diagram floor with margin (v2.1).
+D2_FONT_PX = {"node": 26, "edge": 22, "title": 32, "container": 24}
 
 # d2 accepts fonts ONLY as .ttf file paths via --font-* CLI flags (it
 # validates `style.font` names against a tiny builtin list and rejects
