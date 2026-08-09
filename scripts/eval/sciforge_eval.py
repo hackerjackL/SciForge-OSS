@@ -260,16 +260,38 @@ def headless(model: str, prompt: str, log_path: Path, timeout: int = 3600) -> in
         log.write(f"\n===== {now_iso()} model={model} =====\n")
         log.flush()
         proc = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT,
+                              stdin=subprocess.DEVNULL,
                               env=env, cwd=str(REPO_ROOT), timeout=timeout)
     return proc.returncode
 
 
 def gate_phase(ws: Path, phase: dict) -> list[str]:
-    """Structural gate: artifact existence + verdict validation."""
+    """Structural gate: artifact existence + verdict validation +
+    phase-specific anti-surrender checks."""
     problems = []
     for rel in phase["gate"]:
         if not (ws / rel).exists():
             problems.append(f"missing artifact: {rel}")
+    # Phase 14: the review loop must not finalize not_ready while rounds remain
+    if phase["id"] == "14":
+        ledger_p = ws / ".sciforge" / "verdicts" / "REVIEW_LEDGER.json"
+        if ledger_p.exists():
+            try:
+                ledger = json.loads(ledger_p.read_text(encoding="utf-8"))
+                rounds = ledger.get("details", {}).get("rounds", [])
+                documented = [r for r in rounds if r.get("phase") != "finalized"]
+                final = [r for r in rounds if r.get("phase") == "finalized"]
+                MAX_ROUNDS = 4
+                if final and len(documented) < MAX_ROUNDS:
+                    score = final[-1].get("score")
+                    if isinstance(score, (int, float)) and score < 6:
+                        problems.append(
+                            "review loop finalized not_ready (score "
+                            f"{score}) after {len(documented)} round(s) < "
+                            f"MAX_ROUNDS={MAX_ROUNDS} — premature surrender; "
+                            "rerun phase 14 to fix-and-re-review")
+            except (OSError, ValueError):
+                pass
     verdicts_dir = sciforge(ws) / "verdicts"
     if verdicts_dir.is_dir():
         proc = subprocess.run([sys.executable, str(VALIDATOR), str(verdicts_dir)],

@@ -214,6 +214,8 @@ Then extract structured fields:
 - **Verdict** ("ready" / "almost" / "not ready")
 - **Action items** (ranked list of fixes)
 
+**LOOP-COMPLETION DISCIPLINE (v1.4.0 — anti-premature-surrender)**: one invocation of this skill covers the ENTIRE loop: rounds continue until the STOP CONDITION fires OR MAX_ROUNDS (default 4) is exhausted. Ending the loop after an early round with `effective_score < 6` while rounds remain is a CONTRACT VIOLATION (premature surrender — the CRUX shadow evaluation's agents declared "I'm done" with hours and budget still on the clock; the structural interceptor treats an under-budget `not_ready` finalization the same way: the next boundary or the eval gate rejects it). A low round score means FIX AND RE-REVIEW, not finalize.
+
 **STOP CONDITION**: If `effective_score >= 6` AND verdict contains "ready" or "almost" → stop loop, document final state. **v3.2 — `effective_score` not raw score**: the score used for the stop condition is the **min of (Phase C raw score, B.2 cap)**, NOT the raw Phase C score alone. A raw 7/10 that hides a fatal unresolved domain blind-spot (B.2 cap = 5) is `effective_score = 5` → does NOT stop, must fix the blind-spot first. This closes the gap where the generic Phase C review could declare "ready" while a fatal endogeneity / boundary-condition / straw-man failure (B.2) was never addressed.
 
 **Anti-Shrinkage Protocol (v5.1 — from CRUX shadow-evaluation failure mode #2)**:
@@ -302,7 +304,8 @@ Then extract structured fields:
 **Boundaries**:
 - This phase is **additive to, not a replacement for**, Phase B.1 (fidelity gate) and Phase C (generic review). Run all three; the score is the min of (Phase C score, B.2 cap).
 - The failure-mode row is **selected by `evidence_type` only** — never by a discipline label. No economics/physics hardcode.
-- If `domain-signature.json` is missing (Phase 1b failed), this phase **WARNs and falls back to the `derivational` row** (the most general: hidden_assumption / circular_reasoning / quantifier_error) — it never silently skips. The WARN is recorded in `BLINDSPOT_CHECK.json` (`fallback_reason: signature_missing`).
+- If `domain-signature.json` is missing (Phase 1b failed), this phase **WARNs and falls back to the `derivational` row** (the most general: hidden_assumption / circular_reasoning / quantifier_error) — it never silently skips. The WARN is recorded in `.sciforge/verdicts/BLINDSPOT_CHECK.json` (`fallback_reason: signature_missing`); when no fallback occurs, OMIT the `fallback_reason` key entirely (never write `null`).
+- Failure modes LEARNED from `domain-signature.json` (beyond the catalog) are checked with severity `learned` — they impose NO score cap (caps belong to catalog severities only: fatal→5, severe→6), but every `unresolved` learned mode still joins the fix list.
 - `unresolved` findings feed the fix list exactly like Phase C weaknesses — they are not informational-only. The loop must attempt a fix (bounded 2 solution paths before conceding, per the "Exhaust before surrendering" rule).
 - A `fatal` unresolved that survives MAX_ROUNDS surfaces to the human as `BLOCKED, reason_code: unresolved_domain_blindspot_<mode>` — it is never self-waived.
 
