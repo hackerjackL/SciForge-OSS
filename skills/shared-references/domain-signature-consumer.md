@@ -6,10 +6,10 @@
 
 ## Quick Reference
 
-- **Purpose**: 定义所有下游 skill 如何自动消费领域签名
-- **Input**: refine-logs/domain-signature.json (from /domain-learner — 唯一真相源)
-- **Output**: 各 skill 自适应行为 (无需手动配置)
-- **Key**: 每个 skill 在启动时读取签名，自动适配；不读 hint 文件
+- **Purpose**: Defines how every downstream skill automatically consumes the domain signature
+- **Input**: refine-logs/domain-signature.json (from /domain-learner — the single source of truth)
+- **Output**: Per-skill adaptive behavior (no manual configuration required)
+- **Key**: Every skill reads the signature at startup and adapts automatically; the hint file is never read
 
 ## Signature Location
 

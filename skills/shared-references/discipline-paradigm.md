@@ -26,7 +26,7 @@ The paradigm is auto-detected in Phase 1 (problem understanding) based on:
 The user can override paradigm selection:
 
 ```
-/auto-pipeline "Q042: 教育公平性研究" — paradigm: interpretive
+/auto-pipeline "Q042: A study of educational equity" — paradigm: interpretive
 /auto-pipeline "Prove the Riemann Hypothesis" — paradigm: formal
 ```
 

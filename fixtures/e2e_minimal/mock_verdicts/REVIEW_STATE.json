@@ -1,0 +1,18 @@
+{
+  "round": 1,
+  "threadId": "fixture-review-thread-q001",
+  "status": "completed",
+  "difficulty": "medium",
+  "last_score": 7.5,
+  "last_verdict": "ready",
+  "pending_derivations": [],
+  "timestamp": "2026-08-09T00:00:00Z",
+  "response_class": [
+    {
+      "concern": "variance ordering must hold per seed, not only pooled",
+      "response_class": "experiment_redesign",
+      "resolution": "per-seed breakdown added to RESULT.json metrics.per_seed; ordering holds on all 3 seeds"
+    }
+  ],
+  "round_invalid": false
+}

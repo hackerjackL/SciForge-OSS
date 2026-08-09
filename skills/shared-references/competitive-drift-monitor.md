@@ -6,22 +6,24 @@
 
 ## Quick Reference
 
-- **Purpose**: 自动定期监测竞品，发现 OSS 差异化优势被追平/反转时触发更新 PR
+- **Purpose**: recurring monitoring of competitors, triggering an update PR when an OSS differentiator is found to be closed/overturned
 - **Input**: scheduled trigger (quarterly) + competitor framework release notes / benchmarks / papers
 - **Output**: `refine-logs/competitive-drift-report-<YYYYQQ>.json` + update PR if any differentiator decayed
 - **Invocation**: quarterly cron OR manual `/competitive-drift-monitor` invoke
-- **Key**: 不是"再写一份竞品对比"；是"检测上一次对比的差异点是否仍成立，不成立的触发更新"
+- **Key**: this is not "write another competitor comparison"; it is "detect whether the differences identified in the last comparison still hold, and trigger updates for those that no longer hold"
+
+> **OSS status (v5.3)**: the `/competitive-drift-monitor` skill itself is **not bundled in OSS** (deferred/external) — this document is the advisory protocol for the intended automation. Until the skill ships, drift checks happen manually (or not at all); nothing in the pipeline gates on this document.
 
 ## The 4 Differentiators Under Monitor
 
-OSS claims 4 differentiators over competitors (from [`competitive-analysis.md`](competitive-analysis.md) § 一、核心差异化优势):
+OSS claims 4 differentiators over competitors (from [`competitive-analysis.md`](competitive-analysis.md) § 1, Core Differentiators):
 
 | # | Differentiator | Failure mode if lost |
 |---|----------------|----------------------|
-| 1 | **Domain adaptation** — signature-driven auto-adapt vs competitors' manual config | If a competitor ships domain auto-adapt, OSS loses the "唯一实现" claim; reframe to "first implementation" or "broadest evidence-type coverage" |
-| 2 | **Fantasy prevention** — 5-gate detection system | If a competitor ships hallucination gating, OSS loses the "独家" claim; reframe to "strictest" or "most-bounded" |
-| 3 | **Landing confidence** — TDAL 4-dim joint vs competitors' pass/fail | If a competitor ships multi-dim confidence, OSS loses the "唯一" claim; reframe to "only product-form joint" or "strictest threshold" |
-| 4 | **Graceful degradation** — adaptive mode (v2.8 M3) vs competitors' all-or-nothing | If a competitor ships phase degradation, OSS loses the "领先" claim; reframe to "first signature-driven" or "most granular" |
+| 1 | **Domain adaptation** — signature-driven auto-adapt vs competitors' manual config | If a competitor ships domain auto-adapt, OSS loses the "only implementation" claim; reframe to "first implementation" or "broadest evidence-type coverage" |
+| 2 | **Fantasy prevention** — 5-gate detection system | If a competitor ships hallucination gating, OSS loses the "exclusive" claim; reframe to "strictest" or "most-bounded" |
+| 3 | **Landing confidence** — TDAL 4-dim joint vs competitors' pass/fail | If a competitor ships multi-dim confidence, OSS loses the "only" claim; reframe to "only product-form joint" or "strictest threshold" |
+| 4 | **Graceful degradation** — adaptive mode (v2.8 M3) vs competitors' all-or-nothing | If a competitor ships phase degradation, OSS loses the "leading" claim; reframe to "first signature-driven" or "most granular" |
 
 **Each differentiator has a `decay_state`**: `STILL_LEADING` / `CLOSING` / `PARITY` / `OVERTAKEN`. The monitor's job is to compute the state quarterly and trigger update PR when state transitions off `STILL_LEADING`.
 

@@ -43,7 +43,8 @@ function cmd_init(target) {
     }
   };
   copyTree("skills");
-  for (const f of ["AGENT_GUIDE.md", "SKILL.md", "README.md", "CITATION.cff", "package.json"]) {
+  copyTree("scripts");  // v5.3: toolchain (plotting/validators/security scan) ships with the skills
+  for (const f of ["AGENT_GUIDE.md", "SKILL.md", "README.md", "LICENSE", "VERSIONING.md", "CITATION.cff", "package.json"]) {
     const s = join(PKG_ROOT, f);
     if (existsSync(s)) copyFileSync(s, join(dst, f));
   }

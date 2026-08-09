@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-09T00:00:30Z",
+  "metrics_locked": [
+    {
+      "metric_name": "variance_ratio",
+      "aggregation": "mean_pm_std"
+    }
+  ],
+  "baselines": [
+    {
+      "name": "sample_median",
+      "conditions_aligned": true,
+      "source": "reproduced_by_us"
+    }
+  ],
+  "reporting": {
+    "all_seeds_reported": true,
+    "full_grid_reported": true
+  }
+}

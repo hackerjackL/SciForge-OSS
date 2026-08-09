@@ -1,6 +1,6 @@
 ---
 name: auto-pipeline
-version: 1.1.2
+version: 1.2.0
 description: "SciForge-OSS autonomous 21-phase research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
@@ -15,10 +15,10 @@ role: single-question-research-orchestrator
 
 ## Quick Reference
 
-- **Entry point**: `/auto-pipeline "Q001: 问题描述" — effort: max`
-- **Scope**: 单题执行，21 阶段 DAG 循环，全领域通用
-- **Output**: 完整论文 (LaTeX/PDF) + 所有中间产物
-- **Key**: 单题执行，不迭代问题索引，人类提供 Q-id；Phase 2.5 强制证伪；Phase 3→4 和 Phase 5→6 需人类审批
+- **Entry point**: `/auto-pipeline "Q001: problem description" — effort: max`
+- **Scope**: single-question execution, 21-phase DAG loop, universal across all domains
+- **Output**: complete paper (LaTeX/PDF) + all intermediate artifacts
+- **Key**: single-question execution, does not iterate the problem index, human supplies the Q-id; Phase 2.5 falsification is mandatory; Phase 3→4 and Phase 5→6 require human approval
 - **Optional flags**: `test_mode=true` (auto-waive the 2 human checkpoints for end-to-end stress testing — see TEST_MODE exemption below); `language=chinese`; `effort=lite|balanced|max|beast`
 
 ## Use When
@@ -26,9 +26,9 @@ role: single-question-research-orchestrator
 Use this skill when the AI scientist needs to solve **one** user-supplied research problem end-to-end (fully autonomous research). This is the **only entry orchestrator** — it does not branch by discipline; it uses the DAG architecture to handle any scientific domain via universal meta-skills.
 
 Typical prompts:
-- "Solve Q001" / "解决 Q001：宇宙的起源与演化"
+- "Solve Q001" / "Solve Q001: the origin and evolution of the universe"
 - "run the full pipeline on Q042"
-- "帮我完整研究 Q015"
+- "Run the complete research pipeline on Q015 for me"
 
 **The human user supplies the specific Q-id** in the prompt. OSS does **not** auto-search the problem index or iterate over all questions. Each invocation = one Q-id = one complete pipeline run.
 
@@ -50,24 +50,24 @@ The domain signature is the **central wiring mechanism** that makes domain adapt
 
 ```
 Phase 1a: /domain-signature (OPTIONAL fast-path, rule-based hint)
-     │  → 输出 refine-logs/domain-signature-hint.json (临时 hint，置信度可能 < 0.7)
-     │  → 仅用作 learner 的 prior / 冷启动种子；不直接被下游消费
+     │  → writes refine-logs/domain-signature-hint.json (temporary hint, confidence may be < 0.7)
+     │  → used only as a prior / cold-start seed for the learner; not consumed directly downstream
      ↓
-Phase 1b: /domain-learner (MUST, literature-based learning)  ← 唯一真相源
-     │  → 从文献 + 种子论文从零学习领域特性
-     │  → 读取 hint.json 作为 prior（若存在）+ 自主文献检索修正
-     │  → 输出覆盖 refine-logs/domain-signature.json (下游唯一消费源)
+Phase 1b: /domain-learner (MUST, literature-based learning)  ← single source of truth
+     │  → learns domain characteristics from scratch from literature + seed papers
+     │  → reads hint.json as a prior (if present) + corrects via autonomous literature retrieval
+     │  → overwrites refine-logs/domain-signature.json (sole downstream consumption source)
      ↓
 refine-logs/domain-signature.json (written ONLY by Phase 1b)
      ↓
-Phase 2:  /idea-discovery        → 读取签名 → 调整视角权重
-Phase 2.5: /adversarial-falsification → 读取签名 → 加载领域失败模式 + 校准 EG 子维 N/A 判定
-Phase 2.5b: (Phase 5b EG) → 读取签名 → 领域特定 EG 子维加权（Compute/N/A 判定）
-Phase 3:  /novelty-check         → 读取签名 → 调整评估权重
-Phase 5:  /method-registry       → 读取签名 → 调整假设评分标准
-Phase 6:  /verification-routing  → 读取签名 → 路由判定（experiment-first 默认 / theory-only 例外 / hybrid）→ 写 VERIFICATION_ROUTING.json，再分发 Phase 6a/6b/6c
-Phase 10: /result-to-claim       → 读取签名 → 校准置信度
-Phase 12: /paper-writing         → 读取签名 → 选择写作风格/引用格式
+Phase 2:  /idea-discovery        → reads signature → adjusts perspective weights
+Phase 2.5: /adversarial-falsification → reads signature → loads domain failure modes + calibrates EG sub-dimension N/A judgments
+Phase 2.5b: (Phase 5b EG) → reads signature → domain-specific EG sub-dimension weighting (Compute/N/A judgment)
+Phase 3:  /novelty-check         → reads signature → adjusts evaluation weights
+Phase 5:  /method-registry       → reads signature → adjusts hypothesis scoring criteria
+Phase 6:  /verification-routing  → reads signature → routing decision (experiment-first default / theory-only exception / hybrid) → writes VERIFICATION_ROUTING.json, then dispatches Phase 6a/6b/6c
+Phase 10: /result-to-claim       → reads signature → calibrates confidence
+Phase 12: /paper-writing         → reads signature → selects writing style / citation format
 ```
 
 **Key design (v2.8 — learner-first)**: Phase 1b is **mandatory** and is the only writer of `domain-signature.json`. Phase 1a is **optional** and writes a separate `domain-signature-hint.json` consumed only by the learner as a prior. This eliminates the "rule-hardcoded signature" failure mode: even when 1a's rules match cleanly, the learner still re-derives the signature from literature to catch rule mismatches. Each downstream skill reads `domain-signature.json` independently at startup. If the signature doesn't exist (learner failed), all skills use default behavior — the pipeline continues but flags reduced domain adaptation.
@@ -80,7 +80,7 @@ Where possible, phases run in parallel to reduce wall-clock time:
 
 | Parallel Group | Phases | Rationale |
 |---------------|--------|-----------|
-| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output. **B1 硬性串行化 (v2.3)**: Phase 2 拆两段——Round 1 (idea 生成) 可与 Phase 4 文献检索并行；但 **novelty 预筛 (6-axis 中 novelty 轴) 与 Round 2-4 评估必须等 Phase 4 完成**（读到 `literature/references.bib` 才跑 novelty 轴，禁止用空 bib 预筛或先斩后奏）。若 Phase 4 WARN/空文献，novelty 轴标记 `pending-literature` 并如实记录，不静默降级为猜测。 |
+| **Group A** | Phase 2 (idea-discovery) + Phase 4 (universal-retrieval) | Literature search does not depend on idea generation output. **B1 hard serialization (v2.3)**: Phase 2 is split into two segments — Round 1 (idea generation) may run in parallel with Phase 4 literature retrieval; but **the novelty pre-screen (the novelty axis of the 6-axis) and the Round 2-4 evaluations MUST wait for Phase 4 to complete** (the novelty axis runs only once `literature/references.bib` is readable; pre-screening against an empty bib or acting first and reporting later is forbidden). If Phase 4 WARNs / returns empty literature, the novelty axis is marked `pending-literature` and recorded faithfully — never silently degraded to guessing. |
 | **Group B** | Phase 11 (unified-plotting) + Phase 12 (paper-writing) | Figures can be generated while the paper is being written |
 | **Group C** | Phase 7 (leakage-audit) + Phase 8 (logic-verification) | Both audits are independent |
 
@@ -122,117 +122,117 @@ Non-negotiable for OSS runs (esp. multi-round / context-constrained):
 This section replaces ad-hoc instructions duplicated across skills; the contract file is the single source of truth.
 
 ```
-Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
+Phase  0: load problem (freeze Q-id — INV-G1 anchor)
      │
-Phase  1: 问题理解与分解（内置推理）[MUST]
+Phase  1: problem understanding & decomposition (built-in reasoning) [MUST]
      │
-     ├───────────────── DAG 分支 ─────────────────┐
+     ├───────────────── DAG branch ─────────────────┐
      │                                             │
-Phase  1a: /domain-signature 领域特征提取 [OPTIONAL] ← v2.8 降级为快路径 hint
-     │  分析问题文本 → 提取领域 hint (rule-based)    │
-     │  输出 refine-logs/domain-signature-hint.json  │
-     │  (不直接被下游消费，仅供 Phase 1b 作 prior)    │
+Phase  1a: /domain-signature domain feature extraction [OPTIONAL] ← v2.8 demoted to fast-path hint
+     │  analyze problem text → extract domain hint (rule-based)    │
+     │  writes refine-logs/domain-signature-hint.json  │
+     │  (not consumed directly downstream; only a prior for Phase 1b)    │
      │                                             │
-Phase  1b: /domain-learner 领域学习 [MUST] ← v2.8 升为唯一真相源
-     │  从文献 + 种子论文从零学习领域特性           │
+Phase  1b: /domain-learner domain learning [MUST] ← v2.8 promoted to single source of truth
+     │  learn domain characteristics from scratch from literature + seed papers           │
      │  (literature search + seed paper analysis)   │
-     │  读取 hint.json 作 prior + 自主检索修正      │
-     │  输出 refine-logs/domain-signature.json      │
-     │  (下游唯一消费源；learner confidence 阈值 0.7)│
+     │  read hint.json as prior + correct via autonomous retrieval      │
+     │  writes refine-logs/domain-signature.json      │
+     │  (sole downstream consumption source; learner confidence threshold 0.7)│
      │                                             │
-Phase  2: /idea-discovery [DAG 分支] [MUST] — 3 视角 idea
+Phase  2: /idea-discovery [DAG branch] [MUST] — 3-perspective ideas
      │  (theoretical / computational / qualitative)   │
-     │  + MCTS 迭代 (4 轮, 8-12 root nodes)           │
-     │  + 输出 verification_type (理论-only / 计算 / 理论+实验)
+     │  + MCTS iteration (4 rounds, 8-12 root nodes)           │
+     │  + outputs verification_type (theory-only / computational / theory+experiment)
      │                                             │
-Phase  2.5: /adversarial-falsification [证伪门控] [MUST]
-     │  6 维度攻击: 假设评分 → 反例构造 → 文献对抗    │
-     │  → 类比映射 → 沙盒可行性 → 工程落地 → 数据可用性 │
-     │  SURVIVE → 继续; WEAKENED → 回退 Phase 2      │
-     │  FALSIFIED → 淘汰 (记录原因, 不再进入推导)     │
+Phase  2.5: /adversarial-falsification [falsification gate] [MUST]
+     │  6-dimension attack: assumption scoring → counterexample construction → literature adversarial    │
+     │  → analogy mapping → sandbox feasibility → engineering grounding → data availability │
+     │  SURVIVE → continue; WEAKENED → fall back to Phase 2      │
+     │  FALSIFIED → eliminated (record reason, does not enter derivation)     │
      │                                             │
-     │  Phase 5a: OSS Sandbox Feasibility (沙盒能否跑)│
-     │  Phase 5b: AI Engineering Grounding (AI 能否落地)│
+     │  Phase 5a: OSS Sandbox Feasibility (can the sandbox run it)│
+     │  Phase 5b: AI Engineering Grounding (can the AI be implemented)│
      │                                             │
-Phase  3: /novelty-check [DAG 门控] [MUST] — 4 维评估 + 淘汰
-     │  (新颖性×0.45 + 可行性×0.25 + 相关性×0.15 + 工程落地×0.15)│
+Phase  3: /novelty-check [DAG gate] [MUST] — 4-dimension evaluation + elimination
+     │  (novelty×0.45 + feasibility×0.25 + relevance×0.15 + engineering grounding×0.15)│
      │                                             │
      └ Forced human checkpoint: pick the final idea ─┘
      │
-Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
+Phase  4: /universal-retrieval — literature survey + 3-layer anti-hallucination
      │
-     ├── 验证路径分支 (由 verification_type 决定) ────┐
+     ├── verification path branch (determined by verification_type) ────┐
      │                                                 │
-     │  [理论-only]  → 跳至 Phase 8 (逻辑验证)         │
-     │  [计算]       → Phase 5 → 6 → 7 → 8            │
-     │  [理论+实验]  → Phase 5 → 6 → 7 → 8            │
-     │  (OSS 无实验环境，实验部分输出为可验证预测)      │
+     │  [theory-only]  → skip to Phase 8 (logic verification)         │
+     │  [computational]       → Phase 5 → 6 → 7 → 8            │
+     │  [theory+experiment]  → Phase 5 → 6 → 7 → 8            │
+     │  (OSS has no experiment environment; the experiment part outputs verifiable predictions)      │
      │                                                 │
-Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批       ← 新增
+Phase  5: /method-registry — method binding + hash lock + forced human approval       ← new
      │
-Phase  6: /verification-routing — 验证路由判定 [MUST]                ← v5.0
-     │  读 domain-signature.evidence_type + 可计算性信号 →
-     │  experiment-first（默认）/ theory-only（例外：derivational ∧ 无可执行计算）/ hybrid
-     │  → 写 refine-logs/VERIFICATION_ROUTING.json（route/evidence_type/reason）
-     │  见 shared-references/verification-routing.md
+Phase  6: /verification-routing — verification routing decision [MUST]                ← v5.0
+     │  read domain-signature.evidence_type + computability signals →
+     │  experiment-first (default) / theory-only (exception: derivational ∧ no executable computation) / hybrid
+     │  → writes refine-logs/VERIFICATION_ROUTING.json (route/evidence_type/reason)
+     │  see shared-references/verification-routing.md
      │
-Phase  6a: /theory-derivation — 符号推导 + 逐步机器验证 [ROUTED]
-     │  theory-only / hybrid → MUST（主验证或并行主验证）
-     │  experiment-first → OPTIONAL 辅助（有推导结构才走；不阻塞、不强制全步 SymPy）
-     │          ↻ 失败回退 Phase 1（最多 3 轮）
-     │          (theory-only: engine=manual, 标记为 [not machine-verified])
+Phase  6a: /theory-derivation — symbolic derivation + step-by-step machine verification [ROUTED]
+     │  theory-only / hybrid → MUST (primary verification or parallel primary verification)
+     │  experiment-first → OPTIONAL auxiliary (take it only if derivational structure exists; non-blocking, full-step SymPy not forced)
+     │          ↻ on failure fall back to Phase 1 (max 3 rounds)
+     │          (theory-only: engine=manual, marked [not machine-verified])
      │
-     │  ── 实验执行层 (v2.0, v5.0 默认主验证) ──
+     │  ── experiment execution layer (v2.0, v5.0 default primary verification) ──
      │
 Phase  6b: /experiment-execution --stage=toy [ROUTED]                 ← v2.0/v5.0
-     │  玩具实验：最小规模（~20 轮量级）验证"想法方向对不对"（想法生死判）
+     │  toy experiment: minimal scale (~20 rounds) verifies "is the idea direction right" (idea life-or-death verdict)
      │  (theory-only → SKIP; experiment-first/hybrid → MUST)
-     │  前台硬上限 5 分钟；预计 > 5 分钟 → 也挂后台 (toy_bg)
-     │  Gate: PASS → Phase 6c; FAIL → KILL-or-PIVOT 决策（见 experiment-execution
-     │  从 0 到 1 停止协议；负向显著且 ≥2 种子可复现才触发；PIVOT ≤2 次预算）
-     │  (toy_bg 完成后再判 Gate，不等前台)
+     │  foreground hard cap 5 minutes; estimated > 5 minutes → also dispatch to background (toy_bg)
+     │  Gate: PASS → Phase 6c; FAIL → KILL-or-PIVOT decision (see experiment-execution
+     │  from-0-to-1 stop protocol; triggered only when significantly negative and reproducible on ≥2 seeds; PIVOT budget ≤2)
+     │  (judge the Gate after toy_bg completes; do not wait on the foreground)
      │
 Phase  6c: /experiment-execution --stage=full --background [ROUTED]  ← v2.0/v5.0
-     │  全量实验：后台调度 (tmux/nohup/systemd)；按 method-registry §3 强制实验矩阵执行
+     │  full experiment: background scheduling (tmux/nohup/systemd); execute the mandatory experiment matrix per method-registry §3
      │  (theory-only → SKIP; experiment-first/hybrid → MUST)
-     │  Dispatch → 立即返回，pipeline 继续
-     │  v5.1 完成判据：实验完成时读取 Return payload 的 budget_floor——
-     │  satisfied=false → verdict 只认 IN_PROGRESS/BLOCKED，不得进 Phase 10
-     │  （"未消耗最低探索预算不得宣布完成"；completion_justification 见
-     │  experiment-execution Step 6 探索预算下限）
+     │  Dispatch → return immediately, pipeline continues
+     │  v5.1 completion criteria: on experiment completion read budget_floor from the Return payload —
+     │  satisfied=false → verdict may only be IN_PROGRESS/BLOCKED; must not enter Phase 10
+     │  ("do not declare completion before the minimum exploration budget is consumed"; completion_justification
+     │  see experiment-execution Step 6 exploration budget floor)
      │
-Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
-     │          ↻ CRITICAL 回退 Phase 5（3 轮 callback 上限）
-     │          (理论-only: Type IV = NOT_APPLICABLE)
+Phase  7: /leakage-audit — Type I logic leakage + Type IV escape audit
+     │          ↻ CRITICAL falls back to Phase 5 (3-round callback cap)
+     │          (theory-only: Type IV = NOT_APPLICABLE)
      │
-     └── 路径汇合 ─────────────────────────────────┘
+     └── paths merge ─────────────────────────────────┘
      │
-Phase  8: /logic-verification — 6 维度逻辑一致性审计
-     │          ↻ FATAL/CRITICAL 回退 Phase 6（最多 3 轮）
-Phase  9: /invariant-check — INV-G1 问题锚点冻结验证                  ← 新增
+Phase  8: /logic-verification — 6-dimension logic consistency audit
+     │          ↻ FATAL/CRITICAL fall back to Phase 6 (max 3 rounds)
+Phase  9: /invariant-check — INV-G1 problem-anchor freeze verification                  ← new
      │
-Phase 10: /result-to-claim — 3 保真度 claim 门控                     ← 新增
-     │  (symbolic / numerical / qualitative; 主结果需 ≥ numerical)
+Phase 10: /result-to-claim — 3-fidelity claim gate                     ← new
+     │  (symbolic / numerical / qualitative; primary result requires ≥ numerical)
      │
-Phase 11: /unified-plotting — 学术图表（可选，莫兰迪色系 + Layer 2）
+Phase 11: /unified-plotting — academic figures (optional, Morandi palette + Layer 2)
      │
-Phase 12: /paper-writing — elsarticle 单模板写作
+Phase 12: /paper-writing — single-template writing (elsarticle)
      │
-Phase 13: /paper-compile — LaTeX 零警告零报错编译                    ← 新增
-     │          ↻ 反死循环阶梯 (3 attempt per-warning → BLOCKED)
+Phase 13: /paper-compile — LaTeX zero-warning zero-error compilation                    ← new
+     │          ↻ anti-deadloop ladder (3 attempts per-warning → BLOCKED)
      │
-Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺      ← 新增
-     │          ↻ 分数 < 6 回退 Phase 6（最多 4 轮）
+Phase 14: /auto-review-loop — cross-model review + kill-argument anti-self-deception      ← new
+     │          ↻ score < 6 falls back to Phase 6 (max 4 rounds)
      │
-Phase 15: /citation-audit — 最终引用 3 层验证                        ← 新增
+Phase 15: /citation-audit — final 3-layer citation verification                        ← new
      │
-Phase 15.5: /publishability-score — 可发表性评分 (dim1 首轴门控)     ← 新增 v2.2
-     │         产出 PUBLISHABILITY_SCORE.json/md
+Phase 15.5: /publishability-score — publishability score (dim1 first-axis gate)     ← new v2.2
+     │         produces PUBLISHABILITY_SCORE.json/md
      │
-Phase 16: 最终组装 + 产物归档
+Phase 16: final assembly + artifact archival
 ```
 
-**回退契约**: 每阶段失败回退到最近的前置阶段（最多 3 轮）。3 轮失败升级到 BLOCKED + `reason_code`（复用主仓库 `paper-compile` E16 反死循环阶梯）。**永不静默重试到第 4 轮**——3 轮上限是硬约束。
+**Fallback contract**: each phase failure falls back to the nearest prior phase (max 3 rounds). 3 failed rounds escalate to BLOCKED + `reason_code` (reuses the main repo's `paper-compile` E16 anti-deadloop ladder). **Never silently retry into round 4** — the 3-round cap is a hard constraint.
 
 ## Graceful Degradation Protocol
 
@@ -248,68 +248,68 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 
 | Phase | Mode | Condition |
 |-------|------|-----------|
-| 0: 加载问题 | MUST | — |
-| 1: 问题理解 | MUST | — |
-| 1a: domain-signature | OPTIONAL | v2.8 降级为快路径 hint，输出 domain-signature-hint.json；learner 不可用时禁用 |
-| 1b: domain-learner | MUST | v2.8 升为唯一真相源；读取 hint.json 作 prior，输出 domain-signature.json |
+| 0: load problem | MUST | — |
+| 1: problem understanding | MUST | — |
+| 1a: domain-signature | OPTIONAL | v2.8 demoted to fast-path hint, outputs domain-signature-hint.json; disabled when the learner is unavailable |
+| 1b: domain-learner | MUST | v2.8 promoted to single source of truth; reads hint.json as prior, outputs domain-signature.json |
 | 2: idea-discovery | MUST | — |
 | 2.5: adversarial-falsification | MUST | — |
-| 2.5b: adversarial-falsification Phase 5b (EG) | MUST | ENGINEERING_GROUNDING.md 必产；HEAVY/CONSTRAINED 全量输出，READY 简化版 |
+| 2.5b: adversarial-falsification Phase 5b (EG) | MUST | ENGINEERING_GROUNDING.md mandatory; HEAVY/CONSTRAINED full output, READY simplified version |
 | 3: novelty-check | MUST | — |
-| 4: universal-retrieval | MUST | v2.2: 不可跳过 — 即使 theory-only 也必须跑（理论问题需查重避免重复证明）；走 mihomo 代理（规则模式）访问 arxiv/s2/crossref |
+| 4: universal-retrieval | MUST | v2.2: non-skippable — must run even for theory-only (theory problems need a duplication check to avoid re-proving known results); access arxiv/s2/crossref via the mihomo proxy (rule mode) |
 | 5: method-registry | MUST | — |
-| 6: verification-routing | MUST | v5.0: Phase 6 入口路由判定 → VERIFICATION_ROUTING.json（experiment-first 默认） |
-| 6a: theory-derivation | ROUTED | v5.0: theory-only/hybrid → MUST；experiment-first → OPTIONAL 辅助（不阻塞） |
-| 6b: experiment-execution (toy) | ROUTED | v5.0: theory-only → SKIP；experiment-first/hybrid → MUST（想法生死判，FAIL → KILL-or-PIVOT） |
-| 6c: experiment-execution (full+bg) | ROUTED | v5.0: theory-only → SKIP；experiment-first/hybrid → MUST（background dispatch + 强制实验矩阵） |
+| 6: verification-routing | MUST | v5.0: routing decision at the Phase 6 entry → VERIFICATION_ROUTING.json (experiment-first default) |
+| 6a: theory-derivation | ROUTED | v5.0: theory-only/hybrid → MUST; experiment-first → OPTIONAL auxiliary (non-blocking) |
+| 6b: experiment-execution (toy) | ROUTED | v5.0: theory-only → SKIP; experiment-first/hybrid → MUST (idea life-or-death verdict, FAIL → KILL-or-PIVOT) |
+| 6c: experiment-execution (full+bg) | ROUTED | v5.0: theory-only → SKIP; experiment-first/hybrid → MUST (background dispatch + mandatory experiment matrix) |
 | 7: leakage-audit | MUST | — |
 | 8: logic-verification | MUST | — |
 | 9: invariant-check | MUST | — |
 | 10: result-to-claim | MUST | — |
-| 11: unified-plotting | MUST | v2.2: 图非可选——每篇论文至少 1 图（架构图/结果图）；无数据图时至少画 1 个 pipeline/概念图 |
+| 11: unified-plotting | MUST | v2.2: figures are not optional — every paper has at least 1 figure (architecture/result figure); when no data figures exist, draw at least 1 pipeline/concept figure |
 | 12: paper-writing | MUST | — |
-| 13: paper-compile | MUST | v2.2: 零警告零报错强制（不可豁免）；装好 texlive 后真编译产 PDF |
-| 14: auto-review-loop | MUST | v2.2: 自审查强制（角色切换 researcher→reviewer→adjudicator）；分数 < 6 回退 Phase 6/12（最多 4 轮）；不再可用 grounding-check 替代 |
+| 13: paper-compile | MUST | v2.2: zero-warning zero-error mandatory (non-waivable); real compile to PDF once texlive is installed |
+| 14: auto-review-loop | MUST | v2.2: self-review mandatory (role rotation researcher→reviewer→adjudicator); score < 6 falls back to Phase 6/12 (max 4 rounds); can no longer be replaced by grounding-check |
 | 15: citation-audit | MUST | — |
-| 15.5: publishability-score | MUST | v2.2 新增：最终可发表性评分（主实验逻辑到位为首要轴）；产出 PUBLISHABILITY_SCORE.json/md |
-| 16: 最终组装 + 清洁度审计 | MUST | v2.2: 加 project-architecture-contract 清洁度审计（orphan 文件/空目录/README 完整性） |
+| 15.5: publishability-score | MUST | v2.2 new: final publishability score (primary axis = main experiment logic in place); produces PUBLISHABILITY_SCORE.json/md |
+| 16: final assembly + cleanliness audit | MUST | v2.2: adds the project-architecture-contract cleanliness audit (orphan files / empty directories / README completeness) |
 
 ### Degradation Rules
 
 1. **OPTIONAL phase fails** → Log WARN with reason, skip to next phase, continue pipeline
 2. **MUST phase fails after 3 rounds** → BLOCKED, surface to human with complete failure trace
 3. **CONDITIONAL phase** → Check condition before running. If condition not met, skip with WARN
-4. **paper-compile** (v2.2: now MUST, zero-warnings non-negotiable) → 零警告零报错强制；装好 texlive 后真编译产 PDF；警告不豁免（旧的可降级规则已废除）；3 attempt per-warning 反死循环阶梯后仍 FAIL → BLOCKED + 人工
-5. **auto-review-loop** (v2.2: now MUST) → 自审查强制，3 轮角色切换 (researcher→reviewer→adjudicator)；不再可用 grounding-check 替代；分数 < 6 回退 Phase 6/12（最多 4 轮）
-6. **unified-plotting** (v2.2: now MUST) → 每篇论文至少 1 图（架构图/结果图/概念图）；无数据图时画 1 个 pipeline/概念图（d2 或 tikz）
+4. **paper-compile** (v2.2: now MUST, zero-warnings non-negotiable) → zero-warning zero-error mandatory; real compile to PDF once texlive is installed; warnings non-waivable (the old degradable rule is abolished); still FAIL after the 3-attempt-per-warning anti-deadloop ladder → BLOCKED + human
+5. **auto-review-loop** (v2.2: now MUST) → self-review mandatory, 3-round role rotation (researcher→reviewer→adjudicator); can no longer be replaced by grounding-check; score < 6 falls back to Phase 6/12 (max 4 rounds)
+6. **unified-plotting** (v2.2: now MUST) → every paper has at least 1 figure (architecture/result/concept); when no data figures exist, draw 1 pipeline/concept figure (d2 or tikz)
 
 ## Quality Gates (Explicit Per-Phase)
 
-| 阶段 | 门控条件 | 失败处理 |
+| Phase | Gate condition | On failure |
 |------|---------|---------|
-| 0 | Q-id 清晰可解、来自人类提示词 | 请求用户澄清 Q-id；**不**自动搜索问题索引 |
-| 1 | 问题可分解为形式化陈述 | 请求用户澄清问题边界 |
-| 2 | 至少生成 1 个 idea (MCTS 收敛) | 放宽 perspectives 重评；再失败升级 BLOCKED |
-| 2.5 | 证伪攻击: 假设健康度 ≥ 6 OR 无反例 | WEAKENED → 回退 Phase 2 重生成；FALSIFIED → 淘汰（记录原因） |
-| 2.5b | Engineering Grounding 报告输出（Phase 5b）: ENGINEERING_GROUNDING.md 生成 | 仅 HEAVY/CONSTRAINED 必需输出；BLOCKED 淘汰（子维 = 0）
-| 3 | DAG 收敛到 1 个幸存者 (≥ 0.6 idea-fit) | 放宽 strictness 重评；再失败升级 BLOCKED |
-| — | **强制人类审批**：从幸存者中选最终 idea | 等待人类确认；agent 不能自选 |
-| 4 | 文献搜索完成 + 3 层验证通过 + 筛选链(真+全)完整性核 PASS | v2.2: **不可跳过**——即使 theory-only 也必须跑（理论问题需查重避免重复证明）；空则 WARN 但继续（需人工补救文献）；筛选链核：每篇引用至少 1 层验证 + 无 orphan 引用 + 引用覆盖核心 claim |
-| 5 | 方法 registry 构建完成 + hash 锁 + **强制人类审批** | 请求用户审批 Section 3；agent 不能自批 |
-| 6 | SymPy 推导成功 + 逐步机器验证 PASS | 回退 Phase 1（最多 3 轮） |
-| 6b | 玩具实验 RESULT.json status=PASS + core_claim_validated=true | **v5.1**: FAIL → KILL-or-PIVOT 决策（负向显著且 ≥2 种子可复现才触发：PIVOT 回 Phase 5 重注册方法（预算 ≤2）/ KILL → kill-argument 杀论证 → 回 Phase 2 换 idea）；TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
-| 6c | 全量实验 DISPATCH.json 生成 + 后台进程启动确认 + **v5.1 budget_floor.satisfied**（路线探索≥2 或否决证据 + 矩阵 100% + 种子足额 + 失败留痕 + completion_justification） | 无后台方法 → BLOCKED; 启动失败 → 1 retry; theory-only → SKIP; budget_floor 不满足 → IN_PROGRESS（继续探索，不得进 Phase 10） |
-| 6c-BA | 全量实验完成且 STATUS.json verdict=FAIL（toy 曾 PASS） | **v2.2.1 BA**: 回退 Phase 2 重生成 idea（bounded 2 轮）—见 [idea-discovery BA 机制](../../meta-skills/idea-discovery/SKILL.md) |
-| 7 | Type I 无 CRITICAL + Type IV 无 ESCAPE | CRITICAL → callback Phase 5 (3 轮上限)；再失败升级 BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
-| 8 | 6 维度逻辑审计 PASS (零 FATAL/CRITICAL) | FATAL/CRITICAL 回退 Phase 6（最多 3 轮）；**FATAL=实验数据与推导结论矛盾 → v2.2.1 BA 回 Phase 2**（bounded 2 轮） |
-| 9 | INV-G1 Q-id 冻结 + 在当前产物中引用 | FAIL → 重新锚定 Q-id (Phase 0) |
-| 10 | 至少 1 个主结果达到 ≥ numerical 保真度 | qualitative-only → reframe 为 conjecture；numerical 缺失 → 回退 Phase 6 |
-| 11 | (可选) 图表遵循莫兰迪色系 + Layer 2 数据热图 | 色系违规 → 重生成；非数据图无强制 |
-| 12 | 论文非空 + 统一 elsarticle 模板 + 引用都来自验证列表 | 空则回退 Phase 1；模板违规回退 Phase 12 |
-| 13 | LaTeX 编译零警告零报错 (submission 级) | 反死循环阶梯：3 attempt per-warning → BLOCKED + reason_code |
-| 14 | 跨模型评审分数 ≥ 6/10 + kill-argument 反自欺 PASS | 分数 < 6 回退 Phase 6（最多 4 轮）；反自欺 FAIL 回退 Phase 10；**kill-argument 站住(claim 被自身实验否定) → v2.2.1 BA 回 Phase 2**（bounded 2 轮） |
-| 15 | 所有引用通过 3 层防幻觉验证 | 失败 → 删除虚构引用 + 回退 Phase 4 重搜 |
-| 16 | 产物归档完整 | 缺失产物回退相关阶段 |
+| 0 | Q-id is clear, well-posed, and comes from the human prompt | Ask the user to clarify the Q-id; do **not** auto-search the problem index |
+| 1 | Problem decomposes into formal statements | Ask the user to clarify the problem boundary |
+| 2 | At least 1 idea generated (MCTS converges) | Relax perspectives and re-evaluate; further failure escalates to BLOCKED |
+| 2.5 | Falsification attack: assumption health ≥ 6 OR no counterexample | WEAKENED → fall back to Phase 2 and regenerate; FALSIFIED → eliminated (record reason) |
+| 2.5b | Engineering Grounding report output (Phase 5b): ENGINEERING_GROUNDING.md generated | Required output only for HEAVY/CONSTRAINED; BLOCKED eliminates (sub-dimension = 0)
+| 3 | DAG converges to 1 survivor (≥ 0.6 idea-fit) | Relax strictness and re-evaluate; further failure escalates to BLOCKED |
+| — | **Forced human approval**: pick the final idea from the survivors | Wait for human confirmation; the agent cannot self-select |
+| 4 | Literature search complete + 3-layer verification passed + screening-chain (truth+completeness) integrity check PASS | v2.2: **non-skippable** — must run even for theory-only (theory problems need a duplication check to avoid re-proving known results); if empty WARN but continue (literature requires manual remediation); screening-chain check: every reference has ≥ 1 verification layer + no orphan references + references cover the core claims |
+| 5 | Method registry built + hash lock + **forced human approval** | Ask the user to approve Section 3; the agent cannot self-approve |
+| 6 | SymPy derivation succeeds + step-by-step machine verification PASS | Fall back to Phase 1 (max 3 rounds) |
+| 6b | Toy experiment RESULT.json status=PASS + core_claim_validated=true | **v5.1**: FAIL → KILL-or-PIVOT decision (triggered only when significantly negative and reproducible on ≥2 seeds: PIVOT back to Phase 5 to re-register the method (budget ≤2) / KILL → kill argument → back to Phase 2 for a new idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
+| 6c | Full experiment DISPATCH.json generated + background process launch confirmed + **v5.1 budget_floor.satisfied** (route exploration ≥2 or veto evidence + 100% matrix + full seed quota + failure traces + completion_justification) | No background method available → BLOCKED; launch failure → 1 retry; theory-only → SKIP; budget_floor not satisfied → IN_PROGRESS (keep exploring; must not enter Phase 10) |
+| 6c-BA | Full experiment complete and STATUS.json verdict=FAIL (toy previously PASSed) | **v2.2.1 BA**: fall back to Phase 2 to regenerate ideas (bounded 2 rounds) — see [idea-discovery BA mechanism](../../meta-skills/idea-discovery/SKILL.md) |
+| 7 | Type I has no CRITICAL + Type IV has no ESCAPE | CRITICAL → callback to Phase 5 (3-round cap); further failure escalates to BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
+| 8 | 6-dimension logic audit PASS (zero FATAL/CRITICAL) | FATAL/CRITICAL fall back to Phase 6 (max 3 rounds); **FATAL = experimental data contradicts derivation conclusions → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
+| 9 | INV-G1 Q-id frozen + referenced in the current artifacts | FAIL → re-anchor the Q-id (Phase 0) |
+| 10 | At least 1 primary result reaches ≥ numerical fidelity | qualitative-only → reframe as conjecture; numerical missing → fall back to Phase 6 |
+| 11 | (optional) figures follow the Morandi palette + Layer 2 data heatmaps | Palette violation → regenerate; non-data figures not enforced |
+| 12 | Paper non-empty + unified elsarticle template + all citations come from the verified list | If empty fall back to Phase 1; template violation falls back to Phase 12 |
+| 13 | LaTeX compiles zero-warning zero-error (submission grade) | Anti-deadloop ladder: 3 attempts per-warning → BLOCKED + reason_code |
+| 14 | Cross-model review score ≥ 6/10 + kill-argument anti-self-deception PASS | Score < 6 falls back to Phase 6 (max 4 rounds); anti-self-deception FAIL falls back to Phase 10; **kill-argument holds (claim refuted by its own experiments) → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
+| 15 | All references pass the 3-layer anti-hallucination verification | Fail → delete fabricated references + fall back to Phase 4 and re-search |
+| 16 | Artifact archive complete | Missing artifact → fall back to the relevant phase |
 
 ## Fallback Contract (Bounded 3 Rounds, Universal)
 
@@ -337,9 +337,9 @@ On successful completion, the orchestrator produces the following structure unde
 ├── refine-logs/
 │   ├── FINAL_PROPOSAL.md        ← frozen Q-id + selected idea (Phase 2)
 │   ├── IDEA_CANDIDATES.md       ← ranked idea list (Phase 2)
-│   ├── IDEA_DAG.json            ← DAG structure (Phase 2) — 可渲染为 Mermaid 可视化
-│   ├── IDEA_DAG_VISUAL.md       ← DAG 可视化报告 (Mermaid 格式，Phase 2)  ← 新增
-│   ├── ENGINEERING_GROUNDING.md ← Engineering Grounding report (Phase 5b)  ← 新增 v2.9
+│   ├── IDEA_DAG.json            ← DAG structure (Phase 2) — renderable as a Mermaid visualization
+│   ├── IDEA_DAG_VISUAL.md       ← DAG visualization report (Mermaid format, Phase 2)  ← new
+│   ├── ENGINEERING_GROUNDING.md ← Engineering Grounding report (Phase 5b)  ← new v2.9
 │   └ MCTS_LOG.md                ← MCTS iteration log (Phase 2)
 ├── refine-logs/
 │   └ novelty_report.json        ← 4-axis evaluation (Phase 3)
@@ -397,14 +397,14 @@ On successful completion, the orchestrator produces the following structure unde
 ├── review-stage/
 │   ├── AUTO_REVIEW.md           ← cross-model review log (Phase 14)
 │   ├── REVIEW_STATE.json        ← recovery state (Phase 14)
-│   └ PUBLISHABILITY_SCORE.json  ← publishability score (Phase 15.5)  ← 新增
-│   └ PUBLISHABILITY_SCORE.md    ← human-readable score report (Phase 15.5)  ← 新增
+│   └ PUBLISHABILITY_SCORE.json  ← publishability score (Phase 15.5)  ← new
+│   └ PUBLISHABILITY_SCORE.md    ← human-readable score report (Phase 15.5)  ← new
 │   └ REVIEW_LEDGER.json        ← machine-readable ledger (Phase 14)
 ├── citation_audit/
 │   └ CITATION_AUDIT.md          ← 3-layer citation audit (Phase 15)
 │   └ CITATION_AUDIT.json        ← machine-readable verdict (Phase 15)
 └── output/
-    └ FINAL_ARTIFACTS.md         ←归档索引 (Phase 16)
+    └ FINAL_ARTIFACTS.md         ← archive index (Phase 16)
 ```
 
 ## Phase Boundaries
@@ -421,17 +421,19 @@ The orchestrator DOES:
 - Apply the explicit quality gate for the phase boundary
 - Trigger fallback when a phase FAILs or WARNs
 - Surface BLOCKED to the human user (never silently retry past round 3)
+- Rewrite `verdicts/PIPELINE_VERDICT_SUMMARY.md` at EVERY phase boundary — the aggregated overview of all verdicts currently in `verdicts/` (per output-protocol Unified Verdict Principles #3); the human and downstream skills read pipeline verdict state from this one file
 
 ## 6-State Verdict Schema
 
-**约束重注入（v5.1 — Constraint Re-injection，源自 CRUX 影子评估失败模式 #5）**:
+**Constraint Re-injection (v5.1 — from CRUX shadow-evaluation failure mode #5)**:
 
-**背景**（arXiv:2607.27191）：关于最短探索时间、审稿节奏、页数限制等硬规则，agent 早期会一字不差地复述，但在六天长程运行中**逐渐遗忘**——"长期目标管理，依然是大模型的阿喀琉斯之踵"。上下文压缩与长程运行天然侵蚀约束记忆，必须结构性重注入，不能依赖 agent 自觉记住。
+**Background** (arXiv:2607.27191): for hard rules such as minimum exploration time, review cadence, and page limits, agents recite them verbatim early on but **gradually forget** them over six-day long-horizon runs — "long-term goal management remains the Achilles' heel of large models". Context compression and long-horizon runs naturally erode constraint memory; constraints must be re-injected structurally, not left to the agent remembering on its own.
 
-**强制机制**（orchestrator 在每个 phase boundary 执行，写入 `logs/pipeline.log`）:
-1. **硬约束清单重读**：每过一个 phase boundary，orchestrator 重新读取并显式复述以下硬约束清单到当前上下文（不是摘要，是原文复述）：验证路由（VERIFICATION_ROUTING.json 的 route）、探索预算下限（budget_floor 五检查项）、页数档位上限（length 档）、强制实验矩阵（EXPERIMENT_MATRIX.json 的组清单）、PIVOT 剩余预算（≤2 的当前余量）、负结果纪律（polarity 规则）
-2. **漂移检测**：每个 phase 的输出产物必须携带其消费/产出的硬约束字段（如 CLAIMS_FROM_RESULTS.md 带 evidence_sufficiency、REVIEW_STATE.json 带 response_class、compile 产物带页数 verdict）——缺字段即该 phase verdict 降级 WARN（`constraint_field_missing`），连续 2 个 phase 缺同类字段 → BLOCKED 上报人类（这是指令漂移的结构性信号）
-3. **完成宣告拦截**：任何 phase 宣告完成（PASS）时，orchestrator 核对该 phase 的硬约束字段齐全且达标——不齐 → 不接受 PASS，降级为 IN_PROGRESS 并要求补齐。这是"我写完了"的结构性拦截器
+**Mandatory mechanism** (the orchestrator executes it at every phase boundary, writing to `logs/pipeline.log`):
+1. **Hard-constraint list re-read**: at every phase boundary, the orchestrator re-reads and explicitly recites the following hard-constraint list into the current context (not a summary — a verbatim recitation): verification routing (the route from VERIFICATION_ROUTING.json), exploration budget floor (the five budget_floor checks), page-tier cap (length tier), mandatory experiment matrix (the group list from EXPERIMENT_MATRIX.json), remaining PIVOT budget (current remainder of ≤2), negative-result discipline (polarity rules), **global run budget (RUN_BUDGET.json current usage vs limits, v5.3)**
+1b. **Verdict schema validation (v5.3)**: at every phase boundary and at wrap-up, run `python3 scripts/validate_verdicts.py {problem_id}/verdicts/` (contract: [output-protocol.md](../../shared-references/output-protocol.md) §Verdict Schema Enforcement) — misspelled or missing-field registered verdicts are caught here; under `--strict`, violations are treated as BLOCKED
+2. **Drift detection**: every phase's output artifacts must carry the hard-constraint fields they consume/produce (e.g., CLAIMS_FROM_RESULTS.md carries evidence_sufficiency, REVIEW_STATE.json carries response_class, compile artifacts carry the page-count verdict) — a missing field downgrades that phase's verdict to WARN (`constraint_field_missing`); the same field class missing in 2 consecutive phases → BLOCKED, surfaced to the human (this is a structural signal of instruction drift)
+3. **Completion-declaration interception**: whenever any phase declares completion (PASS), the orchestrator checks that the phase's hard-constraint fields are complete and met — incomplete → the PASS is not accepted; downgrade to IN_PROGRESS and require completion. This is the structural interceptor for "I'm done" declarations
 
 The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](../../shared-references/assurance-contract.md) for each phase boundary:
 
@@ -444,33 +446,65 @@ The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](.
 | `BLOCKED` | Prerequisite missing OR fallback exhausted | Halt + surface to human |
 | `ERROR` | Skill itself failed | Halt + surface to human |
 
-The overall pipeline verdict = the **worst** verdict across all 20 phases: `ERROR > BLOCKED > FAIL > WARN > NOT_APPLICABLE > PASS`.
+The overall pipeline verdict = the **worst** verdict across all 21 phases: `ERROR > BLOCKED > FAIL > WARN > NOT_APPLICABLE > PASS`.
 
-## 回环完整性登记表（v5.2 — Loop-Back Registry，防"链路断裂"）
+## Loop-Back Integrity Registry (v5.2 — Loop-Back Registry, guards against "broken chains")
 
-**实测反馈**：链路是否断裂不能靠记忆，必须靠结构。本表是**所有回环的唯一权威清单**——每个 phase 的 FAIL/WARN 出口、回环目标、预算、耗尽出口都必须在此登记；新增 phase 或回环必须同步更新本表，orchestrator 每个 phase boundary 按本表核对（表外回环 = 契约违规）。
+**Field feedback**: whether a chain is broken must not rely on memory — it must rely on structure. This table is the **single authoritative list of all loop-backs** — every phase's FAIL/WARN exit, loop-back target, budget, and exhaustion exit must be registered here; any new phase or loop-back must update this table in sync, and the orchestrator checks against this table at every phase boundary (an off-table loop-back = contract violation).
 
-| # | 触发点 | 触发条件 | 回环目标 | 动作 | 预算 | 耗尽出口 |
+| # | Trigger point | Trigger condition | Loop-back target | Action | Budget | Exhaustion exit |
 |---|--------|---------|---------|------|------|---------|
-| L1 | Phase 2.5 | WEAKENED | Phase 2 | idea 重生成 | 3 轮 | BLOCKED 上报人类 |
-| L2 | Phase 2.5 | FALSIFIED | — | idea 淘汰记入 failed_ideas.json，继续评下一个候选 | 每 idea 1 次 | 候选全灭 → BLOCKED |
-| L3 | Phase 3 | 无幸存者 | Phase 3 | 放宽 strictness 重评 | 1 轮 | BLOCKED |
-| L4 | Phase 5 | hash 锁不一致 | Phase 5 | 重建 registry | 3 轮 | BLOCKED |
-| L5 | Phase 6b toy | FAIL（负向显著且 ≥2 种子可复现） | **PIVOT → Phase 5**（换方法重注册+重锁 hash）或 **KILL → Phase 2**（kill-argument 杀论证后换 idea） | PIVOT：方法重设计；KILL：idea 重生 | PIVOT ≤2 次；KILL 走 BA | PIVOT 耗尽 → 强制 KILL；BA 耗尽 → BLOCKED + BA_EXHAUSTED |
-| L6 | Phase 6b toy | TIMEOUT/ERROR | Phase 6b | 缩放/修复重跑 | 各 1 次 | BLOCKED |
-| L7 | Phase 6c-BA | full FAIL 且 toy 曾 PASS | Phase 2 | idea 重生成 | BA ≤2 轮 | BLOCKED + BA_EXHAUSTED |
-| L8 | Phase 7 | CRITICAL | Phase 5 | 方法修补 | 3 轮 | BLOCKED + LOGIC_GAP |
-| L9 | Phase 8 | FATAL/CRITICAL | Phase 6 | 推导修正 | 3 轮 | FATAL=数据与结论矛盾 → BA 回 Phase 2（≤2 轮） |
-| L10 | Phase 14 | 分数 <6 | Phase 6 | 证据补强 | 4 轮 | BLOCKED |
-| L11 | Phase 14 | kill-argument 站住 | Phase 2 | BA idea 重生 | BA ≤2 轮 | BLOCKED + BA_EXHAUSTED |
-| L12 | Phase 13 | 超页 FAIL | Phase 12 | 删减重编译 | 至页数达标 | 删无可删 → 降 length 档重排 |
-| L13 | 反缩减 | 连续 3 轮无实质响应 | Phase 2 | 强制 KILL 路径 | — | BLOCKED |
+| L1 | Phase 2.5 | WEAKENED | Phase 2 | idea regeneration | 3 rounds | BLOCKED, surfaced to human |
+| L2 | Phase 2.5 | FALSIFIED | — | record idea elimination in failed_ideas.json, continue evaluating the next candidate | 1 per idea | all candidates eliminated → BLOCKED |
+| L3 | Phase 3 | no survivor | Phase 3 | relax strictness and re-evaluate | 1 round | BLOCKED |
+| L4 | Phase 5 | hash lock mismatch | Phase 5 | rebuild registry | 3 rounds | BLOCKED |
+| L5 | Phase 6b toy | FAIL (significantly negative and reproducible on ≥2 seeds) | **PIVOT → Phase 5** (re-register with a new method + re-lock the hash) or **KILL → Phase 2** (kill argument, then a new idea) | PIVOT: method redesign; KILL: idea rebirth | PIVOT ≤2 times; KILL goes through BA | PIVOT exhausted → forced KILL; BA exhausted → BLOCKED + BA_EXHAUSTED |
+| L6 | Phase 6b toy | TIMEOUT/ERROR | Phase 6b | rescale/fix and re-run | 1 each | BLOCKED |
+| L7 | Phase 6c-BA | full FAIL and toy previously PASSed | Phase 2 | idea regeneration | BA ≤2 rounds | BLOCKED + BA_EXHAUSTED |
+| L8 | Phase 7 | CRITICAL | Phase 5 | method patch | 3 rounds | BLOCKED + LOGIC_GAP |
+| L9 | Phase 8 | FATAL/CRITICAL | Phase 6 | derivation fix | 3 rounds | FATAL = data contradicts conclusions → BA back to Phase 2 (≤2 rounds) |
+| L10 | Phase 14 | score <6 | Phase 6 | evidence reinforcement | 4 rounds | BLOCKED |
+| L11 | Phase 14 | kill-argument holds | Phase 2 | BA idea rebirth | BA ≤2 rounds | BLOCKED + BA_EXHAUSTED |
+| L12 | Phase 13 | page-overflow FAIL | Phase 12 | cut content and recompile | until the page limit is met | nothing left to cut → drop a length tier and re-layout |
+| L13 | Anti-shrinkage | 3 consecutive rounds without substantive response | Phase 2 | forced KILL path | — | BLOCKED |
 
-**回环纪律（硬规则）**:
-1. **每个回环必带预算**：无预算回环 = 死循环温床；预算耗尽必有一个**明确的非回环出口**（BLOCKED 上报人类或淘汰记录），禁止"再试一轮"式口头放宽
-2. **回环必换状态**：回环重入的 phase 必须消费上次失败的证据（failed_ideas.json / KILL_ARGUMENT.json / REVIEW_STATE.json 的 response_class）——原样重跑同一输入是禁止的（反死循环）
-3. **KILL 路径必过 kill-argument**：任何"换 idea"决策必须先产出 KILL_ARGUMENT.json（verdicts/）——没有杀论证的换 idea 是漂移不是止损（INV-G1 内容哈希会拦）
-4. **BA 预算全局共享**：L7/L9/L11 三个 BA 触发点共享 ≤2 轮总预算（`verdicts/BA_BUDGET.json` 记账），不是各 2 轮——防止三次 BA 叠加成 6 轮空转
+**Loop-back discipline (hard rules)**:
+1. **Every loop-back must carry a budget**: a budgetless loop-back = a breeding ground for deadloops; budget exhaustion must have an **explicit non-loop-back exit** (BLOCKED surfaced to the human, or an elimination record) — verbal relaxations like "one more round" are forbidden
+2. **Loop-backs must change state**: a phase re-entered via loop-back must consume the evidence of the previous failure (failed_ideas.json / KILL_ARGUMENT.json / the response_class from REVIEW_STATE.json) — re-running the same input unchanged is forbidden (anti-deadloop)
+3. **KILL paths must go through kill-argument**: any "switch idea" decision must first produce KILL_ARGUMENT.json (verdicts/) — switching ideas without a kill argument is drift, not stop-loss (the INV-G1 content hash will intercept it)
+4. **BA budget is globally shared**: the three BA trigger points L7/L9/L11 share a total budget of ≤2 rounds (from v5.3, accounted in `ba_rounds_used`/`ba_rounds_max` of `verdicts/RUN_BUDGET.json`; the old `verdicts/BA_BUDGET.json` is a read-only fallback) — not 2 rounds each — preventing three BAs from stacking into 6 idle rounds
+5. **KILL requires a human checkpoint (v5.3, default ON)**: on any KILL path (L5/L7/L9/L11/L13), after the kill-argument produces `verdicts/KILL_ARGUMENT.json` and before returning to Phase 2 to regenerate ideas, the orchestrator must pause and present the kill-argument summary to the human, awaiting confirmation; fully automatic only when the invocation carries `kill_checkpoint=false` or `human_skip=true`. The checkpoint record is written to `APPROVAL_LOG.txt` (see the Boundaries section)
+
+## Global Run Budget Ledger (v5.3 — RUN_BUDGET.json)
+
+**Why**: loop-back budgets (PIVOT ≤2, BA ≤2) cap *rounds*, but nothing capped the two resources that actually kill long runs — wall-clock time and API cost. A run can sit under every round cap and still burn for a week (or, conversely, stall forever consuming nothing). The ledger gives every run an aggregate ceiling with a structural cut-off.
+
+**Ledger**: `verdicts/RUN_BUDGET.json` (schema: [`schemas/RUN_BUDGET.schema.json`](../../shared-references/schemas/RUN_BUDGET.schema.json)). Initialized by the orchestrator at Phase 0, updated at EVERY phase boundary, absorbing the old `verdicts/BA_BUDGET.json` accounting (read the old file as fallback for pre-v5.3 workspaces, never write it):
+
+```json
+{
+  "schema_version": "1.0", "run_id": "Q042", "started_at": "2026-08-09T01:00:00Z",
+  "wall_clock_seconds": 0, "api_cost_usd": 0.0,
+  "pivot_count": 0, "ba_rounds_used": 0, "ba_rounds_max": 2,
+  "per_phase": {}, "limits": {"wall_clock_seconds_max": 172800, "api_cost_usd_max": 40.0, "pivot_count_max": 2}
+}
+```
+
+**Default limits by effort level** (human may override in `AGENT_DOC.md` at Phase 0 — record the override in `logs/pipeline.log`):
+
+| effort | wall_clock_seconds_max | api_cost_usd_max | pivot_count_max | ba_rounds_max |
+|--------|------------------------|------------------|-----------------|---------------|
+| lite   | 43 200 (12 h)          | 10.0             | 2               | 2             |
+| balanced | 172 800 (48 h)       | 40.0             | 2               | 2             |
+| max    | 345 600 (96 h)         | 120.0            | 2               | 2             |
+| beast  | 864 000 (240 h)        | 400.0            | 2               | 2             |
+
+**Boundary protocol** (orchestrator, every phase boundary, in order):
+1. **Account**: `wall_clock_seconds` = now − `started_at`; `api_cost_usd` += phase estimate (when the runtime exposes token/cost accounting; otherwise keep last value and set `per_phase.<n>.cost_estimated: true`); increment `pivot_count`/`ba_rounds_used` when L5-PIVOT / BA loop-backs fire; append `per_phase.<n>` entry (duration, cost, verdict).
+2. **Check**: any of `wall_clock_seconds ≥ wall_clock_seconds_max`, `api_cost_usd ≥ api_cost_usd_max`, `pivot_count > pivot_count_max`, `ba_rounds_used > ba_rounds_max` → **stop**: write the ledger, emit `PIPELINE_STATUS.json` event `verdict: BLOCKED, reason_code: budget_exhausted_<resource>`, surface to the human with usage-vs-limit table and a recommendation (extend limit / archive partial results / abandon). Only the human can raise a limit — the orchestrator never self-extends.
+3. **Log**: one ledger-update line to `logs/pipeline.log` (usage + remaining) — budget accounting is itself auditable.
+
+**Anti-gaming**: an agent cannot hold a phase open to dodge wall-clock accounting (the ledger is written by the orchestrator at boundaries from the clock, not from the phase's self-report), and `api_cost_usd` may only increase — corrections are additive notes, never downward rewrites.
 
 ## Anti-Deadloop Escalation (Universal, reused from paper-compile E16)
 
@@ -492,11 +526,15 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - **INV-G1 is non-negotiable.** The Q-id is frozen at Phase 0 and must be referenced in every downstream phase. If any phase's output lacks the Q-id reference, Phase 9 (`/invariant-check`) BLOCKs.
 - **Forced human checkpoints at Phase 3→4 and Phase 5→6.** The agent cannot self-select the final idea (Phase 3) or self-approve the method registry (Phase 5). Wait for human confirmation.
   - **`human_skip=true` — explicit production-grade skip (v3.4 — NEW).** When the invocation carries `human_skip=true` (set by the human who has decided to delegate BOTH checkpoints to the agent for this run), the 2 human checkpoints are **explicitly skipped at production grade**: the agent performs the EQUIVALENT work each checkpoint guards (selects the top MCTS survivor as the final idea; builds the method registry + hash lock), and records the skip in `APPROVAL_LOG.txt` with `skipped_by=human_skip, original_checkpoint=Phase 3→4 / Phase 5→6, agent_action_taken=auto-selected/auto-approved, human_decision=EXPLICIT_SKIP`. Unlike `test_mode`, `human_skip` is a **production-grade decision** — `PIPELINE_STATUS.json` flags `checkpoints_skipped: true, production_ready: true, skip_authority: human_explicit` (NOT `production_ready: false`). The human has made an informed choice to delegate; the run is production-ready with that choice recorded. All other phases (INV-G1, fallback cap, toy gate, background dispatch, zero-warnings compile, leakage scrub) remain HARD even with `human_skip`. Use `human_skip=true` when the human trusts the agent's idea-selection + method-registry judgment for this run; use `test_mode=true` only for mechanical stress-testing where the human intends to later confirm.
-  - **TEST_MODE checkpoint bypass (v2.2 — 规避而非跳过).** When the invocation carries `test_mode=true` (set by the human for autonomous end-to-end stress testing), the 2 human checkpoints are **bypassed, NOT skipped**: the agent still performs the EQUIVALENT work each checkpoint guards (selects the top MCTS survivor as the final idea; builds the method registry + hash lock), but records the bypass in `APPROVAL_LOG.txt` with `bypassed_by=test_mode, original_checkpoint=Phase 3→4 / Phase 5→6, agent_action_taken=auto-selected/auto-approved, human_review_status=PENDING_DEFERRED`. The bypass is **provisional** — `PIPELINE_STATUS.json` flags `checkpoints_bypassed: true, human_review_deferred: true, production_ready: false` so a human MUST later confirm both decisions before the run is considered production-grade. The work the checkpoint guards is done (idea selected, method registry built) — only the human-approval step is deferred, never the underlying quality control. All other phases (INV-G1, fallback cap, toy gate, background dispatch, zero-warnings compile) remain HARD even in TEST_MODE. TEST_MODE is for stress-testing the pipeline mechanics; production runs MUST keep both checkpoints human-gated with no bypass.
+  - **TEST_MODE checkpoint bypass (v2.2 — bypass, not skip).** When the invocation carries `test_mode=true` (set by the human for autonomous end-to-end stress testing), the 2 human checkpoints are **bypassed, NOT skipped**: the agent still performs the EQUIVALENT work each checkpoint guards (selects the top MCTS survivor as the final idea; builds the method registry + hash lock), but records the bypass in `APPROVAL_LOG.txt` with `bypassed_by=test_mode, original_checkpoint=Phase 3→4 / Phase 5→6, agent_action_taken=auto-selected/auto-approved, human_review_status=PENDING_DEFERRED`. The bypass is **provisional** — `PIPELINE_STATUS.json` flags `checkpoints_bypassed: true, human_review_deferred: true, production_ready: false` so a human MUST later confirm both decisions before the run is considered production-grade. The work the checkpoint guards is done (idea selected, method registry built) — only the human-approval step is deferred, never the underlying quality control. All other phases (INV-G1, fallback cap, toy gate, background dispatch, zero-warnings compile) remain HARD even in TEST_MODE. TEST_MODE is for stress-testing the pipeline mechanics; production runs MUST keep both checkpoints human-gated with no bypass.
   - **`human_skip` vs `test_mode` (when to use each)**:
     - `human_skip=true` — human has **decided** to delegate both checkpoints, run is production-grade, no later confirmation needed. Use for autonomous production runs where the human trusts the agent's judgment.
     - `test_mode=true` — human is **stress-testing** the pipeline mechanics, run is NOT production-grade, later confirmation required. Use for testing/debugging the pipeline itself.
     - Neither flag — both checkpoints are human-gated (wait for explicit confirmation at Phase 3→4 and Phase 5→6). The default, and the safest.
+- **KILL decisions have a human checkpoint (v5.3 — DEFAULT ON).** Killing an idea (KILL → back to Phase 2 for a new idea; loop-back rows L5/L7/L9/L11/L13) silently reshapes the whole run — an autonomous pipeline can cycle through several ideas overnight with the human none the wiser. Therefore: after `/kill-argument` produces `verdicts/KILL_ARGUMENT.json`, the orchestrator PAUSES and presents the kill case (strongest rejection paragraph + still_unresolved list + which loop-back fired) to the human, and proceeds to idea regeneration only after explicit human confirmation. Reuses the existing delegation knobs:
+  - `human_skip=true` — the KILL checkpoint is skipped along with the two phase checkpoints (same `APPROVAL_LOG.txt` recording: `skipped_by=human_skip, original_checkpoint=KILL-confirmation`).
+  - `kill_checkpoint=false` — explicit opt-out for this checkpoint only (recorded: `skipped_by=kill_checkpoint_optout`).
+  - Neither — checkpoint ON (default): the pipeline waits. A KILL executed without the required confirmation is a contract violation; the next phase boundary MUST detect the missing `APPROVAL_LOG.txt` entry and BLOCK.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
 - **The orchestrator never executes research.** It delegates to the corresponding skill. Do not inline derivation / verification / writing logic into this orchestrator.
 - **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no code/experiment):
@@ -512,11 +550,11 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
   - See [`../support/experiment-execution/SKILL.md`](../../support/experiment-execution/SKILL.md) and [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md)
 - **Background dispatch is non-negotiable for full experiments.** The agent must NEVER block the foreground on tasks estimated > 5 minutes. See [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md).
 - **HARD vs FLEXIBLE boundaries:**
-  - **HARD (non-negotiable)**: INV-G1 freeze, forced human checkpoints (Phase 3→4, 5→6), 3-round fallback cap, toy gate FAIL = kill idea, background dispatch for full experiments
+  - **HARD (non-negotiable)**: INV-G1 freeze, forced human checkpoints (Phase 3→4, 5→6), KILL human checkpoint (v5.3, default ON; opt out only via `human_skip=true` or `kill_checkpoint=false`), 3-round fallback cap, toy gate FAIL = kill idea, background dispatch for full experiments, run-budget ledger limits (RUN_BUDGET.json, v5.3)
   - **FLEXIBLE (agent discretion)**: MCTS round count (default 4, may reduce if convergence is clear), experiment scale_ratio, toy experiment design, strictness thresholds, effort level
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md) for filenames; narrative reports stay in their original stage directories).
 
 
 > Follow these shared protocols for all output files:

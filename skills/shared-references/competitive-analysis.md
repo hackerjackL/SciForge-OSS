@@ -1,178 +1,178 @@
-# SciForge-OSS 更高层面竞争分析 & 优化方案
+# SciForge-OSS Higher-Level Competitive Analysis & Optimization Plan
 
-> **Status**: 更高层面的战略定位 —— 如何让 SciForge-OSS 在现有自动科研框架中"暴杀"所有竞品。
+> **Status**: Higher-level strategic positioning — how SciForge-OSS can "crush" all competitors among existing automated research frameworks.
 >
-> **核心定位**: 不做全电路（不跑实验），只做理论验证。但理论验证要做到**极致**——80-90% 落地率，全领域自动适配，幻想零容忍。
+> **Core positioning**: no full-loop (no experiments run), theoretical validation only. But theoretical validation must be taken to the **extreme** — 80-90% landing rate, all-domain automatic adaptation, zero tolerance for fantasy.
 
-## 一、竞争格局分析
+## 1. Competitive Landscape Analysis
 
-### 现有自动科研框架对比
+### Comparison of Existing Automated Research Frameworks
 
-| 维度 | SciForge-OSS | 其他 AutoML/AI-Scientist | 优势 |
+| Dimension | SciForge-OSS | Other AutoML/AI-Scientist | Advantage |
 |------|-------------|-------------------------|------|
-| 领域覆盖 | **全领域**（签名驱动自动适配） | 单一领域（ML/NLP/CV） | **OSS 碾压** |
-| 实验能力 | 不做实验（纯理论） | 全电路（跑实验） | 公平比较 |
-| 理论验证 | **极致**（SymPy + 逻辑审计 + 证伪） | 无或弱 | **OSS 碾压** |
-| 幻想预防 | **5 门检测系统** | 无 | **OSS 独家** |
-| 领域自适应 | **签名驱动自动适配** | 手动配置 | **OSS 碾压** |
-| 落地率 | **80-90%**（理论+数据联合置信度） | 未知 | **OSS 领先** |
-| 可扩展性 | **纯 Markdown**，任何 AI agent 可用 | 代码依赖 | **OSS 碾压** |
-| Pipeline 健壮性 | **优雅降级**（MUST/OPTIONAL/CONDITIONAL） | 全有或全无 | **OSS 领先** |
+| Domain coverage | **All domains** (signature-driven auto-adaptation) | Single domain (ML/NLP/CV) | **OSS dominates** |
+| Experiment capability | No experiments (pure theory) | Full-loop (runs experiments) | Fair comparison |
+| Theoretical validation | **Extreme** (SymPy + logic audit + falsification) | None or weak | **OSS dominates** |
+| Fantasy prevention | **5-gate detection system** | None | **OSS exclusive** |
+| Domain adaptation | **Signature-driven auto-adaptation** | Manual configuration | **OSS dominates** |
+| Landing rate | **80-90%** (theory+data joint confidence) | Unknown | **OSS leads** |
+| Extensibility | **Pure Markdown**, usable by any AI agent | Code dependencies | **OSS dominates** |
+| Pipeline robustness | **Graceful degradation** (MUST/OPTIONAL/CONDITIONAL) | All-or-nothing | **OSS leads** |
 
-### 核心差异化优势
+### Core Differentiators
 
-1. **领域自适应**（唯一实现）：其他框架需要手动配置领域参数，OSS 自动提取
-2. **幻想预防**（唯一实现）：其他框架没有"幻想检测"概念
-3. **落地置信度**（唯一实现）：其他框架只有 pass/fail，OSS 有理论置信度×数据置信度
-4. **优雅降级**（唯一实现）：其他框架一个 phase 失败就全崩，OSS 可以降级继续
+1. **Domain adaptation** (only implementation): other frameworks require manual configuration of domain parameters; OSS extracts them automatically
+2. **Fantasy prevention** (only implementation): other frameworks have no concept of "fantasy detection"
+3. **Landing confidence** (only implementation): other frameworks only have pass/fail; OSS has theoretical confidence × data confidence
+4. **Graceful degradation** (only implementation): other frameworks collapse entirely when a single phase fails; OSS can degrade and continue
 
-## 二、更高层面优化方案
+## 2. Higher-Level Optimization Plans
 
-### 方案 1：领域签名库持续扩展
+### Plan 1: Continuous Expansion of the Domain Signature Library
 
-当前：5 个领域示例（经济学/数学/医学/物理/哲学）
-目标：**50+ 领域**覆盖
+Current: 5 example domains (economics/mathematics/medicine/physics/philosophy)
+Target: **50+ domain** coverage
 
-**实施路径**：
+**Implementation path**:
 ```
-Phase 1: 核心 10 领域（已覆盖 5 个，再增加 5 个）
-Phase 2: 扩展 25 领域（细分领域）
-Phase 3: 长尾 50+ 领域（小众领域）
+Phase 1: Core 10 domains (5 already covered, add 5 more)
+Phase 2: Expand to 25 domains (sub-domains)
+Phase 3: Long-tail 50+ domains (niche domains)
 
-每个领域需要：
-  1. 领域签名模板（evidence_type, methodology, writing_style, failure_modes）
-  2. 领域失败模式（至少 3-5 个已知失败模式）
-  3. 领域写作风格（论文结构、引用格式、论证风格）
+Each domain requires:
+  1. Domain signature template (evidence_type, methodology, writing_style, failure_modes)
+  2. Domain failure modes (at least 3-5 known failure modes)
+  3. Domain writing style (paper structure, citation format, argumentation style)
 ```
 
-### 方案 2：落地置信度提升 [已实施 v2.9]
+### Plan 2: Landing Confidence Improvement [Implemented v2.9]
 
-**状态**: ✅ **已实施** — 详见 [`engineering-grounding-contract.md`](engineering-grounding-contract.md)
+**Status**: ✅ **Implemented** — see [`engineering-grounding-contract.md`](engineering-grounding-contract.md) for details
 
-当前：理论置信度 × 数据置信度
-目标：**90%+ 落地率**
+Current: theoretical confidence × data confidence
+Target: **90%+ landing rate**
 
-**实施路径**：
+**Implementation path**:
 ```
-1. ✅ 增加"实施复杂度"维度 → 8 维 EG 子评分 (Compute/Dependency/AI Dev Cycle/Repro Risk/Capital/Code Complexity/Temporal Maturity/Regulatory)
-2. ✅ 三路联合置信度:
+1. ✅ Add "implementation complexity" dimension → 8-dim EG sub-scores (Compute/Dependency/AI Dev Cycle/Repro Risk/Capital/Code Complexity/Temporal Maturity/Regulatory)
+2. ✅ Three-way joint confidence:
    final_confidence = theoretical × data_availability × implementation_feasibility
-   → 实现为: grounding_confidence = 0.6 × OSS_sandbox_grounding + 0.4 × engineering_grounding
-3. ✅ 落地分阶段路线 (Engineering Path with 3-stage downside protection)
-4. ✅ 复合评分公式: novelty×0.45 + feasibility×0.25 + relevance×0.15 + EG×0.15
+   → Implemented as: grounding_confidence = 0.6 × OSS_sandbox_grounding + 0.4 × engineering_grounding
+3. ✅ Staged landing roadmap (Engineering Path with 3-stage downside protection)
+4. ✅ Composite scoring formula: novelty×0.45 + feasibility×0.25 + relevance×0.15 + EG×0.15
 ```
 
-### 方案 3：多框架输出兼容
+### Plan 3: Multi-Framework Output Compatibility
 
-当前：只输出 LaTeX elsarticle 论文
-目标：**同时输出多种格式**
-
-```
-- 输出 LaTeX 论文（当前）
-- 输出 Markdown 报告（轻量级）
-- 输出 Jupyter Notebook（可执行验证）
-- 输出 JSON 结构化结果（API 消费）
-- 输出 arXiv 兼容格式（直接投稿）
-```
-
-### 方案 4：社区驱动领域扩展
-
-当前：领域签名由 OSS 核心团队维护
-目标：**社区贡献领域签名**
+Current: outputs only LaTeX elsarticle papers
+Target: **output multiple formats simultaneously**
 
 ```
-- 开放领域签名 PR 通道
-- 领域签名模板标准化
-- 社区审核机制
-- 领域签名版本管理
+- Output LaTeX paper (current)
+- Output Markdown report (lightweight)
+- Output Jupyter Notebook (executable validation)
+- Output JSON structured results (API consumption)
+- Output arXiv-compatible format (direct submission)
 ```
 
-### 方案 5：Ouroboros 深度集成
+### Plan 4: Community-Driven Domain Expansion
 
-当前：基础数据可用性检查
-目标：**端到端数据-理论联合验证**
+Current: domain signatures maintained by the OSS core team
+Target: **community-contributed domain signatures**
 
 ```
-- OSS 输出理论预测 → Ouroboros 查找匹配数据
-- Ouroboros 返回数据特征 → OSS 调整理论假设
-- 联合验证：理论预测 × 数据实际值的对比
-- 置信度报告：理论置信度 × 数据置信度 × 拟合度
+- Open the domain signature PR channel
+- Standardize domain signature templates
+- Community review mechanism
+- Version control for domain signatures
 ```
 
-## 三、"暴杀"级能力矩阵
+### Plan 5: Deep Integration with Ouroboros
 
-### 当前能力（v2.4）
+Current: basic data availability check
+Target: **end-to-end data-theory joint validation**
 
-| 能力 | 等级 | 说明 |
+```
+- OSS outputs theoretical predictions → Ouroboros finds matching data
+- Ouroboros returns data characteristics → OSS adjusts theoretical assumptions
+- Joint validation: comparison of theoretical predictions × actual data values
+- Confidence report: theoretical confidence × data confidence × goodness of fit
+```
+
+## 3. "Crush"-Tier Capability Matrix
+
+### Current Capabilities (v2.4)
+
+| Capability | Grade | Notes |
 |------|------|------|
-| 领域覆盖 | A+ | 全领域签名驱动 |
-| 理论验证 | A+ | SymPy + 逻辑审计 + 证伪 |
-| 幻想预防 | A+ | 5 门检测系统 |
-| 落地率 | A | 80%+（理论+数据） |
-| Pipeline 健壮性 | A+ | 优雅降级 |
-| 可扩展性 | A+ | 纯 Markdown |
+| Domain coverage | A+ | Signature-driven across all domains |
+| Theoretical validation | A+ | SymPy + logic audit + falsification |
+| Fantasy prevention | A+ | 5-gate detection system |
+| Landing rate | A | 80%+ (theory+data) |
+| Pipeline robustness | A+ | Graceful degradation |
+| Extensibility | A+ | Pure Markdown |
 
-### 目标能力（v3.0）
+### Target Capabilities (v3.0)
 
-| 能力 | 等级 | 说明 |
+| Capability | Grade | Notes |
 |------|------|------|
-| 领域覆盖 | S | 50+ 领域签名库 |
-| 理论验证 | S | 全自动证明搜索 |
-| 幻想预防 | S | 自动反例生成 |
-| 落地率 | S | 90%+ |
-| Pipeline 健壮性 | S | 自修复 |
-| 可扩展性 | S | 社区驱动 |
+| Domain coverage | S | 50+ domain signature library |
+| Theoretical validation | S | Fully automated proof search |
+| Fantasy prevention | S | Automatic counterexample generation |
+| Landing rate | S | 90%+ |
+| Pipeline robustness | S | Self-healing |
+| Extensibility | S | Community-driven |
 
-## 四、关键优化方向
+## 4. Key Optimization Directions
 
-### 1. 领域签名自动化
-
-```
-当前：人工分析问题 → 提取签名
-目标：自动从问题描述+e.g.文献中提取签名
-方法：
-  1. 从问题文本提取关键词
-  2. 从种子文献提取方法论/写作风格
-  3. 从引用网络提取领域特征
-  4. 自动生成领域签名
-```
-
-### 2. 幻想预防自动化
+### 1. Domain Signature Automation
 
 ```
-当前：agent 手动检查 5 个门
-目标：自动幻想检测
-方法：
-  1. 推导链自动追踪
-  2. 引用自动验证
-  3. 假设自动评分
-  4. 反例自动搜索
-  5. 数据自动检查
+Current: human analyzes the problem → extracts the signature
+Target: automatically extract the signature from the problem description + e.g. literature
+Method:
+  1. Extract keywords from the problem text
+  2. Extract methodology/writing style from seed literature
+  3. Extract domain characteristics from the citation network
+  4. Automatically generate the domain signature
 ```
 
-### 3. Pipeline 自修复
+### 2. Fantasy Prevention Automation
 
 ```
-当前：优雅降级（失败时跳过）
-目标：自修复（失败时自动修复）
-方法：
-  1. 缓存中间结果
-  2. 自动重试失败 phase
-  3. 自动选择替代方案
-  4. 自动调整参数
+Current: the agent manually checks the 5 gates
+Target: automatic fantasy detection
+Method:
+  1. Automatic tracing of derivation chains
+  2. Automatic citation verification
+  3. Automatic assumption scoring
+  4. Automatic counterexample search
+  5. Automatic data checks
 ```
 
-## 五、总结
+### 3. Pipeline Self-Healing
 
-SciForge-OSS 的核心竞争力在于：
-1. **全领域自动适配**（签名驱动，非硬编码）
-2. **幻想预防**（5 门检测，零容忍）
-3. **落地置信度**（理论×数据，80-90%）
-4. **优雅降级**（Pipeline 永不崩）
+```
+Current: graceful degradation (skip on failure)
+Target: self-healing (auto-repair on failure)
+Method:
+  1. Cache intermediate results
+  2. Automatically retry failed phases
+  3. Automatically select alternatives
+  4. Automatically adjust parameters
+```
 
-下一步优化方向：
-1. 领域签名库扩展到 50+ 领域
-2. 落地置信度提升到 90%+
-3. Pipeline 自修复能力
-4. Ouroboros 深度集成
-5. 社区驱动领域扩展
+## 5. Summary
+
+The core competitiveness of SciForge-OSS lies in:
+1. **All-domain automatic adaptation** (signature-driven, not hard-coded)
+2. **Fantasy prevention** (5-gate detection, zero tolerance)
+3. **Landing confidence** (theory×data, 80-90%)
+4. **Graceful degradation** (the pipeline never crashes)
+
+Next optimization directions:
+1. Expand the domain signature library to 50+ domains
+2. Raise landing confidence to 90%+
+3. Pipeline self-healing capability
+4. Deep integration with Ouroboros
+5. Community-driven domain expansion

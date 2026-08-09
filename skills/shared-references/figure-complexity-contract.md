@@ -1,109 +1,109 @@
 # Figure Complexity Contract (SciForge-OSS — Anti-Elementary-Figure Rules)
 
-> **Status (v1.1)**: 本契约专治"小学生级别"图——纯基础形状+大段文字、箭头乱飞、没有视觉层次的图。与 [`figure-quality-contract.md`](figure-quality-contract.md)（格式/色板/字号）互补：那份管"规范"，这份管"复杂与美观"。由 `/unified-plotting` 执行、由 `render_figure.py` 内嵌审计机械检查（A7 复杂度层）。
+> **Status (v1.1)**: This contract specifically targets "elementary-school-level" figures — figures made of plain basic shapes plus large blocks of text, arrows flying everywhere, with no visual hierarchy. It complements [`figure-quality-contract.md`](figure-quality-contract.md) (format/palette/font sizes): that file governs "conventions", this file governs "complexity and visual appeal". Enforced by `/unified-plotting`, with mechanical checks embedded in the audit inside `render_figure.py` (A7 complexity layer).
 
-## 0. 领域中立（Discipline Neutrality）——最高原则
+## 0. Discipline Neutrality — Supreme Principle
 
-SciForge-OSS 服务**全领域**：理工农医、社科人文、经管法学皆然。本契约所有规则按**图的结构角色**（structural role）表述，不按图的具体内容或领域表述：
+SciForge-OSS serves **all disciplines**: science, engineering, agriculture, medicine, social sciences, humanities, economics, management, law — all of them. Every rule in this contract is stated in terms of the **structural role** of figures, not in terms of specific figure content or discipline:
 
-- **测试图 ≠ skill 边界**: 开发期使用的示例图只是管线验证载体，不构成 skill 支持的图类型清单。任何领域、任何内容的图都适用同一套规则。
-- **领域只决定语义，不决定规则**: 医学通路图、材料晶格图、法条层级图、历史时间轴、生态网络图……组件语义随领域变，本契约的丰富度下限、连线治理、图层模型、纵深技法、白底与品牌纪律一律不变。
-- **审计是领域无知的**: A4–A10 审计层只检查结构属性（字号、色度、重叠、图标占比、品牌泄露），不含任何领域假设——新增领域不需要改审计。
+- **Test figures ≠ skill boundary**: The example figures used during development are merely carriers for pipeline validation; they do not constitute a list of figure types the skill supports. The same set of rules applies to figures of any discipline, any content.
+- **Discipline determines only semantics, not rules**: medical pathway diagrams, material lattice diagrams, statute hierarchy diagrams, historical timelines, ecological network diagrams... Component semantics vary by discipline, but this contract's richness floor, edge governance, layer model, depth devices, white-background and branding discipline never change.
+- **The audit is discipline-agnostic**: The A4–A10 audit layers check only structural properties (font size, chroma, overlap, icon ratio, brand leakage) and contain no discipline assumptions whatsoever — adding a new discipline requires no audit changes.
 
-## 0.5 全领域图表角色类型学（Role Typology × Engine Mapping）
+## 0.5 Cross-Discipline Figure Role Typology (Role Typology × Engine Mapping)
 
-任何一张论文插图，先归入一个结构角色，再按表选引擎与技法（引擎均经统一入口 `render_figure.py` 渲染，单一链路）：
+Any paper figure is first classified into one structural role, then the engine and techniques are chosen from the table (all engines are rendered through the unified entry point `render_figure.py`, single pipeline):
 
-| 结构角色 | 各领域示例（仅示意） | 首选引擎 | 关键技法 |
+| Structural role | Examples per discipline (illustrative only) | Preferred engine | Key techniques |
 |---------|---------------------|---------|---------|
-| **结构/组成** | 系统架构、装置结构、解剖层次、晶胞/分子结构、组织框架 | 手工装配 SVG（Visio 级）/ tikz / 等距 SVG | 分层容器、图标组件、编号徽章、渐变卡面 |
-| **过程/流程** | 方法论、反应路径、临床路径、法律程序、制造工艺 | d2 / blockdiag(actdiag) / mermaid / pikchr / 手工 SVG | 泳道、检查门/决策点、里程碑脊柱、交付物标注 |
-| **机制/因果** | 分子机制、生理反馈环、经济因果链、证明草图、注意力机制 | tikz（`\pic` 自绘）/ 等距 SVG / asy / pikchr | 自绘组件、束宽∝强度、虚线反馈、公式标注 |
-| **关系/网络** | 引用网络、知识图谱、食物网、社交网络、定理依赖 | d2（elk 密集）/ graphviz | 容器级汇流、边密度控制、图例 |
-| **层级/分类** | 分类树、系统发育、法条层级、本体结构 | d2 / blockdiag tree | 树形布局、分支标签、深度着墨递进 |
-| **时间/演变** | 历史时间轴、演化序列、临床病程、政策沿革 | 手工装配 SVG / d2 timeline | 轴+事件锚点、分期着色带、callout |
-| **空间/地理** | 地图、剖面图、晶体结构、3D 装置 | 等距 SVG / asy / diagrams | 等距投影、网格底板、方位标注 |
-| **证据/数据** | 实验曲线、临床统计、问卷结果、仿真输出 | matplotlib（白底 + apply_matplotlib_style） | 复合面板、inset zoom、显著性标注、不确定度带 |
+| **Structure/composition** | System architecture, device structure, anatomical hierarchy, unit cell/molecular structure, organizational framework | Hand-assembled SVG (Visio level) / tikz / isometric SVG | Layered containers, icon components, number badges, gradient card faces |
+| **Process/flow** | Methodology, reaction pathways, clinical pathways, legal procedures, manufacturing processes | d2 / blockdiag(actdiag) / mermaid / pikchr / hand-crafted SVG | Swimlanes, check gates/decision points, milestone spine, deliverable annotations |
+| **Mechanism/causality** | Molecular mechanisms, physiological feedback loops, economic causal chains, proof sketches, attention mechanisms | tikz (`\pic` custom-drawn) / isometric SVG / asy / pikchr | Custom-drawn components, bundle width ∝ intensity, dashed feedback, formula annotations |
+| **Relation/network** | Citation networks, knowledge graphs, food webs, social networks, theorem dependencies | d2 (elk dense) / graphviz | Container-level bundling, edge density control, legend |
+| **Hierarchy/classification** | Taxonomy trees, phylogeny, statute hierarchy, ontology structure | d2 / blockdiag tree | Tree layout, branch labels, progressive depth shading |
+| **Time/evolution** | Historical timelines, evolutionary sequences, clinical courses, policy evolution | Hand-assembled SVG / d2 timeline | Axis + event anchors, period color bands, callouts |
+| **Space/geography** | Maps, cross-sections, crystal structures, 3D devices | Isometric SVG / asy / diagrams | Isometric projection, grid baseplate, orientation annotations |
+| **Evidence/data** | Experimental curves, clinical statistics, survey results, simulation outputs | matplotlib (white background + apply_matplotlib_style) | Composite panels, inset zoom, significance annotations, uncertainty bands |
 
-**用法**: agent 拿到绘图任务先判角色（可复合，如"机制+数据"用复合面板）；角色决定引擎与技法，领域只决定组件画什么。复合角色图优先手工装配 SVG 统一画布，禁止多引擎产物拼接（保持单一链路）。
+**Usage**: When the agent receives a drawing task, it first determines the role (may be composite, e.g. "mechanism+data" uses composite panels); the role determines the engine and techniques, while the discipline only determines what the components depict. Composite-role figures prefer hand-assembled SVG on a unified canvas; splicing together multi-engine outputs is prohibited (keep a single pipeline).
 
 ---
 
-## 1. 组件丰富度下限（Component Richness Floor）
+## 1. Component Richness Floor
 
-**≥5 节点的图，禁止全部由素矩形/素椭圆构成。** 至少 60% 的主要组件必须具备自定义视觉身份，三选一（agent 现写，不依赖仓库资产库）：
+**For figures with ≥5 nodes, it is forbidden that all components are plain rectangles/plain ellipses.** At least 60% of the main components must have a custom visual identity, via one of three options (the agent writes them on the fly, without relying on any repo asset library):
 
-| 手段 | 引擎 | 做法 |
+| Technique | Engine | Approach |
 |------|------|------|
-| **图标组件** | d2 | 节点声明 `icon: ./icons/<name>.svg`，图标由 agent 现写（§5 方法论） |
-| **自绘 pic** | TikZ | `\pic` 宏多层绘制（投影层+主体+符号细部），不用 `rectangle` 裸框 |
-| **复合形状** | Asymptote/SVG | 组合 ≥3 个基元 + 双色调（主体填充 + 强调细部），如带液面的试管、带栅格的芯片 |
+| **Icon component** | d2 | Node declares `icon: ./icons/<name>.svg`; icons are written on the fly by the agent (§5 methodology) |
+| **Custom pic** | TikZ | Multi-layer drawing via `\pic` macros (shadow layer + body + symbolic detail); no bare `rectangle` boxes |
+| **Composite shape** | Asymptote/SVG | Combine ≥3 primitives + two tones (body fill + accent detail), e.g. a test tube with a liquid level, a chip with a grid |
 
-**审计**: 5+ 节点的图零图标/零自绘组件 → `A7 WARN plain_shapes_only`。
+**Audit**: A figure with 5+ nodes and zero icons/zero custom-drawn components → `A7 WARN plain_shapes_only`.
 
-## 2. 视觉层次（Visual Hierarchy）
+## 2. Visual Hierarchy
 
-- **至少两级分组**: 容器嵌套（容器内再分组）或横向 band 分区，容器带标题与浅一档的填充色（`surface` → `surface-alt` 递进）。
-- **每个容器 ≤6 个直接子组件**; 超过就再嵌一层分组。
-- **主角突出**: 图的核心组件（该图叙事的主角——可以是方法、器官、装置、事件）用 `ochre`（唯一强调位）或 `diamond`/`hexagon` 异形；其余组件一律低饱和。
+- **At least two levels of grouping**: container nesting (further grouping inside containers) or horizontal band partitioning; containers carry a title and a one-step-lighter fill color (`surface` → `surface-alt` progression).
+- **Each container ≤6 direct children**; if exceeded, nest one more level of grouping.
+- **Protagonist stands out**: The figure's core component (the protagonist of that figure's narrative — which may be a method, organ, device, or event) uses `ochre` (the sole accent slot) or a `diamond`/`hexagon` special shape; all other components are uniformly low-saturation.
 
-## 3. 连线治理（Edge Governance）——治"线太多太乱"
+## 3. Edge Governance — governing "too many, too messy edges"
 
-1. **容器级汇流**: 同一对分组之间 ≥3 条平行流时，必须合并为一条带标签的干线（trunk edge）或总线（bus），禁止 N×M 全连接式箭头雨。例：3 个输入源各自连同一处理模块 → 改为输入容器一条带符号标签的干线。
-2. **边密度上限**: `edges / nodes ≤ 1.6`（审计 WARN 超出者）。确实需要的密集图（定理依赖 DAG 等）在图目录放 `complexity_override.txt` 说明理由（如"依赖关系本身就是内容"）。
-3. **箭头样式族 ≤3 种**: 实线=主数据流；虚线=反馈/辅助；粗线=主干。禁止一图出现 4 种以上线型。
-4. **反馈边绕行**: 反馈/更新边走图形外沿（d2: 独立方向声明; TikZ: `to[out=,in=]` 绕行），禁止穿越其他组件。
-5. **标签精简**: 边标签 ≤3 词；能用符号（$z_v$, $\alpha$）不用句子。
-6. **手工 SVG 专用布线走廊（Visio 级）**: 手工装配 SVG 时，跨泳道连线必须走**预分配的垂直走廊**（如 x=460–520、940–1000 等列带），走廊内只允许垂直走线，水平段在走廊两端 90° 接入——即"正交圆角布线"。禁止斜线、禁止连线穿越卡片。总线在走廊中合并后，从走廊对侧以短水平段分出各目标，形成梳齿状（comb）分发。
+1. **Container-level bundling**: When there are ≥3 parallel flows between the same pair of groups, they must be merged into a single labeled trunk edge or bus; N×M fully-connected arrow rain is prohibited. Example: 3 input sources each connecting to the same processing module → change to one trunk with symbol labels from the input container.
+2. **Edge density cap**: `edges / nodes ≤ 1.6` (audit WARNs when exceeded). Genuinely needed dense graphs (theorem dependency DAGs, etc.) place a `complexity_override.txt` in the figure directory explaining the reason (e.g. "the dependency relations are themselves the content").
+3. **Arrow style family ≤3 kinds**: solid = main data flow; dashed = feedback/auxiliary; thick = trunk. Four or more line styles in one figure are prohibited.
+4. **Feedback edges detour**: Feedback/update edges run along the outer perimeter of the figure (d2: separate direction declaration; TikZ: `to[out=,in=]` detour); crossing through other components is prohibited.
+5. **Label concision**: Edge labels ≤3 words; if a symbol ($z_v$, $\alpha$) can be used, do not use a sentence.
+6. **Hand-crafted SVG dedicated wiring corridors (Visio level)**: When hand-assembling SVG, cross-swimlane connections must run through **pre-allocated vertical corridors** (column bands such as x=460–520, 940–1000); only vertical wiring is allowed inside a corridor, and horizontal segments join at 90° at the corridor's two ends — i.e. "orthogonal rounded-corner wiring". Diagonal lines are prohibited, and connections crossing through cards are prohibited. After buses merge inside a corridor, they branch out to each target via short horizontal segments on the far side of the corridor, forming comb-like distribution.
 
-## 4. 文字纪律（Text Discipline）
+## 4. Text Discipline
 
-- 节点标签 ≤3 行、≤4 词/行；长解释移入 caption 或侧注。
-- 图内出现整句解释（>8 词）→ 重构：拆成组件或移入 caption。
-- 数学符号用引擎原生数学排版（TikZ `$...$` / d2 LaTeX `$$..$$`）。
+- Node labels ≤3 lines, ≤4 words/line; long explanations go into the caption or side notes.
+- A full explanatory sentence appearing inside the figure (>8 words) → refactor: split into components or move into the caption.
+- Mathematical symbols use the engine's native math typesetting (TikZ `$...$` / d2 LaTeX `$$..$$`).
 
-## 4.5 图层模型（Layer Model）——文字零重叠的组织纪律
+## 4.5 Layer Model — the organizational discipline of zero text overlap
 
-手工装配 SVG 必须按图层组织，审计 A10 层机械检查（文字-文字 bbox 相交 >12% 即 FAIL；布线穿字无 halo 即 WARN；≥20 标签无图层结构即 WARN）：
+Hand-assembled SVG must be organized by layer; audit layer A10 checks mechanically (text-text bbox intersection >12% → FAIL; wiring passing through text without a halo → WARN; ≥20 labels without layer structure → WARN):
 
 ```
-<g class="layer-0-bg">       背景与地面（白底矩形、泳道底板、网格）
-<g class="layer-1-cards">    卡片/容器及其内嵌图标、mini 可视化（卡片内文字属于本层）
-<g class="layer-2-wiring">   所有连线、总线、箭头（画在卡片之上、标签之下）
-<g class="layer-3-labels">   边标签、callout、图例（最顶层；每个标签必须落在无遮挡空位）
+<g class="layer-0-bg">       background and ground (white background rect, swimlane baseplates, grid)
+<g class="layer-1-cards">    cards/containers and their embedded icons, mini visualizations (text inside cards belongs to this layer)
+<g class="layer-2-wiring">   all connections, buses, arrows (drawn above cards, below labels)
+<g class="layer-3-labels">   edge labels, callouts, legend (topmost layer; every label must sit in an unobstructed empty spot)
 ```
 
-**硬性规则**:
-1. 任何两个文字 bbox 不得相交（边标签压字、标题压卡片文字都算违规）——放标签前先查空位（A10 会扫出来）
-2. 边标签放线段**旁**（垂直偏移 ≥1.2×字号）或带 halo rect，禁止骑在线上无背景
-3. 卡片文字距卡片边 ≥12px；相邻卡片文字列不得互相侵入
-4. 布线在 layer-2、文字在 layer-3——布线永远盖不住文字
+**Hard rules**:
+1. The bboxes of any two texts must not intersect (an edge label sitting on text, or a title sitting on card text, both count as violations) — check for empty space before placing labels (A10 will scan them out)
+2. Edge labels sit **beside** the segment (vertical offset ≥1.2× font size) or carry a halo rect; riding on the line without a background is prohibited
+3. Card text stays ≥12px from the card edge; text columns of adjacent cards must not intrude into each other
+4. Wiring is in layer-2, text is in layer-3 — wiring never covers text
 
-## 4.6 审阅修订纪律（Scoped Revision — 借鉴 Memslides 局部修订，Apache-2.0）
+## 4.6 Review & Revision Discipline (Scoped Revision — drawing on Memslides local revision, Apache-2.0)
 
-审计报出问题后，修订必须**局部化**，禁止整图重写：
+After the audit reports problems, revisions must be **localized**; rewriting the whole figure is prohibited:
 
-1. 只修改被 A4/A5/A8/A9/A10 点名的具体元素（该标签/该卡片/该连线），重渲染整图但改动限于该处
-2. 一次只修一类问题（先修 FAIL 再修 WARN），修完跑审计确认，再进入下一类
-3. 修订保留迭代痕迹：图目录 `revision_log.md` 逐条记录"审计发现 → 修改内容"（可复现、可追溯）
-4. 连续 3 轮同一问题未消除 → 回到骨架层重新布局该区域，而不是继续微调坐标
+1. Modify only the specific elements named by A4/A5/A8/A9/A10 (that label/that card/that connection); re-render the whole figure but confine the change to that spot
+2. Fix only one class of problem at a time (fix FAILs first, then WARNs); after fixing, run the audit to confirm, then move on to the next class
+3. Revisions preserve the iteration trail: the figure directory's `revision_log.md` records "audit finding → change made" item by item (reproducible, traceable)
+4. If the same problem persists for 3 consecutive rounds → go back to skeleton level and re-lay out that region, instead of continuing to nudge coordinates
 
-（Memslides 的分层记忆/工具记忆思想已对照评估：其渲染链为 slides 导出，与本管线的矢量插图定位不同，不作为引擎集成；仅采纳其 scoped revision 方法论，保持单一链路。）
+(Memslides' hierarchical-memory/tool-memory ideas have been comparatively evaluated: its rendering pipeline is slide export, which differs from this pipeline's vector-illustration positioning, so it is not integrated as an engine; only its scoped revision methodology is adopted, keeping a single pipeline.)
 
-## 5. 图标自绘方法论（Agent 现写，不入仓库）
+## 5. Icon Hand-Drawing Methodology (written on the fly by the agent, not checked into the repo)
 
-> **原则**: 图标是 agent 的创作产物，随每张图保存在该图目录（`figures/<name>/icons/*.svg`），可复现、可审计。SciForge-OSS 只提供方法，不提供图库。
+> **Principle**: Icons are the agent's creative output, saved together with each figure in that figure's directory (`figures/<name>/icons/*.svg`), reproducible and auditable. SciForge-OSS provides only the methodology, not an icon library.
 
-### 5.1 d2 图标规范
+### 5.1 d2 icon conventions
 
-- 尺寸: `viewBox="0 0 64 64"`（方形图标）；节点 `width/height` 由 d2 自动，图标近旁 `style.font-size` ≥20px
-- 配色: 只用莫兰迪 token（`sciforge_style.TOKENS`）；描边 `#6E675F`(ink-soft) 1.5–2px，主体填充 `#EDE9E2`/token，强调细部用组件语义色
-- 结构: 5–15 个基元、≥2 个色调、必有一个"识别性细部"（数据库的椭圆顶、神经元的突触点、齿轮的齿）
-- 引用: `icon: ./icons/db.svg`（相对 spec 所在目录）
+- Size: `viewBox="0 0 64 64"` (square icons); node `width/height` left automatic in d2; `style.font-size` ≥20px next to the icon
+- Coloring: Morandi tokens only (`sciforge_style.TOKENS`); stroke `#6E675F`(ink-soft) 1.5–2px, body fill `#EDE9E2`/token, accent details use the component's semantic color
+- Structure: 5–15 primitives, ≥2 tones, must have one "recognizable detail" (the database's elliptical top, the neuron's synapse dots, the gear's teeth)
+- Reference: `icon: ./icons/db.svg` (relative to the spec's directory)
 
-**示范模板**（agent 依此风格自绘，不得直接复用为图库）:
+**Reference template** (the agent custom-draws in this style; it must not be reused directly as an icon library):
 ```svg
-<!-- 数据库：椭圆顶 + 柱身 + 分层线（识别性细部=分层） -->
+<!-- database: elliptical top + cylindrical body + tier lines (recognizable detail = tiers) -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <path d="M12 16v28c0 4 9 7 20 7s20-3 20-7V16" fill="#EDE9E2" stroke="#6E675F" stroke-width="2"/>
   <ellipse cx="32" cy="16" rx="20" ry="7" fill="#93A7BB" stroke="#6E675F" stroke-width="2"/>
@@ -111,7 +111,7 @@ SciForge-OSS 服务**全领域**：理工农医、社科人文、经管法学皆
 </svg>
 ```
 ```svg
-<!-- 神经层：堆叠圆片 + 连接点（识别性细部=层叠与节点） -->
+<!-- neural layer: stacked discs + connection points (recognizable detail = stacking and nodes) -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect x="14" y="40" width="36" height="8" rx="4" fill="#BDA5A7" stroke="#6E675F" stroke-width="1.5"/>
   <rect x="14" y="28" width="36" height="8" rx="4" fill="#A4B294" stroke="#6E675F" stroke-width="1.5"/>
@@ -120,152 +120,152 @@ SciForge-OSS 服务**全领域**：理工农医、社科人文、经管法学皆
 </svg>
 ```
 
-### 5.2 TikZ 自绘组件规范
+### 5.2 TikZ custom component conventions
 
-- 用 `\tikzset{pics/<name>/.style={...}}` 定义 pic，内部 ≥3 层绘制：`投影(soft fill)` → `主体(token fill + ink-soft stroke)` → `细部(ochre/rose accent)`
-- 组件投影统一：`fill=sfinksoft!12, transform canvas={shift={(0.35mm,-0.35mm)}}`
-- 数据张量画成堆叠圆片（`foreach` 循环），不要写 "[h1,h2,...]" 文字
+- Define the pic with `\tikzset{pics/<name>/.style={...}}`, with ≥3 drawing layers inside: `shadow (soft fill)` → `body (token fill + ink-soft stroke)` → `detail (ochre/rose accent)`
+- Component shadows are unified: `fill=sfinksoft!12, transform canvas={shift={(0.35mm,-0.35mm)}}`
+- Data tensors are drawn as stacked discs (`foreach` loop); do not write "[h1,h2,...]" as text
 
-### 5.3 Asymptote / 等距投影（isometric）SVG
+### 5.3 Asymptote / isometric SVG
 
-- Asy: 组件 = ≥3 基元 + ≥2 色调；机械件加剖面线（`hatch`），流体加渐变（`axialshade`）
-- **等距 3D 风格图（替代 Blender/渲染器的轻量方案）**: 用纯 SVG 做 2:1 等距投影（iso(x,y,z) = ((x−y)·cos30°, (x+y)/2 − z)），画家算法按深度排序绘制；立体 = 顶面 + 两个可见侧面，侧面用 token 色叠加半透明 ink（10%/20%）制造明暗，SVG 源码仍 100% 莫兰迪合规（审计通过）；配 callout 引线标注（虚线引线 + 圆点锚 + 标签）、地面网格板、粒子流点缀。适合机制示意图、系统结构图——获得"3D 感"而不引入 3D 渲染依赖。
+- Asy: component = ≥3 primitives + ≥2 tones; mechanical parts add hatch lines (`hatch`), fluids add gradients (`axialshade`)
+- **Isometric 3D style figures (lightweight alternative to Blender/renderers)**: use pure SVG for 2:1 isometric projection (iso(x,y,z) = ((x−y)·cos30°, (x+y)/2 − z)), drawing in depth-sorted order via the painter's algorithm; solid = top face + two visible side faces; side faces overlay translucent ink (10%/20%) on the token color to create light and shade, and the SVG source remains 100% Morandi-compliant (audit passes); paired with callout leader annotations (dashed leader + dot anchor + label), a ground grid plate, and particle-flow accents. Suited to mechanism schematics and system structure diagrams — achieving a "3D feel" without introducing 3D rendering dependencies.
 
-### 5.4 背景与品牌纪律
+### 5.4 Background and branding discipline
 
-- **所有类型图的背景一律纯白 `#FFFFFF`**（数据图、架构图、方法论图、机制图全部），与论文白纸融为一体；莫兰迪仅用于组件/系列/填充色。数据图在 `apply_matplotlib_style()` 后覆盖 `figure.facecolor`/`axes.facecolor`；SVG 图底 `<rect fill="#FFFFFF">`。
-- **图是论文插图，不是工具海报**: 图内任何位置禁止出现内部品牌/工具名/调色板代号（SciForge、unified renderer、morandi、figure-lab 路径、渲染器版本号等）。审计 A9 层扫描图源强制拦截；标题条只放图的学术内容，工具信息一律留在 caption 与正文。
+- **The background of all figure types is pure white `#FFFFFF`** (data plots, architecture diagrams, methodology diagrams, mechanism diagrams — all of them), blending seamlessly with the white paper of the paper; Morandi is used only for component/series/fill colors. For data plots, override `figure.facecolor`/`axes.facecolor` after `apply_matplotlib_style()`; SVG figures place `<rect fill="#FFFFFF">` underneath.
+- **The figure is a paper illustration, not a tool poster**: internal brands/tool names/palette codenames (SciForge, unified renderer, morandi, figure-lab paths, renderer version numbers, etc.) are prohibited anywhere inside the figure. Audit layer A9 scans figure sources and forcibly blocks them; the title bar carries only the figure's academic content, and tool information stays in the caption and body text.
 
-### 5.5 运行时图标词汇协议（Runtime Icon Vocabulary — 抬视觉天花板，不入库）
+### 5.5 Runtime Icon Vocabulary Protocol (Runtime Icon Vocabulary — raising the visual ceiling, not checked into the repo)
 
-> **背景**: agent 手绘图标的艺术性有天然上限。本协议允许**运行时**借用专业开源图标词汇，同时不违反"不把图标资产库写进仓库"的原则——图标随图保存在 `figures/<name>/icons/`，来源与许可记录在图的 `revision_log.md`。
+> **Background**: There is a natural ceiling on the artistry of icons hand-drawn by the agent. This protocol permits borrowing professional open-source icon vocabulary at **runtime**, while not violating the principle of "not writing an icon asset library into the repo" — icons are saved with the figure in `figures/<name>/icons/`, with sources and licenses recorded in the figure's `revision_log.md`.
 
-**许可白名单（只从这些来源抓取，禁止其他）**:
+**License whitelist (fetch only from these sources; others prohibited)**:
 
-| 来源 | 许可 | 领域 |
+| Source | License | Domain |
 |------|------|------|
-| bioicons.com | 图标逐一标注（多为 CC0/CC-BY） | 生医/分子/细胞 |
-| Tabler Icons | MIT | 通用技术 |
-| Lucide | ISC | 通用技术 |
-| Feather Icons | MIT | 通用技术 |
-| Font Awesome Free（solid/regular） | CC-BY-4.0 | 通用（需署名） |
-| d2 bundled icons (icons.terrastruct.com) | 随 d2 分发 | 基础设施/云 |
+| bioicons.com | icons individually annotated (mostly CC0/CC-BY) | biomedical/molecular/cellular |
+| Tabler Icons | MIT | general technology |
+| Lucide | ISC | general technology |
+| Feather Icons | MIT | general technology |
+| Font Awesome Free (solid/regular) | CC-BY-4.0 | general (attribution required) |
+| d2 bundled icons (icons.terrastruct.com) | distributed with d2 | infrastructure/cloud |
 
-**强制流程（四步，缺一不可）**:
-1. **抓取**: 从白名单来源下载 SVG 到 `figures/<name>/icons/<icon>.svg`，经代理（mihomo 8099）访问；**抓取失败不阻塞**——回退到 agent 手绘（§5.1 方法论）
-2. **重着色**: 图标必须经过 `sciforge_style.recolor_icon()`（`python -c "from sciforge_style import recolor_icon; ..."`）——按 L* 明度序映射到莫兰迪系列色，中性色保留；未经重着色的原色图标进图会被 A3 审计拦截
-3. **引用**: d2 用 `icon: ./icons/<icon>.svg`；手工 SVG 用 `<image>` 或内联 `<g>` 嵌入（内联优先，保持单文件可审计）
-4. **记录**: 图的 `revision_log.md` 追加一行 `icon: <name> ← <来源 URL> (<许可>)`；CC-BY/Font Awesome 图标的署名按许可要求写入 LaTeX 致谢或补充材料
+**Mandatory workflow (four steps, none may be skipped)**:
+1. **Fetch**: download the SVG from a whitelisted source to `figures/<name>/icons/<icon>.svg`, accessing it via proxy (mihomo 8099); **a failed fetch does not block** — fall back to agent hand-drawing (§5.1 methodology)
+2. **Recolor**: the icon must pass through `sciforge_style.recolor_icon()` (`python -c "from sciforge_style import recolor_icon; ..."`) — mapped to Morandi series colors by L* lightness order, neutrals preserved; original-color icons that were not recolored will be blocked by the A3 audit if they enter a figure
+3. **Reference**: d2 uses `icon: ./icons/<icon>.svg`; hand-crafted SVG embeds via `<image>` or inline `<g>` (inline preferred, keeping a single auditable file)
+4. **Record**: append a line `icon: <name> ← <source URL> (<license>)` to the figure's `revision_log.md`; attribution for CC-BY/Font Awesome icons is written into the LaTeX acknowledgments or supplementary materials as the license requires
 
-**禁止**: 抓取后直接使用原色、从白名单外来源抓取、把图标库批量写入仓库、用图标绕过 A7 复杂度审计（图标是组件词汇，不替代卡片内 mini 可视化）。
+**Prohibited**: using original colors directly after fetching, fetching from sources outside the whitelist, batch-writing the icon library into the repo, using icons to bypass the A7 complexity audit (icons are component vocabulary; they do not replace in-card mini visualizations).
 
-### 5.6 图标合成技法（Icon Synthesis — agent 必须掌握的 Nature 级图标构造法）
+### 5.6 Icon Synthesis Techniques (Icon Synthesis — Nature-level icon construction methods the agent must master)
 
-> **实测反馈（v4.0）**: agent 直接画"方框+文字"不叫图标；只会用单基元+单色填充的图达不到 Nature 级。本节给出**可执行的图标合成配方**——每个图标 = 多基元合成，agent 按配方现写 SVG，不依赖任何资产库。
+> **Measured feedback (v4.0)**: When the agent directly draws "box + text", that is not an icon; figures that only use a single primitive + single-color fill cannot reach Nature level. This section gives **executable icon synthesis recipes** — each icon = a multi-primitive synthesis, and the agent writes the SVG on the fly per the recipe, without relying on any asset library.
 
-**图标解剖（四要素，缺一不可）**:
-1. **轮廓（silhouette）**: 一个可辨认的主体形状——缩略图测试：缩到 16px 仍能认出是什么（数据库=椭圆顶圆柱、相机=带镜头的圆角矩形、漏斗=梯形、芯片=带引脚的方块）
-2. **语义细部（semantic detail）**: 1–3 个说明"它是什么"的内部元素（数据库的分层线、芯片的电路纹、文档的文字线、漏斗的收敛线）——这是区分"方框"与"图标"的关键
-3. **材质暗示（material hint）**: 顶部高光条（白色 20% 透明度矩形）或底部阴影（ink 8% 透明度）——制造体积感，禁止全平涂
-4. **锚定描边（anchoring stroke）**: 统一 ink-soft 1.5–2px 描边、圆角半径统一（r=4–8）——全图图标描边宽度必须一致
+**Icon anatomy (four elements, none may be skipped)**:
+1. **Silhouette**: one recognizable main shape — thumbnail test: still recognizable when shrunk to 16px (database = cylinder with elliptical top, camera = rounded rectangle with a lens, funnel = trapezoid, chip = square with pins)
+2. **Semantic detail**: 1–3 internal elements that say "what it is" (the database's tier lines, the chip's circuit traces, the document's text lines, the funnel's convergence lines) — this is the key to distinguishing a "box" from an "icon"
+3. **Material hint**: a top highlight bar (white 20% opacity rectangle) or a bottom shadow (ink 8% opacity) — creating volume; all-flat fill is prohibited
+4. **Anchoring stroke**: unified ink-soft 1.5–2px stroke, unified corner radius (r=4–8) — icon stroke widths across the whole figure must be consistent
 
-**图标合成配方（按类取用，viewBox 一律 0 0 64 64）**:
+**Icon synthesis recipes (take by category; viewBox is always 0 0 64 64)**:
 
-| 图标类 | 配方（基元组合顺序） |
+| Icon class | Recipe (primitive composition order) |
 |--------|---------------------|
-| 存储/数据源 | 椭圆顶（token 填充）→ 柱身路径（surface 填充）→ 2 条分层弧线（ink-soft 1.5px）→ 顶面高光条 |
-| 处理模块 | 圆角矩形（token 渐变填充）→ 内部符号（齿轮纹/箭头环/矩阵点阵）→ 右上角状态点（ochre r=3） |
-| 文档/文本 | 折角矩形路径 → 3–4 条文字线（长短交替，ink-soft）→ 1 条强调线（token） |
-| 设备/硬件 | 主体矩形 → 屏幕/镜头内嵌圆（双层：外环 ink-soft + 内芯 canvas）→ 侧边接口凸起小矩形 ×2–3 |
-| 决策/门控 | 菱形（ochre）→ 内部通行箭头（canvas 2.5px）→ 上下顶点状态点 |
-| 汇聚/漏斗 | 梯形路径 → 3 条向内收敛的虚线 → 出口小圆 |
-| 网络/关系 | 3–5 个大小不一的圆（主节点 token、次节点 surface）→ 连线先画在圆之下（先线后圆） |
-| 时序/流程 | 竖轴时间线 → 事件锚点圆（交替 token）→ 右侧短标签线 |
+| Storage/data source | elliptical top (token fill) → cylinder body path (surface fill) → 2 tier arcs (ink-soft 1.5px) → top highlight bar |
+| Processing module | rounded rectangle (token gradient fill) → internal symbol (gear pattern/arrow ring/matrix dot grid) → status dot at top right (ochre r=3) |
+| Document/text | folded-corner rectangle path → 3–4 text lines (alternating lengths, ink-soft) → 1 accent line (token) |
+| Device/hardware | body rectangle → circle embedded in screen/lens (two layers: outer ring ink-soft + inner core canvas) → 2–3 small rectangles as side-interface bumps |
+| Decision/gate | rhombus (ochre) → pass-through arrow inside (canvas 2.5px) → status dots at top and bottom vertices |
+| Convergence/funnel | trapezoid path → 3 dashed lines converging inward → small exit circle |
+| Network/relation | 3–5 circles of varying sizes (main node token, secondary nodes surface) → connections drawn first, under the circles (lines first, circles after) |
+| Timeline/sequence | vertical timeline axis → event anchor circles (alternating token) → short label lines on the right |
 
-**合成纪律**:
-- 每个图标 ≥3 个基元、≥2 个色调（主体 token + 细部 ink-soft/canvas）
-- 同一图内图标**同风格族**：描边宽度、圆角、高光位置全部一致
-- 图标内**不放文字**（文字属于卡片层）；需要标注时用卡片标题
-- 复杂图标可用 `<g>` 分组 + `<defs>` 复用（如图内多次出现同类图标，定义一次 `<symbol>` 多处 `<use>`）
+**Synthesis discipline**:
+- Each icon has ≥3 primitives and ≥2 tones (body token + detail ink-soft/canvas)
+- Icons within the same figure belong to the **same style family**: stroke width, corner radius, highlight position all consistent
+- **No text inside icons** (text belongs to the card layer); when annotation is needed, use the card title
+- Complex icons may use `<g>` grouping + `<defs>` reuse (if icons of the same kind appear multiple times in a figure, define one `<symbol>` and `<use>` it in multiple places)
 
-### 5.7 高级架构图技法（Nature/Visio 级——复杂架构图不再"简单"）
+### 5.7 Advanced Architecture Diagram Techniques (Nature/Visio level — complex architecture diagrams no longer "simple")
 
-实测反馈：只有节点和箭头的架构图是"流程图水平"，达不到 Nature 级。以下技法**按图复杂度递增叠加**：
+Measured feedback: an architecture diagram with only nodes and arrows is at "flowchart level" and cannot reach Nature level. The following techniques are **stacked as figure complexity increases**:
 
-1. **分层容器（layered containers）**: 泳道/分区用两级容器（大区带标题条 + 内部卡片），容器填充 surface-alt 半透明、卡片纯白+阴影——层次靠"底色深浅递进"表达
-2. **端口与汇流点（ports & junctions）**: 卡片边缘的接线锚点（r=3–4 ink-soft 实心圆）；总线合流/分岔处画实心接点圆（r=5）——电路图画法，禁止连线直接"穿过"卡片
-3. **总线布线（bus wiring）**: ≥3 条平行流连成一条带标签干线（粗 3px + 标签 halo），梳齿状分发到各目标——消灭箭头雨
-4. **渐变卡面（gradient cards）**: 关键组件卡用 token 线性渐变（白 20%→token 45%）——全图渐变卡片占比 30–50%，其余纯白，形成视觉节奏
-5. **编号徽章（number badges）**: 主流程组件左上角 ink 底白字圆形编号 ①②③，caption 按编号呼应——Nature Figure 1 的标准做法
-6. **标注引线（callout leaders）**: 图外注释用"圆点锚 + 45° 细引线 + halo 标签"，禁止把长文字塞进组件
-7. **图例纪律（legend discipline）**: 图例只解释**线型/符号语义**（实线/虚线/接点/菱形各代表什么），不重复组件名；放底部一条水平带
-8. **留白预算（whitespace budget）**: 四周 margin ≥48px、卡片间距 ≥24px、容器内边距 ≥20px——拥挤是"不高级"的第一来源
+1. **Layered containers**: swimlanes/zones use two-level containers (large zone with title bar + cards inside); container fill is surface-alt translucent, cards are pure white + shadow — hierarchy is expressed through "progressive depth of base color"
+2. **Ports and junctions**: wiring anchor points on card edges (r=3–4 ink-soft solid circles); at bus merge/branch points draw solid junction circles (r=5) — circuit-diagram convention; connections directly "passing through" cards are prohibited
+3. **Bus wiring**: ≥3 parallel flows joined into one labeled trunk (3px thick + label halo), comb-distributed to each target — eliminating arrow rain
+4. **Gradient cards**: cards of key components use a token linear gradient (white 20% → token 45%) — gradient cards make up 30–50% of the figure, the rest pure white, forming visual rhythm
+5. **Number badges**: circular numbers ①②③ in white on ink background at the top-left corner of main-flow components; the caption echoes by number — the standard practice of Nature Figure 1
+6. **Callout leaders**: annotations outside the figure use "dot anchor + 45° thin leader + halo label"; stuffing long text into components is prohibited
+7. **Legend discipline**: the legend explains only **line-style/symbol semantics** (what solid/dashed/junction/rhombus each represents), not repeating component names; placed as one horizontal band at the bottom
+8. **Whitespace budget**: margins around ≥48px, spacing between cards ≥24px, container inner padding ≥20px — crowding is the first source of "not premium"
 
-## 6. 复杂度下限（Complexity Floor — 量化）
+## 6. Complexity Floor (quantified)
 
-| 图类型 | 组件数 | 图标/自绘占比 | 分组层级 | 附加元素（至少 1 项） |
+| Figure type | Component count | Icon/custom-drawn ratio | Grouping levels | Additional elements (at least 1) |
 |--------|--------|--------------|----------|----------------------|
-| Intro 问题图 | ≥8 | ≥50% | ≥2 | 图例 / 标注 callout |
-| Methods 结构/机制图 | ≥12 | ≥60% | ≥2 | 图例 + 分区标题 (a/b/c) |
-| 机制图 | ≥8 | ≥60% | ≥2 | 公式标注 / 注意力权重 |
-| 复合面板 | ≥3 面板 | 数据图免图标 | — | (a)(b)(c) 面板标签 |
+| Intro problem figure | ≥8 | ≥50% | ≥2 | legend / callout annotation |
+| Methods structure/mechanism figure | ≥12 | ≥60% | ≥2 | legend + zone titles (a/b/c) |
+| Mechanism figure | ≥8 | ≥60% | ≥2 | formula annotation / attention weights |
+| Composite panel | ≥3 panels | data plots exempt from icons | — | (a)(b)(c) panel labels |
 
-**达不到下限 = 图还没画完**，继续迭代（加组件、画图标、理连线），而不是降低标准交付。
+**Failing to meet the floor = the figure is not finished yet**; keep iterating (add components, draw icons, tidy connections) rather than lowering the bar to deliver.
 
-## 6.5 视觉纵深技法（Visio/Illustrator 级 — 禁止"扁平盒子"）
+## 6.5 Visual Depth Techniques (Visio/Illustrator level — "flat boxes" prohibited)
 
-> 手工装配 SVG 要达到 Visio/AI 级质感，必须叠加纵深语言，审计 A8 层机械计数（`figure_audit.py audit_richness`），卡片数 ≥4 而纵深器件总数少于卡片数 → WARN。
+> To reach Visio/AI-level texture, hand-assembled SVG must stack depth language; audit layer A8 counts mechanically (`figure_audit.py audit_richness`): card count ≥4 with a total number of depth elements less than the card count → WARN.
 
-| 技法 | 做法 | 数量建议 |
+| Technique | Approach | Quantity recommendation |
 |------|------|---------|
-| **渐变卡面** | `<linearGradient>` 白→token 浅化（opacity 叠加，源码保持色板合规），卡片头部或全卡 | ≥30% 卡片 |
-| **投影分层** | `filter feDropShadow`（已验证模板），卡片/门控菱形浮起 | 所有浮起卡片 |
-| **端口点** | 卡片边缘的接线锚点：r=3–4 实心圆（ink-soft），总线接合处加 r=5 接点圆 | 每个有出线的卡片 ≥1 |
-| **总线接点** | 干线合流/分出处画实心接点圆（电路总线画法），禁止线直接"穿过"卡片 | 每个合流点 |
-| **迷你可视化** | 卡片内嵌 sparkline / token 条 / patch 网格 / 注意力矩阵 / 进度条 | ≥40% 卡片 |
-| **编号标注** | 卡片角标 ①②③ 或 (1)(2)(3) 小圆章，caption 按编号呼应 | 主流程组件 |
-| **状态徽章** | 右上角小圆角章（pretrained ✓ / running / frozen） | 适用处 |
-| **刻度/仪表** | 数值用迷你仪表条（fill 百分比）呈现，不用裸文字 | ≥1 |
+| **Gradient card face** | `<linearGradient>` white→token lightening (opacity overlay; source remains palette-compliant), card header or whole card | ≥30% of cards |
+| **Shadow layering** | `filter feDropShadow` (validated template), floating cards/gate rhombuses | all floating cards |
+| **Port dots** | wiring anchor points on card edges: r=3–4 solid circles (ink-soft); add r=5 junction circles at bus junctions | ≥1 on every card with outgoing lines |
+| **Bus junctions** | at trunk merge/branch points draw solid junction circles (circuit-bus convention); lines directly "passing through" cards are prohibited | every merge point |
+| **Mini visualization** | sparkline / token bar / patch grid / attention matrix / progress bar embedded inside a card | ≥40% of cards |
+| **Numbered annotation** | card corner mark ①②③ or (1)(2)(3) small circular badges; the caption echoes by number | main-flow components |
+| **Status badge** | small rounded badge at top right (pretrained ✓ / running / frozen) | where applicable |
+| **Scale/gauge** | numeric values rendered as mini gauge bars (fill percentage), no bare text | ≥1 |
 
-**纵深配色纪律**: 渐变仅用"token ↔ canvas/白"或"token ↔ ink 低透明度叠加"，禁止引入新色相；审计 A3 仍按源码 hex 校验（叠加透明度不产生新 hex，天然合规）。
+**Depth coloring discipline**: gradients use only "token ↔ canvas/white" or "token ↔ low-opacity ink overlay"; introducing new hues is prohibited; audit A3 still verifies via source hex values (opacity overlays do not produce new hex values, naturally compliant).
 
-## 7. 组图（Composite / Multi-panel）SCI 一区规范（v3.8）
+## 7. Composite Figure (Composite / Multi-panel) SCI Q1 Standard (v3.8)
 
-多面板组图必须达到 SCI 一区版式标准。统一入口支持 `.composite.json` 清单装配：面板（PDF/PNG）转栅格 → 网格排布 → **(a)(b)(c)… 编号标签** → 双产出 + 审计。
+Multi-panel composite figures must reach the SCI Q1 layout standard. The unified entry point supports `.composite.json` manifest assembly: panels (PDF/PNG) converted to raster → grid layout → **(a)(b)(c)… number labels** → dual outputs + audit.
 
-### 7.0 组版决策（Nature/Science/Cell 逻辑——先决，不是所有图都该组图）
+### 7.0 Composition Decision (Nature/Science/Cell logic — decided up front; not every figure should be composited)
 
-一篇论文的插图是**组图与单图的合理混合**，组版决策遵循 CNS 惯例：
+A paper's figures are a **reasonable mix of composite figures and single figures**; composition decisions follow CNS conventions:
 
-1. **按叙事单元组版，不按图的数量凑组**：同一论点/同一实验链的多面板才组一张组图；独立论点用独立的单图或独立的组图，禁止"为了省版面把不相关的面板塞进一张图"
-2. **面板数硬上限 = 9**：`render_figure.py` 对 >9 面板清单**直接拒绝**（RENDER FAIL），必须拆成多张组图或移入补充材料——超出即"一锅粥"，一区审稿必要求拆图。工具层强制，不可 override
-3. **版面预算**：正文组图总数服从期刊版面（长文 Nature-style 3–6 张主图，双栏模板 5–8 张）；组图挤占版面时，宁可拆图或移补充材料，不可压缩面板可读性
-4. **单图同样合法**：一张独立的核心架构图/机制图不需要编号——但若有编号仍用 **(a)** 单标签保持体例一致
-5. **编号随面板数自适应**：(a)(b)(c)… 逐个分配；面板增减后编号**必须重新连续编号**（caption 同步），禁止跳号或残留旧编号
+1. **Compose by narrative unit, not by figure count**: only multiple panels of the same argument/same experiment chain go into one composite figure; independent arguments use independent single figures or independent composites; "stuffing unrelated panels into one figure to save space" is prohibited
+2. **Panel count hard cap = 9**: `render_figure.py` **directly refuses** manifests with >9 panels (RENDER FAIL); they must be split into multiple composites or moved to supplementary materials — exceeding it produces "a hodgepodge", and Q1 review will invariably demand splitting the figure. Enforced at the tool layer; no override
+3. **Layout budget**: the total number of composites in the main text is subject to the journal's layout (long-form Nature-style 3–6 main figures, double-column templates 5–8 figures); when composites squeeze the layout, prefer splitting figures or moving to supplementary materials over compressing panel readability
+4. **Single figures are equally legitimate**: an independent core architecture/mechanism diagram needs no numbering — but if numbered, it still uses the **(a)** single label to keep the style consistent
+5. **Numbering adapts to panel count**: (a)(b)(c)… assigned one by one; after panels are added or removed, numbering **must be renumbered consecutively** (caption synced); skipped numbers or leftover stale numbers are prohibited
 
-### 7.1 面板标签（强制）
+### 7.1 Panel labels (mandatory)
 
-1. 每个面板一个**加粗小写字母标签** `(a)` `(b)` `(c)` …（≥27 面板才用 aa/ab，而 9 面板上限使这种情况不会出现）
-2. 标签位于面板**上方预留条**（label_strip），绝不覆盖面板内容
-3. 标签字号 ≥14pt 加粗 ink 色；顺序 = 阅读顺序（先左后右、先上后下），与 caption 的 **a** **b** **c** 一一对应
+1. Each panel gets one **bold lowercase letter label** `(a)` `(b)` `(c)` … (aa/ab used only with ≥27 panels, which the 9-panel cap makes impossible)
+2. Labels sit in the **reserved strip above the panel** (label_strip), never covering panel content
+3. Label font size ≥14pt, bold, ink color; order = reading order (left before right, top before bottom), corresponding one-to-one with **a** **b** **c** in the caption
 
-### 7.2 网格与版式（强制）
+### 7.2 Grid and layout (mandatory)
 
-1. 面板数 → 默认网格：2 面板 1×2，3–4 面板 2×2，5–6 面板 2×3 或 3×2，7–9 面板 3×3
-2. 同行面板等高对齐（行高取该行最高面板，短面板垂直居中）；间距均匀（gap），四周留白（margin）
-3. 背景纯白；面板间无分隔线（Nature 惯例），靠间距分区
-4. 面板风格统一：同系字体/字号/线宽/莫兰迪系列色序，禁止各面板各自为政
+1. Panel count → default grid: 2 panels 1×2, 3–4 panels 2×2, 5–6 panels 2×3 or 3×2, 7–9 panels 3×3
+2. Panels in the same row align to equal height (row height is that of the tallest panel in the row; short panels are vertically centered); uniform spacing (gap), margins on all four sides
+3. Background pure white; no divider lines between panels (Nature convention); separation by spacing alone
+4. Panel style unified: same font family/font size/line width/Morandi series color order; panels each doing their own thing is prohibited
 
-### 7.3 Caption（强制）
+### 7.3 Caption (mandatory)
 
-1. 组图 caption 自包含且逐面板说明：`Fig. N. **a**, 说明. **b**, 说明. …`（Nature 句式）
-2. 每个面板至少一句；单图 caption 为完整自包含描述
+1. The composite's caption is self-contained and explains panel by panel: `Fig. N. **a**, description. **b**, description. …` (Nature sentence style)
+2. At least one sentence per panel; a single figure's caption is a complete self-contained description
 
-### 7.4 面板质量下限（强制）
+### 7.4 Panel quality floor (mandatory)
 
-组图内每个面板必须**独立**满足本契约其余所有规则（A1–A10 审计、复杂度下限、纵深技法）；组图装配不能拯救低质量面板——单面板不达标 = 整图不达标。
+Each panel inside a composite must **independently** satisfy all other rules of this contract (A1–A10 audit, complexity floor, depth devices); composite assembly cannot rescue low-quality panels — one panel failing = the whole figure failing.
 
-**清单格式**（`.composite.json`）:
+**Manifest format** (`.composite.json`):
 ```json
 {"panels": [{"file": "../fig1/output.pdf", "label": "a"},
             {"file": "../fig2/output.svg", "label": "b"}],
@@ -274,6 +274,6 @@ SciForge-OSS 服务**全领域**：理工农医、社科人文、经管法学皆
 
 ## 8. See Also
 
-- [`figure-quality-contract.md`](figure-quality-contract.md) — 格式/色板/字号/比例
-- [`figure-quality-review.md`](figure-quality-review.md) — 两级视觉审阅协议（一级=agent 原生视觉自审强制；二级=外部顾问可选；纯文本宿主降级机械审计）
-- [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — 消费者
+- [`figure-quality-contract.md`](figure-quality-contract.md) — format/palette/font sizes/ratios
+- [`figure-quality-review.md`](figure-quality-review.md) — two-level visual review protocol (level 1 = mandatory agent native-vision self-review; level 2 = optional external consultant; pure-text hosts fall back to mechanical audit)
+- [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — consumer

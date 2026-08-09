@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "run_id": "Q001",
+  "started_at": "2026-08-09T00:00:00Z",
+  "wall_clock_seconds": 54,
+  "api_cost_usd": 0.42,
+  "pivot_count": 0,
+  "ba_rounds_used": 0,
+  "ba_rounds_max": 2,
+  "per_phase": {
+    "6b": {
+      "duration_seconds": 2,
+      "cost_usd": 0.05,
+      "verdict": "PASS",
+      "note": "toy experiment (fixtures/e2e_minimal/toy_experiment/run_toy.py)"
+    }
+  },
+  "limits": {
+    "wall_clock_seconds_max": 43200,
+    "api_cost_usd_max": 10.0,
+    "pivot_count_max": 2
+  }
+}

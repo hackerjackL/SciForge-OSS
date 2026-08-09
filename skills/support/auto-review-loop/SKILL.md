@@ -1,6 +1,6 @@
 ---
 name: auto-review-loop
-version: 1.1.2
+version: 1.2.0
 description: "Iterative self-review (review→fix→re-review) with role-switch + v3.2 Phase B.2 domain-expert blind-spot review (wired into explicit ordered chain A→B.1→B.2→C) + kill-argument anti-self-deception. v3.4 STOP CONDITION uses effective_score=min(Phase C raw, B.2 cap) — a fatal blind-spot caps at 5, blocks false 'ready'. Writes BLINDSPOT_CHECK.json. Phase 14. Invoke to improve the draft until score≥6 or MAX_ROUNDS."
 type: reference-skill
 role: autonomous-review-loop-orchestrator
@@ -10,10 +10,10 @@ role: autonomous-review-loop-orchestrator
 
 ## Quick Reference
 
-- **Purpose**: 自动化迭代评审循环 (评审→修复→再评审)，使用角色切换自评审
-- **Input**: 研究产物 (derivation_output.md + CLAIMS_FROM_RESULTS.md)
-- **Output**: AUTO_REVIEW.md + REVIEW_STATE.json + 更新后的产物
-- **Key**: 单 agent 角色切换 (研究者→评审者→辩护者→裁决者)；3 轮上限；保真度门控
+- **Purpose**: automated iterative review loop (review → fix → re-review) using role-switch self-review
+- **Input**: research artifacts (derivation_output.md + CLAIMS_FROM_RESULTS.md)
+- **Output**: AUTO_REVIEW.md + REVIEW_STATE.json + updated artifacts
+- **Key**: single-agent role switching (researcher → reviewer → defender → adjudicator); round cap 3; fidelity gate
 
 > **Status**: Autonomous iterative improvement via structured self-review. **OSS uses single-agent self-review** — the same agent switches roles between "researcher" and "senior reviewer" to provide adversarial critique. There is no external cross-model reviewer requirement. **OSS is discipline-agnostic** — only the universal `senior-reviewer-agnostic` persona is active. No statistical gatekeeping (economics p-value), no SOTA gate (cs-ml), no PNV chain integrity (physics). Copied from main SciForge and adapted to OSS's single-agent architecture.
 >
@@ -28,7 +28,7 @@ Typical prompts:
 - "Review until it passes"
 - "Autonomous iterative improvement"
 - "Iterate review → fix → re-review until ready"
-- "自动评审循环"
+- "auto review loop"
 - "Keep reviewing until score is good enough"
 
 ## Job
@@ -89,7 +89,7 @@ State fields:
 **On completion** (positive assessment or max rounds), set `status: completed` so future invocations don't accidentally resume a finished loop.
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `verdicts/` (filenames: see the artifact directory layout in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
 
 > Follow these shared protocols for all output files:
@@ -126,7 +126,7 @@ State fields:
 5. **Phase C — Implement Fixes** (merge Phase A weaknesses + B.2 unresolved blind-spots into one fix list)
 6. **Phase D — Wait for background derivations** (if any dispatched)
 
-> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Phase B.2 was a **buried subsection** between B.1 and B.5 — the agent read the numbered Phase A→B.1→B.5→C chain and **silently skipped B.2** because it was not in the explicit execution list. Two real test runs (Q-HARM-001 theory, Q-SGD-BS-GAP computational) confirmed this: both produced `review-stage/` with `AUTO_REVIEW.md` + `REVIEW_LEDGER.json` but **NO `BLINDSPOT_CHECK.json`** — Phase B.2 never ran, yet `PIPELINE_STATUS.md` claimed "盲区8项全过" with zero backing artifact. This is the same orphan-artifact bug class as the v3.2 frontier gap. The fix is structural: B.2 is now step 3 of the explicit ordered loop, not a buried subsection. The `BLINDSPOT_CHECK.json` file is the load-bearing evidence — a round that completes without writing it is invalid regardless of the score it claims.
+> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Phase B.2 was a **buried subsection** between B.1 and B.5 — the agent read the numbered Phase A→B.1→B.5→C chain and **silently skipped B.2** because it was not in the explicit execution list. Two real test runs (Q-HARM-001 theory, Q-SGD-BS-GAP computational) confirmed this: both produced `review-stage/` with `AUTO_REVIEW.md` + `REVIEW_LEDGER.json` but **NO `BLINDSPOT_CHECK.json`** — Phase B.2 never ran, yet `PIPELINE_STATUS.md` claimed "all 8 blind-spot items passed" with zero backing artifact. This is the same orphan-artifact bug class as the v3.2 frontier gap. The fix is structural: B.2 is now step 3 of the explicit ordered loop, not a buried subsection. The `BLINDSPOT_CHECK.json` file is the load-bearing evidence — a round that completes without writing it is invalid regardless of the score it claims.
 
 #### Phase A: Structured Self-Review
 
@@ -216,24 +216,24 @@ Then extract structured fields:
 
 **STOP CONDITION**: If `effective_score >= 6` AND verdict contains "ready" or "almost" → stop loop, document final state. **v3.2 — `effective_score` not raw score**: the score used for the stop condition is the **min of (Phase C raw score, B.2 cap)**, NOT the raw Phase C score alone. A raw 7/10 that hides a fatal unresolved domain blind-spot (B.2 cap = 5) is `effective_score = 5` → does NOT stop, must fix the blind-spot first. This closes the gap where the generic Phase C review could declare "ready" while a fatal endogeneity / boundary-condition / straw-man failure (B.2) was never addressed.
 
-**反缩减协议（v5.1 — Anti-Shrinkage Protocol，源自 CRUX 影子评估失败模式 #2）**:
+**Anti-Shrinkage Protocol (v5.1 — from CRUX shadow-evaluation failure mode #2)**:
 
-**背景**（arXiv:2607.27191）：十几轮自我审稿和外部审稿没有一次给出接受意见，但 agent 的应对策略永远是**收窄结论、加免责声明、换更温和的说法**——"面对批评只会'缩'不会'变'"。很多后来被人类专家点名的致命缺陷，AI 审稿早就写过，却从未触发真正的改变。
+**Background** (arXiv:2607.27191): over a dozen rounds of self-review and external review never produced a single accept, yet the agent's response strategy was always **narrowing conclusions, adding disclaimers, switching to softer phrasing** — "when facing criticism it only knows how to 'shrink', never how to 'change'". Many fatal flaws later flagged by human experts had already been written up by AI reviews, yet never triggered a real change.
 
-**强制规则**（连续 ≥2 轮 `effective_score` 不提升、或连续 ≥2 轮 verdict 为 reject 类时激活）：
+**Mandatory rules** (activate when `effective_score` fails to improve for ≥2 consecutive rounds, or the verdict is reject-class for ≥2 consecutive rounds):
 
-1. **禁止措辞性修复作为响应**: 以下动作在连续拒稿状态下**不算**修复——加免责声明、弱化声明措辞、把 "we show" 改成 "we suggest"、缩小 claim 范围、在 Limitations 堆叠 caveat。这些是 CRUX 实验中 agent 的标志性死法
-2. **只允许三类实质性响应**（写入 `REVIEW_STATE.json` 的 `response_class` 字段，逐条对应评审 concern）：
+1. **Wording-only fixes are forbidden as responses**: under consecutive-reject status the following actions do **not** count as fixes — adding disclaimers, softening claim wording, changing "we show" to "we suggest", shrinking claim scope, stacking caveats in Limitations. These are the signature death modes of the CRUX-experiment agents
+2. **Only three substantive response classes are allowed** (written to the `response_class` field of `REVIEW_STATE.json`, mapped one-to-one to review concerns):
 
-| 响应类 | 动作 | 去向 |
+| Response class | Action | Destination |
 |--------|------|------|
-| **重设计实验** | 评审指出证据缺陷（效力不足/缺基线/缺消融）→ 回 `/experiment-execution` 补跑/重跑强制实验矩阵的缺项 | Phase 6 回退 |
-| **PIVOT** | 评审指出方法路径性缺陷 → 回 Phase 5 换方法重注册（预算继承 experiment-execution 的 PIVOT ≤2） | Phase 5 回退 |
-| **KILL** | 评审指出核心假设不成立 → `/kill-argument` 杀论证 → 回 Phase 2 换 idea | Phase 2 回退 |
+| **Experiment redesign** | review flags evidence gaps (underpowered / missing baseline / missing ablation) → back to `/experiment-execution` to run/rerun the missing entries of the mandatory experiment matrix | Phase 6 rollback |
+| **PIVOT** | review flags a path-level method flaw → back to Phase 5 to swap method and re-register (budget inherits experiment-execution's PIVOT ≤2 cap) | Phase 5 rollback |
+| **KILL** | review flags that the core assumption does not hold → `/kill-argument` kill argument → back to Phase 2 for a new idea | Phase 2 rollback |
 
-3. **措辞性修复单独成轮即 FAIL**: 一轮的修复清单若全部属于措辞类（`response_class` 均为 `wording`）→ 该轮无效（`round_invalid: true`），不消耗 MAX_ROUNDS 预算但必须重做该轮并选择实质性响应
-4. **连续 3 轮无实质性响应** → 强制 KILL 路径（`/kill-argument`）——"十几轮只缩不变"的终局不是论文，是止损
-5. **审计钩子**: `REVIEW_STATE.json` 记录每轮每个 concern 的 `response_class ∈ {experiment_redesign, pivot, kill, wording}`；`/paper-writing` 读取——若终稿前的最后 2 轮 response_class 全为 `wording` → FAIL（`reason_code: shrinkage_only_response`）
+3. **A round consisting solely of wording fixes is a FAIL**: if a round's entire fix list is wording-class (`response_class` all `wording`) → the round is invalid (`round_invalid: true`), does not consume MAX_ROUNDS budget but must be redone with a substantive response
+4. **3 consecutive rounds without a substantive response** → forced KILL path (`/kill-argument`) — the endgame of "a dozen rounds of shrinking without changing" is not a paper, it is cutting losses
+5. **Audit hook**: `REVIEW_STATE.json` records `response_class ∈ {experiment_redesign, pivot, kill, wording}` for every concern of every round; `/paper-writing` reads it — if the response_class of the last 2 rounds before the final draft is all `wording` → FAIL (`reason_code: shrinkage_only_response`)
 
 #### Phase B.1: Fidelity Gatekeeping (Universal — replaces economics p-value gate and cs-ml SOTA gate)
 
@@ -590,4 +590,4 @@ The self-review output is the primary record. No external routing or tracing is 
 - [`../shared-references/reviewer-routing.md`](../../shared-references/reviewer-routing.md) — cross-model reviewer routing
 - [`../shared-references/review-tracing.md`](../../shared-references/review-tracing.md) — forensic review trace policy
 - [`../result-to-claim/SKILL.md`](../result-to-claim/SKILL.md) — 3-fidelity claim gate (consumed at termination)
-- [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — anti-self-deception exercise; **R7: 定义为本 skill 的对抗子步骤**（hard/nightmare 难度时调用，用于 executor 的 role-switch 攻击），不是独立并行门
+- [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — anti-self-deception exercise; **R7: defined as an adversarial sub-step of this skill** (invoked at hard/nightmare difficulty for the executor's role-switch attack), not an independent parallel gate

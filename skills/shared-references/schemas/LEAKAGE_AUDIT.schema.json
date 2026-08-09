@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/LEAKAGE_AUDIT.schema.json",
+  "title": "LEAKAGE_AUDIT.json - Type I logic gap + Type IV empirical escape audit",
+  "description": "Produced by /leakage-audit (Step 6 in its SKILL.md). audited_input_hashes is additionally required by artifact-registry.md schema invariant 2 even though the skill's own Step-6 example omits it (known gap, see schemas/README.md). callback is present only when the callback to /method-registry fires.",
+  "type": "object",
+  "required": [
+    "verdict",
+    "discipline_context",
+    "type_i",
+    "type_ii",
+    "type_iii",
+    "type_iv",
+    "blockers",
+    "recommendations",
+    "audited_input_hashes"
+  ],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"],
+      "description": "PASS = no CRITICAL Type I + no Type IV ESCAPE; FAIL = Type I LEAKY on a primary outcome OR Type IV ESCAPE; BLOCKED = missing METHOD_REGISTRY.md / binding not identifiable."
+    },
+    "discipline_context": {
+      "type": "string",
+      "description": "Always 'general' in OSS (discipline-agnostic)."
+    },
+    "type_i": {
+      "type": "object",
+      "required": ["n_leaky", "n_total"],
+      "properties": {
+        "n_leaky": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "description": "Per-implication classification entries (CLEAN / WEAK / LEAKY)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "type_ii": {
+      "type": "string",
+      "enum": ["NOT_APPLICABLE"],
+      "description": "OSS has no discipline overlay: Type II is always NOT_APPLICABLE."
+    },
+    "type_iii": {
+      "type": "string",
+      "enum": ["NOT_APPLICABLE"],
+      "description": "OSS has no discipline overlay: Type III is always NOT_APPLICABLE."
+    },
+    "type_iv": {
+      "type": "object",
+      "required": ["n_escape", "n_total"],
+      "properties": {
+        "n_escape": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "description": "Per-verification classification entries (CLOSED / ESCAPE / NO_VERIFICATION)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "callback": {
+      "type": "object",
+      "description": "Present only when a Type I LEAKY on a primary outcome fires the bounded callback to /method-registry.",
+      "required": ["target", "reason", "iteration", "max_iterations"],
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "iteration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "audited_input_hashes": {
+      "type": "object",
+      "description": "SHA256 of every file the audit consumed (filename -> sha256); required by artifact-registry.md schema invariant 2.",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(sha256:)?[0-9a-fA-F]{64}$"
+      }
+    }
+  },
+  "additionalProperties": true
+}

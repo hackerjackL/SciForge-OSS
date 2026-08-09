@@ -1,0 +1,28 @@
+{
+  "budget_scale": "lite",
+  "groups": [
+    {
+      "name": "main",
+      "hypothesis": "Sampling variance of the sample mean is lower than that of the sample median for n=21 i.i.d. N(0,1) draws, per seed and pooled.",
+      "script": "code/experiments/toy/run_toy.py",
+      "estimated_minutes": 0.1,
+      "background": false,
+      "subagents": 0,
+      "seeds": [
+        42,
+        43,
+        44
+      ]
+    },
+    {
+      "name": "baseline_analytic",
+      "hypothesis": "Closed-form variance ratio Var(mean)/Var(median) ~ 2/pi < 1 corroborates the Monte Carlo direction.",
+      "script": "code/experiments/full/baseline_analytic.py",
+      "estimated_minutes": 0.1,
+      "background": false,
+      "subagents": 0
+    }
+  ],
+  "locked_hash": "2aad820cbf564f3d9590d755d551b0062b3e9e24e6aaacc4364102e4dbb3ee69",
+  "problem_id": "Q001"
+}

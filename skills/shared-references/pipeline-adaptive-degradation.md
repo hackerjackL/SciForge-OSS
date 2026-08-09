@@ -6,11 +6,11 @@
 
 ## Quick Reference
 
-- **Purpose**: phase mode (MUST/CONDITIONAL/OPTIONAL/SKIP) 从签名自动算出，替代 v2.7 固定 Phase Mode Table
+- **Purpose**: phase modes (MUST/CONDITIONAL/OPTIONAL/SKIP) are computed automatically from the signature, replacing the fixed v2.7 Phase Mode Table
 - **Input**: refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`, `theory_only`) from Phase 1b
 - **Output**: refine-logs/pipeline-mode-override.json (runtime-computed 20-row mode table, replaces v2.7 static table)
 - **Invocation**: orchestrator reads signature at Phase 0 (after INV-G1 freeze) and emits the override BEFORE Phase 1
-- **Key**: 降级永不能触碰 INV-G1 / 人类审批门控 / 3 轮回退上限——这些是 invariants 不是 modes
+- **Key**: degradation must never touch INV-G1 / the human-approval gate / the 3-round fallback cap — these are invariants, not modes
 
 ## Degradation Matrix (locked)
 
@@ -20,8 +20,8 @@ For each `(phase, evidence_type, paradigm, theory_only)` combination, the matrix
 
 | Phase | v2.7 mode | v2.8 adaptive mode | Rationale |
 |-------|-----------|--------------------|-----------|
-| 0 加载问题 | MUST | MUST (invariant) | INV-G1 freeze — never degrades |
-| 1 问题理解 | MUST | MUST | decomposition always required |
+| 0 load-problem | MUST | MUST (invariant) | INV-G1 freeze — never degrades |
+| 1 problem-understanding | MUST | MUST | decomposition always required |
 | 1a domain-signature | OPTIONAL | OPTIONAL | already optional per S1 |
 | 1b domain-learner | MUST | MUST | sole signature source per S1 |
 | 2 idea-discovery | MUST | MUST | idea generation always required |
@@ -39,7 +39,7 @@ For each `(phase, evidence_type, paradigm, theory_only)` combination, the matrix
 | 13 paper-compile | CONDITIONAL | CONDITIONAL | existing behavior preserved |
 | 14 auto-review-loop | OPTIONAL | OPTIONAL | existing behavior preserved |
 | 15 citation-audit | MUST | MUST | anti-hallucination invariant |
-| 16 最终组装 | MUST | MUST | archival always required |
+| 16 final-assembly | MUST | MUST | archival always required |
 
 **Theory-only net effect**: Phase 4 degrades MUST→CONDITIONAL (lighter literature burden); Phase 11 degrades OPTIONAL→SKIP (no quantitative figures). All other phases keep v2.7 mode. Theory-only problems run **18 active phases** (vs 20 for full empirical).
 
@@ -165,7 +165,7 @@ The v2.7 manual rules (1–6) are now signature-driven:
 ## Boundaries
 
 - **Mode degradation is orthogonal to intensity adaptation.** This file (M3) sets MUST/CONDITIONAL/OPTIONAL/SKIP; [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) (M1) sets REDUCED/STANDARD/INTENSIFIED. A phase can be MUST+REDUCED (must run, fewer sections) or OPTIONAL+INTENSIFIED (optional but if invoked, intensified). The orchestrator applies both overrides independently.
-- **SKIP ≠ OPTIONAL.** OPTIONAL invokes the skill and tolerates failure; SKIP does NOT invoke the skill at all. Only Phase 11 can be SKIP (theory-only); all other phases最低 OPTIONAL.
+- **SKIP ≠ OPTIONAL.** OPTIONAL invokes the skill and tolerates failure; SKIP does NOT invoke the skill at all. Only Phase 11 can be SKIP (theory-only); all other phases are OPTIONAL at a minimum.
 - **Invariant phases never degrade.** Phase 0/9 (INV-G1), Phase 5 (hash-lock + human checkpoint), Phase 2.5 (falsification gate), Phase 3 (DAG gate), Phase 15 (citation-audit) — these are marked `source: "invariant"` and the orchestrator MUST refuse downgrade even on user override. The invariant list is the non-degradable backbone.
 - **The 3-round fallback cap is universal.** Mode degradation does NOT add retry rounds — INTENSIFIED mode has more sections but the same 3-round cap. The anti-deadloop ladder is invariant.
 - **The override is auditable.** `pipeline-mode-override.json` is a required artifact emitted at Phase 0; Phase 14 (`/auto-review-loop`) reads it to check whether the mode choices were justified by the signature.

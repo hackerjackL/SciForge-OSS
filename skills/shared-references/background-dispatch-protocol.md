@@ -125,7 +125,7 @@ On recovery:
 Beyond experiments, this protocol also governs **dataset, pre-trained-weight, and environment-dependency downloads** (HLE, PaperBench, NatureBench, ImageNet, COO, HF Hub weights, ModelScope models, `pip install`/conda env for experiment deps). The download case has two extra constraints over a plain long-running job:
 
 1. **Network never skips** — a download failure may downgrade the source's verdict from `PASS` to `WARN`, but may NEVER downgrade it to `SKIP` / `NOT_APPLICABLE` / `BLOCKED`-by-network. The pipeline must keep going on the proxy + nohup retry path until the dataset is on disk or 2 bounded retries are exhausted (then WARN + `source_status: unavailable`).
-2. **Proxy auto-mount before download** — every download must run after the proxy is mounted per `universal-retrieval`「代理自主检测」(candidate ports `8099→7890→7892→1080→8080`, TCP+HTTP double-check). The `http_proxy`/`https_proxy`/`ALL_PROXY` env vars MUST be exported inside the nohup command so the background job inherits them.
+2. **Proxy auto-mount before download** — every download must run after the proxy is mounted per `universal-retrieval` "Proxy Auto-Detection" (candidate ports `8099→7890→7892→1080→8080`, TCP+HTTP double-check). The `http_proxy`/`https_proxy`/`ALL_PROXY` env vars MUST be exported inside the nohup command so the background job inherits them.
 
 **Dispatch** (reuses Method 1/2/3 above; nohup example with proxy env + resume):
 ```bash
@@ -171,7 +171,7 @@ Phase 10: /result-to-claim
     │  → if still running: use toy results + note "full experiment pending"
     │  → if failed: use toy results + recovery attempt
     │
-Phase 16: 最终组装
+Phase 16: final assembly
     │  → final check on background experiment
     │  → include full results if available
     │  → archive experiment metadata regardless

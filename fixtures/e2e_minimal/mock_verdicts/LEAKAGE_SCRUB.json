@@ -1,0 +1,18 @@
+{
+  "gate": "pipeline-leakage-scrub",
+  "version": "v3.3",
+  "status": "PASS",
+  "hits_found": 2,
+  "hits_scrubbed": 2,
+  "hits_remaining": 0,
+  "classes_seen": [
+    "A",
+    "F"
+  ],
+  "checked_files": [
+    "paper/main.tex",
+    "paper/math_commands.tex",
+    "paper/sections/Z_reproducibility.tex"
+  ],
+  "scrubbed_to": "neutral academic prose"
+}

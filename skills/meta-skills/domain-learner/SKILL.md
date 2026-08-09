@@ -1,6 +1,6 @@
 ---
 name: domain-learner
-version: 1.1.2
+version: 1.2.0
 description: "Learn a discipline's signature (evidence_type, methodology, writing style, failure modes) from literature — Phase 1b, sole writer of domain-signature.json. Invoke when the pipeline needs domain adaptation for a new problem."
 type: meta-skill
 role: domain-characteristic-learner
@@ -14,10 +14,10 @@ role: domain-characteristic-learner
 
 ## Quick Reference
 
-- **Purpose**: 从文献中自动学习领域特性，替代硬编码签名
-- **Input**: 问题描述 + 种子文献
-- **Output**: refine-logs/domain-signature.json (覆盖规则签名，供下游统一消费)
-- **Key**: 每次运行从零学习，不依赖预定义规则；输出路径与 /domain-signature 一致以保证下游无缝消费
+- **Purpose**: Auto-learn domain characteristics from literature, replacing hardcoded signatures
+- **Input**: Problem description + seed literature
+- **Output**: refine-logs/domain-signature.json (overrides the rule signature; consumed uniformly downstream)
+- **Key**: Learns from scratch every run, no predefined rules; output path matches /domain-signature to guarantee seamless downstream consumption
 
 ## How It Works
 
@@ -156,7 +156,7 @@ for better domain adaptation.
 
 ## Output Shape
 
-- `refine-logs/domain-signature.json` — learned domain profile (覆盖 /domain-signature 的低置信输出，被所有下游 skill 统一消费；schema 与 /domain-signature 兼容)
+- `refine-logs/domain-signature.json` — learned domain profile (overrides /domain-signature's low-confidence output; consumed uniformly by all downstream skills; schema compatible with /domain-signature)
 - `refine-logs/domain-learning-log.md` — detailed learning log (searches, analyses, synthesis)
 
 ## Boundaries

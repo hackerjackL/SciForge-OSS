@@ -28,31 +28,31 @@ The domain signature (from `/domain-signature`) automatically selects writing co
 ```markdown
 ## Domain-Adaptive Rules
 
-### If evidence_type = "causal_inference" (经济学/社科/流行病学)
+### If evidence_type = "causal_inference" (economics / social sciences / epidemiology)
 - Section 4 must include "Identification Strategy" subsection
 - Section 5 must include "Robustness Checks" subsection
 - Discuss endogeneity, selection bias, and reverse causality
 - Use author-year citations (elsarticle-harv)
 
-### If evidence_type = "derivational" (数学/理论物理/理论CS)
+### If evidence_type = "derivational" (mathematics / theoretical physics / theoretical CS)
 - Section 4 is "Main Results" with Theorem-Lemma-Proposition environments
 - Section 5 is "Proofs" (short proofs inline, long proofs in Appendix)
 - No "Results" section — replaced by theorem statements
 - Use numeric citations (elsarticle-num)
 
-### If evidence_type = "experimental" (医学/生物学/心理学)
+### If evidence_type = "experimental" (medicine / biology / psychology)
 - Section 4 is "Methods" with detailed protocol
 - Section 5 is "Results" with statistical tests
 - Include power analysis, blinding status, exclusion criteria
 - Use numeric citations (elsarticle-num)
 
-### If evidence_type = "simulational" (物理/气候/工程)
+### If evidence_type = "simulational" (physics / climate / engineering)
 - Section 4 is "Model" with governing equations
 - Section 5 is "Simulation Results" with convergence analysis
 - Include parameter choices, grid resolution, uncertainty quantification
 - Use numeric citations (elsarticle-num)
 
-### If evidence_type = "interpretive" (人文/社科/法学)
+### If evidence_type = "interpretive" (humanities / social sciences / law)
 - Section 4 is "Argument" with claim-evidence-counterargument structure
 - Section 5 is "Analysis" with evidence weighting
 - Discuss alternative interpretations explicitly
@@ -173,7 +173,7 @@ The agent applies these conventions at runtime based on the problem's domain —
 | **Physics-flavored** (mechanics, EM, quantum) | SI units stated once; conservation laws referenced; viridis/magma for field plots; scale bars on micrographs; PNV reasoning style in Section 4 (Premise → Numerical method → Verification) |
 | **Math-flavored** (analysis, algebra, geometry) | Theorem-Lemma-Proposition environments from unified template; full proofs in main text when < 1 page, else Appendix; counterexample search in Section 5 |
 | **CS/ML-flavored** (algorithms, learning theory) | Architecture diagram early in Section 4; ablation table in Section 5; complexity analysis (time/space); reproducibility statement (code + seed + hardware) |
-| **Biology/Medicine-flavored** | Mechanism description in Section 4; statistical significance + effect size in Section 5;伦理 statement if human/animal data |
+| **Biology/Medicine-flavored** | Mechanism description in Section 4; statistical significance + effect size in Section 5; ethics statement if human/animal data |
 | **Earth/Climate-flavored** | Spatial/temporal resolution stated; uncertainty quantification; baseline period comparison |
 | **Social/Behavioral-flavored** (sociology, psychology, education) | Identification strategy stated (if causal claim); robustness checks; sample selection discussion; IRB/ethics statement if human-subjects data |
 | **Humanities/Arts-flavored** (history, philosophy, literature, linguistics, hermeneutics) | Argument structure explicit (premise→inference→conclusion); primary-source citation discipline (edition/page-specific); counter-argument + alternative-interpretation handling; hermeneutic-circle diagrams via d2; author-year citations (`elsarticle-harv`); no empirical-stats requirement — the argument IS the contribution; timeline/structure maps via d2 (see `figure-quality-contract.md` §5) |

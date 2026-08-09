@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/EVALUATION_PROTOCOL.schema.json",
+  "title": "EVALUATION_PROTOCOL.json - pre-registered evaluation protocol (fair evaluation)",
+  "description": "Machine-readable mirror of the pre-registration quartet locked by method-registry section 3.6 (metrics lock / baseline parity / baseline re-implementation rule / anti-cherry-picking reporting discipline), consumed by experiment-execution step 6 and enforced by result-to-claim via parity_check / all_seeds_reported / full_grid_reported. The quartet is documented semantically; exact JSON field names are not fixed by the docs yet, so this schema stays minimal (see schemas/README.md known gaps).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,46 @@
+{
+  "verdict": "PASS",
+  "discipline_context": "general",
+  "type_i": {
+    "n_leaky": 0,
+    "n_total": 3,
+    "items": [
+      {
+        "implication": "data generation -> estimator variance comparison",
+        "classification": "CLEAN",
+        "note": "same synthetic generator feeds both estimators; no selection"
+      },
+      {
+        "implication": "seed choice -> reported direction",
+        "classification": "CLEAN",
+        "note": "direction required per seed, not only pooled"
+      },
+      {
+        "implication": "known-answer band -> PASS verdict",
+        "classification": "CLEAN",
+        "note": "band fixed a priori in the locked registry section"
+      }
+    ]
+  },
+  "type_ii": "NOT_APPLICABLE",
+  "type_iii": "NOT_APPLICABLE",
+  "type_iv": {
+    "n_escape": 0,
+    "n_total": 1,
+    "items": [
+      {
+        "verification": "monte_carlo_toy",
+        "classification": "CLOSED",
+        "note": "RESULT.json status=PASS on all 3 seeds"
+      }
+    ]
+  },
+  "blockers": [],
+  "recommendations": [],
+  "audited_input_hashes": {
+    "PROBLEM.md": "sha256:c50b0f8358cb3097ce89730b3e6b1be89149c74ac7f548cbbee282f495fdfbcb",
+    "METHOD_REGISTRY_SNIPPET.md": "sha256:2aad820cbf564f3d9590d755d551b0062b3e9e24e6aaacc4364102e4dbb3ee69",
+    "AGENT_DOC.md": "sha256:11a0152100ed8b108b5451855eb9420eef4f85ed0310de17cd891e83ef1dbb24",
+    "run_toy.py": "sha256:036a87da9e49c948fdee002b8879e5ad9363e60b917757e43506ee2887a957a9"
+  }
+}

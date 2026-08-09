@@ -25,14 +25,14 @@ Every idea candidate is scored on 8 sub-dimensions. For humanities/social-scienc
 
 | # | Sub-dimension | What it measures | 0 (BLOCKED) | 5 (CONSTRAINED) | 10 (READY) | N/A handling |
 |---|---------------|-----------------|-------------|-----------------|------------|-------------|
-| 1 | **Compute Footprint** | AI 写代码、跑实验需要多少 compute | > 10× OSS sandbox budget (e.g., > 1000 GPU-h) | 1-10× sandbox budget | ≤ sandbox budget | Humanities theory-only: N/A (auto 10) |
-| 2 | **Dependency Chain** | AI 能否自动获取/安装依赖（数据集、库、工具、仪器驱动） | ≥ 3 个依赖 AI 无法自动获取 | 1-2 个需辅助 | 全自动可用 | All domains: always applicable |
-| 3 | **AI Dev Cycle** | AI 从 idea 到跑出可复现结果需要多少轮交互 | > 24 轮交互 | 6-24 轮 | ≤ 6 轮 | Humanities theory-only: N/A (auto 10) |
-| 4 | **Reproducibility Risk** | 核心 trick 假后 AI 需要重写多少代码 | > 50% 概率 trick 假 → 全盘重写 | 20-50% 重写 | < 20% 重写 | All domains: always applicable |
-| 5 | **Capital Cost** | AI 是否需要采购专有数据、付费 API、设备 | 需新基建/新采购 | 需采购但市售 | 仅用现有资源 | Humanities theory-only: N/A (auto 10) |
-| 6 | **Code Complexity** | AI 实现此 idea 的代码复杂度——代码量、深度、多模块协同 | > 5000 行代码或跨 5+ 模块 | 1000-5000 行 | ≤ 1000 行 | Humanities theory-only: N/A (auto 10) |
-| 7 | **Temporal Maturity** | AI 当前能力能否实现此 idea——依赖的技术/工具链当前是否就绪 | 当前 AI 能力完全做不到 | 需等 3-6 个月工具链成熟 | 现在就能做 | All domains: always applicable |
-| 8 | **Regulatory Readiness** | idea 涉及的数据合规、伦理审批、出口管制是否影响 AI 执行 | 监管明文禁止 | 灰色地带，需审批 | 无限制 | All domains: always applicable |
+| 1 | **Compute Footprint** | How much compute the AI needs to write code and run experiments | > 10× OSS sandbox budget (e.g., > 1000 GPU-h) | 1-10× sandbox budget | ≤ sandbox budget | Humanities theory-only: N/A (auto 10) |
+| 2 | **Dependency Chain** | Whether the AI can automatically obtain/install dependencies (datasets, libraries, tools, instrument drivers) | ≥ 3 dependencies the AI cannot obtain automatically | 1-2 need assistance | Fully automatic | All domains: always applicable |
+| 3 | **AI Dev Cycle** | How many interaction rounds the AI needs to go from idea to reproducible results | > 24 interaction rounds | 6-24 rounds | ≤ 6 rounds | Humanities theory-only: N/A (auto 10) |
+| 4 | **Reproducibility Risk** | How much code the AI must rewrite if the core trick turns out false | > 50% probability the trick is false → full rewrite | 20-50% rewrite | < 20% rewrite | All domains: always applicable |
+| 5 | **Capital Cost** | Whether the AI must procure proprietary data, paid APIs, or equipment | Requires new infrastructure/procurement | Procurement needed but commercially available | Uses only existing resources | Humanities theory-only: N/A (auto 10) |
+| 6 | **Code Complexity** | Code complexity for the AI to implement this idea — code volume, depth, multi-module coordination | > 5000 lines of code or spanning 5+ modules | 1000-5000 lines | ≤ 1000 lines | Humanities theory-only: N/A (auto 10) |
+| 7 | **Temporal Maturity** | Whether current AI capabilities can realize this idea — whether the dependent technology/toolchain is ready now | Current AI capabilities cannot do it at all | Needs 3-6 months of toolchain maturation | Can be done right now | All domains: always applicable |
+| 8 | **Regulatory Readiness** | Whether data compliance, ethics approval, or export controls involved by the idea affect AI execution | Explicitly prohibited by regulation | Grey zone, approval required | No restrictions | All domains: always applicable |
 
 ### N/A Rule
 
@@ -42,11 +42,11 @@ If a sub-dimension is NOT_APPLICABLE for the domain, it scores **10/10** and doe
 
 | Score | AI Interaction Rounds | Scenario | Example |
 |-------|----------------------|----------|---------|
-| 0 | > 24 | AI 需要完整 pipeline 24 次以上迭代才能收敛 | 反复调参、反复修 BUG、反复换工具链 |
-| 3 | 13-24 | AI 需要大量调试 | 代码量大、依赖链长、频繁报错 |
-| 5 | 6-12 | AI 中等量级调试 | 核心代码 1-2 次写对，但实验验证需多次 |
-| 8 | 3-5 | AI 快速实现 | 代码量小，一次写对，少量调试 |
-| 10 | ≤ 2 | AI 几乎一次搞定 | 极简 idea，纯理论推导无需代码 |
+| 0 | > 24 | The AI needs 24+ full-pipeline iterations to converge | Repeated parameter tuning, repeated bug fixing, repeated toolchain switching |
+| 3 | 13-24 | The AI needs heavy debugging | Large code volume, long dependency chain, frequent errors |
+| 5 | 6-12 | The AI needs moderate debugging | Core code written correctly in 1-2 attempts, but experimental validation takes multiple rounds |
+| 8 | 3-5 | The AI implements quickly | Small code volume, written correctly on the first attempt, minimal debugging |
+| 10 | ≤ 2 | The AI almost nails it in one shot | Minimal idea, pure theory derivation with no code needed |
 
 ---
 
@@ -101,20 +101,20 @@ Every idea with EG tier CONSTRAINED or HEAVY produces a report. READY ideas may 
 | Regulatory Readiness | {0-10} | BLOCKED/CONSTRAINED/HEAVY/READY | {regulatory status} |
 | **EG Average** | **{avg}** | **{OVERALL TIER}** | |
 
-### AI Engineering Path (AI 开发路线)
+### AI Engineering Path (AI development route)
 - Stage 1 ({rounds range}): {cheapest possible AI implementation — write minimal code to falsify the core trick}
 - Stage 2 ({rounds range}): {scaled AI implementation — 10% compute, limited data, partial code}
 - Stage 3 ({rounds range}): {full AI implementation — complete code, full experiment, verified results}
 
-### Downside Protection (trick 假的下行保护)
+### Downside Protection (downside protection if the trick is false)
 - If trick falsified at Stage 1 → loss = {rounds} (bounded, minimal)
 - If falsified at Stage 2 → loss = {rounds} + {compute cost}
 - If falsified at Stage 3 → loss = {rounds} + {full cost}
 - **Recommendation**: {e.g., "Allocate Stage 1 rounds first. Do not commit Stage 2-3 until Stage 1 passes."}
 
-### AI Engineering Path 自动出图
+### AI Engineering Path automatic figure generation
 
-Phase 5b 完成后，自动调用 `/unified-plotting` 以 `ai-dev-path` 图表类型产出一张 **PDF 矢量图** `figures/engineering-path/ENGINEERING_GROUNDING_PATH.pdf`，内容为三段式 AI 开发路线时间轴：
+After Phase 5b completes, automatically invoke `/unified-plotting` with the `ai-dev-path` figure type to produce a **PDF vector figure** `figures/engineering-path/ENGINEERING_GROUNDING_PATH.pdf`, whose content is a three-stage AI development route timeline:
 
 ```
 Stage 1 (0-3 rounds) ───[risk: trick falsified]─── Stage 2 (3-9 rounds) ───[risk: scaled gate fail]─── Stage 3 (9-18 rounds)
@@ -122,7 +122,7 @@ Stage 1 (0-3 rounds) ───[risk: trick falsified]─── Stage 2 (3-9 roun
        [invest first]                                      [only if Stage 1 passes]                                [only if Stage 2 passes]
 ```
 
-输出格式：**PDF**（矢量图，质量高于 SVG）。LaTeX 源码保留以支持可复现。
+Output format: **PDF** (vector graphic, higher quality than SVG). The LaTeX source is retained to support reproducibility.
 ```
 
 ### 4.1 AI Mitigation Plan (for 1-2 sub-dimensions = 0)
@@ -130,13 +130,13 @@ Stage 1 (0-3 rounds) ───[risk: trick falsified]─── Stage 2 (3-9 roun
 If 1-2 sub-dimensions score 0 (but not ≥ 3, so not BLOCKED), the report MUST include a mitigation plan:
 
 ```markdown
-### AI Mitigation Plan（AI 视角的缓解方案）
+### AI Mitigation Plan (mitigation plan from the AI perspective)
 - **Extreme sub-dimension(s)**: [list of sub-dimensions with score = 0]
-- **Mitigation option A**: 拆 idea 为 N 个子任务，每个可独立实现 → 降低 AI Dev Cycle
-- **Mitigation option B**: 等工具链成熟（Temporal Maturity = 5，3 个月后有新工具可用）
-- **Mitigation option C**: 用 simpler proxy 替代（降低 Code Complexity）
-- **Mitigation option D**: 找替代数据集/API（降低 Dependency 或 Capital Cost）
-- **Recommendation**: [e.g., "Option A 最可行——拆后 AI Dev Cycle 从 > 24 轮降至 8 轮，EG 子维升 5 分"]
+- **Mitigation option A**: split the idea into N sub-tasks, each independently implementable → lowers AI Dev Cycle
+- **Mitigation option B**: wait for the toolchain to mature (Temporal Maturity = 5, a new tool becomes available in 3 months)
+- **Mitigation option C**: substitute a simpler proxy (lowers Code Complexity)
+- **Mitigation option D**: find an alternative dataset/API (lowers Dependency Chain or Capital Cost)
+- **Recommendation**: [e.g., "Option A is most feasible — after splitting, AI Dev Cycle drops from > 24 rounds to 8 rounds, and the EG sub-dimension score rises by 5 points"]
 ```
 
 ### Engineering Path Design Principles
@@ -203,10 +203,10 @@ The EG component is **inherited** from the idea stage, not re-computed.
 
 | Domain | Sub-dimensions applicable | N/A dimensions |
 |--------|--------------------------|---------------|
-| **理工科** (CS/ML/Physics/Chem/Bio/Engineering/Medicine) | All 8 | None |
-| **人文** (Philosophy/History/Literature/Law) | 4: Dependency Chain, AI Dev Cycle, Reproducibility Risk, Temporal Maturity, Regulatory Readiness | Compute Footprint, Capital Cost, Code Complexity (if theory-only) |
-| **社科** (Economics/Sociology/Psychology/Education) | 6-8: All but Compute Footprint and Capital Cost may be N/A | Depends on whether quantitative analysis is needed |
-| **数学/理论物理** (pure theory) | 4: Dependency Chain, Reproducibility Risk, Temporal Maturity, Regulatory Readiness | Compute Footprint, Capital Cost, Code Complexity, AI Dev Cycle (if no code needed) |
+| **STEM** (CS/ML/Physics/Chem/Bio/Engineering/Medicine) | All 8 | None |
+| **Humanities** (Philosophy/History/Literature/Law) | 4: Dependency Chain, AI Dev Cycle, Reproducibility Risk, Temporal Maturity, Regulatory Readiness | Compute Footprint, Capital Cost, Code Complexity (if theory-only) |
+| **Social sciences** (Economics/Sociology/Psychology/Education) | 6-8: All but Compute Footprint and Capital Cost may be N/A | Depends on whether quantitative analysis is needed |
+| **Mathematics/theoretical physics** (pure theory) | 4: Dependency Chain, Reproducibility Risk, Temporal Maturity, Regulatory Readiness | Compute Footprint, Capital Cost, Code Complexity, AI Dev Cycle (if no code needed) |
 
 ---
 
@@ -228,4 +228,4 @@ The EG component is **inherited** from the idea stage, not re-computed.
 - [`adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — Phase 5b EG estimate
 - [`result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — inherits EG from Phase 5b
 - [`auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — orchestrator quality gate
-- [`competitive-analysis.md`](competitive-analysis.md) — marks EG as "已实施"
+- [`competitive-analysis.md`](competitive-analysis.md) — marks EG as "implemented"

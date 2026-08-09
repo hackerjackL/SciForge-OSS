@@ -1,6 +1,6 @@
 ---
 name: idea-discovery
-version: 1.1.2
+version: 1.2.0
 description: "Generate 8-12 candidate research ideas via MCTS over a DAG, with 6-axis pre-screen (novelty/feasibility/relevance/tractability/data-readiness/EG). Phase 2. Invoke after domain signature is ready, before novelty-check."
 type: meta-skill
 role: research-idea-generation
@@ -12,12 +12,12 @@ role: research-idea-generation
 
 ## Quick Reference
 
-- **Purpose**: 生成 8-12 个 idea → MCTS 4 轮迭代 → 筛选最优 1-3 个
-- **Input**: 人类提供的 Q-id + 问题描述
+- **Purpose**: Generate 8-12 ideas → 4 MCTS iteration rounds → select the best 1-3
+- **Input**: Q-id + problem description supplied by the human
 - **Output**: IDEA_DAG.json + FINAL_PROPOSAL.md + IDEA_DAG_VISUAL.md
-- **Key**: 4 视角 (theoretical/computational/qualitative/empirical), 5-axis pre-screen, 强制人类审批
+- **Key**: 4 perspectives (theoretical/computational/qualitative/empirical), 5-axis pre-screen, mandatory human approval
 
-> **No legacy pilot fallback**: main SciForge's `idea-creator` has a legacy demo/pilot experimental fallback when MCTS produces 0 promoted ideas. OSS has **no experiments** — the fallback is instead "re-run ideation with broader perspectives" (not "fall back to a demo experiment").
+> **No legacy pilot fallback**: main SciForge's `idea-creator` has a legacy demo/pilot experimental fallback when MCTS produces 0 promoted ideas. OSS has **no legacy demo/pilot-experiment fallback** — the fallback is instead "re-run ideation with broader perspectives" (a demo run is never substituted for the real toy/full experiment gates).
 
 ## Use When
 
@@ -27,7 +27,7 @@ Typical prompts:
 - "Generate research ideas"
 - "Idea discovery"
 - "Brainstorm approaches"
-- "研究方向头脑风暴"
+- "Brainstorm research directions"
 - "What are the possible approaches to this problem"
 - "List potential methodologies"
 
@@ -74,7 +74,7 @@ Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 | Relevance | Does this approach address the frozen Q-id's core question? | Tangential to the core question | Solves a different problem |
 | Tractability | Is the derivation chain tractable within the OSS sandbox (SymPy + numpy)? | Requires non-standard compute | Requires GPU / long-running experiments OSS cannot run |
 | Data-readiness | Are the required parameters / data available? | Requires data not in `data/` | Requires data that does not exist |
-| **Engineering Grounding** | **AI agent 能否实现此 idea？(see [EG contract](../../shared-references/engineering-grounding-contract.md))** | **EG average 3.0-5.9 (CONSTRAINED tier)** | **≥ 3 EG sub-dimensions = 0** |
+| **Engineering Grounding** | **Can the AI agent implement this idea? (see [EG contract](../../shared-references/engineering-grounding-contract.md))** | **EG average 3.0-5.9 (CONSTRAINED tier)** | **≥ 3 EG sub-dimensions = 0** |
 
 **Hard filter**: any axis `BLOCKED` → idea is rejected before MCTS. `CONSTRAINED` axes are flagged but the idea proceeds to MCTS. The Engineering Grounding axis follows the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) — HEAVY and CONSTRAINED ideas proceed to MCTS with labels; only **≥ 3 sub-dimensions = 0** triggers BLOCKED (v3.0 stricter rule: 1-2 sub-dimensions = 0 does NOT eliminate, instead produces an AI Mitigation Plan).
 
@@ -83,7 +83,7 @@ Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) for the full contract. Summary:
 
 1. **Round 1 (Expansion)**: Generate 8-12 root idea nodes across the 3 perspectives.
-2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). **B1 文献依赖 (v2.3)**: novelty 轴依赖 Phase 4 的 `literature/references.bib`——若该文件尚未就绪（Phase 4 未完成），先标注 `novelty=pending-literature` 并暂停 novelty 轴的最终判定，待文献到达后再补评；**禁止在无参考文献的情况下对 novelty 轴做最终 BLOCKED/PASS 判定**（可用 generation 视角的直觉先做可行性/相关性预筛，但 novelty 判定必须等文献）。Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
+2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). **B1 literature dependency (v2.3)**: the novelty axis depends on Phase 4's `literature/references.bib` — if that file is not yet ready (Phase 4 incomplete), first mark `novelty=pending-literature` and suspend the final verdict on the novelty axis, then re-score once the literature arrives. **Never issue a final BLOCKED/PASS verdict on the novelty axis without references** (generation-stage intuition may pre-screen feasibility/relevance, but the novelty verdict must wait for the literature). Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
 3. **Round 3 (Backpropagation)**: Promote ideas with simulation score ≥ 0.6. Reject ideas with simulation score < 0.4. For borderline (0.4-0.6), generate 2-3 child nodes (refined variants) and re-score.
 4. **Round 4 (Final selection)**: From promoted ideas, select the top 1-3 for `FINAL_PROPOSAL.md`. The human user picks the final one (forced checkpoint).
 
@@ -92,90 +92,90 @@ Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mct
 2. Re-run ideation with broader perspectives (relax the `theoretical` axis to allow `conjecture + numerical evidence`; relax `computational` to allow `toy regime only`).
 3. If still 0 after a 2nd pass → report to the human user: "No tractable idea found within OSS constraints. Recommend returning to the human for a problem re-scoping or an external experiment collaborator."
 
-## Idea 写作质量门槛（v2.2.1 — 反"垃圾 idea"）
+## Idea Writing Quality Gate (v2.2.1 — Anti-Garbage-Idea)
 
-**用户硬要求**：idea 不能写得垃圾。一个 idea 若只是"我们用 X 方法做 Y"，无新颖性洞察、无机制性贡献、无与现有工作的差异点，就是垃圾 idea，必须淘汰。
+**User hard requirement**: ideas must not be written as garbage. An idea that is only "we use method X to do Y", with no novel insight, no mechanistic contribution, no point of difference from existing work, is a garbage idea and must be eliminated.
 
-## 反重复记忆（v3.1 — P1 anti-repetition mechanism）
+## Anti-Repetition Memory (v3.1 — P1 anti-repetition mechanism)
 
-**防止重复生成已被淘汰/证伪的 idea**。持久化 + 双重排毒（0 LLM cost，机械判定）：
+**Prevent regenerating ideas already eliminated/falsified.** Persistence + dual detox (0 LLM cost, mechanical verdicts):
 
-1. **持久化**：每当 idea 被 `FALSIFIED`（Phase 2.5 淘汰）、toy gate `FAIL`、BA 回退被杀，或 novelty-check 淘汰时，把 `{id, description, reason}` 追加写入 `refine-logs/failed_ideas.json`（幂等，按 id 去重）。
-2. **硬校验（0 LLM cost）**：MCTS Round 1 生成每个 root node 前，对新 idea 描述与 `failed_ideas.json` 库做 **TF-IDF 余弦相似度** 检查；相似度 **> 0.78 直接废弃**（不进入 MCTS）。`REJECT` → 候选不加入 DAG，原因写入 `MCTS_LOG.md`（reason_code `duplicate_failed_idea`）。
-3. **软 Prompt 注入**：MCTS Round 1 生成前，把历史最相似的 N 条被杀 idea + 失败原因注入生成 prompt（防止"换个说法再来一次"）。注入文本以 `[failed-ideas prompt injection]` 开头，随生成指令一并交给 agent。
+1. **Persistence**: whenever an idea is `FALSIFIED` (eliminated in Phase 2.5), fails the toy gate (`FAIL`), is killed in a BA back-track, or is eliminated by novelty-check, append `{id, description, reason}` to `refine-logs/failed_ideas.json` (idempotent, deduplicated by id).
+2. **Hard check (0 LLM cost)**: before generating each root node in MCTS Round 1, run a **TF-IDF cosine similarity** check of the new idea description against the `failed_ideas.json` corpus; similarity **> 0.78 → discard outright** (does not enter MCTS). `REJECT` → the candidate is not added to the DAG; the reason is written to `MCTS_LOG.md` (reason_code `duplicate_failed_idea`).
+3. **Soft prompt injection**: before MCTS Round 1 generation, inject the N historically most similar killed ideas + their failure reasons into the generation prompt (prevents "same idea, new wording"). The injected text starts with `[failed-ideas prompt injection]` and is handed to the agent together with the generation instruction.
 
-> 实现可由 agent 在运行时用任何轻量脚本完成（纯 stdlib TF-IDF 即可）；本 skill 只规定协议与阈值，不依赖仓库内特定工具文件。
+> Implementation can be done by the agent at runtime with any lightweight script (pure stdlib TF-IDF suffices); this skill only specifies the protocol and threshold, and does not depend on any specific tool file in the repo.
 
-## Type-A 客观硬淘汰 vs Type-B 品质量刑（v3.1 — P2 decoupling）
+## Type-A Objective Hard Elimination vs Type-B Quality Sentencing (v3.1 — P2 decoupling)
 
-**严禁在初筛阶段让 LLM 用主观口味淘汰可行性方案。** 筛选流水线解耦为两层：
+**Strictly forbidden: letting the LLM eliminate feasible options by subjective taste at the pre-screen stage.** The screening pipeline is decoupled into two layers:
 
-| 层 | 内容 | LLM Cost | 判定方式 |
-|----|------|----------|----------|
-| **Type-A（客观硬条件淘汰）** | GPU 显存预估、数据可得性、依赖包导入、代码语法（AST）四类机械检查。任一 FAIL → **0 成本斩杀**，不进入任何质量评审 | **0** | 确定性脚本/机械规则 |
-| **Type-B（品质量刑）** | 通过 Type-A 后，才进入 Phase 2.5（adversarial-falsification）/ Phase 3（novelty-check）等 Peer-Review 子代理，对 Novelty / Soundness / Impact 加权多维打分 | LLM | 既有 Phase 2.5 / Phase 3 |
+| Layer | Content | LLM Cost | Verdict method |
+|-------|---------|----------|----------------|
+| **Type-A (objective hard-condition elimination)** | Four mechanical checks: GPU VRAM estimate, data availability, dependency import, code syntax (AST). Any FAIL → **killed at zero cost**; never enters any quality review | **0** | Deterministic scripts / mechanical rules |
+| **Type-B (quality sentencing)** | Only after passing Type-A does the idea enter Peer-Review subagents such as Phase 2.5 (adversarial-falsification) / Phase 3 (novelty-check) for weighted multi-dimensional scoring on Novelty / Soundness / Impact | LLM | Existing Phase 2.5 / Phase 3 |
 
-**执行协议**：
-1. MCTS Round 1 每个候选 idea 先产出结构化 spec（`requires_gpu_gb` / `requires_packages` / `data_required` / `data_sources` / `code_snippet`），对其运行 Type-A 机械检查（GPU 显存预估 ×1.5 安全系数 vs 可用显存、数据源可达性、依赖可导入性、代码片段 AST 语法）。
-2. `FAIL` → idea 直接淘汰，`MCTS_LOG.md` 记录 `reason_code=type_a_<fail_reason>`（如 `type_a_gpu_oom_estimated` / `type_a_missing_data_source` / `type_a_missing_dependency` / `type_a_code_syntax_error`）；**不得**进入 Phase 2.5/3。
-3. `PASS` → 才进入 Type-B（Phase 2.5 证伪 + Phase 3 novelty 评分）。
-4. Type-A 判定**永不调用 LLM**；任何 LLM 都不得在初筛阶段替代或覆盖 Type-A 的机械判定。
+**Execution protocol**:
+1. Each candidate idea in MCTS Round 1 first produces a structured spec (`requires_gpu_gb` / `requires_packages` / `data_required` / `data_sources` / `code_snippet`); run the Type-A mechanical checks on it (GPU VRAM estimate ×1.5 safety factor vs available VRAM, data-source reachability, dependency importability, code-snippet AST syntax).
+2. `FAIL` → the idea is eliminated outright; `MCTS_LOG.md` records `reason_code=type_a_<fail_reason>` (e.g., `type_a_gpu_oom_estimated` / `type_a_missing_data_source` / `type_a_missing_dependency` / `type_a_code_syntax_error`); it **must not** enter Phase 2.5/3.
+3. `PASS` → only then does it enter Type-B (Phase 2.5 falsification + Phase 3 novelty scoring).
+4. Type-A verdicts **never call the LLM**; no LLM may replace or override Type-A's mechanical verdicts at the pre-screen stage.
 
-每个 candidate idea 在 `IDEA_CANDIDATES.md` 必须包含以下 5 字段（缺任一即视为不达标，MCTS 前置淘汰）：
+Every candidate idea in `IDEA_CANDIDATES.md` must contain the following 5 fields (missing any one is below standard — eliminated before MCTS):
 
-| 字段 | 内容 | 垃圾 idea 的判别信号 |
-|------|------|---------------------|
-| `insight` | 一句话：本 idea 超越现有工作的**科学洞察**是什么？（不是"用了什么技术"，是"为什么这能产生新知识"） | 空洞 / 可套在任何论文上 / 无机制性陈述 |
-| `novelty_delta` | 一句话：相对 `references.bib` 中最接近的 1-2 篇，本 idea 的**具体差异点**（不是"更好"，是"在 X 假设/方法/数据上不同"） | "改进了 baseline"无具体维度 / 与 cited work 实质重复 |
-| `falsifiable_claim` | 一句话：本 idea 的核心 claim 是**可证伪的**——什么实验/推导结果会否定它？（若无可证伪点，不是科学 idea） | "我们验证了 X"无反例条件 / claim 不可证伪 |
-| `mechanism` | 一句话：**为什么**本 idea 的方法会产生预期结果？（机制性因果链，不是"经验上有效"） | 无机制 / 纯经验拟合 / "data-driven 黑箱" |
-| `boundary` | 一句话：本 idea 在什么条件/尺度/领域下**会失效**？（诚实边界，不是"普适"） | "适用于所有场景" / 无边界 |
+| Field | Content | Garbage-idea signals |
+|-------|---------|----------------------|
+| `insight` | One sentence: what is the **scientific insight** with which this idea surpasses existing work? (not "which technique is used" but "why this produces new knowledge") | Empty / could be pasted onto any paper / no mechanistic statement |
+| `novelty_delta` | One sentence: relative to the 1-2 closest papers in `references.bib`, the **concrete point of difference** of this idea (not "better" but "different in assumption/method/data X") | "Improves the baseline" with no concrete dimension / substantively duplicates cited work |
+| `falsifiable_claim` | One sentence: the core claim of this idea is **falsifiable** — which experiment/derivation outcome would refute it? (with no falsifiable point it is not a scientific idea) | "We verified X" with no counterexample condition / unfalsifiable claim |
+| `mechanism` | One sentence: **why** does this idea's method produce the expected outcome? (mechanistic causal chain, not "empirically effective") | No mechanism / pure empirical fit / "data-driven black box" |
+| `boundary` | One sentence: under what conditions/scales/domains does this idea **fail**? (honest boundary, not "universal") | "Applies to every scenario" / no boundary |
 
-**MCTS 前置硬筛**：任一字段判为垃圾信号 → idea 直接淘汰，不进入 MCTS simulation。这比 6-axis idea-fit 更严格——6-axis 评"可行性/新颖性分数"，5 字段评"是不是真正的科学 idea"。
+**Pre-MCTS hard filter**: any field judged as a garbage signal → the idea is eliminated outright and does not enter MCTS simulation. This is stricter than the 6-axis idea-fit — the 6-axis scores "feasibility/novelty"; the 5 fields judge "whether it is a genuine scientific idea".
 
-**Phase 2 人类 checkpoint 前的二次检查**：selected idea 在写入 `FINAL_PROPOSAL.md` 前，agent 自检 5 字段是否达标；若 selected idea 仍判为垃圾（如 MCTS 分数高但 insight 空洞），回退 Step 2 重新生成（bounded 1 轮），不直接交付垃圾 idea 给下游。
+**Second check before the Phase 2 human checkpoint**: before the selected idea is written into `FINAL_PROPOSAL.md`, the agent self-checks that the 5 fields meet the bar; if the selected idea is still judged garbage (e.g., high MCTS score but empty insight), fall back to Step 2 and regenerate (bounded 1 round); never deliver a garbage idea to downstream.
 
-## BA (Backtracking-After) 机制（v2.2.1 — 实验否定 idea 时回溯）
+## BA (Backtracking-After) Mechanism (v2.2.1 — back-track when the experiment falsifies the idea)
 
-**用户硬要求**：idea 写对了但实验跑完发现不行，要有 callback/BA 机制回 Phase 2 重新生成几轮，不能直接交付一个实验否定的论文。
+**User hard requirement**: if the idea was framed correctly but the completed experiment shows it fails, a callback/BA mechanism must return to Phase 2 and regenerate for a few rounds; never deliver a paper falsified by its own experiment.
 
-DAG 的 fallback 已覆盖 phase 内失败（6b toy FAIL→kill idea 是最直接的）。但**实验结果否定 idea 的核心 claim**（而非实验本身失败）是更微妙的情况——toy gate PASS 但 full 实验显示 claim 不成立，或 logic-verification 发现推导结论与实验数据矛盾。这时需要 BA 回溯到 Phase 2 重新生成 idea，而非在原 idea 上打补丁。
+The DAG's fallback already covers in-phase failure (6b toy FAIL → kill idea is the most direct case). But **the experiment result falsifying the idea's core claim** (rather than the experiment itself failing) is a subtler case — the toy gate PASSes but the full experiment shows the claim does not hold, or logic-verification finds the derivation's conclusion contradicts the experimental data. In this case BA must back-track to Phase 2 and regenerate the idea rather than patch the original idea.
 
-### BA 触发条件（任一命中即触发回 Phase 2）
+### BA Trigger Conditions (any hit triggers a return to Phase 2)
 
-1. **Phase 6c full 实验完成 + STATUS.json verdict=FAIL 且 toy 曾 PASS**：toy 通过但 full 否定 → idea 在 toy scale 成立但 full scale 不成立，是 scale-dependent false trick。回 Phase 2 重生成（bounded 2 轮）。
-2. **Phase 8 logic-verification FATAL: "实验数据与推导结论矛盾"**：推导说 X，实验数据说 not-X。这是 idea 本身错了。回 Phase 2 重生成（bounded 2 轮）。
-3. **Phase 14 auto-review-loop 评审指出"核心 claim 被本文自己的实验数据否定"**（kill-argument 站住）。回 Phase 2 重生成（bounded 2 轮）。
+1. **Phase 6c full experiment complete + STATUS.json verdict=FAIL with toy previously PASS**: toy passes but full falsifies → the idea holds at toy scale but not at full scale — a scale-dependent false trick. Return to Phase 2 and regenerate (bounded 2 rounds).
+2. **Phase 8 logic-verification FATAL: "experimental data contradicts the derivation's conclusion"**: the derivation says X, the experimental data says not-X. The idea itself is wrong. Return to Phase 2 and regenerate (bounded 2 rounds).
+3. **Phase 14 auto-review-loop review states "the core claim is falsified by this paper's own experimental data"** (the kill argument stands). Return to Phase 2 and regenerate (bounded 2 rounds).
 
-### BA 执行流程
+### BA Execution Flow
 
 ```
-触发 BA (条件 1/2/3 任一)
+Trigger BA (any of conditions 1/2/3)
   │
   ▼
-记录 BA_EVENT.json: {triggered_by: "6c_full_FAIL_after_toy_PASS" | "8_logic_FATAL_contradiction" | "14_kill_argument_sustained",
-                     original_idea_id, failed_evidence: [文件路径], reason: "..."}
+Record BA_EVENT.json: {triggered_by: "6c_full_FAIL_after_toy_PASS" | "8_logic_FATAL_contradiction" | "14_kill_argument_sustained",
+                       original_idea_id, failed_evidence: [file paths], reason: "..."}
   │
   ▼
-回退 Phase 2 (idea-discovery) — bounded 2 轮:
-  轮1: 重新生成 8-12 候选，但 EXCLUDE 原 idea_id 及其 DAG 子树（避免重蹈覆辙）；
-        在 MCTS_LOG.md 记录"BA 轮1：原 idea [id] 因 [reason] 失败，已排除"
-  轮2 (若轮1 仍无达标 idea): 进一步放宽——允许"修正原 idea 的失败假设"作为新候选
-        （即：若原 idea 失败于假设 H，新候选可显式否定 H 并提出替代机制）
+Back-track to Phase 2 (idea-discovery) — bounded 2 rounds:
+  Round 1: regenerate 8-12 candidates, but EXCLUDE the original idea_id and its DAG subtree (avoid repeating the same mistake);
+           record in MCTS_LOG.md: "BA round 1: original idea [id] failed for [reason], excluded"
+  Round 2 (if round 1 still yields no qualifying idea): relax further — allow "fixing the original idea's failed assumption" as a new candidate
+           (i.e., if the original idea failed on assumption H, the new candidate may explicitly deny H and propose an alternative mechanism)
   │
   ▼
-若 2 轮 BA 后仍无达标 idea → BLOCKED + BA_EXHAUSTED，交人类决策
-  （不再无限循环；2 轮是 BA 的硬上限，区别于 phase 内 3 轮 fallback）
+If no qualifying idea after 2 BA rounds → BLOCKED + BA_EXHAUSTED, hand to the human for a decision
+  (no infinite loop; 2 rounds is BA's hard cap, distinct from the in-phase 3-round fallback)
 ```
 
-### BA 与 phase 内 fallback 的区别
+### BA vs In-Phase Fallback
 
-| 机制 | 触发 | 回退到 | 上限 |
-|------|------|--------|------|
-| phase 内 fallback (↻) | 单 phase 失败（推导报错/编译警告） | 相邻前置 phase | 3 轮 |
-| **BA (本节)** | 实验数据**否定 idea 核心claim**（非 phase 失败） | Phase 2 idea 重生成 | 2 轮 |
+| Mechanism | Trigger | Back-track target | Cap |
+|-----------|---------|-------------------|-----|
+| In-phase fallback (↻) | Single-phase failure (derivation error / compile warning) | Adjacent upstream phase | 3 rounds |
+| **BA (this section)** | Experimental data **falsifies the idea's core claim** (not a phase failure) | Phase 2 idea regeneration | 2 rounds |
 
-BA 是"idea 本身错了"的回溯，phase fallback 是"执行出错"的回溯。两者不混淆：toy gate FAIL（6b）是 phase fallback（kill idea，不回 Phase 2）；full 完成但否定 claim 是 BA（回 Phase 2 重生成）。
+BA is the back-track for "the idea itself is wrong"; phase fallback is the back-track for "execution went wrong". Do not conflate the two: toy gate FAIL (6b) is phase fallback (kill the idea, no return to Phase 2); full complete but falsifying the claim is BA (return to Phase 2 and regenerate).
 
 ## Workflow
 

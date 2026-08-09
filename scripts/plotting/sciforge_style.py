@@ -25,9 +25,35 @@ from __future__ import annotations
 
 import math
 import os
+import re
 from pathlib import Path
 
 __version__ = "2.0.0"
+
+# One pattern for every #-hex color literal the SVG renderers accept:
+# 3-digit (#RGB shorthand), 6-digit (#RRGGBB) and 8-digit (#RRGGBBAA) forms.
+# The ordered longest-first alternation plus the trailing negative lookahead
+# guarantees a 6-digit literal is never consumed as the PREFIX of an 8-digit
+# one and that 4/5/7-digit garbage never matches at all.  rsvg/inkscape
+# render all three forms, so every palette gate (extract_colors /
+# audit_palette_svg / sanitize_palette) must recognize all three.  TeX
+# {HTML}{...} colors are matched by a separate pattern at the call sites
+# and STAY 6-digit only (xcolor rejects 3-char shorthand).
+HEX_COLOR_RE = re.compile(
+    r"#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-fA-F])")
+
+
+def normalize_hex(h: str) -> str:
+    """Normalize a #-hex literal matched by HEX_COLOR_RE to canonical
+    #RRGGBB: #RGB expands by doubling each nibble (#F00 -> #FF0000),
+    #RRGGBBAA drops the alpha channel (#FF000066 -> #FF0000), #RRGGBB
+    passes through unchanged."""
+    body = h.lstrip("#")
+    if len(body) == 3:
+        body = "".join(c * 2 for c in body)
+    elif len(body) == 8:
+        body = body[:6]
+    return "#" + body
 
 # --------------------------------------------------------------------------
 # Layer 1 — morandi design tokens (all C* <= 25, validated)
@@ -233,7 +259,11 @@ def rgb2lab(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
     def f(t: float) -> float:
         return t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
 
-    fx, fy, fz = f(x / 0.95047), f(y / 1.0), f(z / 1.08883)
+    # divide by the D65 reference white implied by the matrix row sums
+    # themselves, so the reference white maps EXACTLY to L*=100, a*=b*=0
+    fx = f(x / (0.4124564 + 0.3575761 + 0.1804375))
+    fy = f(y / (0.2126729 + 0.7151522 + 0.0721750))
+    fz = f(z / (0.0193339 + 0.1191920 + 0.9503041))
     return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
 
 
@@ -263,20 +293,23 @@ def sanitize_palette(svg_text: str) -> tuple[str, int]:
     are remapped here so the DELIVERED figure is always palette-compliant,
     regardless of tool version drift.  Author spec colors never reach this
     function off-palette — render_figure.py rejects them at source level.
-    Returns (sanitized_text, n_replacements).
+    Recognizes 3-, 6- and 8-digit hex literals (HEX_COLOR_RE): shorthand
+    and alpha-suffixed forms are normalized to #RRGGBB for the morandi
+    check, but the ORIGINAL textual form is remapped (fill="#F00" ->
+    fill="<token>").  Returns (sanitized_text, n_replacements).
     """
-    import re as _re
-    targets = sorted(set(_re.findall(r"#[0-9a-fA-F]{6}", svg_text)))
+    targets = sorted(set(HEX_COLOR_RE.findall(svg_text)))
     remap: dict[str, str] = {}
     for h in targets:
-        c = chroma(h)
-        L = rgb2lab(hex2rgb(h))[0]
+        norm = normalize_hex(h)
+        c = chroma(norm)
+        L = rgb2lab(hex2rgb(norm))[0]
         if c < 2.0 or L > 96 or L < 12:
             continue  # neutrals / near-white / near-black stay untouched
-        if is_morandi(h):
+        if is_morandi(norm):
             continue
         best = min(TOKENS.values(), key=lambda t: abs(rgb2lab(hex2rgb(t))[0] - L))
-        remap[h.lower()] = best
+        remap[h.lower()] = best  # keyed by the ORIGINAL textual form
     if not remap:
         return svg_text, 0
     n = 0
@@ -289,7 +322,7 @@ def sanitize_palette(svg_text: str) -> tuple[str, int]:
             return remap[h]
         return m.group(0)
 
-    return _re.sub(r"#[0-9a-fA-F]{6}", _sub, svg_text), n
+    return HEX_COLOR_RE.sub(_sub, svg_text), n
 
 
 # --------------------------------------------------------------------------
@@ -371,7 +404,7 @@ def _rgb_dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
 
 def is_morandi(hexcolor: str, tol: float = 8.0) -> bool:
     """True if hexcolor is a palette token OR the canonical stroke mix of
-    one (within Euclidean sRGB tolerance `tol` per channel)."""
+    one (within Euclidean sRGB distance `tol` over the whole RGB triple)."""
     try:
         rgb = hex2rgb(hexcolor)
     except (ValueError, IndexError):

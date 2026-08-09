@@ -8,7 +8,7 @@ This contract defines the **three fidelity gates** that filter ideas from cheap 
 
 ## 1. The Core Problem: Noisy Rewards and False Tricks
 
-The user's pain point: "early good signal may be a local false optimum (伪 Trick)."
+The user's pain point: "early good signal may be a local false optimum (false trick)."
 
 In reinforcement learning, this is called **noisy reward** or **delayed reward**. In idea search, it manifests as:
 

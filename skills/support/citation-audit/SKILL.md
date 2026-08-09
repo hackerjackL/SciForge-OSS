@@ -1,6 +1,6 @@
 ---
 name: citation-audit
-version: 1.1.2
+version: 1.2.0
 description: "Final 3-layer citation verification (existence + metadata + context) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
 type: reference-skill
 role: bibliographic-integrity-auditor
@@ -10,10 +10,10 @@ role: bibliographic-integrity-auditor
 
 ## Quick Reference
 
-- **Purpose**: 最终 3 层引用防幻觉验证 (arXiv→CrossRef→Semantic Scholar)
+- **Purpose**: Final 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar)
 - **Input**: paper/main.tex + literature/references.bib
 - **Output**: CITATION_AUDIT.md + CITATION_AUDIT.json
-- **Key**: 每篇 \cite{key} 必须可解析至已验证的 .bib 条目
+- **Key**: Every \cite{key} must resolve to a verified .bib entry
 
 Verify every `\cite{...}` in a paper against three independent layers: existence, metadata correctness, and context appropriateness. This is the bibliographic-integrity layer of SciForge's evidence-and-claim assurance stack.
 
@@ -23,11 +23,11 @@ Run **before submission**, after `paper-writing` has produced the LaTeX draft an
 
 Typical prompts:
 
-- "审查引用"
+- "audit the citations"
 - "check citations"
 - "citation audit"
 - "verify references"
-- "引用核对"
+- "cross-check references"
 
 **Do not** run this on a half-written draft — most of the work is cross-checking each `\cite` against context, which is wasted on placeholder text.
 
@@ -303,7 +303,7 @@ The `--uncited` flag does **not** appear in this table: uncited entries are advi
 **Metadata precedence**: metadata-drift warnings are FIX-level (WARN), not FAIL — they reflect metadata drift, not hallucination or wrong-context. The reviewer's per-entry `note` field MUST include the corrected metadata so the user can apply the FIX directly.
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:

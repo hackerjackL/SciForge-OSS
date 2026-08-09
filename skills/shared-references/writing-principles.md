@@ -1,136 +1,136 @@
 # Writing Principles (SciForge-OSS — Condensed)
 
-> **核心**: 论文是一个短小、严谨、有证据支撑的技术故事。每个部分服务于同一个核心贡献。
+> **Core**: A paper is a short, rigorous, evidence-backed technical story. Every section serves the same core contribution.
 >
-> **v2.2.1 出版级别与反工程报告腔（用户硬要求）**: 论文必须达到 Nature / Science / Cell / 大子刊正刊 / 一区 top SCI 级别——**不是工程报告、不是技术报告、不是实验日志**。判别：若一段文字读起来像"我们做了 X，然后做了 Y，输出是 Z"的流水账步骤罗列，那就是工程报告腔，**禁止**。Nature 级论文讲一个**科学故事**：动机→空白→洞察→证据→含义，每段承载叙事推进而非步骤记录。行文必须流畅、有起伏，长短句交替；引言钩住读者，讨论诚实但有力。页数限制绝不作为退化成工程报告的借口——超页时压缩冗余、移图入附录、紧致化表达，**不可**牺牲文风层级来凑数。
+> **v2.2.1 Publication grade and anti-engineering-report tone (hard user requirement)**: The paper must reach Nature / Science / Cell / major-sub-journal regular-issue / Q1 top SCI level — **not an engineering report, not a technical report, not an experiment log**. Discrimination test: if a passage reads like a step-by-step log of "we did X, then did Y, the output was Z", that is engineering-report tone, **forbidden**. A Nature-grade paper tells a **scientific story**: motivation → gap → insight → evidence → implication, and every paragraph carries narrative progression rather than step records. Prose must flow with rise and fall, alternating long and short sentences; the introduction hooks the reader, the discussion is honest but forceful. Page limits are never an excuse to degenerate into an engineering report — when over the page cap, compress redundancy, move figures into the appendix, tighten expressions; **never** sacrifice the prose-grade to hit a page count.
 
-## 0. 分领域文风契约（v2.2.1 — 全领域不同风格）
+## 0. Per-Discipline Style Contract (v2.2.1 — a different style for every discipline)
 
-论文文风**必须随领域调整**——同一模板骨架，不同文风血肉。违反领域文风 = 工程报告腔的一种。
+Paper prose style **must adapt to the discipline** — same template skeleton, different prose flesh. Violating discipline style = one form of engineering-report tone.
 
-| 领域族 | 文风特征 | 开头钩子 | 禁忌（会退化成工程报告） |
+| Discipline family | Style traits | Opening hook | Taboos (degenerate into an engineering report) |
 |--------|---------|---------|-------------------------|
-| **人文/社科/历史/哲学** | 叙事性、诠释性、论证驱动；长句铺陈，引文为锚；作者立场明确但不武断 | 一个悖论、一段史料张力、一个悬而未决的诠释之争 | 流水账式"年代-事件-结论"罗列；无立场的客观摘要腔 |
-| **CS/ML/算法** | 方法-结果-消融的清晰骨架，但每节有"为什么这么设计"的洞察；复杂度分析是骨架不是装饰 | 一个未被解决的能力边界 + 本文突破它的洞察 | 纯架构图堆砌无叙事；"我们用了 X 技术"无动机 |
-| **物理/数学/理论** | 推导为中心，定理-引理-证明链；极简严谨，每个符号有定义；结果章节是定理陈述不是实验日志 | 一个反直觉的物理/数学事实 + 本文给出其机制 | 把推导拆成"步骤1...步骤N"工程腔；用实验日志替代证明 |
-| **医学/生物/临床** | 机制→假说→验证→临床含义的因果链；统计严谨但服务机制叙事；伦理声明在位 | 一个临床痛点 + 本文的机制性回答 | 纯队列描述无机制；罗列 p 值无效应量无临床含义 |
-| **材料/化学/工程** | 结构-性能关系为中心；合成-表征-性能-机理四段但讲成发现故事 | 一个材料性能瓶颈 + 本文的结构性解答 | 纯工艺参数表无科学洞察；"我们测了 XRD/SEM"无问题驱动 |
-| **地球/气候/天文** | 尺度与过程为叙事轴；观测-模型-机制三段；不确定性是诚实而非弱化 | 一个跨尺度现象 + 本文连接微观与宏观 | 纯数据图堆砌无地球科学叙事；时间序列罗列 |
-| **经济/社科计量** | 识别策略为叙事核心；理论→实证→反事实→政策含义；表格服务因果故事 | 一个因果问题的识别挑战 + 本文的策略 | 纯回归表无识别叙事；"我们跑了 DiD"无平行趋势论证 |
+| **Humanities / social sciences / history / philosophy** | Narrative, interpretive, argument-driven; long sentences unfold the case, quotations serve as anchors; the author's stance is clear but not dogmatic | A paradox, a tension in the historical record, an unresolved interpretive dispute | Run-on "date-event-conclusion" listings; a stance-free objective-summary tone |
+| **CS / ML / algorithms** | A clear method-results-ablation skeleton, but every section carries a "why designed this way" insight; complexity analysis is skeleton, not decoration | An unsolved capability boundary + the paper's insight that breaks through it | Pile-ups of architecture diagrams with no narrative; "we used technique X" with no motivation |
+| **Physics / mathematics / theory** | Derivation-centered, theorem-lemma-proof chains; minimal and rigorous, every symbol defined; the results section is theorem statements, not an experiment log | A counterintuitive physical/mathematical fact + the paper giving its mechanism | Splitting a derivation into "step 1... step N" engineering tone; substituting an experiment log for a proof |
+| **Medicine / biology / clinical** | A causal chain of mechanism → hypothesis → validation → clinical implication; statistics rigorous but in service of the mechanism narrative; ethics statements in place | A clinical pain point + the paper's mechanistic answer | Pure cohort description with no mechanism; listing p-values with no effect sizes and no clinical implication |
+| **Materials / chemistry / engineering** | Structure-property relationships at the center; the synthesis-characterization-performance-mechanism quartet told as a discovery story | A materials-performance bottleneck + the paper's structural answer | Pure process-parameter tables with no scientific insight; "we measured XRD/SEM" with no problem driving it |
+| **Earth / climate / astronomy** | Scale and process as the narrative axis; the observation-model-mechanism triad; uncertainty stated honestly rather than as a weakness | A cross-scale phenomenon + the paper connecting micro and macro | Pile-ups of data figures with no earth-science narrative; raw time-series listings |
+| **Economics / social-science econometrics** | Identification strategy as the narrative core; theory → empirics → counterfactuals → policy implications; tables serve the causal story | The identification challenge of a causal question + the paper's strategy | Pure regression tables with no identification narrative; "we ran DiD" with no parallel-trends argument |
 
-**执行规则**：`/paper-writing` 在 Step 1 读 `domain-signature.json` 的 `evidence_type` + `writing_style` 字段，从上表选文风族，写入 `PAPER_PLAN.md` 的 `writing_style` 字段。全文按该族文风执行。**跨领域问题**（如计算社会科学）选主导族文风，在 Discussion §6 显式说明借用的次族文风约定。
+**Enforcement rule**: `/paper-writing` in Step 1 reads the `evidence_type` + `writing_style` fields of `domain-signature.json`, picks the style family from the table above, and writes it into the `writing_style` field of `PAPER_PLAN.md`. The whole manuscript follows that family's style. **Cross-disciplinary topics** (e.g., computational social science) pick the dominant family's style and state explicitly in Discussion §6 the conventions borrowed from secondary families.
 
-## 0.5 反 AIGC 活人感契约（v5.2 — Anti-AIGC Human-Voice Contract）
+## 0.5 Anti-AIGC Human-Voice Contract (v5.2)
 
-**实测反馈**：论文不能读起来像 AI 写的——AIGC 腔是审稿人一眼识别的"非活人"信号（与"工程报告腔"是两种不同的病：报告腔是**结构**像日志，AI 腔是**措辞**像机器）。本节给出可机器检查的黑名单 + 活人感正向特征 + 自检钩子。
+**Field feedback**: the paper must not read as if written by AI — AIGC voice is a "not written by a human" signal that reviewers spot at a glance (it is a different disease from "engineering-report tone": report tone is **structure** that reads like a log, AI voice is **wording** that reads like a machine). This section gives a machine-checkable blacklist + positive human-voice traits + self-check hooks.
 
-**AI 腔黑名单（出现即自检扣分，逐条替换）**:
+**AI-voice blacklist (any occurrence deducts self-check points; replace item by item)**:
 
-| 类别 | 英文 AI 腔（典型） | 中文 AI 腔（典型） | 活人替代方向 |
+| Class | English AI voice (typical) | Chinese AI voice (typical) | Human-voice replacement direction |
 |------|-------------------|-------------------|-------------|
-| 空洞强调 | "It is worth noting that", "Importantly,", "Notably," 每段开头连用 | "值得注意的是"、"需要指出的是"、"值得一提的是" | 直接陈述事实，强调靠证据本身 |
-| 万能动词 | "leverage", "utilize", "harness", "delve into", "facilitate" | "利用"（每段重复）、"赋能"、"助力"、"深入探讨" | 用领域精确动词（train / bound / identify / 拟合 / 界定） |
-| 过度修饰 | "comprehensive", "novel", "cutting-edge", "state-of-the-art"（无引用支撑时） | "全面的"、"创新性的"、"开创性的"、"具有重要意义" | 具体化：说清比什么新、新在哪（有引用支撑才可用 SOTA） |
-| 结构腔 | "Firstly...Secondly...Finally..." 机械枚举贯穿全文；每段同构（观点句+三句展开+小结句） | "首先…其次…最后…"、"一方面…另一方面…" | 段落长短错落（burstiness）；枚举只用于真正并列处 |
-| 平衡腔 | "While X has advantages, it also has limitations" 式的无信息对冲 | "虽然…但是…" 每段和稀泥 | 立场明确：该批评就批评，该肯定就肯定，配证据 |
-| 标点腔 | 每段破折号插入语 ≥2 处；分号排比；"——"滥用 | "——" 密集插入、"；" 排比堆叠 | 破折号全文 ≤5 处，插入语能删则删 |
-| 总结腔 | 每节末尾 "In summary, ..." 自我复述本节内容 | "综上所述"、"总而言之" 每节复读 | 节尾指向下一节的逻辑推进，不复读 |
+| Empty emphasis | "It is worth noting that", "Importantly,", "Notably," stacked at paragraph openings | Chinese stock openers equivalent to "it is worth noting that", "it should be pointed out that", "it is worth mentioning that" | State facts directly; let the evidence itself carry the emphasis |
+| All-purpose verbs | "leverage", "utilize", "harness", "delve into", "facilitate" | Chinese equivalents of "utilize" (repeated in every paragraph), "empower", "boost", "delve into" | Use discipline-precise verbs (train / bound / identify / fit / define) |
+| Over-embellishment | "comprehensive", "novel", "cutting-edge", "state-of-the-art" (when unsupported by citations) | Chinese equivalents of "comprehensive", "innovative", "pioneering", "of great significance" | Be specific: say newer than what, and new in what respect (SOTA only when citation-backed) |
+| Structure-ese | "Firstly...Secondly...Finally..." mechanical enumeration running through the whole text; every paragraph isomorphic (claim sentence + three elaboration sentences + wrap-up sentence) | Chinese equivalents of "first... then... finally...", "on the one hand... on the other hand..." | Vary paragraph lengths (burstiness); reserve enumeration for genuinely parallel items |
+| Balance-ese | Uninformative hedging of the "While X has advantages, it also has limitations" kind | The Chinese "although... but..." formula mushing every paragraph into a compromise | Take a clear stance: criticize where criticism is due, endorse where endorsement is due, with evidence |
+| Punctuation-ese | ≥2 dash-parentheticals per paragraph; parallel semicolon chains; em-dash abuse | Dense em-dash insertions and stacked semicolon parallels (the fullwidth forms in Chinese prose) | ≤5 dashes across the whole text; delete any parenthetical that can be deleted |
+| Summary-ese | "In summary, ..." at the end of every section restating the section's own content | Chinese equivalents of "to sum up", "in conclusion" recited at the end of every section | End sections by pointing to the logical step into the next section; no restating |
 
-**活人感正向特征（paper-writing 按此自检，缺项扣分）**:
-1. **句长方差（burstiness）**: 连续 5 句句长方差过低（全部 15-25 词）→ AI 腔信号；活人写作长短句交替（短句砸结论，长句铺论证）
-2. **具体性密度**: 每段至少一个具体锚点（数字/引文/符号/图表引用）——空泛陈述段是 AI 腔温床
-3. **立场痕迹**: Introduction 与 Discussion 有明确的"我们认为/我们反对"式立场句（配证据）——AI 腔的特征是无立场的平滑
-4. **领域黑话正确**: 用领域术语的**领域内含义**（按 §0 文风族），不用泛化词——"鲁棒"在 CS 与统计里含义不同，用对才算活人
-5. **引用融入叙事**: 引用是论证的承重墙（"X 证明了…，但假设 Y 不成立，因此…"），不是装饰性堆叠（"相关工作见 [1-15]"）
+**Positive human-voice traits (paper-writing self-checks against these; each missing item deducts points)**:
+1. **Sentence-length variance (burstiness)**: 5 consecutive sentences with too-low length variance (all 15-25 words) → AI-voice signal; human writing alternates long and short sentences (short sentences land conclusions, long sentences lay out arguments)
+2. **Specificity density**: at least one concrete anchor per paragraph (number / citation / symbol / figure or table reference) — paragraphs of vague generalities are a breeding ground for AI voice
+3. **Stance traces**: the Introduction and Discussion contain explicit "we argue / we reject" stance sentences (with evidence) — the hallmark of AI voice is stance-less smoothness
+4. **Correct discipline jargon**: use discipline terms with their **in-discipline meaning** (per the §0 style family), not generic senses — "robust" means different things in CS and statistics; using it correctly is what makes writing human
+5. **Citations woven into the narrative**: citations are load-bearing walls of the argument ("X proved..., but assumption Y does not hold, therefore..."), not decorative stacking ("see [1-15] for related work")
 
-**论文体 vs 报告体判别测试**（每节抽一段执行）:
-- **报告体特征**（禁止）：按时间/步骤顺序组织（"我们先做 A，再做 B"）；无对比对象的孤立描述；结果无解释只有数字；方法无动机只有配置
-- **论文体特征**（要求）：按论证逻辑组织（"为回答 Q，需要证据 E，因为…"）；每个结果有对比与解释；每个设计选择有动机；每节推进同一故事
-- 判别：把该段的主语从"我们"换成"本文论证"——读不通 = 报告体（论文体的主语是论证本身，不是操作者）
+**Paper style vs report style discrimination test** (run on one sampled paragraph per section):
+- **Report-style traits** (forbidden): organized by time/step order ("we first did A, then did B"); isolated description with nothing to compare against; results as bare numbers with no interpretation; methods as bare configurations with no motivation
+- **Paper-style traits** (required): organized by argument logic ("to answer Q we need evidence E, because..."); every result has a comparison and an interpretation; every design choice has a motivation; every section advances the same story
+- Test: replace the paragraph's subject "we" with "this paper argues" — if it no longer reads, it is report style (in paper style the subject is the argument itself, not the operator)
 
-**领域惯例适配**（§0 文风族的"活人感"具体化）:
-- **人文/社科**: 允许第一人称立场（"笔者以为"类按该领域惯例）、引文需带页码、论证可含诠释性推断（标明推断层级）；禁止理工科式"结果-讨论"骨架硬套
-- **CS/ML**: 贡献列表可枚举但每条须带证据指针；禁止把超参表写进正文叙事（进表格/附录）
-- **数学/理论**: 定义-引理-定理-证明链是活人感本身；禁止"我们提出了一个定理"式空述（定理必须陈述完整）
-- **医学/生物**: 机制叙事须配统计证据；伦理/数据可得性声明在位是该领域"活人作者"的合规标志
-- **经济/计量**: 识别策略的平行趋势/外生性论证是该领域活人感的核心——跳过识别论证直接报系数 = AI 腔
+**Discipline-convention adaptation** (the §0 style families' "human voice" made concrete):
+- **Humanities / social sciences**: first-person stance allowed ("the author argues" forms per the discipline's conventions); quotations must carry page numbers; arguments may contain interpretive inference (label the inference level); forcing a science-style "results-discussion" skeleton onto the paper is forbidden
+- **CS / ML**: the contribution list may be enumerated, but each item must carry an evidence pointer; hyperparameter tables in the body narrative are forbidden (put them in a table/appendix)
+- **Mathematics / theory**: the definition-lemma-theorem-proof chain is human voice itself; "we propose a theorem"-style empty claims are forbidden (theorems must be stated in full)
+- **Medicine / biology**: mechanism narratives must carry statistical evidence; ethics/data-availability statements in place are the compliance markers of a "human author" in this field
+- **Economics / econometrics**: the parallel-trends/exogeneity argument for the identification strategy is the core of human voice in this field — skipping identification arguments and reporting coefficients directly = AI voice
 
-**自检钩子**（`/paper-writing` Step 5 自检清单增补，写入 `verdicts/PAPER_CLAIM_AUDIT.json` 的 `aigc_scan` 字段）:
-1. 黑名单扫描：上表各类 AI 腔短语全文计数，任一类 ≥3 处 → WARN；任一类 ≥6 处 → FAIL（`reason_code: aigc_phrasing`），逐条替换后重扫
-2. 句长方差抽查：每节抽连续 10 句计算句长标准差，std < 5 词的节 → WARN（`sentence_monotony`）
-3. 报告体抽查：每节抽一段执行判别测试，报告体段 → WARN（`report_style`）；Introduction 或 Discussion 全篇报告体 → FAIL
-4. 破折号/插入语计数：全文破折号 > 5 处 → WARN
+**Self-check hooks** (additions to the `/paper-writing` Step 5 self-check list; results written into the `aigc_scan` field of `verdicts/PAPER_CLAIM_AUDIT.json`):
+1. Blacklist scan: count phrases of each AI-voice class from the table above across the whole text; any class ≥3 occurrences → WARN; any class ≥6 occurrences → FAIL (`reason_code: aigc_phrasing`), then replace item by item and rescan
+2. Sentence-length variance spot check: sample 10 consecutive sentences per section and compute the sentence-length standard deviation; sections with std < 5 words → WARN (`sentence_monotony`)
+3. Report-style spot check: run the discrimination test on one sampled paragraph per section; report-style paragraph → WARN (`report_style`); Introduction or Discussion entirely in report style → FAIL
+4. Dash/parenthetical count: > 5 dashes across the whole text → WARN
 
-## 叙事原则
+## Narrative principles
 
-- 核心贡献必须能用一句话说清，否则框架未收敛
-- 每个部分服务于同一个故事，而非启动第二个故事
-- 实验/相关工作/讨论支持主 claim，而非独立 mini-paper
+- The core contribution must be statable in one sentence; otherwise the framework has not converged
+- Every section serves the same story, rather than starting a second one
+- Experiments / related work / discussion support the main claim, rather than being independent mini-papers
 
-**一句话贡献测试**: 如果不能写出类似以下句子，框架太松散：
+**One-sentence contribution test**: if you cannot write a sentence like the following, the framework is too loose:
 - "We prove that X converges under assumption Y"
 - "We show that method A improves B by 15% on benchmark C"
 
-## 时间分配
+## Time allocation
 
-- 摘要/引言/图表/其他 ≈ 各占 25% 精力
-- 审稿人阅读顺序：标题 → 摘要 → 引言 → 图1 → 其余
-- 前两页不清，后面的亮点无人看到
+- Abstract / introduction / figures / everything else ≈ 25% effort each
+- Reviewer reading order: title → abstract → introduction → Figure 1 → the rest
+- If the first two pages are unclear, nobody sees the highlights later on
 
-## 摘要 (5 句公式)
+## Abstract (5-sentence formula)
 
-1. 实现了什么
-2. 问题为什么重要且困难
-3. 如何解决
-4. 什么证据支持
-5. 读者应记住什么数字/结果
+1. What was achieved
+2. Why the problem matters and is hard
+3. How it is solved
+4. What evidence supports it
+5. What number/result the reader should remember
 
-**坏开头**: 第一句可以套在任何论文上 → 删除
+**Bad opening**: the first sentence could be pasted onto any paper → delete it
 
-## 引言结构
+## Introduction structure
 
-- **第一段**: 广阔背景 + 问题定义
-- **第二段**: 已知方法及其局限
-- **第三段**: 本文方法 + 核心贡献
-- **第四段**: 论文结构路线图
+- **Paragraph 1**: broad context + problem definition
+- **Paragraph 2**: known approaches and their limitations
+- **Paragraph 3**: our method + core contribution
+- **Paragraph 4**: roadmap of the paper
 
-**坏引言**: 第一页无具体贡献 → 丢失读者
+**Bad introduction**: no concrete contribution on page 1 → lose the reader
 
-## 句子级清晰
+## Sentence-level clarity
 
-- 主谓宾结构，主语在句首
-- 避免"it is known that"、"it has been shown that"
-- 每个句子一个想法
-- 长句后跟短句，产生节奏
+- Subject-verb-object structure, subject at the start of the sentence
+- Avoid "it is known that", "it has been shown that"
+- One idea per sentence
+- Follow long sentences with short ones to create rhythm
 
-## 数学写作
+## Mathematical writing
 
-- 每个符号定义一次，不要重载
-- 编号只给被引用的公式
-- 推导在正文中只放关键步骤，长推导放附录
-- 定理须有显式假设 + 证明或引用
+- Define every symbol once; do not overload
+- Number only equations that are referenced
+- Keep only key derivation steps in the body; long derivations go to the appendix
+- Theorems must have explicit assumptions + a proof or a citation
 
-## 图表设计
+## Figure and table design
 
-- 矢量图 (PDF/SVG)，非栅格
-- 莫兰迪色系 (Layer 1) 或 viridis/magma 数据热图 (Layer 2)
-- 图注自包含：图 N. 内容 + 关键结论 + (a)(b) 说明
-- 每个图保留渲染脚本 + 输入数据
+- Vector graphics (PDF/SVG), not raster
+- Morandi palette (Layer 1) or viridis/magma data heatmaps (Layer 2)
+- Self-contained captions: Figure N. content + key takeaway + (a)(b) panel notes
+- Keep the rendering script + input data for every figure
 
-## 常见错误
+## Common mistakes
 
-- 相关工作写成文献堆砌 → 按主题聚类，而非按时序
-- 讨论不诚实 → 必须说明结果不证明什么
-- 引用不验证 → 每篇引用通过 3 层防幻觉验证
-- 声称过度 → claim 范围必须与证据范围匹配
+- Related work written as a pile-up of papers → cluster by topic, not by chronology
+- Dishonest discussion → must state what the results do not prove
+- Unverified citations → every citation passes the 3-layer anti-hallucination verification
+- Overclaiming → the claim scope must match the evidence scope
 
-## 提交前检查清单
+## Pre-submission checklist
 
-- 摘要 4-5 句，包含具体数字/结果
-- 引言第一页有具体贡献
-- 每个 claim 有 \cite{} 或 \cref{eq:} 支持
-- 无未定义符号
-- 所有引用在 references.bib 中存在且已验证
-- 无 \cite{TODO}、\cite{forthcoming}
-- 莫兰迪色系或 Layer 2 数据热图
-- 局限性在 Discussion 中诚实说明
+- Abstract of 4-5 sentences containing concrete numbers/results
+- Concrete contribution on page 1 of the introduction
+- Every claim backed by \cite{} or \cref{eq:}
+- No undefined symbols
+- All citations exist in references.bib and are verified
+- No \cite{TODO}, \cite{forthcoming}
+- Morandi palette or Layer 2 data heatmap
+- Limitations stated honestly in the Discussion

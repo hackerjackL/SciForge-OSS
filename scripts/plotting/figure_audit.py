@@ -6,8 +6,14 @@ render.  Running `figure_audit.py` directly is supported for re-auditing
 existing figure dirs, but the pipeline only ever calls render_figure.py.
 
 Audit layers (Nature-level):
-  A1 outputs      — output.pdf + output.png exist, non-empty, valid magic
-  A2 resolution   — PNG dpi >= 300 and width >= 1200px (agent-viewable)
+  A1 outputs      — output.pdf + output.svg exist, non-empty, valid magic
+                    (v4.0 deliverables: PDF for LaTeX + SVG for viewing;
+                    legacy output.png only tolerated with a WARN)
+  A2 resolution   — SVG viewBox width above the adaptive floor (vector —
+                    dpi no longer applies); 16:9 aspect check; composite
+                    figures get an explicit WARN downgrade when
+                    composite_meta.json says output.pdf embeds rasterized
+                    panels (vector-faithful assembly is composite.tex)
   A3 palette      — every saturated color in the SVG/tex/dot source is a
                     morandi token (C* <= 25 enforced by construction)
   A4 typography   — SVG text physical size >= Nature floor
@@ -16,6 +22,11 @@ Audit layers (Nature-level):
   A5 layout       — text not clipped outside the viewBox (heuristic),
                     sane aspect ratio, whitespace padding present
   A6 contract     — dual output, source preserved, latex_include.tex exists
+  A7 complexity   — edge density / icon usage floors (complexity contract)
+  A8 richness     — visual depth devices in hand-assembled SVG sources
+  A9 brand leak   — no internal tool branding inside figure sources
+  A10 occlusion   — wiring may not cross un-haloed text; text bboxes must
+                    not overlap (>30% vertical intrusion => FAIL)
 
 Report: figure_audit.json + PASS/WARN/FAIL verdict on stdout.
 Exit: 0 PASS, 1 WARN, 4 FAIL.
@@ -38,6 +49,18 @@ ALLOWED_FONT_SUBSTRINGS = (
     "Source Sans", "serif", "sans-serif", "monospace",
     "d2-",  # d2 internal font-class ids (resolve to the --font-* TTF we pass)
 )
+
+# A10 text-bbox model: average per-character advance as a fraction of the
+# font size, per font-family class.  Sans faces (Liberation/DejaVu/Noto
+# Sans, TeX Gyre Heros) average ~0.52em per glyph, serif faces run
+# slightly wider (~0.55em); an unknown/absent font-family keeps the
+# conservative legacy 0.62em constant.  Exposed at module level so tests
+# can pin them.
+CHAR_WIDTH_ESTIMATES = {
+    "sans": 0.52,
+    "serif": 0.55,
+    "fallback": 0.62,
+}
 
 
 class Report:
@@ -68,11 +91,19 @@ class Report:
 
 
 def _parse_size(value: str) -> float:
-    """Normalize a CSS/SVG font-size to px."""
+    """Normalize a CSS/SVG font-size to px.
+
+    Total function: ANY unparsable input ("..", ".", "", garbage) yields
+    0.0 instead of raising — malformed numerics in a hand-edited SVG must
+    degrade to an audit WARN, never kill the render (F8).
+    """
     m = re.match(r"([\d.]+)\s*(px|pt)?", value.strip())
     if not m:
         return 0.0
-    v = float(m.group(1))
+    try:
+        v = float(m.group(1))
+    except ValueError:
+        return 0.0
     if m.group(2) == "pt":
         v /= PX_TO_PT  # pt -> px
     return v
@@ -120,8 +151,10 @@ def audit_resolution(svg: Path, rep: Report, figdir: Path | None = None) -> None
             hm = re.search(r'height="([\d.]+)', text)
             if wm and hm:
                 w, h = float(wm.group(1)), float(hm.group(1))
-    except OSError:
-        pass
+    except (OSError, ValueError):
+        # unreadable file OR malformed numerics (viewBox="0 0 .. 10",
+        # width="..") — degrade to the WARN below, never crash (F8)
+        w = h = 0.0
     if not w or not h:
         rep.add("A2", "WARN", "SVG has no readable viewBox/size — cannot "
                               "verify dimensions")
@@ -153,18 +186,48 @@ def audit_resolution(svg: Path, rep: Report, figdir: Path | None = None) -> None
                 "with the documented reason")
 
 
+def audit_composite_raster(figdir: Path, rep: Report) -> None:
+    """A2 honesty downgrade for composite figures.
+
+    The composite engine rasterizes its panels into output.pdf (pdftoppm
+    at <dpi>) and records that in composite_meta.json; the vector-
+    faithful assembly is composite.tex.  Emit an explicit WARN so
+    downstream auditing knows the PDF embeds rasters — this is an audit
+    DOWNGRADE, not a FAIL: the vector path exists and is referenced by
+    latex_include.tex."""
+    meta = figdir / "composite_meta.json"
+    if not meta.is_file():
+        return
+    try:
+        data = json.loads(meta.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        rep.add("A2", "WARN", "composite_meta.json unreadable — cannot "
+                              "verify composite panel embedding")
+        return
+    if data.get("raster_panels"):
+        rep.add("A2", "WARN",
+                f"composite: output.pdf embeds rasterized panels at "
+                f"{data.get('dpi', '?')} dpi — the vector-faithful "
+                f"assembly is {data.get('vector_assembly', 'composite.tex')} "
+                "(audit downgrade, not a FAIL)")
+
+
 def audit_palette_svg(svg_text: str, rep: Report) -> None:
     bad, seen = [], set()
-    for h in sorted(set(re.findall(r"#[0-9a-fA-F]{6}", svg_text))):
-        c = st.chroma(h)
-        L = st.rgb2lab(st.hex2rgb(h))[0]
+    # 3-/6-/8-digit hex (HEX_COLOR_RE): rsvg/inkscape render shorthand and
+    # alpha-suffixed forms too, so they are normalized to #RRGGBB before
+    # the morandi gate — otherwise saturated colors bypassed the audit (F10)
+    for h in sorted(set(st.HEX_COLOR_RE.findall(svg_text))):
+        norm = st.normalize_hex(h)
+        if norm in seen:
+            continue
+        seen.add(norm)
+        c = st.chroma(norm)
+        L = st.rgb2lab(st.hex2rgb(norm))[0]
         if c < 2.0 or L > 96 or L < 12:
             continue  # neutrals, near-white, near-black
-        if h in seen:
-            continue
-        seen.add(h)
-        if not st.is_morandi(h):
-            bad.append(f"{h} (C*={c:.1f})")
+        if not st.is_morandi(norm):
+            bad.append(f"{norm} (C*={c:.1f})")
     if bad:
         rep.add("A3", "FAIL", "off-palette colors: " + ", ".join(bad))
     else:
@@ -177,9 +240,12 @@ def audit_source_text(text: str, rep: Report) -> None:
     hexes = set(re.findall(r"#[0-9a-fA-F]{6}", text))
     # tex HTML colors: \definecolor{...}{HTML}{3A3733}
     hexes |= set(re.findall(r"\{HTML\}\{([0-9a-fA-F]{6})\}", text))
-    # asy rgb(0-1) triples
+    # asy rgb(0-1) triples (malformed numerics skipped, never a crash — F8)
     for m in re.finditer(r"rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)", text):
-        r, g, b = (min(255, int(float(x) * 255)) for x in m.groups())
+        try:
+            r, g, b = (min(255, int(float(x) * 255)) for x in m.groups())
+        except ValueError:
+            continue
         hexes.add("#%02X%02X%02X" % (r, g, b))
     bad = []
     for h in sorted(hexes):
@@ -197,7 +263,11 @@ def audit_source_text(text: str, rep: Report) -> None:
     sizes = []
     for pat in (r"\\fontsize\{([\d.]+)\}", r"fontsize\(([\d.]+)pt\)",
                 r"font-size:\s*([\d.]+)pt"):
-        sizes += [float(s) for s in re.findall(pat, text)]
+        for s in re.findall(pat, text):
+            try:
+                sizes.append(float(s))
+            except ValueError:  # malformed numerics: skip, never crash (F8)
+                continue
     if sizes and min(sizes) < st.NATURE_FLOOR["annotation"]:
         rep.add("A4", "FAIL", f"declared font size {min(sizes)}pt below floor")
     elif sizes:
@@ -240,7 +310,10 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
     if not m:
         rep.add("A5", "WARN", "no viewBox — cannot verify layout bounds")
         return
-    vb = [float(x) for x in m.group(1).split()]
+    try:
+        vb = [float(x) for x in m.group(1).split()]
+    except ValueError:
+        vb = []  # malformed numerics (viewBox="0 0 .. 10") -> WARN below (F8)
     if len(vb) != 4:
         rep.add("A5", "WARN", "malformed viewBox")
         return
@@ -249,14 +322,19 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
     for tm in re.finditer(
             r'<text[^>]*?x="([\d.-]+)"[^>]*?y="([\d.-]+)"[^>]*>(.*?)</text>',
             svg_text, re.S):
-        x = float(tm.group(1))
+        try:
+            x = float(tm.group(1))
+        except ValueError:
+            continue  # malformed coordinate: skip the element, never crash (F8)
         tag = tm.group(0)[: tm.group(0).find(">")]
         body = re.sub(r"<[^>]+>", "", tm.group(3))
         # d2 wraps multi-line labels in tspans sharing the anchor x
         lines = re.findall(r"<tspan[^>]*>([^<]*)</tspan>", tm.group(3)) or [body]
         max_line = max((len(s) for s in lines), default=0) or len(body)
-        fs = re.search(r'font-size[:=]\s*"?([\d.]+)', tm.group(0))
-        est_w = max_line * (float(fs.group(1)) if fs else 16) * 0.6
+        fs = re.search(r'font-size[:=]\s*"?([\d.]+(?:px|pt)?)', tm.group(0))
+        # _parse_size normalizes pt->px (a raw pt value treated as px would
+        # overestimate the width by 1/0.75)
+        est_w = max_line * (_parse_size(fs.group(1)) if fs else 16.0) * 0.6
         if "text-anchor:middle" in tag or 'text-anchor="middle"' in tag:
             right = x + est_w / 2
             left = x - est_w / 2
@@ -277,8 +355,12 @@ def audit_layout_svg(svg_text: str, rep: Report, figdir: Path | None = None) -> 
 
 
 def audit_contract(figdir: Path, rep: Report) -> None:
+    # *.composite.json covers the manifests the composite engine preserves
+    # next to its deliverables (composite_meta.json is a pipeline artifact,
+    # NOT a source, and stays excluded)
     src = [p for p in figdir.glob("*")
-           if p.suffix in (".d2", ".dot", ".gv", ".tex", ".svg", ".py")]
+           if p.suffix in (".d2", ".dot", ".gv", ".tex", ".svg", ".py")
+           or p.name.endswith(".composite.json")]
     if not src:
         rep.add("A6", "FAIL", "no preserved source (spec/render script) found")
     else:
@@ -410,6 +492,218 @@ def audit_brand_leak(figdir: Path, rep: Report) -> None:
         rep.add("A9", "PASS", "no internal branding in figure sources")
 
 
+_NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+
+
+def _svg_viewport(svg_text: str) -> tuple[float, float, float, float]:
+    """Establish the px coordinate scale of an SVG document.
+
+    Parses the viewBox AND the width/height attributes of the <svg> root.
+    Absolute units are normalized to px (pt via PX_TO_PT); a percentage,
+    em-based or missing width/height falls back to the viewBox.  Returns
+    (scale_x, scale_y, vb_w, vb_h) where scale maps viewBox user units to
+    rendered px (1.0 when only the viewBox is declared).  All A10 overlap
+    math below runs in user units — a uniform viewport scale cancels out
+    of every comparison — but the parse is still required so SVGs whose
+    width/height are declared in pt/% fall back to the viewBox instead of
+    mis-scaling the bbox model.
+    """
+    sm = re.search(r"<svg\b[^>]*>", svg_text)
+    tag = sm.group(0) if sm else ""
+    vb_w = vb_h = 0.0
+    m = re.search(r'viewBox="([^"]+)"', tag)
+    if m:
+        parts = m.group(1).split()
+        if len(parts) == 4:
+            try:
+                vb_w, vb_h = float(parts[2]), float(parts[3])
+            except ValueError:
+                vb_w = vb_h = 0.0
+
+    def _attr_px(attr: str) -> float | None:
+        am = re.search(rf'{attr}="([^"]+)"', tag)
+        if not am:
+            return None
+        num = re.match(r"\s*([\d.]+)\s*(px|pt)?\s*$", am.group(1))
+        if not num:  # percentage / em / auto -> fall back to the viewBox
+            return None
+        try:
+            v = float(num.group(1))
+        except ValueError:
+            return None  # malformed numerics -> fall back to the viewBox (F8)
+        return v / PX_TO_PT if num.group(2) == "pt" else v
+
+    px_w, px_h = _attr_px("width"), _attr_px("height")
+    sx = px_w / vb_w if (px_w and vb_w) else 1.0
+    sy = px_h / vb_h if (px_h and vb_h) else 1.0
+    return sx, sy, vb_w, vb_h
+
+
+def _char_width_factor(font_family: str | None) -> float:
+    """Average per-character advance (x font-size) for a font-family list.
+
+    Approved sans families (Liberation/DejaVu/Noto Sans, TeX Gyre Heros,
+    Helvetica/Arial look-alikes) -> 0.52; serif faces (TeX Gyre
+    Termes/Pagella, Times, ...) -> 0.55; unknown families keep the
+    conservative 0.62 legacy constant (CHAR_WIDTH_ESTIMATES)."""
+    if not font_family:
+        return CHAR_WIDTH_ESTIMATES["fallback"]
+    fam = font_family.lower()
+    if "sans" in fam or "heros" in fam or "helvet" in fam or "arial" in fam:
+        return CHAR_WIDTH_ESTIMATES["sans"]
+    if ("serif" in fam or "termes" in fam or "pagella" in fam
+            or "times" in fam or "georgia" in fam):
+        return CHAR_WIDTH_ESTIMATES["serif"]
+    return CHAR_WIDTH_ESTIMATES["fallback"]  # monospace & unknown
+
+
+def _text_bbox(x: float, y: float,
+               chunks: list[tuple[str, float | None, float]],
+               font_size: float, anchor: str = "start",
+               char_w: float = CHAR_WIDTH_ESTIMATES["fallback"]
+               ) -> tuple[float, float, float, float]:
+    """Estimated bbox (x0, y0, x1, y1) of ONE <text> element.
+
+    `chunks` is the element's text split into positioned runs; each entry
+    is (content, own_x, dy) following SVG tspan semantics: a chunk with
+    its own x starts a new line at that x, dy accumulates vertically from
+    the previous chunk.  Widths are estimated as
+    len(content) * font_size * char_w; `anchor` (start/middle/end) is
+    applied per chunk.  Returns the union bbox covering all chunks —
+    (x, y-font_size, x, y) when there is nothing to measure.
+    """
+    cur_x, cur_y = x, y
+    x0 = y0 = float("inf")
+    x1 = y1 = float("-inf")
+    any_chunk = False
+    for content, own_x, dy in chunks:
+        if own_x is not None:
+            cur_x = own_x          # tspan x: restart the line at this x
+        cur_y += dy                # dy accumulates vertically
+        w = len(content) * font_size * char_w
+        if anchor == "middle":
+            cx0 = cur_x - w / 2.0
+        elif anchor == "end":
+            cx0 = cur_x - w
+        else:
+            cx0 = cur_x
+        cx1 = cx0 + w
+        x0, x1 = min(x0, cx0), max(x1, cx1)
+        # baseline box: ascender ~1.0em above, descender ~0.4em below
+        y0, y1 = min(y0, cur_y - font_size), max(y1, cur_y + 0.4 * font_size)
+        cur_x = cx1                # the next x-less run follows this one
+        any_chunk = True
+    if not any_chunk:
+        return (x, y - font_size, x, y)
+    return (x0, y0, x1, y1)
+
+
+_TRANSFORM_FN_RE = re.compile(
+    r"(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)")
+
+
+def _parse_transform(value: str) -> tuple[float, float, float, bool]:
+    """Parse an SVG transform attribute into (scale, tx, ty, supported).
+
+    Supported: translate(tx[, ty]) and uniform scale(s) chains, e.g.
+    'translate(10, 20) scale(2)'.  The result maps a point p to
+    scale*p + (tx, ty).  matrix()/rotate()/skew*() and NON-uniform scale
+    are out of scope for the bbox model: supported comes back False and
+    the caller skips the element (flagged, never a crash).
+    """
+    s, tx, ty = 1.0, 0.0, 0.0
+    for m in _TRANSFORM_FN_RE.finditer(value or ""):
+        fn = m.group(1)
+        try:
+            args = [float(v) for v in _NUM_RE.findall(m.group(2))]
+        except ValueError:
+            return s, tx, ty, False
+        if fn == "translate":
+            s2 = 1.0
+            t2x = args[0] if args else 0.0
+            t2y = args[1] if len(args) > 1 else 0.0
+        elif fn == "scale":
+            sx = args[0] if args else 1.0
+            sy = args[1] if len(args) > 1 else sx
+            if sx != sy:
+                return s, tx, ty, False  # non-uniform scale: out of scope
+            s2, t2x, t2y = sx, 0.0, 0.0
+        else:  # matrix / rotate / skewX / skewY — out of scope
+            return s, tx, ty, False
+        # compose: everything parsed so far is OUTER, the new fn inner —
+        # p' = s*(s2*p + t2) + t
+        s, tx, ty = s * s2, s * t2x + tx, s * t2y + ty
+    return s, tx, ty, True
+
+
+def _num_attr(attrs: str, name: str, default: float | None) -> float | None:
+    """First numeric value of an attribute (`None` when absent)."""
+    m = re.search(rf'\b{name}="([^"]*)"', attrs)
+    if not m:
+        return default
+    nums = _NUM_RE.findall(m.group(1))
+    if not nums:
+        return default
+    try:
+        return float(nums[0])
+    except ValueError:
+        return default
+
+
+def _ancestor_context(svg_text: str) -> dict[int, dict]:
+    """Per-<text> ancestor state: accumulated transform + font-family.
+
+    Walks <g>/<text> open/close tags in document order with a stack, so
+    every <text> start position maps to the transform of ALL enclosing
+    <g> elements composed with the text's own transform, plus the nearest
+    inherited font-family (root <svg> font-family is the base).  When any
+    transform on the chain is unsupported (matrix/rotate/skew/non-uniform
+    scale) the entry is flagged supported=False so callers can skip the
+    element instead of guessing.
+    """
+    sm = re.search(r"<svg\b[^>]*>", svg_text)
+    root_fam = None
+    if sm:
+        fm = re.search(r'font-family="([^"]+)"', sm.group(0))
+        if fm:
+            root_fam = fm.group(1)
+    ctx: dict[int, dict] = {}
+    # state list: [scale, tx, ty, supported, font_family]
+    cur = [1.0, 0.0, 0.0, True, root_fam]
+    stack: list[list] = []
+    for m in re.finditer(r"<g\b[^>]*>|</g\s*>|<text\b[^>]*>", svg_text):
+        tag = m.group(0)
+        if tag.startswith("</g"):
+            if stack:
+                cur = stack.pop()
+            continue
+        if tag.startswith("<text"):
+            s, tx, ty, ok, fam = cur
+            fm = re.search(r'font-family="([^"]+)"', tag)
+            if fm:
+                fam = fm.group(1)
+            tm = re.search(r'transform="([^"]*)"', tag)
+            if tm:
+                s2, tx2, ty2, ok2 = _parse_transform(tm.group(1))
+                s, tx, ty, ok = s * s2, s * tx2 + tx, s * ty2 + ty, ok and ok2
+            ctx[m.start()] = {"s": s, "tx": tx, "ty": ty,
+                              "supported": ok, "font_family": fam}
+            continue
+        if tag.endswith("/>"):
+            continue  # self-closing <g/> contributes nothing
+        stack.append(cur)
+        s, tx, ty, ok, fam = cur
+        fm = re.search(r'font-family="([^"]+)"', tag)
+        if fm:
+            fam = fm.group(1)
+        tm = re.search(r'transform="([^"]*)"', tag)
+        if tm:
+            s2, tx2, ty2, ok2 = _parse_transform(tm.group(1))
+            s, tx, ty, ok = s * s2, s * tx2 + tx, s * ty2 + ty, ok and ok2
+        cur = [s, tx, ty, ok, fam]
+    return ctx
+
+
 def _seg_intersects_rect(p1, p2, r) -> bool:
     """Liang-Barsky: does segment p1-p2 intersect rect (x0,y0,x1,y1)?"""
     x0, y0, x1, y1 = r
@@ -436,31 +730,88 @@ def _seg_intersects_rect(p1, p2, r) -> bool:
 def audit_text_occlusion(svg_text: str, rep: Report) -> None:
     """A10 — text must never be occluded by wiring: a line segment passing
     through a text bbox without a solid halo/background rect is flagged.
-    Heuristic: text bbox estimated from x/y/font-size/anchor; halo = a
-    bright rect covering >=80% of the text bbox."""
+
+    Bbox model (pure Python, CHAR_WIDTH_ESTIMATES): the SVG viewport is
+    established from viewBox + width/height attrs (_svg_viewport); per-
+    character widths come from the font-metric table keyed by family
+    (0.52 sans / 0.55 serif / 0.62 unknown); per-tspan positioning is
+    honored (a tspan x starts a new line at that x, dy accumulates
+    vertically) and one union bbox covers all tspans of a text element.
+    translate()/uniform-scale() transforms on ancestor <g> elements (and
+    on the text itself) are applied to the bbox; matrix()/rotate() and
+    non-uniform scale are OUT OF SCOPE — such texts are skipped via a
+    flag, never a crash.  Halo = a bright rect covering >=80% of the
+    text bbox."""
+    # Viewport px scale: all geometry below is in viewBox user units, in
+    # which a uniform viewport scale cancels out of every comparison.
+    _sx, _sy, _vw, _vh = _svg_viewport(svg_text)  # noqa: F841
+    ancestors = _ancestor_context(svg_text)
     texts = []
-    for tm in re.finditer(
-            r'<text[^>]*?x="([\d.-]+)"[^>]*?y="([\d.-]+)"[^>]*>(.*?)</text>',
-            svg_text, re.S):
-        tag = tm.group(0)[: tm.group(0).find(">")]
-        body = html.unescape(re.sub(r"<[^>]+>", "", tm.group(3))).strip()
-        if not body:
+    skipped_transforms = 0
+    for tm in re.finditer(r"<text\b([^>]*)>(.*?)</text>", svg_text, re.S):
+        attrs = tm.group(1)
+        info = ancestors.get(tm.start())
+        if info is not None and not info["supported"]:
+            # matrix()/rotate()/non-uniform-scale ancestor: bbox model is
+            # out of scope here — skip the element (flagged), don't crash
+            skipped_transforms += 1
             continue
-        lines = [html.unescape(s) for s in
-                 re.findall(r"<tspan[^>]*>([^<]*)</tspan>", tm.group(3))] or [body]
-        max_line = max((len(s) for s in lines), default=len(body))
-        fs = float(re.search(r'font-size[:=]\s*"?([\d.]+)', tag).group(1)) \
-            if re.search(r'font-size', tag) else 16
-        w = max_line * fs * 0.62
-        h = (len(lines) + 0.4) * fs
-        x, y = float(tm.group(1)), float(tm.group(2))
-        if "middle" in tag:
-            x0 = x - w / 2
-        elif "end" in tag:
-            x0 = x - w
-        else:
-            x0 = x
-        texts.append((x0, y - fs, x0 + w, y + h * 0.4, body[:24]))
+        x = _num_attr(attrs, "x", 0.0)
+        y = _num_attr(attrs, "y", 0.0)
+        fsm = re.search(r'font-size[:=]\s*"?([^";>]+)', attrs)
+        fs = _parse_size(fsm.group(1)) if fsm else 16.0
+        if fs <= 0:
+            fs = 16.0
+        am = re.search(r'text-anchor[:=]\s*"?(\w+)', attrs)
+        anchor = am.group(1) if am else "start"
+        # per-tspan walk: each tspan starts a positioned run; raw text
+        # outside tspans forms runs anchored at the text position
+        chunks: list[tuple[str, float | None, float]] = []
+        baseline = y
+        cur: dict | None = None
+
+        def _flush() -> None:
+            nonlocal cur
+            if cur is not None:
+                piece = html.unescape(cur["content"]).strip()
+                if piece:
+                    chunks.append((piece, cur["own_x"], cur["dy"]))
+                cur = None
+
+        for pm in re.finditer(r"<tspan\b([^>]*?)/?>|</tspan\s*>|([^<]+)",
+                              tm.group(2)):
+            if pm.group(2) is not None:
+                if not pm.group(2).strip():
+                    continue
+                if cur is None:
+                    cur = {"content": "", "own_x": None, "dy": 0.0}
+                cur["content"] += pm.group(2)
+                continue
+            if pm.group(0).startswith("</tspan"):
+                _flush()
+                continue
+            _flush()  # a new tspan starts a new run
+            tattrs = pm.group(1)
+            t_x = _num_attr(tattrs, "x", None)
+            t_y = _num_attr(tattrs, "y", None)
+            t_dy = _num_attr(tattrs, "dy", 0.0) or 0.0
+            if t_y is not None:
+                t_dy = t_y - baseline  # absolute tspan y resets baseline
+            baseline += t_dy
+            cur = {"content": "", "own_x": t_x, "dy": t_dy}
+        _flush()
+        if not chunks:
+            continue
+        fam_m = re.search(r'font-family[:=]\s*"?([^";>]+)', attrs)
+        fam = fam_m.group(1) if fam_m else (
+            info["font_family"] if info is not None else None)
+        bx0, by0, bx1, by1 = _text_bbox(
+            x, y, chunks, fs, anchor, _char_width_factor(fam))
+        if info is not None:  # apply ancestor+own translate/scale chain
+            bx0, bx1 = info["s"] * bx0 + info["tx"], info["s"] * bx1 + info["tx"]
+            by0, by1 = info["s"] * by0 + info["ty"], info["s"] * by1 + info["ty"]
+        label = " ".join(c[0] for c in chunks)[:24]
+        texts.append((bx0, by0, bx1, by1, label))
     # halo rects: bright fills (canvas/white)
     halos = []
     for rm in re.finditer(r'<rect[^>]*>', svg_text):
@@ -477,8 +828,8 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
             y = float(re.search(r'y="([\d.-]+)"', t).group(1))
             w = float(re.search(r'width="([\d.-]+)"', t).group(1))
             h = float(re.search(r'height="([\d.-]+)"', t).group(1))
-        except AttributeError:
-            continue
+        except (AttributeError, ValueError):
+            continue  # absent OR malformed numerics: skip the rect (F8)
         halos.append((x, y, x + w, y + h))
 
     def covered(t):
@@ -506,8 +857,8 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
                           float(re.search(r'y1="([\d.-]+)"', t).group(1))),
                          (float(re.search(r'x2="([\d.-]+)"', t).group(1)),
                           float(re.search(r'y2="([\d.-]+)"', t).group(1)))))
-        except AttributeError:
-            continue
+        except (AttributeError, ValueError):
+            continue  # absent OR malformed numerics: skip the line (F8)
     num_re = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
     for pm in re.finditer(r'<path[^>]*>', svg_text):
         tag = pm.group(0)
@@ -584,6 +935,7 @@ def audit_figure(figdir: Path) -> Report:
     out_svg = figdir / "output.svg"
     if out_svg.is_file():
         audit_resolution(out_svg, rep, figdir)
+    audit_composite_raster(figdir, rep)
     svg = figdir / "intermediate.svg"
     if not svg.is_file():
         svg = next(iter(figdir.glob("*.svg")), None)

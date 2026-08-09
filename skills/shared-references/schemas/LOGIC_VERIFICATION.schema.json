@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/LOGIC_VERIFICATION.schema.json",
+  "title": "LOGIC_VERIFICATION.json - 6-dimension logic audit verdict",
+  "description": "Produced by /logic-verification (Phase 5 'Emit Verdict' in its SKILL.md). The skill's example lists the verdict as PASS|WARN|FAIL|BLOCKED|ERROR, but its 6-state table reserves NOT_APPLICABLE, so the full 6-state vocabulary is accepted here.",
+  "type": "object",
+  "required": [
+    "verdict",
+    "q_id",
+    "n_fatal",
+    "n_critical",
+    "n_major",
+    "n_minor",
+    "issues",
+    "counterexample_pass",
+    "review_rounds",
+    "argument_status"
+  ],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"],
+      "description": "PASS = zero FATAL/CRITICAL/MAJOR + counterexample pass executed; FAIL = any FATAL/CRITICAL unresolved."
+    },
+    "q_id": {
+      "type": "string",
+      "description": "Frozen Q-id from the document header (INV-G1 problem anchor freeze)."
+    },
+    "n_fatal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "n_critical": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "n_major": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "n_minor": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "issues": {
+      "type": "array",
+      "description": "Issue entries from the 20-category taxonomy, each with category / axis-A status / axis-B impact / severity / location / minimal fix. Item shape is left open (docs describe it in prose only).",
+      "items": {
+        "type": "object"
+      }
+    },
+    "counterexample_pass": {
+      "type": "string",
+      "enum": ["executed", "skipped"],
+      "description": "Counterexample pass is mandatory for key lemmas; candidates are logged even if none found."
+    },
+    "review_rounds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Review rounds used (MAX_REVIEW_ROUNDS = 3)."
+    },
+    "argument_status": {
+      "type": "string",
+      "enum": ["COHERENT AS STATED", "COHERENT AFTER REFRAMING", "NOT YET COHERENT"]
+    }
+  },
+  "additionalProperties": true
+}

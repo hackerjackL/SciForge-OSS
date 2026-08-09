@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/KILL_ARGUMENT.schema.json",
+  "title": "KILL_ARGUMENT.json - adversarial attack-defense self-review verdict",
+  "description": "Produced by /kill-argument (Step 4 in its SKILL.md; machine-readable shape given explicitly there). Top-level verdict is computed by the skill from per-point counts via the verdict mapping table - never self-graded by the adjudicator. PASS requires still_unresolved == 0.",
+  "type": "object",
+  "required": [
+    "audit_skill",
+    "verdict",
+    "reason_code",
+    "summary",
+    "audited_input_hashes",
+    "trace_path",
+    "reviewer_model",
+    "reviewer_reasoning",
+    "generated_at",
+    "details"
+  ],
+  "properties": {
+    "audit_skill": {
+      "type": "string",
+      "enum": ["kill-argument"]
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"]
+    },
+    "reason_code": {
+      "type": "string",
+      "description": "Per the verdict mapping table (e.g. defense_survives, unresolved_critical, not_theory_or_scope_paper, paper_compile_failed, reviewer_api_error)."
+    },
+    "summary": {
+      "type": "string"
+    },
+    "audited_input_hashes": {
+      "type": "object",
+      "description": "SHA256 of every consumed input (derivation_output.md, CLAIMS_FROM_RESULTS.md, derivation.py, plus paper-relative .tex files and references.bib when a draft exists).",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(sha256:)?[0-9a-fA-F]{64}$"
+      }
+    },
+    "trace_path": {
+      "type": "string"
+    },
+    "thread_id": {
+      "type": "string",
+      "description": "Optional: the skill's own JSON example omits thread_id (attack/adjudicator threads are recorded in the .md report)."
+    },
+    "reviewer_model": {
+      "type": "string"
+    },
+    "reviewer_reasoning": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$"
+    },
+    "details": {
+      "type": "object",
+      "required": ["attack_memo", "decomposed_points", "counts", "net_assessment", "top_action_items"],
+      "properties": {
+        "attack_memo": {
+          "type": "string",
+          "description": "The ~200-word rejection memo, verbatim (never > 250 words)."
+        },
+        "decomposed_points": {
+          "type": "array",
+          "description": "3-7 atomic rejection points.",
+          "items": {
+            "type": "object",
+            "required": ["id", "label", "attack_claim", "verdict", "evidence", "severity_if_unresolved"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Point id, e.g. P_1."
+              },
+              "label": {
+                "type": "string"
+              },
+              "attack_claim": {
+                "type": "string"
+              },
+              "verdict": {
+                "type": "string",
+                "enum": ["answered_by_current_text", "partially_answered", "still_unresolved"]
+              },
+              "evidence": {
+                "type": "string",
+                "description": "file:line citation, or 'missing'."
+              },
+              "severity_if_unresolved": {
+                "type": "string",
+                "enum": ["critical", "major", "minor"]
+              },
+              "recommended_fix": {
+                "type": "string",
+                "description": "Only meaningful for unresolved points."
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "counts": {
+          "type": "object",
+          "required": ["answered_by_current_text", "partially_answered", "still_unresolved"],
+          "properties": {
+            "answered_by_current_text": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "partially_answered": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "still_unresolved": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": true
+        },
+        "net_assessment": {
+          "type": "string"
+        },
+        "top_action_items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

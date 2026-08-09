@@ -1,0 +1,14 @@
+# Local CI gate for contributors without AtomGit CI.
+# Runs the exact same single entry point as .workflow/ci.yml.
+#
+# Install:  pip install pre-commit && pre-commit install
+# Manual:   pre-commit run --all-files   (or just: python3 scripts/ci_check.py)
+repos:
+  - repo: local
+    hooks:
+      - id: sciforge-ci-check
+        name: SciForge CI check (links + versions + plotting + test suite)
+        entry: python3 scripts/ci_check.py
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-08-09T00:00:00Z",
+  "phase_boundary": "pipeline-end",
+  "discipline_context": "general",
+  "overall_verdict": "PASS",
+  "checks": [
+    {
+      "id": "INV-G1",
+      "name": "PROBLEM_ANCHOR_FREEZE",
+      "verdict": "PASS",
+      "detail": "Q001 frozen statement hash matches verdicts/PROBLEM_HASH.txt and the Q-id is referenced by every downstream artifact.",
+      "evidence": "verdicts/PROBLEM_HASH.txt == sha256(PROBLEM.md)"
+    }
+  ]
+}

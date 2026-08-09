@@ -1,0 +1,61 @@
+{
+  "q_id": "Q001",
+  "scored_at": "2026-08-09T00:00:00Z",
+  "verdict": "SUBMISSION_READY",
+  "total_score": 0.81,
+  "dimensions": {
+    "main_experiment_logic": {
+      "score": 0.9,
+      "rationale": "Toy gate PASS on all seeds; decision rule pre-registered in the locked registry section.",
+      "evidence": [
+        "RESULT.json status=PASS",
+        "EXPERIMENT_MATRIX.json main group"
+      ]
+    },
+    "theoretical_rigor": {
+      "score": 0.8,
+      "rationale": "Closed-form ground truth verified step by step (3/3 steps).",
+      "evidence": [
+        "PROOF_AUDIT.json verdict=PASS"
+      ]
+    },
+    "empirical_completeness": {
+      "score": 0.8,
+      "rationale": "Full lite matrix executed (main + baseline_analytic); budget floor satisfied.",
+      "evidence": [
+        "BUDGET_FLOOR.json verdict=PASS"
+      ]
+    },
+    "writing_quality": {
+      "score": 0.8,
+      "rationale": "Minimal draft passes the claim audit and the leakage scrub gate.",
+      "evidence": [
+        "PAPER_CLAIM_AUDIT.json verdict=PASS",
+        "LEAKAGE_SCRUB.json status=PASS"
+      ]
+    },
+    "novelty_contribution": {
+      "score": 0.6,
+      "rationale": "Deliberately low: fixture re-proves a textbook fact; acceptable for a smoke test.",
+      "evidence": [
+        "PROBLEM.md Why-this-is-a-minimal-problem section"
+      ]
+    },
+    "reproducibility": {
+      "score": 0.9,
+      "rationale": "Stdlib-only deterministic script, fixed seeds, seconds-scale runtime.",
+      "evidence": [
+        "run_toy.py SEEDS=(42,43,44)"
+      ]
+    }
+  },
+  "main_logic_gating": {
+    "dim1_score": 0.9,
+    "gating_triggered": false,
+    "cap_applied": null
+  },
+  "missing_experiments": [],
+  "human_next_action": "none (fixture run)",
+  "benchmark_ready": false,
+  "notes": "total = 0.25*dim1 + 0.15*(dim2+dim3+dim4+dim5+dim6) = 0.25*0.9 + 0.15*3.9 = 0.81; dim1 >= 0.8 so SUBMISSION_READY."
+}

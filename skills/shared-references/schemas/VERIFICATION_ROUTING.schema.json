@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/VERIFICATION_ROUTING.schema.json",
+  "title": "VERIFICATION_ROUTING.json - Phase 6 verification routing decision",
+  "description": "Written at Phase 6 entry per shared-references/verification-routing.md. Fixed 3-field contract: route / evidence_type / reason. Downstream skills read it, never modify it.",
+  "type": "object",
+  "required": ["route", "evidence_type", "reason"],
+  "properties": {
+    "route": {
+      "type": "string",
+      "enum": ["experiment-first", "theory-only", "hybrid"],
+      "description": "experiment-first (default) | theory-only (derivational AND no executable computation) | hybrid (explicit declaration)"
+    },
+    "evidence_type": {
+      "type": "string",
+      "description": "Evidence type from refine-logs/domain-signature.json (e.g. correlational, causal_inference, simulational, empirical, experimental, derivational). Left free-form because domain-signature may carry secondary/union types (e.g. theory+experiment)."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Why this route was chosen (routing decision is one-shot at Phase 6 entry)."
+    }
+  },
+  "additionalProperties": true
+}

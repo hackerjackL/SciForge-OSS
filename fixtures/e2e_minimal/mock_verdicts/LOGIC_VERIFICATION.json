@@ -1,0 +1,14 @@
+{
+  "verdict": "PASS",
+  "q_id": "Q001",
+  "n_fatal": 0,
+  "n_critical": 0,
+  "n_major": 0,
+  "n_minor": 0,
+  "issues": [],
+  "counterexample_pass": "executed",
+  "review_rounds": 1,
+  "argument_status": "COHERENT AS STATED",
+  "discipline_context": "general",
+  "notes": "Claim scope (n=21, Gaussian, variance ordering) matches the evidence produced by the toy gate; no FATAL/CRITICAL/MAJOR issues found."
+}

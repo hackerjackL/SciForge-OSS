@@ -1,6 +1,6 @@
 ---
 name: paper-writing
-version: 1.1.2
+version: 1.2.0
 description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (8-class regex, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer
@@ -10,10 +10,10 @@ role: paper-composer
 
 ## Quick Reference
 
-- **Purpose**: 从研究产物组装学术论文 (LaTeX)，统一 elsarticle 模板
-- **Input**: 研究产物 (derivation_output.md + CLAIMS_FROM_RESULTS.md + figures/)
+- **Purpose**: assemble the academic paper (LaTeX) from research artifacts; unified elsarticle template
+- **Input**: research artifacts (derivation_output.md + CLAIMS_FROM_RESULTS.md + figures/)
 - **Output**: paper/main.tex + paper/sections/*.tex + paper/PAPER_PLAN.md
-- **Key**: v2.1 五模式选择器 (theory/experiment/computational/survey/hybrid)；verification_type 驱动（见 [paper-modes.md](../../shared-references/paper-modes.md)）
+- **Key**: v2.1 five-mode selector (theory/experiment/computational/survey/hybrid); driven by verification_type (see [paper-modes.md](../../shared-references/paper-modes.md))
 
 > **Status**: Composes the final academic paper from research artifacts. **OSS uses a single unified `elsarticle` template** (copied from main SciForge's `templates/default/`) — no venue-specific templates, no per-discipline writing guides. **OSS is discipline-agnostic** — the universal section-by-section writing guide in [`discipline-writing.md`](../../shared-references/discipline-writing.md) applies to every run.
 >
@@ -26,7 +26,7 @@ role: paper-composer
 Use this skill when the AI scientist has completed the research process (problem understanding, literature survey, theory derivation, logic verification) and needs to write a structured academic paper or report.
 
 Typical prompts:
-- "写论文" / "write the paper"
+- "write the paper"
 - "generate the final report" / "compose the research output"
 - "produce the academic manuscript"
 
@@ -112,7 +112,7 @@ On first run, copy the unified template skeleton to the working directory:
 paper/
 ├── main.tex                    ← copied from skills/support/paper-writing/templates/default/main.tex
 ├── math_commands.tex           ← copied from the unified template
-├── references.bib              ← SYMLINK ONLY from literature/references.bib（v5.0 禁 copy——防重复）
+├── references.bib              ← SYMLINK ONLY from literature/references.bib (v5.0 forbids copy — prevents duplicates)
 ├── sections/
 │   ├── 01_introduction.tex
 │   ├── 02_related_work.tex
@@ -122,7 +122,7 @@ paper/
 │   ├── 06_discussion.tex
 │   └
 │   └
-└── figures/                    ← SYMLINK ONLY from figures/（v5.0 禁 copy——防重复；图脚本在 code/figures/）
+└── figures/                    ← SYMLINK ONLY from figures/ (v5.0 forbids copy — prevents duplicates; figure scripts live in code/figures/)
 ```
 
 The `main.tex` preamble is **frozen** — do NOT hand-edit it. The unified template provides:
@@ -141,17 +141,17 @@ Read all research artifacts and design the paper structure. Write `paper/PAPER_P
 
 **v2.1 — Mode-selected section set.** Determine the mode first per [`paper-modes.md`](../../shared-references/paper-modes.md) §2 (read the canonical `verification_type` token + `evidence_type` from `domain-signature.json`). Then use the section set for that mode from `paper-modes.md` §3. Do NOT hand-pick sections here — the mode fully determines which `sections/*.tex` files to write.
 
-**v3.1 — 全学科写作 Adapter 分发器（P5/Phase 6）**: mode 决定 section 骨架，**学科 Adapter 决定写作风格与强制槽位**。对 `domain-signature.json` + 问题文本做学科识别（关键词评分），取用对应 Adapter 契约：
+**v3.1 — All-discipline writing Adapter dispatcher (P5/Phase 6)**: the mode determines the section skeleton; **the discipline Adapter determines writing style and mandatory slots**. Detect the discipline from `domain-signature.json` + problem text (keyword scoring), then load the matching Adapter contract:
 
-| Adapter | 语气 | 强制槽位 |
+| Adapter | Tone | Mandatory slots |
 |---------|------|----------|
-| **STEM** | 被动语态、客观克制、定量精确（单位/误差棒） | derivation_log, verification_evidence |
-| **Med/Bio** | 对照实验框架、显著性显式、临床转化相关 | statistical_significance, ethics_statement, data_compliance, limitations |
-| **Humanities/SS** | 概念演变辨析、史料/文献推演、定性论证框架 | source_chain, concept_definition, interpretive_scope_boundary |
+| **STEM** | passive voice, objective and restrained, quantitatively precise (units / error bars) | derivation_log, verification_evidence |
+| **Med/Bio** | controlled-experiment framing, explicit significance, clinical-translational relevance | statistical_significance, ethics_statement, data_compliance, limitations |
+| **Humanities/SS** | concept-evolution analysis, historical-source/literature reasoning, qualitative-argumentation framing | source_chain, concept_definition, interpretive_scope_boundary |
 
-执行协议：写每个 section 前先取 Adapter 契约；`forced_slots` 缺失 → 该 section 回退重写；`forbidden` 表述出现 → 重写。Adapter 判定为规则化（关键词评分），不引入额外 LLM 调用。
+Execution protocol: load the Adapter contract before writing each section; `forced_slots` missing → revert and rewrite that section; any `forbidden` phrasing appears → rewrite. Adapter selection is rule-based (keyword scoring) — no extra LLM calls.
 
-**R6 收敛声明 (v2.3)**: 遗留的 `theory`/`standard` 完整版式已从本文件移除——`paper-modes.md` §3 是**唯一的** section-set 权威源（`theory`→§3.1，`experiment`/`computational`/`hybrid`→§3.2/§3.3/§3.5，`survey`→§3.4）。读取该契约文件即可获得完整 section 列表，本 skill 不再内嵌任何版式副本，避免双源漂移。
+**R6 convergence note (v2.3)**: the legacy `theory`/`standard` full layouts have been removed from this file — `paper-modes.md` §3 is the **sole** authoritative source for section sets (`theory`→§3.1, `experiment`/`computational`/`hybrid`→§3.2/§3.3/§3.5, `survey`→§3.4). Reading that contract file yields the complete section list; this skill no longer embeds any layout copy, avoiding dual-source drift.
 
 **Default** (`verification_type=auto`): run the mode selector — when ambiguous it returns `hybrid` (the most general shape), per `paper-modes.md` §2.
 
@@ -176,7 +176,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 - Narrow to the specific problem
 - State the gap clearly
 - List contributions explicitly
-- **负结果纪律（v5.0）**: contribution 列表只收录正向支撑主论点的结果（claims 的 `polarity: positive|boundary`）；`CLAIMS_FROM_RESULTS.md` 中任何 `polarity: negative` 条目出现在 contributions/Abstract/正文结论 → 自检 FAIL（`reason_code: negative_result_as_contribution`）。局部负向只进 Limitations/Discussion 作边界说明；主实验级负向应已在上游触发 KILL-or-PIVOT，不应流到写作阶段——若流到了，退回 `/experiment-execution`，不写
+- **Negative-result discipline (v5.0)**: the contributions list includes only results that positively support the main thesis (claims with `polarity: positive|boundary`); any `polarity: negative` entry from `CLAIMS_FROM_RESULTS.md` appearing in contributions/Abstract/body conclusion → self-review FAIL (`reason_code: negative_result_as_contribution`). Local negative results go only into Limitations/Discussion as boundary conditions; a primary-experiment-level negative should already have triggered KILL-or-PIVOT upstream and must not flow into the writing stage — if it did, return to `/experiment-execution`, do not write
 - End with the paper structure roadmap
 
 > **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the 3-layer citation discipline forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".
@@ -232,7 +232,7 @@ After writing, verify:
 
 ### Step 3.5: Pipeline-Leakage Scrub Gate (v3.3 — MANDATORY before compile, blocks submission)
 
-> **Why this exists (honest gap)**: two real test runs (Q-HARM-001, Q-SGD-BS-GAP) shipped LaTeX with `\path{derivations/Q-HARM-001/derivation.py}`, "logic audit (6 dimensions, 20-category taxonomy) reports 0 FATAL/0 CRITICAL", "INV-G1 freeze verified", "Morandi palette", "Phase 6b toy 阶段" directly in the manuscript body — a reviewer reading these immediately desk-rejects as an AI pipeline dump. The old Step 2 even *encouraged* it ("Reference the derivation script for reproducibility"). This gate catches and scrubs all 8 leakage classes before compile. It is MANDATORY: a paper that fails this gate is `FAIL` regardless of any other quality, and `/paper-compile` MUST refuse to compile it.
+> **Why this exists (honest gap)**: two real test runs (Q-HARM-001, Q-SGD-BS-GAP) shipped LaTeX with `\path{derivations/Q-HARM-001/derivation.py}`, "logic audit (6 dimensions, 20-category taxonomy) reports 0 FATAL/0 CRITICAL", "INV-G1 freeze verified", "Morandi palette", "Phase 6b toy stage" directly in the manuscript body — a reviewer reading these immediately desk-rejects as an AI pipeline dump. The old Step 2 even *encouraged* it ("Reference the derivation script for reproducibility"). This gate catches and scrubs all 8 leakage classes before compile. It is MANDATORY: a paper that fails this gate is `FAIL` regardless of any other quality, and `/paper-compile` MUST refuse to compile it.
 
 **Runs after Step 3 (cross-ref check), before Step 4 (generate output). Wired into the ordered chain, not buried — a paper cannot reach compile without passing.**
 
@@ -241,7 +241,7 @@ After writing, verify:
 | Class | Forbidden pattern (regex) | Required rewrite |
 |-------|---------------------------|------------------|
 | **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `refine-logs/`, `audit_report/`, `review-stage/`, `literature/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
-| **B. Phase / pipeline jargon** | `Phase [0-9]`, `toy 阶段`, `toy_gate`, `background dispatch`, `nohup`, `tmux`, `systemd`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: ?(lite\|balanced\|max\|beast)`, `role.?switch`, `senior.?reviewer`, `adversarial.?falsification` | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
+| **B. Phase / pipeline jargon** | `Phase [0-9]`, `toy stage`, `toy_gate`, `background dispatch`, `nohup`, `tmux`, `systemd`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: ?(lite\|balanced\|max\|beast)`, `role.?switch`, `senior.?reviewer`, `adversarial.?falsification` | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
 | **C. Audit-skill verdicts** | `Type I (LEAKY\|CLEAN\|WEAK)`, `Type IV (ESCAPE\|CLOSED\|N/A)`, `INV-G[0-9]`, `0 FATAL\|0 CRITICAL\|0 MAJOR.*MINOR`, `6 dimensions.*20.category`, `fidelity.*symbolic\|numerical\|qualitative`, `assurance.?contract` | Rewrite as neutral verification language ("All symbolic and numerical checks pass"; no taxonomy counts, no verdict enums) |
 | **D. Pipeline identifiers** | `Q-[A-Z]+-[A-Z0-9]+`, `INV-G[0-9]`, `problem.?anchor`, `Q-id`, `domain.?signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
 | **E. Rendering pipeline in captions** | `Morandi`, `morandi`, `viridis`, `magma`, `plasma`, `16:9`, `render\.py`, `input_data\.json`, `color.?palette`, `chroma` | Remove — captions describe the science ("remainder decay on a log–log scale"), never the rendering toolchain |
@@ -313,11 +313,11 @@ Before declaring the draft ready, perform a self-review:
 7. **Citation style consistency** — numeric OR author-year, not mixed?
 8. **Figure budget (v3.4)** — does the paper meet the per-section figure minimums from [`/unified-plotting`](../../meta-skills/unified-plotting/SKILL.md) §Figure Budget Contract? Is `figure_budget.architecture_diagram_present` true in `FIGURE_INDEX.md`? (< 4 body figures → `WARN`; < 2 total → `FAIL`)
 9. **Reproducibility + Data Availability (v3.4)** — do both back-matter statements exist (`sections/Z_reproducibility.tex`), are they `\input`'d in `main.tex` before `\bibliography`, and did the Step 3.5 scrub gate's re-grep find zero internal-path leaks in them? (missing → `FAIL, reason_code: missing_reproducibility_statement`)
-10. **反 AIGC 活人感扫描（v5.2）** — 按 [`writing-principles.md`](../../shared-references/writing-principles.md) §0.5 执行四项自检：AI 腔黑名单计数（任一类 ≥6 → FAIL `aigc_phrasing`）、句长方差抽查（std<5 词的节 → WARN `sentence_monotony`）、报告体判别抽查（Intro/Discussion 全篇报告体 → FAIL `report_style`）、破折号计数（>5 → WARN）。结果写入 `verdicts/PAPER_CLAIM_AUDIT.json` 的 `aigc_scan` 字段。另按 §0.5 领域惯例适配核对当前文风族（domain-signature 的 writing_style）的领域特定活人感要求（人文引文页码/CS 贡献证据指针/数学定理完整陈述/医学伦理声明/计量识别论证）
-11. **评测公平性透传（v5.2）** — 结果表中的每个对比核对 `CLAIMS_FROM_RESULTS.md` 的 `parity_check`/`all_seeds_reported`/`full_grid_reported` 三字段；带 `protocol_violation` 标记的实验组不得出现在主对比表；`reproduced_by_us` 基线必须在 Experimental Setup 声明复现方式
+10. **Anti-AIGC human-voice scan (v5.2)** — run the four self-checks per [`writing-principles.md`](../../shared-references/writing-principles.md) §0.5: AI-voice blacklist counts (any class ≥6 → FAIL `aigc_phrasing`), sentence-length variance spot check (sections with std <5 words → WARN `sentence_monotony`), report-style discrimination spot check (Intro/Discussion entirely in report style → FAIL `report_style`), dash count (>5 → WARN). Write results into the `aigc_scan` field of `verdicts/PAPER_CLAIM_AUDIT.json`. Also per §0.5 discipline-convention adaptation, verify the discipline-specific human-voice requirements of the current style family (the domain-signature's writing_style): humanities citation page numbers / CS contribution-evidence pointers / mathematics full theorem statements / medical ethics statements / econometric identification arguments
+11. **Evaluation-fairness passthrough (v5.2)** — for every comparison in the results table, cross-check the three `CLAIMS_FROM_RESULTS.md` fields `parity_check`/`all_seeds_reported`/`full_grid_reported`; experiment groups flagged `protocol_violation` must not appear in the main comparison table; `reproduced_by_us` baselines must state the reproduction procedure in Experimental Setup
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `verdicts/` (filenames: see the artifact directory layout in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
 
 > Follow these shared protocols for all output files:

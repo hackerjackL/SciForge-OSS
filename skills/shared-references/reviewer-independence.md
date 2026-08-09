@@ -1,36 +1,36 @@
 # Self-Review Independence Protocol (SciForge-OSS)
 
-> **OSS 使用结构化自评审，agent 通过角色切换实现对抗性评审。**
-> 本文件定义自评审中的"独立性"原则——确保同一 agent 在切换角色后能有效质疑自身工作。
+> **OSS uses structured self-review; agents achieve adversarial review through role switching.**
+> This file defines the "independence" principle in self-review — ensuring that the same agent can effectively challenge its own work after switching roles.
 
-## 核心原则
+## Core Principles
 
-1. **重新读取，而非回忆** — 每次角色切换后，agent 必须重新从文件读取产物，不能依赖内存中的记忆
-2. **结构化检查清单** — 评审使用预定义的检查清单，而非自由格式的"评审一下"
-3. **完整保留评审轨迹** — 评审输出完整保留在 `review-stage/`，不得删改
-4. **角色隔离** — 评审者角色不能访问研究者角色的推理过程，只能看到最终产物文件
+1. **Re-read, don't recall** — after each role switch, the agent must re-read the artifacts from files; it must not rely on in-memory recall
+2. **Structured checklists** — reviews use predefined checklists, not a free-form "just review it"
+3. **Full preservation of the review trail** — review outputs are preserved in full in `review-stage/`; deletion or alteration is prohibited
+4. **Role isolation** — the reviewer role cannot access the researcher role's reasoning process; it can only see the final artifact files
 
-## 评审者可以访问的内容
+## What the Reviewer MAY Access
 
-- 产物文件路径（推导输出、claims 文件、验证报告、论文草稿）
-- 评审目标（"评估可发表性"、"检查推导正确性"）
-- 结构元数据（"论文有 8 个章节"、"推导在 derivations/ 目录"）
-- 领域约束（"目标期刊级别"）
+- Artifact file paths (derivation outputs, claims files, verification reports, paper drafts)
+- Review objectives ("assess publishability", "check derivation correctness")
+- Structural metadata ("the paper has 8 sections", "derivations are in the derivations/ directory")
+- Domain constraints ("target journal tier")
 
-## 评审者不能访问的内容
+## What the Reviewer MUST NOT Access
 
-- 研究者角色的推理过程或中间思考
-- 先前的评审意见或修复记录（fresh 评审）
-- 研究者对内容的摘要或解释（必须直接读取文件）
+- The researcher role's reasoning process or intermediate thinking
+- Prior review comments or fix records (fresh review)
+- The researcher's summaries or explanations of the content (files must be read directly)
 
-## 实现
+## Implementation
 
-- 角色切换由 `/auto-review-loop` 管理
-- 检查清单由各 skill 定义（`/logic-verification` 的 20 分类问题体系）
-- 评审轨迹保存在 `review-stage/` 目录
+- Role switching is managed by `/auto-review-loop`
+- Checklists are defined by each skill (the 20-category question system of `/logic-verification`)
+- The review trail is saved in the `review-stage/` directory
 
-## 详见
+## See Also
 
-- [`reviewer-routing.md`](reviewer-routing.md) — 角色切换契约
-- [`../support/auto-review-loop/SKILL.md`](../support/auto-review-loop/SKILL.md) — 自评审循环
-- [`review-tracing.md`](review-tracing.md) — 评审轨迹追踪
+- [`reviewer-routing.md`](reviewer-routing.md) — the role-switching contract
+- [`../support/auto-review-loop/SKILL.md`](../support/auto-review-loop/SKILL.md) — the self-review loop
+- [`review-tracing.md`](review-tracing.md) — review-trail tracing

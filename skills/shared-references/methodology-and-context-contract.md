@@ -10,7 +10,7 @@ role: cross-cutting-single-agent-discipline
 >
 > ProducerReference: this file is referenced (`pointer-load`, not inlined) by the orchestrator and any consuming skill to avoid duplicating these rules across 24 SKILL.md files.
 
-## 1. Sufficiency Stopping Rule (防无限分析 / Ouroboros principle)
+## 1. Sufficiency Stopping Rule (anti-infinite-analysis / Ouroboros principle)
 
 Research loops over-eagerly drill into correlations / data / sub-questions. Stop analyzing a sub-question **only when all three hold**:
 
@@ -54,7 +54,7 @@ When self-reviewing or when delegating to a reviewer sub-agent, pass only **path
 - Data-integrity gate: never drop data rows to make a figure prettier; if rows are dropped, record before/after counts + reason.
 - Missing evidence: write a placeholder + list it under `Assumptions or missing inputs:`; **never fabricate**.
 
-## 7. Boundary of the Single-Agent Pipeline (边界性声明)
+## 7. Boundary of the Single-Agent Pipeline (boundary declaration)
 
 | In scope (single agent MUST do) | Out of scope (correctly OUT / deferred) |
 |---------------------------------|-----------------------------------------|

@@ -1,45 +1,55 @@
 # Contributing to SciForge-OSS
 
-感谢您对 SciForge-OSS 的关注！SciForge-OSS 是一个**纯 Skill 驱动的通用 AI Scientist 框架**，致力于实现"AI for Scientist Anything"的愿景。
+Thanks for your interest! SciForge-OSS is a **pure-Skill-driven universal AI Scientist framework** — "AI for Scientist Anything": one universal 21-phase pipeline, any scientific domain.
 
-## 如何贡献
+> 中文使用者：README.zh.md 有完整的中文说明；本贡献指南以英文为准（repo 的 skill 与契约文档均为英文）。
 
-### 1. 提交 Issue
+## How to contribute
 
-- **Bug 报告**: 描述问题、复现步骤、期望行为
-- **功能请求**: 描述新功能、使用场景、预期效果
-- **Skill 改进**: 对某个 SKILL.md 的改进建议
+### 1. Open an issue
 
-### 2. 提交 Pull Request
+- **Bug report**: what happened, repro steps, expected behavior.
+- **Feature request**: the capability, the use case, the expected effect.
+- **Skill improvement**: which SKILL.md / contract, and the concrete wording change.
 
-1. Fork 本仓库
-2. 创建新分支 `feat/your-feature-name` 或 `fix/your-fix-name`
-3. 修改仅限于 `Skills/` 目录下的 `.md` 文件
-4. 确保不破坏主仓库的现有文件
-5. 提交 PR 时附上清晰的描述
+### 2. Pull requests
 
-### 3. 修改规范
+1. Fork the repository and branch: `feat/your-feature` or `fix/your-fix`.
+2. Make the change (scope rules below).
+3. **Run the local gates before pushing** — a PR that fails them will not be reviewed:
+   ```bash
+   python3 scripts/ci_check.py          # links + version consistency + plotting + full test suite
+   python3 -m pytest tests/ -q          # (also runs inside ci_check.py)
+   ```
+4. If you touched the release surface, follow `VERSIONING.md` (single version number across all 29 version-bearing files + CHANGELOG entry).
+5. Open the PR with a clear description of the problem and the fix.
+6. **Freeze convention**: once a PR is opened, treat its commits as frozen — further changes go into a NEW PR. (Repeated squash-merges racing late pushes dropped commits in the past; this convention exists because of that.)
 
-- **只修改 OSS 目录**: 所有修改仅限于 `SciForge-OSS/` 目录
-- **纯 Markdown**: 所有 skill 是 `.md` 文件，无 `.py` 脚本、无 bash 代码块
-- **学科无关**: 不引入特定学科的硬编码
-- **DAG 架构**: 保持有向无环图的架构设计
-- **跨模型→自评审**: 评审使用结构化自评审模式
+### 3. Scope rules
 
-### 4. Skill 编写规范
+- **Skills are English-only pure Markdown.** Every `SKILL.md` and shared contract is consumed by arbitrary AI agents: no CJK text, no executable code blocks that the agent must run (tooling lives in `scripts/`, not in skills). Keep machine-readable identifiers (artifact names, field names, `/skill-name` tokens, paths) byte-exact when editing around them.
+- **Single-authority rule for layout**: `shared-references/output-protocol.md` owns the workspace directory tree; `shared-references/artifact-registry.md` owns artifact contracts. A new machine-readable verdict must be added to the `verdicts/` tree FIRST, then registered (registry row + `schemas/<NAME>.schema.json` + entry in `scripts/validate_verdicts.py`) — see `schemas/README.md`.
+- **Discipline-agnostic**: never hardcode domain knowledge into the framework; domain adaptation happens at runtime via the domain signature.
+- **DAG architecture**: keep the pipeline a bounded, budget-carrying DAG (every loop-back has a budget and an exhaustion exit — see the Loop-Back Registry in `auto-pipeline/SKILL.md`).
+- **Tooling changes** (`scripts/`, `tests/`, `fixtures/`): keep `ci_check.py` green, add/extend tests for behavior changes, stdlib-only Python unless a dependency is justified in INSTALL.md.
 
-每个 SKILL.md 应包含：
-- `---` frontmatter (name, type, role)
-- `# Title` 标题
-- `> **Status**` 状态说明
-- `## Use When` 使用场景
-- `## Job` 职责描述
-- `## Workflow` 工作流程
-- `## Boundaries` 边界约束
-- `## See Also` 相关引用
+### 4. SKILL.md writing conventions
 
-## 行为准则
+Each SKILL.md contains:
 
-- 尊重所有贡献者
-- 保持建设性的讨论
-- 关注技术问题本身
+- `---` frontmatter: `name`, `version` (repo-wide single version), `description`, `type`, `role`
+- `# Title`
+- `## Quick Reference` — purpose / input / output / key invariants
+- `## Use When` — trigger conditions + typical prompts
+- `## Job` — the non-negotiable goal
+- `## Workflow` — numbered steps
+- `## Boundaries` — never/always rules
+- `## Output Protocols` — pointer-load `shared-references/output-protocol.md` (do not inline-copy its rules)
+- `## See Also` — relative links to contracts
+
+Rules of thumb: every registered artifact a skill writes must be declared in its output section with a link back to the artifact registry; every artifact it reads must appear in its inputs. Prose schemas are not contracts — if a downstream skill gates on it, it needs a registry row (and for verdicts, a schema).
+
+## Code of conduct
+
+- Respect every contributor.
+- Keep discussions constructive and technical.

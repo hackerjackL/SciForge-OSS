@@ -2,7 +2,7 @@
 
 > **Status**: The single entry orchestrator for OSS is `/auto-pipeline`. It executes a complete 21-phase DAG research loop on **one** problem supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation = one Q-id = one complete pipeline run end-to-end.
 >
-> **全领域支持**: SciForge-OSS 不限定任何学科领域。物理学、数学、计算机科学、医学、经济学、教育学、材料科学、地球科学、大气科学、天文学、化学、工程、传感器、光电——任何科学领域均可使用。
+> **All-domain support**: SciForge-OSS is not restricted to any discipline. Physics, mathematics, computer science, medicine, economics, education, materials science, earth science, atmospheric science, astronomy, chemistry, engineering, sensors, optoelectronics — any scientific domain can use it.
 
 ---
 
@@ -11,10 +11,10 @@
 ### Solve one problem
 
 ```
-"帮我完整研究 Q015：宇宙的起源与演化"
+"Help me fully research Q015: the origin and evolution of the universe"
 "Solve Q042"
 "run the full pipeline on Q001"
-"研究一个经济学模型：完全竞争市场下的福利最大化"
+"Research an economics model: welfare maximization under perfect competition"
 "Analyze this material science problem: high-temperature superconductor mechanism"
 ```
 
@@ -30,6 +30,9 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 | **Meta-skill** | `/unified-plotting` | Render publication-quality figures (morandi palette + Layer 2 data colormaps) |
 | **Meta-skill** | `/dynamic-sandbox` | Lightweight numerical sanity checks (Python/numpy, no GPU) |
 | **Meta-skill** | `/dynamic-tooling` | On-the-fly tooling for the sandbox |
+| **Meta-skill** | `/domain-learner` | Learns the domain signature from literature (sole writer, v2.8) |
+| **Meta-skill** | `/domain-signature` | Rule-based signature hint (optional fast-path, v2.8) |
+| **Meta-skill** | `/novelty-check` | 4-dim novelty evaluation + collision audit (v5.0) |
 | **Support** | `/experiment-execution` | Toy experiment (foreground) + full experiment (background dispatch) [v2.0] |
 | **Support** | `/method-registry` | Build + hash-lock the method registry (forced human approval) |
 | **Support** | `/theory-derivation` | SymPy symbolic derivation + step-by-step machine verification |
@@ -43,34 +46,38 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 | **Support** | `/auto-review-loop` | Autonomous iterative improvement via cross-model reviewer |
 | **Support** | `/citation-audit` | Final 3-layer citation verification on the paper draft |
 | **Support** | `/kill-argument` | Anti-self-deception exercise (kill your own argument) |
+| **Support** | `/adversarial-falsification` | Phase 2.5 falsification gate (hypothesis scoring + counterexamples) |
+| **Support** | `/publishability-score` | 6-dim final publishability evaluation (v2.2) |
+| **Support** | `/rebuttal` | Point-by-point rebuttal letter after rejection (v5.3) |
 
 ---
 
-## The 17-Phase DAG Loop
+## The 21-Phase DAG Loop
 
 ```
-Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
-Phase  1: 问题理解与分解（内置推理）
-Phase  2: /idea-discovery [DAG 分支] — 3 视角 idea + MCTS 迭代
-Phase  2.5: /adversarial-falsification [证伪门控] — 假设评分 + 反例构造 + 文献对抗
-Phase  3: /novelty-check [DAG 门控] — 4 维评估 + 淘汰
+Phase  0: load problem (freeze Q-id — INV-G1 anchor)
+Phase  1: problem understanding & decomposition (built-in reasoning)
+Phase  2: /idea-discovery [DAG branching] — 4-perspective ideas (theoretical/computational/qualitative/empirical) + MCTS iteration
+Phase  2.5: /adversarial-falsification [falsification gate] — hypothesis scoring + counterexample construction + literature adversarial check
+Phase  3: /novelty-check [DAG gate] — 4-dim evaluation + elimination
     ─── Forced human checkpoint: pick the final idea ───
-Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
-Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批
+Phase  4: /universal-retrieval — literature survey + 3-layer anti-hallucination
+Phase  5: /method-registry — method binding + hash lock + forced human approval
     ─── Forced human checkpoint: approve the method registry ───
-Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
-Phase  6b: /experiment-execution (toy) [CONDITIONAL] — v2.0 玩具实验 (theory-only → SKIP)
-Phase  6c: /experiment-execution (full+bg) [CONDITIONAL] — v2.0 全量实验后台调度 (theory-only → SKIP)
-Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
-Phase  8: /logic-verification — 6 维度逻辑一致性审计
-Phase  9: /invariant-check — INV-G1 问题锚点冻结验证
-Phase 10: /result-to-claim — 3 保真度 claim 门控
-Phase 11: /unified-plotting — 学术图表（可选，莫兰迪色系 + Layer 2）
-Phase 12: /paper-writing — elsarticle 单模板写作
-Phase 13: /paper-compile — LaTeX 零警告零报错编译
-Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺
-Phase 15: /citation-audit — 最终引用 3 层验证
-Phase 16: 最终组装 + 产物归档
+Phase  5b: engineering-grounding evaluation [v2.9] — 5-dim EG axis weighted by domain signature
+Phase  6: /theory-derivation — SymPy symbolic derivation + step-by-step machine verification
+Phase  6b: /experiment-execution (toy) [CONDITIONAL] — v2.0 toy experiment (theory-only → SKIP)
+Phase  6c: /experiment-execution (full+bg) [CONDITIONAL] — v2.0 full-experiment background dispatch (theory-only → SKIP)
+Phase  7: /leakage-audit — Type I logic leaks + Type IV escape audit
+Phase  8: /logic-verification — 6-dim logical consistency audit
+Phase  9: /invariant-check — INV-G1 problem-anchor freeze verification
+Phase 10: /result-to-claim — 3-fidelity claim gate
+Phase 11: /unified-plotting — academic figures (optional, morandi palette + Layer 2)
+Phase 12: /paper-writing — single elsarticle template writing
+Phase 13: /paper-compile — LaTeX compile with zero warnings, zero errors
+Phase 14: /auto-review-loop — cross-model review + kill-argument anti-self-deception
+Phase 15: /citation-audit — final 3-layer citation verification
+Phase 16: final assembly + artifact archival
 ```
 
 ### Fallback contract (bounded 3 rounds)
@@ -92,6 +99,8 @@ Only the human user can waive a failure past round 3; the orchestrator never sel
 2. **Phase 5 → Phase 6**: the human approves the method registry (Section 3 hash lock). The agent cannot self-approve.
 
 These checkpoints are non-negotiable. The pipeline halts until the human confirms.
+
+Additionally (v5.3): the **KILL checkpoint** is ON by default — when a kill argument is produced before idea regeneration (loop-back rows L5/L7/L9/L11/L13), the orchestrator pauses for human confirmation. Delegate it with `human_skip=true` (all checkpoints) or `kill_checkpoint=false` (this one only); confirmations are recorded in `APPROVAL_LOG.txt`.
 
 ---
 
@@ -117,13 +126,16 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | `discipline-context.md` | OSS single-row (`general`) discipline contract | OSS rewritten (no 4-level fallback) |
 | `discipline-writing.md` | Universal section-by-section writing guide (no per-discipline guides) | OSS rewritten (discipline-agnostic) |
 | `color-themes.md` | Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) | Carried from OSS (already discipline-agnostic) |
+| `artifact-registry.md` + `output-protocol.md` | Artifact contracts + the single-authority workspace tree (verdicts/ unified) | OSS v5.2/v5.3 governance |
+| `schemas/` + `scripts/validate_verdicts.py` | JSON Schemas + validator for every machine-readable verdict | OSS v5.3 (schema enforcement) |
+| `verification-routing.md` | experiment-first / theory-only / hybrid routing contract | OSS v5.0 |
 
 ### Removed from OSS (discipline-specific, not applicable)
 
 | Contract | Why removed |
 |----------|-------------|
 | `discipline-templates/` (cs-ml / economics / elsevier / physics / general) | Venue-specific templates — OSS uses single unified `elsarticle` template |
-| `experiment-integrity.md` + `experiment-result-schema.md` | OSS has no experiments |
+| `experiment-integrity.md` + `experiment-result-schema.md` | Superseded — OSS experiments (toy + full, v2.0) are governed by `experiment-execution/SKILL.md` (RESULT.json / DISPATCH.json contracts + v5.3 security gate) |
 | `plugin-router.md` | Main SciForge's research-plugins routing — OSS doesn't use the plugins layer |
 | `wiki-helper-resolution.md` | Main SciForge's wiki-enrich specific — OSS doesn't use it |
 
@@ -139,7 +151,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | **Overlays** | 16 overlay files (4 skills × 4 disciplines) | None — no discipline dispatch |
 | **Templates** | 10+ venue families (NeurIPS / ICLR / PRL / AER / etc.) | Single unified `elsarticle` template |
 | **Experiments** | Full empirical pipeline (GPU training, benchmark binding, SOTA gate) | **Toy + Full experiments** — toy foreground gate, full background dispatch [v2.0] |
-| **Verification paths** | Implicit — assumes code/experiment available | Explicit — theory-only / computational / theory+experiment 三路可选 |
+| **Verification paths** | Implicit — assumes code/experiment available | Explicit — four selectable paths: theory-only / computational / theory+experiment / qualitative |
 | **Problem source** | N/A | No bundled problem index — the human user supplies the research question (Q-id) per run |
 | **Figures** | Python pipeline mandatory (matplotlib/seaborn) | Python pipeline for data plots; AI-direct SVG allowed for simple diagrams (morandi palette still enforced) |
 | **Fidelity ladder** | 5-fidelity (text / symbolic / minimal / empirical / full) | 3-fidelity (symbolic / numerical / qualitative) — no empirical, no full |
@@ -155,7 +167,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 ### Solve one problem (default)
 
 ```
-"帮我完整研究 Q015：宇宙的起源与演化"
+"Help me fully research Q015: the origin and evolution of the universe"
 "Solve a math problem: prove the Riemann Hypothesis implications"
 "Analyze this economics model: general equilibrium under incomplete markets"
 ```
@@ -167,7 +179,7 @@ The orchestrator runs the full 21-phase loop. Forced human checkpoints at Phase 
 If a prior run halted at a forced human checkpoint or a BLOCKED fallback, the orchestrator can resume from the last completed phase:
 
 ```
-"继续 Q015 的研究 — 我已经选了 idea 2"
+"continue the research on Q015 — I have already picked idea 2"
 "resume Q042 — method registry approved, proceed to theory derivation"
 ```
 

@@ -1,42 +1,42 @@
 # Self-Review Role Switching (SciForge-OSS)
 
-> **OSS 使用结构化自评审（Structured Self-Review），而非跨模型评审。**
-> 同一 agent 通过角色切换（"研究者"→"评审者"→"裁决者"）实现对抗性评审。
-> 本文件定义角色切换的契约。
+> **OSS uses Structured Self-Review, not cross-model review.**
+> The same agent achieves adversarial review through role switching ("Researcher" → "Reviewer" → "Adjudicator").
+> This file defines the role-switching contract.
 
-## 核心原则
+## Core Principles
 
-1. **角色切换是强制性的** — agent 必须明确切换角色，不能"既当运动员又当裁判员"
-2. **重新读取产物** — 每次角色切换后，agent 必须重新读取产物文件，不能依赖记忆
-3. **结构化检查清单** — 评审使用结构化清单，而非自由格式的"评审一下"
-4. **评审轨迹保留** — 每次评审的输出完整保留在 `review-stage/` 目录
+1. **Role switching is mandatory** — the agent must switch roles explicitly; it cannot "be both player and referee"
+2. **Re-read the artifacts** — after each role switch, the agent must re-read the artifact files; it must not rely on memory
+3. **Structured checklists** — reviews use structured checklists, not a free-form "just review it"
+4. **Review-trail preservation** — the output of each review is preserved in full in the `review-stage/` directory
 
-## 角色定义
+## Role Definitions
 
-| 角色 | 职责 | 输出 |
-|------|------|------|
-| **研究者 (Researcher)** | 产生研究产物（推导、验证、论文） | 研究产物文件 |
-| **评审者 (Reviewer)** | 以敌对立场重新读取产物，逐项检查 | 评审报告 + 评分 |
-| **辩护者 (Defender)** | 对评审意见进行反驳或接受 | 辩护意见 |
-| **裁决者 (Adjudicator)** | 对辩护进行裁决，更新评分 | 最终裁决 + 动作项 |
+| Role | Responsibility | Output |
+|------|----------------|--------|
+| **Researcher** | Produces research artifacts (derivations, verifications, papers) | Research artifact files |
+| **Reviewer** | Re-reads the artifacts from an adversarial stance and checks them item by item | Review report + scores |
+| **Defender** | Rebuts or accepts the review comments | Defense comments |
+| **Adjudicator** | Adjudicates the defense and updates the scores | Final adjudication + action items |
 
-## 角色切换流程
+## Role-Switching Flow
 
 ```
-研究者 → 产生产物
+Researcher → produces artifacts
     ↓
-评审者 → 重新读取产物 → 输出评审报告
+Reviewer → re-reads artifacts → outputs the review report
     ↓
-辩护者 → 回应评审意见 → 输出辩护
+Defender → responds to review comments → outputs the defense
     ↓
-裁决者 → 裁决辩护 → 更新评分
+Adjudicator → adjudicates the defense → updates the scores
     ↓
-研究者 → 根据裁决修复 → 进入下一轮
+Researcher → applies fixes per the adjudication → enters the next round
 ```
 
-## 与 OSS 的集成
+## Integration with OSS
 
-- 角色切换由 `/auto-review-loop` 管理
-- 评审检查清单由相应的 skill 定义（`/logic-verification`、`/quality-gate`）
-- 所有评审输出保存在 `review-stage/` 目录
-- 详见 [`/auto-review-loop`](../support/auto-review-loop/SKILL.md)
+- Role switching is managed by `/auto-review-loop`
+- Review checklists are defined by the corresponding skills (`/logic-verification`, `/quality-gate`)
+- All review outputs are saved in the `review-stage/` directory
+- See also [`/auto-review-loop`](../support/auto-review-loop/SKILL.md)

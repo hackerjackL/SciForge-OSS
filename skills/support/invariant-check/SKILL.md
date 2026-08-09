@@ -1,6 +1,6 @@
 ---
 name: invariant-check
-version: 1.1.2
+version: 1.2.0
 description: "Verify INV-G1 problem-anchor freeze (Q-id referenced in every downstream artifact). Phase 9. Invoke before result-to-claim to ensure the question hasn't drifted."
 type: reference-skill
 role: phase-boundary-verifier
@@ -10,10 +10,10 @@ role: phase-boundary-verifier
 
 ## Quick Reference
 
-- **Purpose**: 阶段边界结构性检查 — 验证文件存在、Q-id 冻结、verdict 有效
-- **Input**: refine-logs/FINAL_PROPOSAL.md + 当前阶段产物
+- **Purpose**: phase-boundary structural check — verify file existence, Q-id freeze, verdict validity
+- **Input**: refine-logs/FINAL_PROPOSAL.md + current-phase artifacts
 - **Output**: INVARIANT_CHECK.json + INVARIANT_CHECK.md
-- **Key**: 仅 INV-G1 (PROBLEM_ANCHOR_FREEZE) 活跃；不评估质量，只检查结构完整性
+- **Key**: only INV-G1 (PROBLEM_ANCHOR_FREEZE) is active; no quality assessment, structural-integrity checks only
 
 > **Status**: Structural verifier invoked at OSS phase boundaries. **OSS is discipline-agnostic** — only the universal `INV-G1 PROBLEM_ANCHOR_FREEZE` invariant is active. There are no discipline overlays (no `INV-E*` economics, no `INV-C*` cs-ml, no `INV-P*` physics). Copied from main SciForge and trimmed to OSS's single-row design.
 
@@ -124,10 +124,10 @@ The orchestrator passes the phase boundary identifier (e.g. `before-theory-deriv
 2. Extract the frozen Q-id from `FINAL_PROPOSAL.md` (the `Q-id:` field).
 3. Check that the current phase's working artifact (path passed by orchestrator) exists. If not, verdict = `BLOCKED`.
 4. Search the working artifact for a reference to the same Q-id. If found, verdict = `PASS`. If the Q-id is absent, verdict = `FAIL` (problem anchor lost). If a *different* Q-id is referenced, verdict = `FAIL` (problem drift — the agent started solving a different problem).
-5. **问题内容哈希校验（v5.1 — 源自 CRUX 影子评估失败模式 #3）**: 除了 Q-id 存在性，还校验问题**内容**未被改写。首次冻结时计算 FINAL_PROPOSAL.md 中问题陈述段的 SHA256 写入 `refine-logs/PROBLEM_HASH.txt`；每次 INV-G1 触发时重算并比对。不匹配 → `FAIL (problem_content_rewritten)`。**针对的死法**：CRUX 实验中 agent 早期检测器全部失败后，把目标改写成"证明这类检测器不存在"，然后写了篇负结果论文——"像一个博士生发现假设不成立后，转头改掉了课题名称"。Q-id 没变但问题实质已变，旧版 INV-G1 只查 Q-id 存在性，拦不住这种改写
+5. **Problem-content hash check (v5.1 — from CRUX shadow-evaluation failure mode #3)**: beyond Q-id presence, verify that the problem **content** has not been rewritten. At first freeze, compute the SHA256 of the problem-statement paragraph in FINAL_PROPOSAL.md and write it to `refine-logs/PROBLEM_HASH.txt`; recompute and compare on every INV-G1 trigger. Mismatch → `FAIL (problem_content_rewritten)`. **Death mode addressed**: in the CRUX experiments, after all early detectors failed, the agent rewrote the goal into "prove that such detectors do not exist", then wrote a negative-result paper — "like a PhD student who, after finding the hypothesis fails, turns around and renames the thesis topic". The Q-id stayed unchanged but the substance of the problem changed; the old INV-G1 only checked Q-id presence and could not stop this rewrite
 6. Record the verdict, detail, and evidence.
 
-**改写问题的唯一合法路径**：若负结果确证原问题不可行（toy/full 证据 + KILL-or-PIVOT 判定为 KILL），必须走 `/kill-argument` 杀论证 → 回 Phase 2 **显式换 idea**（新 Q-id、新 FINAL_PROPOSAL、新 PROBLEM_HASH），由 orchestrator 记录 pivot/kill 事件——**禁止**在原 FINAL_PROPOSAL 上就地改写问题措辞来"适配"负结果。就地改写 = `problem_content_rewritten` FAIL；换 idea 重走 = 合法。
+**The only legitimate path to change the problem**: if a negative result confirms the original problem is infeasible (toy/full evidence + KILL-or-PIVOT decision = KILL), run `/kill-argument` kill argument → back to Phase 2 to **explicitly swap the idea** (new Q-id, new FINAL_PROPOSAL, new PROBLEM_HASH), with the orchestrator logging the pivot/kill event — rewriting the problem wording in place on the original FINAL_PROPOSAL to "fit" the negative result is **forbidden**. In-place rewrite = `problem_content_rewritten` FAIL; swapping the idea and re-running = legitimate.
 
 ### Step 3: Compute Overall Verdict
 
@@ -144,7 +144,7 @@ The orchestrator reads `overall_verdict`:
 - `FAIL` or `BLOCKED` or `ERROR` → halt and report to user
 
 ## Output Protocols
-> **v5.2 评判产物位置**：本 skill 产出的机读 verdict/hash/审计 JSON 一律写入 `verdicts/`（文件名见 [`output-protocol.md`](../../shared-references/output-protocol.md) 产物目录结构；叙述性报告留在原 stage 目录）。
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `verdicts/` (filenames: see the artifact directory layout in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
 
 > Follow these shared protocols for all output files:

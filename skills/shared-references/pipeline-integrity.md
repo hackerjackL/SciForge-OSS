@@ -54,25 +54,25 @@ Write to refine-logs/pipeline-integrity.md:
 
 | Phase | Prerequisites | Mode | If Missing |
 |-------|-------------|------|-----------|
-| 0: 加载问题 | 人类提示词 (Q-id) | MUST | 请求用户输入 |
-| 1: 问题理解 | Q-id 已冻结 | MUST | 回退 Phase 0 |
-| 1a: domain-signature | Phase 1 已完成 | MUST | 回退 Phase 1 |
-| 2: idea-discovery | domain-signature.json | MUST | 用默认配置 |
-| 2.5: adversarial-falsification | IDEA_CANDIDATES.md | MUST | 回退 Phase 2 |
-| 3: novelty-check | IDEA_DAG.json | MUST | 回退 Phase 2.5 |
-| 4: universal-retrieval | 最终 idea 已选 | MUST | 等待人类审批 |
-| 5: method-registry | 文献已完成 | MUST | 回退 Phase 4 |
-| 6: theory-derivation | METHOD_REGISTRY.md | MUST | 回退 Phase 5 |
-| 7: leakage-audit | derivations/{problem_id}/ | MUST | 回退 Phase 6 |
-| 8: logic-verification | derivations/{problem_id}/ | MUST | 回退 Phase 6 |
-| 9: invariant-check | audit_report/LEAKAGE_AUDIT.json | MUST | 回退 Phase 7 |
-| 10: result-to-claim | LOGIC_VERIFICATION.json | MUST | 回退 Phase 8 |
-| 11: unified-plotting | CLAIMS_FROM_RESULTS.md | OPTIONAL | 跳过 |
-| 12: paper-writing | CLAIMS_FROM_RESULTS.md | MUST | 回退 Phase 10 |
-| 13: paper-compile | paper/main.tex | CONDITIONAL | WARN 可降级 |
-| 14: auto-review-loop | paper/main.pdf | OPTIONAL | 用 grounding-check 替代 |
-| 15: citation-audit | paper/main.tex | MUST | 回退 Phase 12 |
-| 16: 最终组装 | 所有产物 | MUST | 回退相关 phase |
+| 0: load-problem | Human prompt (Q-id) | MUST | Request user input |
+| 1: problem-understanding | Q-id is frozen | MUST | Fall back to Phase 0 |
+| 1a: domain-signature | Phase 1 complete | MUST | Fall back to Phase 1 |
+| 2: idea-discovery | domain-signature.json | MUST | Use default configuration |
+| 2.5: adversarial-falsification | IDEA_CANDIDATES.md | MUST | Fall back to Phase 2 |
+| 3: novelty-check | IDEA_DAG.json | MUST | Fall back to Phase 2.5 |
+| 4: universal-retrieval | Final idea selected | MUST | Wait for human approval |
+| 5: method-registry | Literature complete | MUST | Fall back to Phase 4 |
+| 6: theory-derivation | METHOD_REGISTRY.md | MUST | Fall back to Phase 5 |
+| 7: leakage-audit | derivations/{problem_id}/ | MUST | Fall back to Phase 6 |
+| 8: logic-verification | derivations/{problem_id}/ | MUST | Fall back to Phase 6 |
+| 9: invariant-check | audit_report/LEAKAGE_AUDIT.json | MUST | Fall back to Phase 7 |
+| 10: result-to-claim | LOGIC_VERIFICATION.json | MUST | Fall back to Phase 8 |
+| 11: unified-plotting | CLAIMS_FROM_RESULTS.md | OPTIONAL | Skip |
+| 12: paper-writing | CLAIMS_FROM_RESULTS.md | MUST | Fall back to Phase 10 |
+| 13: paper-compile | paper/main.tex | CONDITIONAL | WARN, degradable |
+| 14: auto-review-loop | paper/main.pdf | OPTIONAL | Substitute with grounding-check |
+| 15: citation-audit | paper/main.tex | MUST | Fall back to Phase 12 |
+| 16: final-assembly | All artifacts | MUST | Fall back to the relevant phase |
 
 ## Integrity Check Log Format
 

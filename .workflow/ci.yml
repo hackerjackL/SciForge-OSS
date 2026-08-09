@@ -1,0 +1,37 @@
+# AtomGit Actions CI for SciForge-OSS — single entry point: scripts/ci_check.py
+#
+# Format assumptions (documented because `ag run --help` only inspects runs
+# and does not document the workflow schema):
+#   - AtomGit Actions reads workflow YAML from the repository's `.workflow/`
+#     directory (atomgit.com convention). The AtomGit/GitCode help docs also
+#     describe `.gitcode/workflows/<name>.yml` with the same schema; if your
+#     instance reads that path instead, copy this file there unchanged.
+#   - Schema is Gitea/GitHub-Actions style: name / on / jobs.<id>.steps,
+#     plain `run:` shell steps, stages serial / jobs parallel.
+#   - The runner needs git, bash, and python3 (>= 3.8). ci_check.py itself
+#     is stdlib-only; its test-suite check executes pytest (mandatory —
+#     missing pytest is a FAIL, not a skip) and render_figure.py --doctor
+#     needs Pillow, so both are pip-installed below.
+#
+# Contributors without AtomGit CI get the same gate via
+# .pre-commit-config.yaml (repo: local hook running the same command).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: pip install pytest Pillow
+      - name: Run SciForge CI checks (links + versions + plotting + tests)
+        run: python3 scripts/ci_check.py

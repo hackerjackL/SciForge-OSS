@@ -6,10 +6,10 @@
 
 ## Quick Reference
 
-- **Purpose**: Phase 5/6/11 强度按 evidence_type/paradigm 动态调整，实现真通用而非硬编码分支
+- **Purpose**: Phase 5/6/11 intensity is dynamically adjusted by evidence_type/paradigm, achieving true universality rather than hardcoded branches
 - **Input**: refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`) from Phase 1b
 - **Output**: per-phase `intensity_override` block written to PIPELINE_STATUS.md before Phase 5 starts
-- **Key**: 结构不变（21-phase 顺序锁、3 轮回退、契约都保留），只调强度/emphasis/budget/gate strictness
+- **Key**: Structure is invariant (21-phase order locked, 3-round fallback, all contracts preserved); only intensity/emphasis/budget/gate strictness adapt
 
 ## Adaptive Override Table (locked)
 
@@ -158,7 +158,7 @@ This adaptive pipeline is **structurally different**:
 
 **N/A = automatic 10/10 (no penalty).** The EG sub-dimension is marked NOT_APPLICABLE and does not penalize the EG average. This ensures humanities/theory problems are not unfairly penalized on dimensions that don't apply.
 
-The override table is therefore a **small finite alphabet** (5 evidence_types × 3 phases = 15 cells) that covers all scientific domains via the learner's runtime classification. This is the structural sense in which OSS is "通用" (universal) without "硬编码" (hardcoding).
+The override table is therefore a **small finite alphabet** (5 evidence_types × 3 phases = 15 cells) that covers all scientific domains via the learner's runtime classification. This is the structural sense in which OSS is "universal" without "hardcoding".
 
 ## See Also
 

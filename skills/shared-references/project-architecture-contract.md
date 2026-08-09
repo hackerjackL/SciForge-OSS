@@ -2,7 +2,7 @@
 
 > **Status (v2.2)**: The single source of truth for the directory layout of EVERY project run — whether the entry was `/auto-pipeline` or a partial/manual skill invocation. Enforces a clean, GitHub-open-source-project-style structure from Phase 0 to Phase 16, so the workspace is inspectable, reproducible, and never accumulates cruft.
 >
-> **Why this exists**: the user's mandate — "每一个这种开启的项目，从 auto pipeline 一开始到最后结束，应该架构非常清晰，非常像是 GitHub 的开源项目，架构一定要清晰。即使人类没有从 auto-pipeline 开始，也保证整个工作区干净、整洁、清晰。" Without an explicit contract, runs scatter files arbitrarily, leave orphan artifacts, and become unreviewable.
+> **Why this exists**: the user's mandate — "Every project opened like this, from the very start of the auto pipeline to the very end, must have a crystal-clear architecture — very much like a GitHub open-source project; the architecture must be clear. Even when a human does not start from auto-pipeline, the entire workspace is still guaranteed to be clean, tidy, and clear." Without an explicit contract, runs scatter files arbitrarily, leave orphan artifacts, and become unreviewable.
 
 ---
 
@@ -183,7 +183,7 @@ The contract applies whether the entry was `/auto-pipeline` (full 21-phase run) 
 
 ## 5. Cleanliness Audit (Phase 16 — Final Assembly)
 
-At Phase 16 (最终组装), the orchestrator runs a cleanliness audit before declaring COMPLETED:
+At Phase 16 (final assembly), the orchestrator runs a cleanliness audit before declaring COMPLETED:
 
 | Check | PASS | WARN | FAIL |
 |-------|------|------|------|

@@ -1,0 +1,42 @@
+{
+  "audit_skill": "auto-review-loop",
+  "verdict": "PASS",
+  "reason_code": "score_above_threshold",
+  "summary": "Single review round; score 7.5 >= 6; verdict ready; loop finalized.",
+  "generated_at": "2026-08-09T00:00:00Z",
+  "details": {
+    "rounds": [
+      {
+        "round": 1,
+        "timestamp": "2026-08-09T00:00:00Z",
+        "score": 7.5,
+        "verdict": "ready",
+        "phase": "documented",
+        "key_criticisms": [
+          "prove the variance direction is not a seed artifact"
+        ],
+        "actions_taken": [
+          "added per-seed variance breakdown to RESULT.json"
+        ],
+        "action_items": [
+          "report per-seed variances"
+        ],
+        "statistical_gate": {
+          "data_type": "synthetic",
+          "status": "PASS"
+        },
+        "blockers_remaining": []
+      },
+      {
+        "round": 1,
+        "timestamp": "2026-08-09T00:00:00Z",
+        "score": 7.5,
+        "verdict": "ready",
+        "phase": "finalized",
+        "final_score": 7.5,
+        "final_verdict": "ready",
+        "total_rounds": 1
+      }
+    ]
+  }
+}

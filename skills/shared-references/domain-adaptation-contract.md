@@ -6,11 +6,11 @@
 
 ## Quick Reference
 
-- **Purpose**: 锁定 4 维联合置信度 (TDAL) schema + 权重 + 阈值 + 调用契约
+- **Purpose**: Locks the 4-dimensional joint confidence (TDAL) schema + weights + thresholds + invocation contract
 - **Producer**: `/result-to-claim` (Phase 10) — computes and emits TDAL
 - **Consumer**: `/paper-writing` (Phase 12, Confidence & Limitations section) + orchestrator (PIPELINE_STATUS verdict)
 - **Output**: `CLAIMS_FROM_RESULTS.md` § Confidence Assessment (TDAL block, machine-readable JSON attached)
-- **Key**: joint = T × D × A × L; 4 级判定 STRONG/MODERATE/WEAK/UNSUPPORTED; 最弱维度必须报告
+- **Key**: joint = T × D × A × L; 4-level verdict STRONG/MODERATE/WEAK/UNSUPPORTED; the weakest dimension must always be reported
 
 ## TDAL Schema (Locked)
 
@@ -61,86 +61,86 @@
 
 **v2.8 schema change**: `domain_adaptation` previously split into `domain_signature` (0.4) + `domain_learner` (0.4) + `seed_paper_match` (0.2). After S1 (learner-first, Phase 1a downgraded to OPTIONAL hint), the signature is no longer an independent confidence source — only the learner writes the signature. So `domain_adaptation` now collapses to `domain_learner` (0.8) + `seed_paper_match` (0.2). This avoids double-counting the learner's output under two labels.
 
-## TDAL 权重层级表（v1.0.0 澄清）
+## TDAL Weight Hierarchy Table (v1.0.0 clarification)
 
-> **为什么要这一节**: v2.8 引入 L2 deep integration 后，CHANGELOG 第 20 行写 "T 维新增 0.2 权重 `theory_data_validation` 组件（T 权重重分布 0.3/0.25/0.25/0.2）"——这一表述里 `0.3/0.25/0.25/0.2` 既可被读作 "T 维在 TDAL 四维中的占比"，也可被读作 "T 维内部 4 子组件的分布"。两种读法都自洽但意义完全不同。本节显式区分两个层级，消除歧义。
+> **Why this section exists**: After v2.8 introduced L2 deep integration, CHANGELOG line 20 reads "T dimension adds a new `theory_data_validation` component with weight 0.2 (T weight redistribution 0.3/0.25/0.25/0.2)" — in that phrasing, `0.3/0.25/0.25/0.2` can be read either as "the T dimension's share among the four TDAL dimensions" or as "the distribution across the 4 sub-components inside the T dimension". Both readings are self-consistent but mean entirely different things. This section explicitly distinguishes the two levels to remove the ambiguity.
 
-### 层级 1 — TDAL 四维权重（4 维在 joint 中的相对地位）
+### Level 1 — TDAL four-dimension weights (the relative standing of the 4 dimensions in the joint)
 
-TDAL 的 4 个维度 **T / D / A / L** 在 v2.8 锁定为**等权**——joint 是 product（`T × D × A × L`），不是 weighted average。因此这一层级**没有 0.3/0.25/0.25/0.2 这样的权重分布**；每一维独立取值 0-1，乘积得 joint。
+TDAL's 4 dimensions **T / D / A / L** are locked in v2.8 as **equal-weight** — the joint is a product (`T × D × A × L`), not a weighted average. Therefore at this level **there is no weight distribution such as 0.3/0.25/0.25/0.2**; each dimension independently takes a value in 0-1, and the product yields the joint.
 
-| 维度 | 在 joint 中的地位 | 取值范围 | 备注 |
-|------|------------------|---------|------|
-| T (theoretical) | 等权乘积因子 | 0-1 | 由 4 个 T 子组件加权求得（见层级 2） |
-| D (data_availability) | 等权乘积因子 | 0-1 | 由 3 个 D 子组件加权求得 |
-| A (domain_adaptation) | 等权乘积因子 | 0-1 | 由 2 个 A 子组件加权求得 |
-| L (literature_support) | 等权乘积因子 | 0-1 | 由 3 个 L 子组件加权求得 |
+| Dimension | Standing in the joint | Value range | Notes |
+|-----------|-----------------------|-------------|-------|
+| T (theoretical) | Equal-weight product factor | 0-1 | Weighted sum of the 4 T sub-components (see Level 2) |
+| D (data_availability) | Equal-weight product factor | 0-1 | Weighted sum of the 3 D sub-components |
+| A (domain_adaptation) | Equal-weight product factor | 0-1 | Weighted sum of the 2 A sub-components |
+| L (literature_support) | Equal-weight product factor | 0-1 | Weighted sum of the 3 L sub-components |
 
-**关键**: joint = `T × D × A × L`，**任何一维为 0 则 joint 为 0**（floor constraint）。不存在 "T 维占 30%、D 维占 25%" 这样的维度间权重——这是 v2.8 product formula 的核心严格性。
+**Key point**: joint = `T × D × A × L`, and **if any single dimension is 0 then the joint is 0** (floor constraint). There is no such thing as an inter-dimension weight like "T dimension accounts for 30%, D dimension accounts for 25%" — this is the core strictness of the v2.8 product formula.
 
-### 层级 2 — 各维内部子组件权重（v2.8 L2 后的最终分布）
+### Level 2 — Sub-component weights within each dimension (final distribution after v2.8 L2)
 
-每一维**内部**有若干子组件，子组件之间是 weighted sum（权重和 = 1.0）。这才是 `0.3/0.25/0.25/0.2` 数字的真正归属——它们是 **T 维内部 4 子组件**的权重，不是 T 维本身在 TDAL 中的占比。
+**Inside** each dimension there are several sub-components, combined by weighted sum (weight sum = 1.0). This is where the `0.3/0.25/0.25/0.2` numbers truly belong — they are the weights of the **4 sub-components inside the T dimension**, not the share of the T dimension itself within TDAL.
 
-#### T 维内部（v2.8 L2 重分布）
+#### Inside the T dimension (v2.8 L2 redistribution)
 
-| T 子组件 | 权重 | 取值 | 来源 |
-|----------|------|------|------|
+| T sub-component | Weight | Value | Source |
+|-----------------|--------|-------|--------|
 | `sympy_derivation` | 0.3 | PASS=1.0 / PARTIAL=0.5 / FAIL=0.0 | `/theory-derivation` Phase 6 |
 | `logic_verification` | 0.25 | PASS=1.0 / WARN=0.7 / FAIL=0.0 | `/logic-verification` Phase 8 |
 | `falsification_resistance` | 0.25 | SURVIVE=1.0 / WEAKENED=0.5 / FALSIFIED=0.0 | `/adversarial-falsification` Phase 2.5 |
-| `theory_data_validation` | 0.2 | CONSISTENT=1.0 → FALSIFIED_SIGN=0.0；默认 0.5 neutral | [`ouroboros-integration.md`](ouroboros-integration.md) § B (L2 deep call) |
+| `theory_data_validation` | 0.2 | CONSISTENT=1.0 → FALSIFIED_SIGN=0.0; default 0.5 neutral | [`ouroboros-integration.md`](ouroboros-integration.md) § B (L2 deep call) |
 | **sum** | **1.0** | | |
 
-**v2.7→v2.8 T 维变化**: v2.7 T 维 = `sympy_derivation (0.4) + logic_verification (0.3) + falsification_resistance (0.3)`，三组件 sum=1.0。v2.8 L2 新增 `theory_data_validation` 组件后，原三组件权重从 (0.4/0.3/0.3) 按比例收缩到 (0.3/0.25/0.25)，腾出 0.2 给新组件，sum 仍为 1.0。**这就是 CHANGELOG v2.8 第 20 行 "T 权重重分布 0.3/0.25/0.25/0.2" 的真正含义——T 维内部 4 子组件的新权重分布。**
+**v2.7→v2.8 T dimension change**: In v2.7, T dimension = `sympy_derivation (0.4) + logic_verification (0.3) + falsification_resistance (0.3)`, with the three components summing to 1.0. After v2.8 L2 added the `theory_data_validation` component, the original three components' weights were scaled proportionally from (0.4/0.3/0.3) down to (0.3/0.25/0.25), freeing 0.2 for the new component while the sum remains 1.0. **This is the true meaning of CHANGELOG v2.8 line 20 "T weight redistribution 0.3/0.25/0.25/0.2" — the new weight distribution of the 4 sub-components inside the T dimension.**
 
-#### D 维内部
+#### Inside the D dimension
 
-| D 子组件 | 权重 | 取值 | 来源 |
+| D sub-component | Weight | Value | Source |
 |----------|------|------|------|
 | `ouroboros_report` | 0.5 | `overall_score` 0-1 | [`ouroboros-integration.md`](ouroboros-integration.md) § A (basic call) |
 | `oss_data_check` | 0.3 | DATA_READY=1.0 / DATA_LIMITED=0.5 / DATA_BLOCKED=0.0 | `/adversarial-falsification` Phase 2.5 |
 | `theory_only_flag` | 0.2 | theory_only=true → 1.0 / false → 0.0 | `data-requirements-seed.json` |
 | **sum** | **1.0** | | |
 
-#### A 维内部（v2.8 S1 后）
+#### Inside the A dimension (after v2.8 S1)
 
-| A 子组件 | 权重 | 取值 | 来源 |
-|----------|------|------|------|
+| A sub-component | Weight | Value | Source |
+|-----------------|--------|-------|--------|
 | `domain_learner` | 0.8 | `learning_confidence` 0-1 | `/domain-learner` Phase 1b → `domain-signature.json` |
-| `seed_paper_match` | 0.2 | 定性匹配 0-1 | seed paper 期望对比 |
+| `seed_paper_match` | 0.2 | qualitative match 0-1 | comparison against seed paper expectations |
 | **sum** | **1.0** | | |
 
-**v2.7→v2.8 A 维变化**: v2.7 A 维 = `domain_signature (0.4) + domain_learner (0.4) + seed_paper_match (0.2)`。v2.8 S1 (learner-first) 后，Phase 1a signature 降为 OPTIONAL hint，不再是独立置信源——故 A 维 collapse 为 `domain_learner (0.8) + seed_paper_match (0.2)`，sum 仍为 1.0。
+**v2.7→v2.8 A dimension change**: In v2.7, A dimension = `domain_signature (0.4) + domain_learner (0.4) + seed_paper_match (0.2)`. After v2.8 S1 (learner-first), the Phase 1a signature was downgraded to an OPTIONAL hint and is no longer an independent confidence source — hence the A dimension collapses to `domain_learner (0.8) + seed_paper_match (0.2)`, and the sum remains 1.0.
 
-#### L 维内部
+#### Inside the L dimension
 
-| L 子组件 | 权重 | 取值 | 来源 |
-|----------|------|------|------|
+| L sub-component | Weight | Value | Source |
+|-----------------|--------|-------|--------|
 | `supporting_ratio` | 0.5 | supporting_papers / total_papers | `/universal-retrieval` Phase 4 |
-| `non_contradicting_ratio` | 0.3 | 1 - contradicting_papers / total_papers | 同上 |
-| `non_gap_ratio` | 0.2 | 1 - gap_papers / total_papers | 同上 |
+| `non_contradicting_ratio` | 0.3 | 1 - contradicting_papers / total_papers | same as above |
+| `non_gap_ratio` | 0.2 | 1 - gap_papers / total_papers | same as above |
 | **sum** | **1.0** | | |
 
-### 两层级的计算顺序（locked）
+### Computation order across the two levels (locked)
 
 ```
-Step 1: 每一维内部用 weighted sum 算出该维 value
+Step 1: Within each dimension, compute that dimension's value with a weighted sum
   T = 0.3×sympy + 0.25×logic + 0.25×falsif + 0.2×theory_data_val
   D = 0.5×ouroboros + 0.3×oss_check + 0.2×theory_only_flag
   A = 0.8×domain_learner + 0.2×seed_paper_match
   L = 0.5×supporting + 0.3×non_contradicting + 0.2×non_gap
 
-Step 2: 四维之间用 product 算 joint
+Step 2: Across the four dimensions, compute the joint with a product
   joint = T × D × A × L
 
-Step 3: 应用 floor constraints + verdict thresholds
+Step 3: Apply floor constraints + verdict thresholds
   - any dim = 0 → verdict ≤ WEAK
   - missing_inputs non-empty → verdict ≤ MODERATE
   - joint ≥ 0.7 → STRONG; 0.5-0.7 → MODERATE; 0.3-0.5 → WEAK; <0.3 → UNSUPPORTED
 ```
 
-**为什么是 "内部 weighted sum + 维度间 product" 的混合**: 维度内部各子组件是**互补**的（SymPy 通过 + 逻辑通过 + 证伪通过 = 理论可信度高，任一通过都贡献），适合加权求和；维度之间是**严格卡控**的（理论再强，没数据就是没数据，没文献就是没文献），适合乘积以实现 "任一为 0 则 joint 为 0" 的 floor。这是 v2.8 严格性契约的核心设计。
+**Why the hybrid of "weighted sum inside dimensions + product across dimensions"**: The sub-components inside a dimension are **complementary** (SymPy pass + logic pass + falsification pass = high theoretical credibility; every pass contributes), which suits a weighted sum; the dimensions themselves are **strictly gated** against each other (no matter how strong the theory, no data is no data and no literature is no literature), which suits a product to realize the floor "any dimension at 0 forces the joint to 0". This is the core design of the v2.8 strictness contract.
 
 ## Per-Dimension Weight Tables
 
@@ -226,7 +226,7 @@ where:
 ### Data Availability Confidence: 0.725 (MODERATE)
 - Ouroboros report: 0.85
 - OSS data check: DATA_READY (1.0)
-- Theory-only flag: 0.0 (非 theory-only 问题，需要真实数据)
+- Theory-only flag: 0.0 (not a theory-only problem; real data is required)
 - Weighted: 0.5×0.85 + 0.3×1.0 + 0.2×0.0 = 0.725
 
 ### Domain Adaptation Confidence: 0.80 (STRONG)
@@ -242,7 +242,7 @@ where:
 
 ### Joint Confidence: 0.85 × 0.725 × 0.80 × 0.755 = 0.37
 **Verdict**: WEAK — needs strengthening before publication
-**Weakest dimension**: Data Availability (0.725) — Ouroboros 数据得分偏低且非 theory-only，需更可靠数据源或补充 theory-only 限定
+**Weakest dimension**: Data Availability (0.725) — the Ouroboros data score is on the low side and the problem is not theory-only; a more reliable data source is needed, or a theory-only qualification must be added
 ```
 
 ## Producer Contract (/result-to-claim)

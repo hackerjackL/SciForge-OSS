@@ -6,7 +6,7 @@
 
 ## Quick Reference
 
-- **Purpose**: 锁定 advisory plugin 堨议层契约——可选、非 binding、永不 gate pipeline
+- **Purpose**: locks the advisory plugin consultation-layer contract — optional, non-binding, never gates the pipeline
 - **Producer**: plugin authors (community or core team)
 - **Consumer**: any skill MAY consult a plugin for advisory input; NO skill MUST
 - **Output**: advisory suggestions (never registered artifacts)
