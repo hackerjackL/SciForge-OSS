@@ -174,10 +174,10 @@ Economics invariants (canonical, hardcoded — do not infer):
 |-------|---------|----------------|-------------|
 | `REGISTRY_HASH` | Before `/result-to-claim`, `/paper-writing`, `/auto-review-loop` | `METHOD_REGISTRY.md` Section 3 exists AND `REGISTRY_HASH.txt` matches `SHA256(Section 3)` | BLOCK — re-run `/method-registry` |
 | `OUTCOME_CLASSIFICATION` | Before `/result-to-claim` | `methods/OUTCOME_CLASSIFICATION.md` exists AND lists primary vs secondary outcomes | BLOCK — re-run `/method-registry` Step 4 |
-| `LEAKAGE_AUDIT_VERDICT` | Before `/paper-writing` | `.sciforge/audits/LEAKAGE_AUDIT.json` exists AND `verdict ∈ {PASS, WARN}` | BLOCK if FAIL — re-run `/leakage-audit` |
+| `LEAKAGE_AUDIT_VERDICT` | Before `/paper-writing` | `.sciforge/verdicts/LEAKAGE_AUDIT.json` exists AND `verdict ∈ {PASS, WARN}` | BLOCK if FAIL — re-run `/leakage-audit` |
 | `DATA_SOURCE_CONSISTENCY` | Before `/paper-writing` | If `DATA_SOURCE=synthetic`, no occurrence of "empirical evidence" / "policy implication" in `paper/` | BLOCK — re-write affected sections |
 
-Output: `.sciforge/audits/INVARIANT_CHECK.json` with the 6-state verdict
+Output: `.sciforge/verdicts/INVARIANT_CHECK.json` with the 6-state verdict
 schema from [`assurance-contract.md`](assurance-contract.md). Consumed
 by the orchestrator as a gate.
 
@@ -208,11 +208,11 @@ and may be silently skipped by the orchestrator.
 | 2 | `paper-writing` (Phase 4.7) | `result-to-claim` | `paper/main.pdf` exists | `paper/PAPER_CLAIM_AUDIT.json` | submission verifier (exit 1) |
 | 3 | `paper-writing` (Phase 5.5) | `citation-audit` | `paper/main.pdf` exists | `paper/CITATION_AUDIT.json` | submission verifier (exit 1) |
 | 4 | `paper-writing` (Phase 1, economics overlay) | `method-registry` | economics pipeline entered | `methods/METHOD_REGISTRY.md` + `methods/REGISTRY_HASH.txt` | `/invariant-check` (REGISTRY_HASH) |
-| 5 | `method-registry` (post) | `leakage-audit` | `methods/METHOD_REGISTRY.md` exists | `.sciforge/audits/LEAKAGE_AUDIT.json` | `/invariant-check` (LEAKAGE_AUDIT_VERDICT) |
+| 5 | `method-registry` (post) | `leakage-audit` | `methods/METHOD_REGISTRY.md` exists | `.sciforge/verdicts/LEAKAGE_AUDIT.json` | `/invariant-check` (LEAKAGE_AUDIT_VERDICT) |
 | 6 | `leakage-audit` → `paper-writing` | (verdict gate) | `LEAKAGE_AUDIT.json` exists | (consumed as gate) | `/invariant-check` (LEAKAGE_AUDIT_VERDICT) |
 | 7 | `paper-writing` (Phase 5, economics overlay) | `result-to-claim` | `results/` non-empty AND `methods/METHOD_REGISTRY.md` exists | `CLAIMS_FROM_RESULTS.md` | `/invariant-check` (REGISTRY_HASH) |
 | 8 | `result-to-claim` → `paper-writing` | (input contract) | `CLAIMS_FROM_RESULTS.md` exists | (consumed as input) | `paper-writing` internal |
-| 9 | `paper-writing` (Phase 7, economics overlay) | `auto-review-loop` | `paper/main.pdf` exists AND `REVIEWER_PROMPT_VARIANT=senior-econ-editor` | `.sciforge/audits/REVIEW_STATE.json` | auto-review-loop internal (MAX_ROUNDS gate) |
+| 9 | `paper-writing` (Phase 7, economics overlay) | `auto-review-loop` | `paper/main.pdf` exists AND `REVIEWER_PROMPT_VARIANT=senior-econ-editor` | `.sciforge/verdicts/REVIEW_STATE.json` | auto-review-loop internal (MAX_ROUNDS gate) |
 | 10 | `idea-discovery` (Phase 1.5) | `universal-retrieval` | local data exists OR `/universal-retrieval` completed | `DATA_INSIGHT_REPORT.md` | `/idea-discovery` consumes (MANDATORY input check) |
 | 11 | (shared) paper-reading skills | `research-wiki` ingest | `research-wiki/` directory exists | `research-wiki/papers/<slug>.md` + `log.md` append | Wiki-coverage diagnostic (non-blocking) |
 | 12 | `paper-writing` (Phase 2) | `unified-plotting` | `PAPER_PLAN.md` exists AND `figures/` directory exists | `figures/latex_includes.tex` + `figures/*.pdf` | `/paper-compile` (figure reference resolution) |

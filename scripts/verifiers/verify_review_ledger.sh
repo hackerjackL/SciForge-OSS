@@ -8,8 +8,12 @@
 #   2. file is valid JSON
 #   3. top-level object has a details.rounds[] array
 #   4. every round object contains keys: score, verdict, action_items
-#   5. every verdict value is within the 6-state vocabulary:
-#      PASS / WARN / FAIL / NOT_APPLICABLE / BLOCKED / ERROR
+#      (the phase="finalized" termination entry carries score + verdict +
+#      final_score/final_verdict/total_rounds instead of action_items)
+#   5. vocabulary: the TOP-LEVEL verdict is 6-state (PASS / WARN / FAIL /
+#      NOT_APPLICABLE / BLOCKED / ERROR); per-round verdicts use the review
+#      loop vocabulary (ready / almost / not_ready) — the 6-state values are
+#      also accepted per-round for producer tolerance
 #
 # Exit 0 + "VERIFY PASS: review ledger" on success; exit 1 + precise
 # reason on failure. python3 is used for JSON work (jq not required).
@@ -49,6 +53,10 @@ import json
 import sys
 
 ALLOWED = {"PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"}
+# per-round verdicts are review-loop outcomes (ready / almost / not_ready per
+# auto-review-loop Phase E.5 and REVIEW_STATE's last_verdict vocabulary);
+# 6-state values are tolerated for producers that write the envelope form.
+ROUND_ALLOWED = {"ready", "almost", "not_ready", "not ready"} | ALLOWED
 REQUIRED_ROUND_KEYS = ("score", "verdict", "action_items")
 path = sys.argv[1]
 
@@ -80,16 +88,21 @@ for i, rnd in enumerate(rounds):
     where = f"{path}: details.rounds[{i}]"
     if not isinstance(rnd, dict):
         fail(f"{where}: round entry must be an object, got {type(rnd).__name__}")
-    missing = [k for k in REQUIRED_ROUND_KEYS if k not in rnd]
+    # the phase="finalized" termination entry is a closing summary: it needs
+    # score + verdict but carries no action_items
+    required = REQUIRED_ROUND_KEYS
+    if rnd.get("phase") == "finalized":
+        required = ("score", "verdict")
+    missing = [k for k in required if k not in rnd]
     if missing:
         fail(f"{where}: missing required key(s): {', '.join(missing)}")
     verdict = rnd["verdict"]
-    if not isinstance(verdict, str) or verdict not in ALLOWED:
-        fail(f"{where}: verdict {verdict!r} not in 6-state vocabulary "
-             f"{sorted(ALLOWED)}")
+    if not isinstance(verdict, str) or verdict not in ROUND_ALLOWED:
+        fail(f"{where}: verdict {verdict!r} not in the per-round vocabulary "
+             f"{sorted(ROUND_ALLOWED)}")
 
 print(f"VERIFY PASS: review ledger ({len(rounds)} round(s) checked, "
-      f"all verdicts within 6-state vocabulary) [{path}]")
+      f"all round verdicts within the review vocabulary) [{path}]")
 PYEOF
 then
     # python already printed the precise reason; propagate failure.

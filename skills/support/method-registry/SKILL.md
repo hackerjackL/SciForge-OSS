@@ -1,6 +1,6 @@
 ---
 name: method-registry
-version: 1.3.1
+version: 1.3.2
 description: "Build the 8-section method registry + hash-lock Section 3 + human approval gate. Phase 5. Invoke after idea selection to pre-register the methodology before derivation."
 type: reference-skill
 role: method-registry-builder
@@ -291,7 +291,7 @@ Extract Section 3 into `methods/METHOD_BINDING.md`:
 
 ## Callback Protocol
 If `/leakage-audit` finds CRITICAL Type I leakage AND this binding is identifiable,
-the orchestrator re-invokes `/method-registry --callback .sciforge/audits/LEAKAGE_AUDIT.json`
+the orchestrator re-invokes `/method-registry --callback .sciforge/verdicts/LEAKAGE_AUDIT.json`
 to revise Section 3. Bounded to 3 iterations.
 ```
 
@@ -358,7 +358,7 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 
 When `/leakage-audit` finds CRITICAL Type I leakage (LEAKY on a primary outcome) and `METHOD_BINDING.md` is identifiable, the callback fires:
 1. `/leakage-audit` emits `callback` field in `LEAKAGE_AUDIT.json`
-2. Orchestrator re-invokes `/method-registry --callback .sciforge/audits/LEAKAGE_AUDIT.json`
+2. Orchestrator re-invokes `/method-registry --callback .sciforge/verdicts/LEAKAGE_AUDIT.json`
 3. `/method-registry` revises Section 3 → emits `METHOD_BINDING_DIFF.md`
 4. Orchestrator re-invokes `/leakage-audit` to confirm the fix
 5. If same logic gap persists → repeat (up to 3 iterations)

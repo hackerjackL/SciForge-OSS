@@ -99,45 +99,53 @@ verdicts directory); the orchestrator's resume protocol (output-protocol.md
 
 ## Known gaps (docs vague or conflicting — schemas stay permissive here)
 
-1. **REVIEW_LEDGER shape conflict.** auto-review-loop SKILL.md describes a JSONL
-   stream of round entries; artifact-registry.md describes a single object with
-   `details.rounds[]`. A `.json` file must be parseable JSON, so the schema follows
-   the registry (object form) — JSONL output will fail validation. Per-round field
-   names also differ between the two docs (`statistical_gate`/`action_items`/
-   `debate_rulings` vs `fidelity_delta`/`key_criticisms`/`actions_taken`); the schema
-   accepts the union, requiring only `round`/`score`/`verdict`/`phase`.
-2. **BLINDSPOT_CHECK append semantics.** The doc says "one per round, appended", but a
-   flat fixed-name file can hold one JSON document. The schema validates a single
-   latest-round object; producers should overwrite with the latest round.
-3. **LEAKAGE_AUDIT `audited_input_hashes`.** The skill's own Step-6 JSON example omits
-   it, but artifact-registry.md invariant 2 requires it for every audit JSON — the
-   schema enforces it (registry wins).
+1. **REVIEW_LEDGER shape conflict — closed in v1.3.2.** auto-review-loop SKILL.md
+   used to describe a JSONL stream of round entries; artifact-registry.md describes
+   a single object with `details.rounds[]`. The SKILL.md Phase E.5 contract now
+   matches the registry/schema (single JSON object, round history in
+   `details.rounds[]`, per-round union field names, review-loop verdict vocabulary
+   `ready`/`almost`/`not_ready` for round entries + 6-state envelope verdict);
+   `scripts/verifiers/verify_review_ledger.sh` enforces exactly this (per-round
+   vocabulary check; `phase: "finalized"` termination entries carry no
+   `action_items`).
+2. **BLINDSPOT_CHECK append semantics — closed in v1.3.2.** The doc used to say
+   "one per round, appended"; a flat fixed-name file can hold one JSON document.
+   auto-review-loop Phase B.2 now states the contract explicitly: overwrite with
+   the latest round, per-round history lives in AUTO_REVIEW.md.
+3. **LEAKAGE_AUDIT `audited_input_hashes` — closed.** The skill's Step-6 example
+   used to omit it; artifact-registry.md invariant 2 requires it for every audit
+   JSON and the schema enforces it (registry wins). The e2e fixture carries it.
 4. **`thread_id` in audit envelopes.** assurance-contract.md lists it in the minimum
    block, but kill-argument's own example omits it and OSS is single-agent (no external
    reviewer thread). Optional everywhere except `CITATION_AUDIT` (whose emission
    example includes it).
-5. **LOGIC_VERIFICATION verdict vocabulary.** The Phase-5 example lists only
-   PASS|WARN|FAIL|BLOCKED|ERROR; the skill's own 6-state table reserves
-   `NOT_APPLICABLE`. The schema accepts the full 6-state vocabulary.
-6. **BUDGET_FLOOR field names.** The 5 floor checks (routes explored, matrix
-   completion, seed budget, failure records, remaining-budget declaration) and
-   `completion_justification` are documented semantically but no JSON field names are
-   fixed. The schema requires only `verdict` + `budget_floor.satisfied`; the two hard
-   rules are enforced as validator post-checks.
-7. **REVIEW_STATE verdict spelling.** Phase A output format says
-   `ready / almost / not ready`; the ledger field spec says `not_ready`. Both
-   spellings are accepted in the enum.
+5. **LOGIC_VERIFICATION verdict vocabulary — closed.** The skill's verdict table
+   now documents the full 6-state vocabulary explicitly (`NOT_APPLICABLE`
+   reserved — OSS always runs logic verification for derivations); the schema
+   accepts all six.
+6. **BUDGET_FLOOR field names — closed (pinned by fixture).** The e2e fixture
+   (fixtures/e2e_minimal/.sciforge/verdicts/BUDGET_FLOOR.json) fixes the canonical
+   names: `verdict` + `budget_floor.satisfied` + `budget_floor.checks.{routes_explored,
+   matrix_completion, seed_budget, failure_records, remaining_budget_declaration}` +
+   `completion_justification[]` ({route, status, evidence}). The schema stays
+   permissive (required: `verdict` + `budget_floor.satisfied`); the two hard rules
+   are validator post-checks.
+7. **REVIEW_STATE verdict spelling — closed.** Both spellings (`not_ready` and
+   `not ready`) are accepted in the enum by design; producers are asked to write
+   `not_ready`.
 8. **PAPER_CLAIM_AUDIT has no explicit example anywhere.** Only the audit verdict,
    `audited_input_hashes`, and the `aigc_scan` field (writing-principles.md §0.5) are
    promised; `aigc_scan`'s internal shape is unconstrained.
 9. **VERIFICATION_ROUTING path — closed in v6.0.** verification-routing.md used to
-   say `.sciforge/refine-logs/VERIFICATION_ROUTING.json`; the canonical location was `.sciforge/verdicts/`
-   since v5.2 and is `.sciforge/verdicts/` since v6.0 — verification-routing.md now
-   points at the current canonical path (single-authority rule).
+   say `refine-logs/VERIFICATION_ROUTING.json`; the canonical location is
+   `verdicts/VERIFICATION_ROUTING.json` since v5.2 (`.sciforge/verdicts/` home since
+   v6.0) — verification-routing.md now points at the current canonical path
+   (single-authority rule).
 10. **PROBLEM_HASH / REGISTRY_HASH are .txt**, so they are regex-checked in the
     validator rather than schema-checked (see top of this file).
-11. **RUN_BUDGET.json** is newly introduced alongside v5.3 (task P1-7); its schema is
-    implemented per the agreed field list and may tighten once the producer lands.
+11. **RUN_BUDGET.json — closed.** The producer landed (orchestrator Phase 0 init +
+    per-boundary booking) and the e2e fixture pins the agreed field list; the schema
+    matches it exactly.
 12. **EVALUATION_PROTOCOL field names.** method-registry §3.6 documents the
     pre-registration quartet semantically (metrics lock / baseline parity / baseline
     re-implementation / anti-cherry-picking reporting), but no JSON field names are

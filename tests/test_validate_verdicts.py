@@ -125,6 +125,22 @@ def test_unregistered_txt_warn_exit_0(tmp_path):
     assert vv.main([str(tmp_path)]) == 0
 
 
+def test_misfiled_narrative_md_warn_strict_exit_1(tmp_path):
+    """v6.0: only PIPELINE_VERDICT_SUMMARY.md may live in verdicts/; any
+    other .md is a misfiled narrative (audits/ narratives belong in
+    .sciforge/audits/). Default mode WARNs (exit 0), strict blocks."""
+    (tmp_path / "AUTO_REVIEW.md").write_text("# narrative", encoding="utf-8")
+    assert vv.main([str(tmp_path)]) == 0
+    assert vv.main([str(tmp_path), "--strict"]) == 1
+
+
+def test_pipeline_verdict_summary_md_allowed(tmp_path):
+    (tmp_path / "PIPELINE_VERDICT_SUMMARY.md").write_text(
+        "# overview", encoding="utf-8")
+    assert vv.main([str(tmp_path)]) == 0
+    assert vv.main([str(tmp_path), "--strict"]) == 0
+
+
 # ---------------------------------------------------------------------------
 # PROBLEM_HASH.txt sha256 format checks
 # ---------------------------------------------------------------------------

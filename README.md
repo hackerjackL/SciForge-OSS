@@ -3,7 +3,7 @@
 > **[English](README.md)** | **[中文](README.zh.md)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.1-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.2-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -24,7 +24,7 @@
 - [Architecture: DAG-driven research loop](#architecture-dag-driven-research-loop)
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
-- [Quality gates (v5.3)](#quality-gates-v53)
+- [Quality gates](#quality-gates)
 - [Full-domain support](#full-domain-support)
 - [Verification paths: four routes](#verification-paths-four-routes)
 - [Multi-domain examples](#multi-domain-examples)
@@ -267,7 +267,7 @@ SciForge-OSS/
 │   ├── security_scan.py             # v5.3: static pre-dispatch scan for agent-authored experiments
 │   ├── ci_check.py                  # v5.3: single CI entry point (links/versions/plotting/tests)
 │   └── verifiers/                   # external artifact verifiers (review ledger, paper audits)
-├── tests/                           # v5.3: 260+ pytest cases (palette, audits, validator, e2e smoke)
+├── tests/                           # 270+ pytest cases (palette, audits, validator, e2e smoke, verifiers)
 ├── fixtures/e2e_minimal/            # v5.3: minimal end-to-end fixture (toy experiment + full verdict trail)
 ├── .workflow/ci.yml                 # AtomGit Actions CI (same gate as ci_check.py)
 ├── skills/
@@ -320,14 +320,14 @@ SciForge-OSS/
     └── (paper-writing/templates/default/ — unified elsarticle skeleton)
 ```
 
-## Quality gates (v5.3)
+## Quality gates
 
-The pipeline is guarded by machine-checkable gates, not prose promises:
+The pipeline is guarded by machine-checkable gates, not prose promises. (Governance generations: v5.3 hardening — schemas, budget ledger, security gate, KILL checkpoint; v6.0 — the `.sciforge/` two-tier workspace with long-horizon resume. These are internal generation labels; the release version is the one in the badge above.)
 
 | Gate | What enforces it |
 |------|------------------|
-| **Verdict schemas** | every machine-readable verdict in a run's `verdicts/` must validate against `shared-references/schemas/*.schema.json` — `scripts/validate_verdicts.py` runs at every phase boundary and at wrap-up (misspelled/omitted fields are caught) |
-| **Run budget ledger** | `verdicts/RUN_BUDGET.json` caps wall-clock / API cost / PIVOT / BA rounds per effort level; the orchestrator books every boundary and BLOCKs + escalates to the human on breach |
+| **Verdict schemas** | every machine-readable verdict in a run's `.sciforge/verdicts/` must validate against `shared-references/schemas/*.schema.json` — `scripts/validate_verdicts.py` runs at every phase boundary and at wrap-up (misspelled/omitted fields are caught) |
+| **Run budget ledger** | `.sciforge/verdicts/RUN_BUDGET.json` caps wall-clock / API cost / PIVOT / BA rounds per effort level; the orchestrator books every boundary and BLOCKs + escalates to the human on breach |
 | **KILL checkpoint** | killing an idea pauses for human confirmation by default (`human_skip=true` or `kill_checkpoint=false` to delegate) |
 | **Experiment security gate** | agent-authored full-experiment scripts pass `scripts/security_scan.py` before dispatch (credential access / env exfiltration / destructive ops / non-allowlisted egress → BLOCKED) |
 | **Figure contract** | unified renderer + embedded A1–A10 Nature-level audit; composite figures deliver true-vector LaTeX assembly (`composite.tex`), raster previews are audit-downgraded |
@@ -434,31 +434,33 @@ Publication-grade figures are produced by ONE unified entry point — `scripts/p
 
 ## FAQ
 
-### Q: Which disciplines does SciForge-OSS support?
-A: All disciplines. Physics, mathematics, computer science, medicine, economics, education, materials science, earth science, atmospheric science, astronomy, chemistry, engineering, sensors, optoelectronics — any scientific domain.
+**Q: Which scientific domains does SciForge-OSS support?**
+A: The framework is domain-agnostic by design — it hardcodes no discipline knowledge. It has been validated end-to-end in physics, mathematics, computer science, medicine, economics, materials science, and the humanities, and applies to any scientific domain.
 
-### Q: Where do research problems come from?
-A: From you. SciForge-OSS is a fully autonomous research skill — the human supplies one research question (any domain, with or without a Q-id label), and the pipeline runs end-to-end on it. There is no bundled problem bank.
+**Q: Where do research problems come from?**
+A: From the user. SciForge-OSS is an autonomous research pipeline, not a benchmark: the human supplies one research question (with or without a Q-id), and the pipeline runs it end-to-end. No problem bank is bundled.
 
-### Q: Does it need multiple AI models to run?
-A: No. SciForge-OSS uses a **structured self-review** mode — the same agent switches roles (researcher→reviewer→adjudicator) for adversarial review; no cross-model collaboration needed.
+**Q: Does it require multiple AI models?**
+A: No. Review is performed by structured self-review — the same agent rotates roles (researcher → reviewer → adjudicator) for adversarial evaluation. Cross-model collaboration is optional, not required.
 
-### Q: How to run a complete scientific-problem study?
-A: Execute `/auto-pipeline "Q001: problem description" — effort: max`; it auto-completes the 21-phase DAG loop.
+**Q: How is a full research run invoked?**
+A: `/auto-pipeline "Q001: problem statement" — effort: max` executes the complete phase-DAG loop. Long runs survive interruptions via the `.sciforge/RUNSTATE.json` resume contract; see [Quick Start](#quick-start).
 
-### Q: What format is the output paper?
-A: Unified `elsarticle` LaTeX format, compilable to PDF. Theory papers use the theory structure (Main Results + Proofs); experimental papers use the standard structure; survey papers use the taxonomy structure. All compile to a zero-warning PDF.
+**Q: What is the output format?**
+A: A submission-ready paper in the unified `elsarticle` LaTeX template, compiled to a zero-warning PDF, plus the full verification trail (machine-readable verdicts and audit narratives) under the run workspace.
 
-### Q: How to contribute a new skill?
-A: See [CONTRIBUTING.md](CONTRIBUTING.md). All skills are pure Markdown files following a unified frontmatter format.
+**Q: How do I contribute?**
+A: See [CONTRIBUTING.md](CONTRIBUTING.md). Skills are pure Markdown files with a unified frontmatter format; every change must keep `scripts/ci_check.py` green.
 
 ## Acknowledgments
 
-We sincerely thank everyone who made SciForge-OSS possible:
+The development of SciForge-OSS would not have been possible without the following contributions, which we gratefully acknowledge:
 
-- **lhw, leader of GewisLab** — for providing the core ideas, orchestrating the project preparation, and designing the overall architecture.
-- **yjt** — as the main developer driving the implementation forward.
-- **yjt, lyh, lls, jwh, qym and all other contributors** — for their generous token support, which powers the continuous self-iteration, optimization, and bug-fixing of this repository.
+- **Luo H. W.** (leader of GewisLab) — project initiation, core research ideas, and overall architecture design.
+- **Yang J. T.** — lead developer, responsible for the implementation and engineering of the framework.
+- **Yang J. T., Lu Y. H., Li L. S., Jia W. H., Qiu Y. M., and Zhang W. B.** — generous provision of computational resources (API tokens), which sustain the continuous self-iteration, optimization, and maintenance of this repository.
+
+We also thank all contributors who have improved SciForge-OSS through issues and pull requests.
 
 ## License
 

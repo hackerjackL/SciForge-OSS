@@ -512,7 +512,15 @@ def main(argv=None):
                 results.append((name, "PASS" if not errors else "FAIL", errors))
             else:
                 results.append((name, "WARN", ["unregistered .txt artifact in verdicts/"]))
-        # other extensions (e.g. PIPELINE_VERDICT_SUMMARY.md narrative) are ignored
+        elif name.endswith(".md"):
+            # the ONLY narrative allowed inside verdicts/ is the orchestrator's
+            # derived overview; any other .md is a misfiled narrative report
+            # (audits/ narratives live in .sciforge/audits/, v6.0)
+            if name != "PIPELINE_VERDICT_SUMMARY.md":
+                results.append((name, "WARN", [
+                    "misfiled narrative in verdicts/ (only PIPELINE_VERDICT_SUMMARY.md "
+                    "is allowed here; narratives belong in .sciforge/audits/)"]))
+        # other extensions are ignored
 
     # declared N/A but actually present -> routing/production inconsistency
     for i, (name, status, notes) in enumerate(results):

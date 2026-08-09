@@ -3,7 +3,7 @@ name: publishability-score
 description: "Final publishability scoring across dim1-first-axis + multi-dim. Phase 15.5. Invoke after citation-audit for the go/no-go submission verdict."
 type: support-skill
 role: paper-publishability-assessor
-version: 1.3.1
+version: 1.3.2
 ---
 > **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `.sciforge/verdicts/` (filenames: see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
@@ -83,7 +83,7 @@ Read:
 - `paper/COMPILE_REPORT.json` (compile status, zero warnings?)
 - `experiments/toy/RESULT.json` + `experiments/full/STATUS.json` + `experiments/full/EXPERIMENT_RESULTS.json` (experiment results)
 - `CLAIMS_FROM_RESULTS.md` (claim gating, repo root)
-- `.sciforge/audits/LOGIC_VERIFICATION.json` + `.sciforge/audits/LEAKAGE_AUDIT.json` (logic/leakage audit)
+- `.sciforge/verdicts/LOGIC_VERIFICATION.json` + `.sciforge/verdicts/LEAKAGE_AUDIT.json` (logic/leakage audit)
 - `.sciforge/audits/REVIEW_REPORT.md` + `.sciforge/audits/KILL_ARGUMENT.md` (Phase 14 review)
 - `literature/FILTER_CHAIN_AUDIT.json` (literature chain)
 - `.sciforge/refine-logs/FINAL_PROPOSAL.md` (core claim freeze)

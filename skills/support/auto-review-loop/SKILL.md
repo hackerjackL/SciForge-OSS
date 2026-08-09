@@ -1,6 +1,6 @@
 ---
 name: auto-review-loop
-version: 1.3.1
+version: 1.3.2
 description: "Iterative self-review (review→fix→re-review) with role-switch + v3.2 Phase B.2 domain-expert blind-spot review (wired into explicit ordered chain A→B.1→B.2→C) + kill-argument anti-self-deception. v3.4 STOP CONDITION uses effective_score=min(Phase C raw, B.2 cap) — a fatal blind-spot caps at 5, blocks false 'ready'. Writes BLINDSPOT_CHECK.json. Phase 14. Invoke to improve the draft until score≥6 or MAX_ROUNDS."
 type: reference-skill
 role: autonomous-review-loop-orchestrator
@@ -41,7 +41,7 @@ Create or maintain a workspace named `.sciforge/audits/` for all review outputs.
 
 Key artifacts produced:
 - `.sciforge/audits/AUTO_REVIEW.md` — cumulative review log
-- `.sciforge/audits/REVIEW_STATE.json` — checkpoint state for recovery
+- `.sciforge/verdicts/REVIEW_STATE.json` — checkpoint state for recovery
 - `.sciforge/audits/REVIEWER_MEMORY.md` — reviewer's persistent memory (hard / nightmare only)
 - `CLAIMS_FROM_RESULTS.md` — generated at termination via `/result-to-claim` (if available)
 
@@ -72,7 +72,7 @@ These knobs shape loop behavior. Treat them as defaults; the user may override a
 
 ## State Persistence (Compact Recovery)
 
-Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `.sciforge/audits/REVIEW_STATE.json` after each round.
+Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `.sciforge/verdicts/REVIEW_STATE.json` after each round.
 
 State fields:
 - `round` — current round number
@@ -99,7 +99,7 @@ State fields:
 
 ### Initialization
 
-1. **Check for `.sciforge/audits/REVIEW_STATE.json`** (fall back to `./REVIEW_STATE.json` for legacy projects):
+1. **Check for `.sciforge/verdicts/REVIEW_STATE.json`** (fall back to `./REVIEW_STATE.json` for legacy projects):
    - If neither path exists: **fresh start**.
    - If it exists AND `status` is `completed`: **fresh start** (previous loop finished normally).
    - If it exists AND `status` is `in_progress` AND `timestamp` is older than 24 hours: **fresh start** (stale state from a killed / abandoned run — delete the file and start over).
@@ -126,7 +126,7 @@ State fields:
 5. **Phase C — Implement Fixes** (merge Phase A weaknesses + B.2 unresolved blind-spots into one fix list)
 6. **Phase D — Wait for background derivations** (if any dispatched)
 
-> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Phase B.2 was a **buried subsection** between B.1 and B.5 — the agent read the numbered Phase A→B.1→B.5→C chain and **silently skipped B.2** because it was not in the explicit execution list. Two real test runs (Q-HARM-001 theory, Q-SGD-BS-GAP computational) confirmed this: both produced `.sciforge/audits/` with `AUTO_REVIEW.md` + `REVIEW_LEDGER.json` but **NO `BLINDSPOT_CHECK.json`** — Phase B.2 never ran, yet `.sciforge/PIPELINE_STATUS.md` claimed "all 8 blind-spot items passed" with zero backing artifact. This is the same orphan-artifact bug class as the v3.2 frontier gap. The fix is structural: B.2 is now step 3 of the explicit ordered loop, not a buried subsection. The `BLINDSPOT_CHECK.json` file is the load-bearing evidence — a round that completes without writing it is invalid regardless of the score it claims.
+> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Phase B.2 was a **buried subsection** between B.1 and B.5 — the agent read the numbered Phase A→B.1→B.5→C chain and **silently skipped B.2** because it was not in the explicit execution list. Two real test runs (Q-HARM-001 theory, Q-SGD-BS-GAP computational) confirmed this: both produced `.sciforge/audits/AUTO_REVIEW.md` + the review ledger but **NO `BLINDSPOT_CHECK.json`** — Phase B.2 never ran, yet `.sciforge/PIPELINE_STATUS.md` claimed "all 8 blind-spot items passed" with zero backing artifact. This is the same orphan-artifact bug class as the v3.2 frontier gap. The fix is structural: B.2 is now step 3 of the explicit ordered loop, not a buried subsection. The `BLINDSPOT_CHECK.json` file is the load-bearing evidence — a round that completes without writing it is invalid regardless of the score it claims.
 
 #### Phase A: Structured Self-Review
 
@@ -289,7 +289,7 @@ Then extract structured fields:
    - `checked_clear` — the artifacts explicitly address this failure mode (e.g. a DWH test for endogeneity is present and passes) → no action.
    - `not_applicable` — this failure mode does not apply to this problem (e.g. `no_placebo` for a pure-theory paper) → record the reason in one clause.
    - `unresolved` — the failure mode applies but the artifacts do NOT address it → **add to this round's fix list as a MAJOR (or CRITICAL if the failure-mode catalog marks it `fatal`)**, independent of the generic Phase C weakness list.
-3. **Write `.sciforge/audits/BLINDSPOT_CHECK.json`** (one per round, appended):
+3. **Write `.sciforge/verdicts/BLINDSPOT_CHECK.json`** (v6.0: machine-readable verdict → verdicts/ directory; single fixed-name file **overwritten with the latest round** — a flat fixed-name file holds one JSON document, so per-round history is recorded in AUTO_REVIEW.md, not appended here):
    ```json
    {"round":N,"evidence_type":"<x>","failure_modes_checked":[
      {"mode":"endogeneity","verdict":"checked_clear","evidence":"methods/METHOD_REGISTRY.md:42 DWH p=0.31"},
@@ -475,7 +475,7 @@ This is the authoritative record. Do NOT truncate or paraphrase.]
 - Difficulty: [medium/hard/nightmare]
 ```
 
-**Write `.sciforge/audits/REVIEW_STATE.json`** with current round, score, verdict, and any pending derivations.
+**Write `.sciforge/verdicts/REVIEW_STATE.json`** with current round, score, verdict, and any pending derivations.
 
 **Append to `findings.md`** (when `COMPACT = true`): one-line entry per key finding this round:
 ```markdown
@@ -486,40 +486,65 @@ Increment round counter → go to Phase E.5.
 
 #### Phase E.5: Write Review Ledger
 
-After documenting each round, append to `.sciforge/audits/REVIEW_LEDGER.json`. This is the authoritative machine-readable record for downstream skills (`/citation-audit`, `/paper-writing` Phase 0.5, external verifier).
+After documenting each round, update `.sciforge/verdicts/REVIEW_LEDGER.json` (machine-readable verdict — it lives in the verdicts/ directory like every other machine-readable verdict, NOT in audits/). This is the authoritative machine-readable record for downstream skills (`/citation-audit`, `/paper-writing` Phase 0.5, external verifier `scripts/verifiers/verify_review_ledger.sh`).
 
-**Format** (JSONL, one object per line):
+**Format** (single JSON object, latest state overwrites — NOT a JSONL stream; the round history lives in `details.rounds[]`, schema: `schemas/REVIEW_LEDGER.schema.json`):
+
 ```json
 {
-  "round": 1,
-  "timestamp": "2026-07-20T14:30:00Z",
-  "score": 7,
-  "verdict": "almost",
-  "key_criticisms": ["Missing symbolic proof for outcome O3", "No counterexample search for regime |λ|>1"],
-  "actions_taken": ["Attempted SymPy proof for O3 (success)", "Ran counterexample sweep for |λ|>1 (none found)"],
-  "fidelity_delta": {"O3": "qualitative → symbolic"},
-  "blockers_remaining": ["Full regime verification for |λ|>1"],
-  "phase": "documented"
+  "audit_skill": "auto-review-loop",
+  "verdict": "PASS",
+  "reason_code": "score_above_threshold",
+  "summary": "2 review rounds; final score 7 >= 6; loop finalized.",
+  "generated_at": "2026-07-20T14:30:00Z",
+  "details": {
+    "rounds": [
+      {
+        "round": 1,
+        "timestamp": "2026-07-20T14:30:00Z",
+        "score": 5,
+        "verdict": "almost",
+        "phase": "documented",
+        "key_criticisms": ["Missing symbolic proof for outcome O3", "No counterexample search for regime |λ|>1"],
+        "action_items": ["Attempted SymPy proof for O3 (success)", "Ran counterexample sweep for |λ|>1 (none found)"],
+        "statistical_gate": {"data_type": "synthetic", "status": "PASS"},
+        "blockers_remaining": ["Full regime verification for |λ|>1"]
+      },
+      {
+        "round": 2,
+        "timestamp": "2026-07-20T15:10:00Z",
+        "score": 7,
+        "verdict": "ready",
+        "phase": "finalized",
+        "final_score": 7,
+        "final_verdict": "ready",
+        "total_rounds": 2
+      }
+    ]
+  }
 }
 ```
 
-**Fields**:
+**Envelope fields**: `audit_skill` / top-level `verdict` (6-state: PASS/WARN/FAIL/NOT_APPLICABLE/BLOCKED/ERROR) / `reason_code` / `summary` / `generated_at` — rewritten at every update.
+
+**Per-round fields** (each entry of `details.rounds[]`):
 - `round` (int): round number (1-indexed)
 - `timestamp` (string): ISO 8601 UTC
-- `score` (int): reviewer score this round
-- `verdict` (string): `ready` / `almost` / `not_ready`
+- `score` (number): reviewer score this round
+- `verdict` (string): review-loop vocabulary `ready` / `almost` / `not_ready` (NOT the 6-state envelope vocabulary)
+- `phase` (string): `documented` (work rounds) or `finalized` (the termination entry)
 - `key_criticisms` (string[]): top reviewer concerns
-- `actions_taken` (string[]): fixes implemented
-- `fidelity_delta` (object): fidelity level changes per outcome (optional)
-- `blockers_remaining` (string[]): unresolved issues (optional)
-- `phase` (string): `documented` (per-round) or `finalized` (at termination)
+- `action_items` (string[]): fixes implemented this round (documented rounds)
+- `statistical_gate` (object, optional): `data_type` + gate status for empirical claims
+- `blockers_remaining` (string[], optional): unresolved issues
+- `fidelity_delta` (object, optional): fidelity level changes per outcome
 
-At termination, append one final entry with `phase: "finalized"` and `final_score`, `final_verdict`, and `total_rounds`.
+At termination, append one final `details.rounds[]` entry with `phase: "finalized"` carrying `final_score`, `final_verdict`, and `total_rounds` (no `action_items` needed), and set the envelope's top-level `verdict`/`summary` accordingly.
 
 ### Termination
 
 When loop ends (positive assessment or max rounds):
-1. Update `.sciforge/audits/REVIEW_STATE.json` with `status: completed`.
+1. Update `.sciforge/verdicts/REVIEW_STATE.json` with `status: completed`.
 2. Write final summary to `.sciforge/audits/AUTO_REVIEW.md`.
 3. Update project notes with conclusions.
 4. **Write method / derivation description** to `.sciforge/audits/AUTO_REVIEW.md` under a `## Method Description` section — a concise 1-2 paragraph description of the final derivation, its structure, and the verification chain. This serves as input for `/unified-plotting` in the figure generation phase.
@@ -537,7 +562,7 @@ When loop ends (positive assessment or max rounds):
 - Promise to fix without implementing. Implement fixes BEFORE re-reviewing.
 - Fabricate BibTeX or citations. Use the DBLP → CrossRef → `[VERIFY]` chain. Do NOT generate BibTeX from memory.
 - Give up on a self-review concern after one attempt. **Exhaust before surrendering** — before marking any concern as "cannot address": (1) try at least 2 different solution paths, (2) for derivation issues, attempt a weaker version or an alternative argument, (3) for numerical issues, adjust parameters or try a different sanity check, (4) only then concede narrowly and bound the damage.
-- Silently skip writing `.sciforge/audits/REVIEW_LEDGER.json` at termination — the ledger is mandatory regardless of outcome.
+- Silently skip writing `.sciforge/verdicts/REVIEW_LEDGER.json` at termination — the ledger is mandatory regardless of outcome.
 - Override a fidelity gate `BLOCK` with a positive top-level verdict — the gate is a hard override.
 
 **Always**:
@@ -546,7 +571,7 @@ When loop ends (positive assessment or max rounds):
 - If a derivation takes > 30 minutes, launch it and continue with other fixes while waiting.
 - Document EVERYTHING — the review log should be self-contained.
 - Update project notes after each round, not just at the end.
-- Append to `.sciforge/audits/REVIEW_LEDGER.json` at the end of every round (Phase E.5) and finalize at termination — the ledger is the authoritative machine-readable record for downstream skills.
+- Update `.sciforge/verdicts/REVIEW_LEDGER.json` at the end of every round (Phase E.5) and finalize at termination — the ledger is the authoritative machine-readable record for downstream skills.
 
 ## Output Shape
 

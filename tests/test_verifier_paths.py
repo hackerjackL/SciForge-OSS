@@ -92,6 +92,76 @@ def test_ledger_verifier_fails_when_absent_everywhere(tmp_path):
     assert "not found" in proc.stderr
 
 
+def test_ledger_verifier_accepts_review_vocabulary_and_finalized_entry(tmp_path):
+    """v1.3.2 regression: per-round verdicts use the review-loop vocabulary
+    (ready/almost/not_ready), NOT the 6-state envelope vocabulary — the old
+    verifier rejected the canonical e2e fixture itself. The phase="finalized"
+    termination entry legitimately carries no action_items."""
+    ws = tmp_path / "Q001"
+    verdicts = ws / ".sciforge" / "verdicts"
+    verdicts.mkdir(parents=True)
+    ledger = {
+        "audit_skill": "auto-review-loop",
+        "verdict": "PASS",
+        "reason_code": "score_above_threshold",
+        "summary": "two rounds",
+        "generated_at": "2026-08-09T00:00:00Z",
+        "details": {
+            "rounds": [
+                {
+                    "round": 1,
+                    "timestamp": "2026-08-09T00:00:00Z",
+                    "score": 5,
+                    "verdict": "almost",
+                    "phase": "documented",
+                    "key_criticisms": ["missing proof"],
+                    "action_items": ["proved it"],
+                    "blockers_remaining": [],
+                },
+                {
+                    "round": 2,
+                    "timestamp": "2026-08-09T01:00:00Z",
+                    "score": 7,
+                    "verdict": "ready",
+                    "phase": "finalized",
+                    "final_score": 7,
+                    "final_verdict": "ready",
+                    "total_rounds": 2,
+                },
+            ]
+        },
+    }
+    (verdicts / "REVIEW_LEDGER.json").write_text(
+        json.dumps(ledger, indent=2) + "\n", encoding="utf-8"
+    )
+    proc = run_verifier(LEDGER_VERIFIER, ws)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_ledger_verifier_rejects_unknown_round_verdict(tmp_path):
+    ws = tmp_path / "Q001"
+    verdicts = ws / ".sciforge" / "verdicts"
+    verdicts.mkdir(parents=True)
+    ledger = {
+        "details": {
+            "rounds": [
+                {
+                    "round": 1,
+                    "score": 5,
+                    "verdict": "kinda_ok",  # neither review vocab nor 6-state
+                    "action_items": [],
+                }
+            ]
+        }
+    }
+    (verdicts / "REVIEW_LEDGER.json").write_text(
+        json.dumps(ledger, indent=2) + "\n", encoding="utf-8"
+    )
+    proc = run_verifier(LEDGER_VERIFIER, ws)
+    assert proc.returncode == 1
+    assert "kinda_ok" in (proc.stdout + proc.stderr)
+
+
 def test_paper_audits_verifier_finds_v6_sciforge_path(tmp_path):
     ws = tmp_path / "Q001"
     verdicts = ws / ".sciforge" / "verdicts"
