@@ -30,6 +30,7 @@ Fields to extract:
   - writing_profile.citation_format
   - failure_mode_profile.common_failures
   - data_profile.data_availability
+  - evidence_norm_profile (v6.0: sample_size_norm / control_design_norm / effect_reporting_norm / negative_result_norm — consumed per domain-signature-consumer.md)
 ```
 
 ### Step 3: Look Up Consumption Rules

@@ -185,7 +185,7 @@ The filter-chain integrity audit writes to `literature/FILTER_CHAIN_AUDIT.json`:
 ```
 
 - `PASS` → Phase 5 proceeds
-- `WARN` → Phase 5 proceeds, but the `NEEDS_HUMAN_LIT_supplement` flag is passed to `.sciforge/PIPELINE_STATUS.json` (human supplements the literature later)
+- `WARN` → Phase 5 proceeds, but the `NEEDS_HUMAN_LIT_supplement` flag is recorded in `.sciforge/logs/pipeline.log` and the `.sciforge/PIPELINE_STATUS.md` execution report (human supplements the literature later)
 - `FAIL` (no core claim covered OR all citations unverified) → fall back to Phase 4 re-search (up to 3 rounds)
 
 ## Configuration

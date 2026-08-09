@@ -21,7 +21,7 @@ role: idea-falsification-auditor
 
 ## Use When
 
-Use this skill immediately after `/idea-discovery` produces candidate ideas, before `/novelty-check` filters them. Applied to every candidate idea that passed the 5-axis pre-screen.
+Use this skill immediately after `/idea-discovery` produces candidate ideas, before `/novelty-check` filters them. Applied to every candidate idea that passed the 6-axis pre-screen.
 
 Typical prompts:
 - "Falsify this idea"

@@ -305,4 +305,4 @@ The MCTS search is invoked by `/idea-discovery` Phase 2.5. It does NOT replace t
 | Phase 2: Pilot top 2-3 ideas (legacy) | Phase 2.5: MCTS replaces pilot — low/mid/high fidelity gates are a superset of pilot |
 | Phase 3: Novelty check on top ideas | Phase 3: Novelty check on `promoted_ids` from DAG |
 
-**Fallback**: If `IDEA_DAG.json` is corrupted or MCTS fails, fall back to the legacy pilot flow (top 2-3 ideas, direct pilot experiment). The 4 pipeline orchestrators are unaffected.
+**Fallback**: If `IDEA_DAG.json` is corrupted or MCTS fails, OSS has **no legacy pilot/demo fallback** — re-run ideation with broader perspectives (idea-discovery's 0-promoted-ideas fallback), or report to the human for problem re-scoping. A pilot/demo experiment is never substituted for the real toy/full gates.

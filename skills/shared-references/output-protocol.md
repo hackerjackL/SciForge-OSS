@@ -66,9 +66,10 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   ├── domain-signature.json / domain-signature-hint.json ← domain signature (Phase 1b sole writer; 1a hint)
 │   │   ├── FINAL_PROPOSAL.md  ← frozen selected idea
 │   │   └── abandoned/<idea_id>/ ← KILL/PIVOT archives of rejected branches
-│   ├── audits/         ←   [narrative audit reports] (v6.0 merge of .sciforge/audits/ + .sciforge/audits/ + .sciforge/audits/)
+│   ├── audits/         ←   [narrative audit reports] (v6.0 merge of the legacy audit_report/ + review-stage/ + citation_audit/ stage dirs)
 │   │   ├── LOGIC_VERIFICATION.md / LEAKAGE_AUDIT.md / INVARIANT_CHECK.md / Type_I.md … Type_IV.md
 │   │   ├── CLAIMS_FROM_RESULTS.md ← 3-fidelity claim gate narrative (result-to-claim)
+│   │   ├── FINAL_VERDICT.md / STAGNATION_REPORT.md / QUALITY_FLOOR_REPORT.md / SELF_DECEPTION_REPORT.md ← quality-gate reports
 │   │   ├── AUTO_REVIEW.md         ← cross-model review narrative (auto-review-loop)
 │   │   └── CITATION_AUDIT.md      ← 3-layer citation audit narrative (citation-audit)
 │   └── tmp/            ←   scratch space (rendering intermediates, debug scripts, download caches); whole directory deleted at wrap-up

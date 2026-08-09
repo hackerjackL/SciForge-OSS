@@ -1,6 +1,6 @@
 # Idea DAG Schema — Single Source of Truth
 
-> **Status**: Contract for the Idea DAG data structure. Consumed by `/idea-discovery` Phase 2.5 (DAG-Based Idea Search). Produces `idea-stage/IDEA_DAG.json`.
+> **Status**: Contract for the Idea DAG data structure. Consumed by `/idea-discovery` Phase 2.5 (DAG-Based Idea Search). Produces `.sciforge/refine-logs/IDEA_DAG.json` (pre-v6.0 location `idea-stage/IDEA_DAG.json`, read as fallback only).
 
 This schema defines a **Directed Acyclic Graph (DAG)** for storing the idea search space. Each node represents an Idea's state (including its sketch, fidelity scores, and UCB value). Edges represent iteration (Mutation) or combination (Crossover). The DAG structure captures the evolutionary history of ideas — which ideas were derived from which, and which were combined to form fusion ideas.
 
@@ -20,7 +20,7 @@ This schema defines a **Directed Acyclic Graph (DAG)** for storing the idea sear
 
 ## 2. JSON Schema
 
-The DAG is persisted as `idea-stage/IDEA_DAG.json` with the following structure:
+The DAG is persisted as `.sciforge/refine-logs/IDEA_DAG.json` with the following structure:
 
 ```json
 {
@@ -183,7 +183,7 @@ UCB = V_idea + c * sqrt(ln(N_total) / n_idea)
 
 ## 6. Data Fit Flags (Optional, Discipline-Aware)
 
-The `data_fit_flags` field on each node records the data axis alignment from the low-fidelity evaluation (sourced from the idea-discovery data-readiness axis 5-axis idea-fit verdict). This field is **optional** — it is populated when `DATA_INSIGHT_REPORT.md` exists and the low-fidelity evaluation runs.
+The `data_fit_flags` field on each node records the data axis alignment from the low-fidelity evaluation (sourced from the idea-discovery data-readiness axis of the 6-axis idea-fit verdict). This field is **optional** — it is populated when `DATA_INSIGHT_REPORT.md` exists and the low-fidelity evaluation runs.
 
 | Field | Values | Meaning |
 |-------|--------|--------|
@@ -214,17 +214,17 @@ The `idea_sketch` field carries discipline-specific content per `DISCIPLINE_CONT
 
 ## 8. Artifact Registration
 
-`idea-stage/IDEA_DAG.json` is a registered artifact in [`artifact-registry.md`](artifact-registry.md):
+`.sciforge/refine-logs/IDEA_DAG.json` is a registered artifact in [`artifact-registry.md`](artifact-registry.md):
 
 | Artifact | Path | Producer | Consumers | Schema |
 |----------|------|----------|-----------|--------|
-| `IDEA_DAG.json` | idea-stage/ | `/idea-discovery` Phase 2.5 | `/idea-discovery` (self-consumed across MCTS iterations), `/novelty-check` (reads promoted ideas), `/auto-review-loop` (reads promoted ideas for review) | This schema (v1.0) |
+| `.sciforge/refine-logs/IDEA_DAG.json` | .sciforge/refine-logs/ | `/idea-discovery` Phase 2.5 | `/idea-discovery` (self-consumed across MCTS iterations), `/novelty-check` (reads promoted ideas), `/auto-review-loop` (reads promoted ideas for review) | This schema (v1.0) |
 
 ---
 
 ## 9. Fallback Behavior
 
-If `IDEA_DAG.json` does not exist or is corrupted, `/idea-discovery` falls back to the legacy pilot experiment flow (Phase 2 pilot top 2-3 ideas). The DAG search is an enhancement layer, not a hard dependency — the 4 pipeline orchestrators remain unaffected.
+If `IDEA_DAG.json` does not exist or is corrupted, `/idea-discovery` re-runs ideation with broader perspectives (the OSS 0-promoted-ideas fallback — OSS has no legacy pilot/demo fallback; a demo run is never substituted for the real toy/full gates). The DAG search is an enhancement layer, not a hard dependency.
 
 ---
 

@@ -142,7 +142,7 @@ Step 7: Log the override in .sciforge/PIPELINE_STATUS.md (transparency — the i
 Main SciForge has 4 parallel pipelines (economics / cs-ml / physics / general) each with its own framework and reviewer persona. That is hardcoded discipline branching — adding a 5th discipline means adding a 5th pipeline.
 
 This adaptive pipeline is **structurally different**:
-1. **One pipeline shape** — 20 phases, invariant order, universal fallback contract. No "economics pipeline" or "physics pipeline".
+1. **One pipeline shape** — 21 phases, invariant order, universal fallback contract. No "economics pipeline" or "physics pipeline".
 2. **Intensity is data-driven** — the learner (Phase 1b) writes the signature; the orchestrator reads it and applies the override table. No human pre-classifies the discipline.
 3. **The override table is evidence-type-based, not discipline-based** — `derivational` covers math + theoretical CS + logic; `experimental` covers medicine + bio + psychology; `interpretive` covers humanities + law + education. Adding a new discipline that fits an existing evidence_type requires ZERO orchestrator changes.
 4. **Unknown evidence_types default to STANDARD** — the pipeline does not break on a novel domain; it runs the v2.7 default behavior and flags for community contribution.

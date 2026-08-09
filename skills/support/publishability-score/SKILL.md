@@ -17,8 +17,8 @@ version: 1.3.0
 ## Quick Reference
 
 - **Purpose**: give the final paper a structured publishability score
-- **Input**: `paper/main.pdf` + `paper/main.tex` + `experiments/` + `.sciforge/audits/` + `review/` + `CLAIMS_FROM_RESULTS.md` + `.sciforge/PIPELINE_STATUS.json`
-- **Output**: `PUBLISHABILITY_SCORE.json` + `PUBLISHABILITY_SCORE.md` (human-readable)
+- **Input**: `paper/main.pdf` + `paper/main.tex` + `experiments/` + `.sciforge/audits/` + `.sciforge/audits/CLAIMS_FROM_RESULTS.md` + `.sciforge/PIPELINE_STATUS.md`
+- **Output**: `.sciforge/verdicts/PUBLISHABILITY_SCORE.json` + `.sciforge/audits/PUBLISHABILITY_SCORE.md` (human-readable narrative)
 - **Key**: 6-dimension scoring; **main-experiment-logic-in-place** is the primary axis; distinguish "missing supplementary experiments" vs "main logic not in place (no mean)"
 
 ## Use When
@@ -87,7 +87,7 @@ Read:
 - `.sciforge/audits/REVIEW_REPORT.md` + `.sciforge/audits/KILL_ARGUMENT.md` (Phase 14 review)
 - `literature/FILTER_CHAIN_AUDIT.json` (literature chain)
 - `.sciforge/refine-logs/FINAL_PROPOSAL.md` (core claim freeze)
-- `.sciforge/PIPELINE_STATUS.json` (pipeline status)
+- `.sciforge/PIPELINE_STATUS.md` (pipeline execution report)
 
 ### Step 2: Score Dimension 1 (Main-Experiment-Logic) — GATING
 

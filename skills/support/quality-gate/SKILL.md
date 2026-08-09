@@ -129,7 +129,7 @@ For each entry in `MAX_RETRIES`, compare against the corresponding entry in `RET
 
 ### Output
 
-Produce `quality_gate/STAGNATION_REPORT.md`:
+Produce `.sciforge/audits/STAGNATION_REPORT.md`:
 ```markdown
 # Stagnation Report
 
@@ -179,7 +179,7 @@ For each QF-G criterion:
 
 ### Output
 
-Produce `quality_gate/QUALITY_FLOOR_REPORT.md`:
+Produce `.sciforge/audits/QUALITY_FLOOR_REPORT.md`:
 ```markdown
 # Quality Floor Report (OSS Universal)
 
@@ -245,7 +245,7 @@ The self-deception guard uses a **structured self-consistency check** approach:
 
 ### Output
 
-Produce `quality_gate/SELF_DECEPTION_REPORT.md`:
+Produce `.sciforge/audits/SELF_DECEPTION_REPORT.md`:
 ```markdown
 # Self-Deception Guard Report (OSS Universal)
 
@@ -280,7 +280,7 @@ Produce `quality_gate/SELF_DECEPTION_REPORT.md`:
 The quality gate produces a single verdict:
 
 ```
-quality_gate/FINAL_VERDICT.md:
+.sciforge/audits/FINAL_VERDICT.md:
   stagnation: PASS | WARN | FAIL
   quality_floor: PASS | WARN | FAIL
   self_deception: PASS | WARN | FAIL
@@ -315,10 +315,10 @@ quality_gate/FINAL_VERDICT.md:
 
 | Artifact | Path | Phase |
 |----------|------|-------|
-| Stagnation Report | `quality_gate/STAGNATION_REPORT.md` | Phase 1 |
-| Quality Floor Report | `quality_gate/QUALITY_FLOOR_REPORT.md` | Phase 2 |
-| Self-Deception Report | `quality_gate/SELF_DECEPTION_REPORT.md` | Phase 3 |
-| Final Verdict | `quality_gate/FINAL_VERDICT.md` | Final |
+| Stagnation Report | `.sciforge/audits/STAGNATION_REPORT.md` | Phase 1 |
+| Quality Floor Report | `.sciforge/audits/QUALITY_FLOOR_REPORT.md` | Phase 2 |
+| Self-Deception Report | `.sciforge/audits/SELF_DECEPTION_REPORT.md` | Phase 3 |
+| Final Verdict | `.sciforge/audits/FINAL_VERDICT.md` | Final |
 
 ## Output Protocols
 
