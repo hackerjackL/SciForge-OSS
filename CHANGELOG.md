@@ -10,6 +10,10 @@
 - 同步更新 package.json / CITATION.cff / SKILL.md 的 license 字段，以及 README（中英）的徽章与许可章节
 - 注：历史 CHANGELOG 条目中记录的 "MIT" 为该版本发布时的真实状态，保持不变
 
+### 致谢更新
+
+- 计算资源（API token）提供者致谢名单新增 Wang C. Y.（中英 README 同步）
+
 ## [1.3.2] - 2026-08-09
 
 ### fix-bug 第二轮：判定文件位置/形状契约的系统性对账（4 个提交，274 tests）
