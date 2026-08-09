@@ -30,7 +30,6 @@
 - [Multi-domain examples](#multi-domain-examples)
 - [Core design principles](#core-design-principles)
 - [Figure toolchain](#figure-toolchain)
-- [FAQ](#faq)
 - [Acknowledgments](#acknowledgments)
 - [Stargazers over time](#stargazers-over-time)
 - [License](#license)
@@ -54,7 +53,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 
 ## Installation
 
-> **v1.3.0**: literature-first gap chain (ideas anchor to mined literature gaps), evidence-norm domain learning, `.sciforge/` two-tier workspace with RUNSTATE long-horizon resume and routing-aware N/A verdicts. Pure Skill package + optional toolchain. The skills themselves are pure Markdown that any Markdown-capable AI agent can consume directly; fully running through (figures / literature / compile / experiments) needs the optional toolchain, see "Toolchain (optional but recommended)" below.
+> **v1.3.2**: literature-first gap chain (ideas anchor to mined literature gaps), evidence-norm domain learning, `.sciforge/` two-tier workspace with RUNSTATE long-horizon resume and routing-aware N/A verdicts. Pure Skill package + optional toolchain. The skills themselves are pure Markdown that any Markdown-capable AI agent can consume directly; fully running through (figures / literature / compile / experiments) needs the optional toolchain, see "Toolchain (optional but recommended)" below.
 
 ### Method 1: Clone the repository (recommended, standard skill integration)
 
@@ -185,7 +184,7 @@ Phase  3: /novelty-check [DAG gate] — 4-axis scoring + pruning
 Phase  4: /universal-retrieval — literature survey + 3-layer anti-hallucination (MUST, no-skip; via mihomo proxy)
 Phase  5: /method-registry — method binding + hash lock + forced human approval (test_mode bypasses)
 Phase  6: /theory-derivation — SymPy symbolic derivation + step-by-step machine verification
-     │  ── Experiment execution layer (v2.0) ── non-theory-only path ──
+     │  ── Experiment execution layer ── non-theory-only path ──
 Phase  6b: /experiment-execution --stage=toy [CONDITIONAL] — toy: minimal-scale core-reasoning-chain validation (foreground ≤5min, else toy_bg background)
 Phase  6c: /experiment-execution --stage=full --background [CONDITIONAL] — full: background dispatch (nohup/tmux/systemd)
 Phase  7: /leakage-audit — Type I logic gap + Type IV escape audit
@@ -197,11 +196,11 @@ Phase 12: /paper-writing — elsarticle single template (mode-selected section s
 Phase 13: /paper-compile — LaTeX zero-warning zero-error compile (MUST, non-waivable)
 Phase 14: /auto-review-loop — structured self-review (role switch: researcher→reviewer→adjudicator) + kill-argument (MUST)
 Phase 15: /citation-audit — final 3-layer citation verification
-Phase 15.5: /publishability-score — 6-dim score (main-experiment-logic is the gating axis) (MUST, new v2.2)
+Phase 15.5: /publishability-score — 6-dim score (main-experiment-logic is the gating axis) (MUST)
 Phase 16: Final assembly + cleanliness audit (project-architecture-contract)
 ```
 
-**Fallback contract (bounded 3 rounds)**: each phase with a ↻ falls back to the relevant prior phase on failure, bounded to 3 rounds per failure-type. Past round 3 → BLOCKED + surfaced to the human. **BA (Backtracking-After, v2.2.1)**: when an experiment falsifies the idea's core claim (Phase 6c full FAIL after toy PASS / Phase 8 FATAL contradiction / Phase 14 kill-argument sustained), the orchestrator backtracks to Phase 2 to regenerate the idea (bounded 2 rounds) — distinct from phase-internal 3-round fallback.
+**Fallback contract (bounded 3 rounds)**: each phase with a ↻ falls back to the relevant prior phase on failure, bounded to 3 rounds per failure-type. Past round 3 → BLOCKED + surfaced to the human. **BA (Backtracking-After)**: when an experiment falsifies the idea's core claim (Phase 6c full FAIL after toy PASS / Phase 8 FATAL contradiction / Phase 14 kill-argument sustained), the orchestrator backtracks to Phase 2 to regenerate the idea (bounded 2 rounds) — distinct from phase-internal 3-round fallback.
 
 **Forced human checkpoints (2)**: Phase 3→4 (pick the final idea) and Phase 5→6 (approve the method registry). `test_mode=true` bypasses these (agent does the work each guards, defers only the human approval; logs `human_review_status=PENDING_DEFERRED, production_ready=false`).
 
@@ -263,12 +262,12 @@ SciForge-OSS/
 │   │   ├── sciforge_style.py        # morandi design tokens (single source of truth)
 │   │   ├── figure_audit.py          # A1–A10 Nature-level audit (embedded)
 │   │   └── INSTALL.md               # cross-platform replication manual
-│   ├── validate_verdicts.py         # v5.3: verdict JSON schema validator (stdlib-only)
-│   ├── security_scan.py             # v5.3: static pre-dispatch scan for agent-authored experiments
-│   ├── ci_check.py                  # v5.3: single CI entry point (links/versions/plotting/tests)
+│   ├── validate_verdicts.py         # verdict JSON schema validator (stdlib-only)
+│   ├── security_scan.py             # static pre-dispatch scan for agent-authored experiments
+│   ├── ci_check.py                  # single CI entry point (links/versions/plotting/tests)
 │   └── verifiers/                   # external artifact verifiers (review ledger, paper audits)
 ├── tests/                           # 270+ pytest cases (palette, audits, validator, e2e smoke, verifiers)
-├── fixtures/e2e_minimal/            # v5.3: minimal end-to-end fixture (toy experiment + full verdict trail)
+├── fixtures/e2e_minimal/            # minimal end-to-end fixture (toy experiment + full verdict trail)
 ├── .workflow/ci.yml                 # AtomGit Actions CI (same gate as ci_check.py)
 ├── skills/
 │   ├── orchestrator/
@@ -287,7 +286,7 @@ SciForge-OSS/
 │   │   ├── paper-compile/           # LaTeX → PDF (zero warnings, anti-deadloop)
 │   │   ├── quality-gate/            # hard gate at the final pre-writing boundary
 │   │   ├── auto-review-loop/        # structured self-review (role switch)
-│   │   ├── experiment-execution/    # toy + full + background dispatch (v2.0; device auto-detect v2.2)
+│   │   ├── experiment-execution/    # toy + full + background dispatch (device auto-detect)
 │   │   ├── theory-derivation/       # SymPy symbolic derivation + machine verification
 │   │   ├── leakage-audit/           # Type I + Type IV audit
 │   │   ├── logic-verification/      # 6-dim logical consistency audit
@@ -297,18 +296,18 @@ SciForge-OSS/
 │   │   ├── method-registry/         # method registry + hash lock
 │   │   ├── citation-audit/          # final 3-layer citation verification
 │   │   ├── adversarial-falsification/  # adversarial falsification
-│   │   ├── publishability-score/    # 6-dim publishability score (new v2.2)
-│   │   └── rebuttal/                # point-by-point rebuttal letter after rejection (new v5.3)
+│   │   ├── publishability-score/    # 6-dim publishability score
+│   │   └── rebuttal/                # point-by-point rebuttal letter after rejection
 │   └── shared-references/           # shared contracts (discipline-agnostic)
 │       ├── artifact-registry.md     # single source of truth for cross-skill artifacts
 │       ├── output-protocol.md       # single authority for the workspace directory tree
-│       ├── schemas/                 # v5.3: JSON Schemas for every machine-readable verdict
+│       ├── schemas/                 # JSON Schemas for every machine-readable verdict
 │       ├── paper-modes.md           # 5-mode selector (theory/experiment/computational/survey/hybrid)
 │       ├── figure-quality-contract.md  # 16:9, PDF+SVG dual, Nature readability, d2 pipeline
 │       ├── project-architecture-contract.md  # GitHub-style project tree + cleanliness audit
 │       ├── background-dispatch-protocol.md     # >5min background dispatch
 │       ├── citation-discipline.md   # 3-layer anti-hallucination
-│       ├── writing-principles.md    # academic writing + per-domain style contract (v2.2.1)
+│       ├── writing-principles.md    # academic writing + per-domain style contract
 │       ├── discipline-writing.md    # universal section-by-section guide
 │       ├── color-themes.md          # Morandi (Layer 1) + viridis/magma (Layer 2)
 │       ├── venue-profiles.md        # single elsarticle template spec
@@ -322,7 +321,7 @@ SciForge-OSS/
 
 ## Quality gates
 
-The pipeline is guarded by machine-checkable gates, not prose promises. (Governance generations: v5.3 hardening — schemas, budget ledger, security gate, KILL checkpoint; v6.0 — the `.sciforge/` two-tier workspace with long-horizon resume. These are internal generation labels; the release version is the one in the badge above.)
+The pipeline is guarded by machine-checkable gates, not prose promises.
 
 | Gate | What enforces it |
 |------|------------------|
@@ -431,26 +430,6 @@ Publication-grade figures are produced by ONE unified entry point — `scripts/p
 - **Two-tier visual review**: vision-capable host agents self-review the PNG against a 9-item checklist (no external API — the host's native vision is the reviewer); text-only hosts degrade to the mechanical audit
 - **Journal column-width presets**: `--width-preset nature-single|aaai-double|...` (14 venues)
 - **Cross-platform**: Linux / macOS / Windows — fonts auto-discovered per platform, no machine-specific paths; see [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)
-
-## FAQ
-
-**Q: Which scientific domains does SciForge-OSS support?**
-A: The framework is domain-agnostic by design — it hardcodes no discipline knowledge. It has been validated end-to-end in physics, mathematics, computer science, medicine, economics, materials science, and the humanities, and applies to any scientific domain.
-
-**Q: Where do research problems come from?**
-A: From the user. SciForge-OSS is an autonomous research pipeline, not a benchmark: the human supplies one research question (with or without a Q-id), and the pipeline runs it end-to-end. No problem bank is bundled.
-
-**Q: Does it require multiple AI models?**
-A: No. Review is performed by structured self-review — the same agent rotates roles (researcher → reviewer → adjudicator) for adversarial evaluation. Cross-model collaboration is optional, not required.
-
-**Q: How is a full research run invoked?**
-A: `/auto-pipeline "Q001: problem statement" — effort: max` executes the complete phase-DAG loop. Long runs survive interruptions via the `.sciforge/RUNSTATE.json` resume contract; see [Quick Start](#quick-start).
-
-**Q: What is the output format?**
-A: A submission-ready paper in the unified `elsarticle` LaTeX template, compiled to a zero-warning PDF, plus the full verification trail (machine-readable verdicts and audit narratives) under the run workspace.
-
-**Q: How do I contribute?**
-A: See [CONTRIBUTING.md](CONTRIBUTING.md). Skills are pure Markdown files with a unified frontmatter format; every change must keep `scripts/ci_check.py` green.
 
 ## Acknowledgments
 

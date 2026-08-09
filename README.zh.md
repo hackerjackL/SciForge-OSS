@@ -30,7 +30,6 @@
 - [多领域示例](#多领域示例)
 - [核心设计原则](#核心设计原则)
 - [绘图工具链](#绘图工具链)
-- [常见问题 (FAQ)](#常见问题-faq)
 - [致谢](#致谢)
 - [Star 增长趋势](#star-增长趋势)
 - [许可证](#许可证)
@@ -54,7 +53,7 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 
 ## 安装指南
 
-> **v1.3.0**：文献先行 gap 链（idea 锚定文献空白）、证据门槛领域学习、`.sciforge/` 双层工作区（RUNSTATE 长续航恢复 + 路由感知 N/A verdict）。纯 Skill 包 + 可选工具链。skill 本身是纯 Markdown，任何能读 Markdown 的 AI agent 直接消费；但完整跑通（图/文献/编译/实验）需要可选工具链，见下文「工具链（可选但推荐）」。
+> **v1.3.2**：文献先行 gap 链（idea 锚定文献空白）、证据门槛领域学习、`.sciforge/` 双层工作区（RUNSTATE 长续航恢复 + 路由感知 N/A verdict）。纯 Skill 包 + 可选工具链。skill 本身是纯 Markdown，任何能读 Markdown 的 AI agent 直接消费；但完整跑通（图/文献/编译/实验）需要可选工具链，见下文「工具链（可选但推荐）」。
 
 ### 方式一：克隆仓库（推荐，标准 skill 集成）
 
@@ -306,16 +305,16 @@ SciForge-OSS/
 │   │   ├── auto-review-loop/SKILL.md       ← 跨模型迭代评审 + kill-argument 反自欺
 │   │   ├── citation-audit/SKILL.md         ← 最终 3 层引用防幻觉验证
 │   │   ├── kill-argument/SKILL.md          ← 反自欺练习（kill your own argument）
-│   │   ├── experiment-execution/SKILL.md   ← toy + full + 后台派发 + 安全门（v5.3）
+│   │   ├── experiment-execution/SKILL.md   ← toy + full + 后台派发 + 安全门
 │   │   ├── adversarial-falsification/SKILL.md ← Phase 2.5 对抗证伪
 │   │   ├── publishability-score/SKILL.md   ← 6 维发表性终评
-│   │   └── rebuttal/SKILL.md               ← 拒稿后逐点申诉信（v5.3 新增）
+│   │   └── rebuttal/SKILL.md               ← 拒稿后逐点申诉信
 │   ├── orchestrator/                       ← 1 个编排器
-│   │   └ auto-pipeline/SKILL.md  ← 21 阶段 DAG 闭环（单题执行，v2.9 新增 Phase 5b EG）
+│   │   └ auto-pipeline/SKILL.md  ← 21 阶段 DAG 闭环（单题执行，含 Phase 5b 工程落地评估）
 │   └── shared-references/                  ← 共享契约（学科无关）
 │       ├── artifact-registry.md            ← 跨 skill 产物唯一登记处（SSoT）
 │       ├── output-protocol.md              ← 工作区目录树唯一权威（verdicts/ 统一）
-│       ├── schemas/                        ← v5.3：全部机读 verdict 的 JSON Schema
+│       ├── schemas/                        ← 全部机读 verdict 的 JSON Schema
 │       ├── idea-dag-schema.md              ← DAG 节点 schema
 │       ├── mcts-search-protocol.md         ← MCTS 迭代协议（UCB1 + 有界轮次）
 │       ├── multi-fidelity-evaluation.md    ← 3 保真度筛选
@@ -338,19 +337,19 @@ SciForge-OSS/
 │   │   ├── sciforge_style.py              ← 莫兰迪设计 token（单一事实源）
 │   │   ├── figure_audit.py                ← A1–A10 Nature 级审计（内嵌）
 │   │   └── INSTALL.md                     ← 三平台复刻手册
-│   ├── validate_verdicts.py               ← v5.3：verdict JSON schema 校验器（纯 stdlib）
-│   ├── security_scan.py                   ← v5.3：agent 实验脚本派发前静态安全扫描
-│   ├── ci_check.py                        ← v5.3：CI 单一入口（断链/版本/plotting/测试）
+│   ├── validate_verdicts.py               ← verdict JSON schema 校验器（纯 stdlib）
+│   ├── security_scan.py                   ← agent 实验脚本派发前静态安全扫描
+│   ├── ci_check.py                        ← CI 单一入口（断链/版本/plotting/测试）
 │   └── verifiers/                         ← 外部产物校验器（评审台账、论文审计）
 ├── tests/                                 ← 270+ pytest 用例（色板/审计/校验器/e2e 冒烟/verifier）
-├── fixtures/e2e_minimal/                  ← v5.3：最小端到端 fixture（toy 实验 + 完整 verdict 链）
+├── fixtures/e2e_minimal/                  ← 最小端到端 fixture（toy 实验 + 完整 verdict 链）
 ├── .workflow/ci.yml                       ← AtomGit Actions CI（与 ci_check.py 同一门控）
 └── [删除: templates/ 占位目录、discipline-templates/、experiment-*、plugin-router、wiki-helper、problems/ 题库]
 ```
 
 ## 质量门
 
-管线由机器可校验的门控守护，而不是文字承诺。（治理代际：v5.3 加固——schema 强制、预算总账、安全门、KILL 检查点；v6.0——`.sciforge/` 双层工作区与长续航恢复。这些是内部代际标识；发布版本以上方徽章为准。）
+管线由机器可校验的门控守护，而不是文字承诺。
 
 | 门控 | 执行者 |
 |------|--------|
@@ -456,26 +455,6 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 - **两级视觉审阅**：具备原生视觉的宿主 agent 按 9 项清单自审 PNG（零外部 API——宿主自身的视觉能力就是审阅者）；纯文本宿主降级机械审计
 - **期刊宽度预设**：`--width-preset nature-single|aaai-double|...`（14 种版面）
 - **跨平台**：Linux / macOS / Windows——字体按平台自动发现、无机器专属路径；见 [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)
-
-## 常见问题 (FAQ)
-
-**Q：SciForge-OSS 支持哪些学科？**
-A：框架在设计上领域无关——不预设任何学科知识。已在物理、数学、计算机科学、医学、经济学、材料科学与人文学科完成端到端验证，适用于任何科学领域。
-
-**Q：研究问题从哪里来？**
-A：由用户提供。SciForge-OSS 是全自动科研管线而非基准测试：人类提供一个研究问题（Q-id 可有可无），管线端到端自主完成。仓库不附带题库。
-
-**Q：是否需要多个 AI 模型协同？**
-A：不需要。评审采用结构化自评审——同一 agent 通过角色轮换（研究者→评审者→裁决者）实现对抗性评审；跨模型协作是可选项，不是依赖。
-
-**Q：如何发起一次完整研究？**
-A：执行 `/auto-pipeline "Q001: 问题描述" — effort: max` 即可跑完整个阶段 DAG。长程运行可通过 `.sciforge/RUNSTATE.json` 续航契约在中断后恢复，见[快速开始](#快速开始)。
-
-**Q：输出格式是什么？**
-A：统一 `elsarticle` LaTeX 模板的可投稿论文，编译为零警告 PDF；随附完整验证痕迹（机读 verdict 与审计叙述报告）保存在运行工作区。
-
-**Q：如何参与贡献？**
-A：参见 [CONTRIBUTING.md](CONTRIBUTING.md)。skill 为统一 frontmatter 格式的纯 Markdown 文件；任何改动必须保持 `scripts/ci_check.py` 全绿。
 
 ## 致谢
 
