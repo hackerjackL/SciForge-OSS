@@ -1,8 +1,33 @@
 # Changelog
 
-## [1.2.1] - 2026-08-09
+## [1.2.0] - 2026-08-09
 
-### v5.3 加固补丁（follow-up on the hardening pass）
+### v5.3 治理加固 + 全英文化 + 工程化基础（hardening pass）
+
+**P0 — 修复静默腐烂**
+- 目录权威统一：`output-protocol.md` 成为目录结构**唯一权威**；`artifact-registry.md` 只登记 producer/consumer/schema/verifier，路径逐行同步到 v5.2 `verdicts/` 路径（REVIEW_STATE / REVIEW_LEDGER / CITATION_AUDIT / PROOF_AUDIT / KILL_ARGUMENT / REGISTRY_HASH / LEAKAGE_AUDIT / INVARIANT_CHECK / IDEA_REPORT / IDEA_DAG…），新增"v5.2 机读评判产物"登记表（17 行）+ RUN_BUDGET 行
+- 孤儿引用清零：新增 `/rebuttal` skill（投稿被拒后的申诉信生成，管线缺口）；实现 `scripts/verifiers/verify_review_ledger.sh` + `verify_paper_audits.sh`（registry 承诺但从未存在的两个 external verifier）；`/auto-paper-improvement-loop` / `/research-refine-pipeline` / `/experiment-plan` 显式标注 "deferred（未随 OSS 分发）"；ESTIMATOR_VERIFICATION 标注 inactive（INV-E5 已移出 OSS）
+- CI 从无到有：`scripts/ci_check.py`（① md 断链扫描 ② 全仓版本号一致性 ③ plotting 三模块语法 + `--doctor`）+ `.workflow/ci.yml`（AtomGit Actions）+ `.pre-commit-config.yaml`
+- composite 组图真矢量：引擎在预览 SVG 之外产出**矢量面板 + `composite.tex`**（LaTeX 侧组图，graphicx-only，standalone/`\input` 双模编译）+ `composite_meta.json`（`raster_panels: true` 审计降级 A2 WARN）；`latex_include.tex` 指向 composite.tex；修复 caption 转义潜在 bug
+
+**P1 — 能力上限**
+- 评判 Schema 强制（v5.3）：`skills/shared-references/schemas/` 16 份 draft-2020-12 JSON Schema + `scripts/validate_verdicts.py`（stdlib-only 子集校验器 + 6 态词表 / `audited_input_hashes` / BUDGET_FLOOR / KILL `PASS⇒still_unresolved==0` 跨字段不变量）；orchestrator 每个 phase boundary 与收尾运行（违规 → WARN，`--strict` → BLOCKED）
+- plotting 测试底座：`tests/` 166 用例（色板 C*/对比度属性测试、A1–A10 fixture、渲染器冒烟、validator、e2e smoke）；发现并修复 tikz v2.0 色板漂移（注入色与 TOKENS 脱节 + `palette_check` 漏 `{HTML}`/`rgb()` 语法 → 注入色改活源 `extract_colors` 全语法）
+- 全局预算总账：`verdicts/RUN_BUDGET.json`（wall_clock / api_cost / pivot_count / ba_used + effort 档位 limits + per_phase），orchestrator 每个 boundary 记账核对，超限 BLOCKED 上报人类；旧 `BA_BUDGET.json` 记账并入（只读回退）
+- 实验安全门：`scripts/security_scan.py` 静态扫描（SEC-001–011 BLOCKED 级 + SEC-101–107 WARN 级，fail-closed，allowlist 只豁免 WARN/出口类）；experiment-execution Step 5.00 将"先扫描后 dispatch"硬接线进固定序列，DISPATCH.json 记录 `security_gate`
+- KILL 人类检查点（v5.3，默认 ON）：kill-argument 产出后暂停等待人类确认才允许换 idea（L5/L7/L9/L11/L13 全路径）；`human_skip=true` 或 `kill_checkpoint=false` 才全自动；确认记录进 `APPROVAL_LOG.txt`，下一 boundary 缺记录 → BLOCK
+
+**P2 — 体验与可维护性**
+- 25 个 SKILL.md 全英文统一（零 CJK；机读字段/路径/链接不变；术语表统一：kill argument / loop-back / budget floor / collision audit / budget floor…）
+- A10 文字重叠检测升级：viewBox+font 度量精确 bbox + tspan 换行/dy 累积 + 祖先 `<g>` transform 合成（translate/scale；rotate/matrix 标记 unsupported 安全跳过）；`CHAR_WIDTH_ESTIMATES` 常量化可测
+- e2e 冒烟 fixture：`fixtures/e2e_minimal/`（合成问题 + 秒级 toy 实验 + 17 项 mock verdicts，`validate_verdicts.py` 全 PASS、真实哈希）+ 9 项守卫测试（21-phase 计数、14 目录树双向核对、哈希重算）
+- 清理：`scripts/plotting/__pycache__/` 删除；output-protocol"15 个目录"→14、auto-pipeline"20 phases"→21 等 prose 漂移修正
+
+**版本号统一至 1.2.0**：根 SKILL.md + plugin.json + package.json + CITATION.cff + 25 子 skill + VERSIONING.md + README 双语徽章。
+
+**验证**：166 tests 全 PASS；`ci_check.py` OVERALL PASS（0 断链、版本一致、`--doctor` READY）；e2e fixture 17/17 verdict PASS；`security_scan.py --self-test` 16/16。
+
+### v5.3 加固补丁（follow-up on the hardening pass，发布前并入 1.2.0）
 
 - **CI 真正跑测试**：`ci_check.py` 新增第 4 项检查 `test-suite` —— pytest 全量用例 + `validate_verdicts.py` e2e fixture + `security_scan.py --self-test`；缺 pytest 判 FAIL 而非跳过（裸克隆不能静默过 CI）。`.workflow/ci.yml` 相应安装 pytest + Pillow
 - **doctor() 诚实化**：diagrams/cairosvg 两行此前调 `which("python3")` 冒充 import 检查（包缺失也报 OK）——改为子进程真实 import（v5.3 fix）
@@ -30,33 +55,6 @@
 - **产出方义务三补齐（引用扫描反向核对）**：树中登记但 SKILL.md 从未提及产物路径的三处——experiment-execution 补 `verdicts/BUDGET_FLOOR.json` 持久化义务（此前仅为 Return payload 字段）；theory-derivation 补 `verdicts/PROOF_AUDIT.json` always-emit 义务（含 NOT-COHERENT 分支的 verdict 语义）；auto-pipeline 补每个 boundary 重写 `verdicts/PIPELINE_VERDICT_SUMMARY.md` 的义务。至此 20 个 verdicts/ 条目全部 producer/consumer 落字
 
 **验证**：261 tests 全 PASS；`ci_check.py` 四项检查 OVERALL PASS；`security_scan.py --self-test` 23/23；validator e2e fixture 20/20 零 pending；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK（grep 全仓扫描）。
-
-## [1.2.0] - 2026-08-09
-
-### v5.3 治理加固 + 全英文化 + 工程化基础（hardening pass）
-
-**P0 — 修复静默腐烂**
-- 目录权威统一：`output-protocol.md` 成为目录结构**唯一权威**；`artifact-registry.md` 只登记 producer/consumer/schema/verifier，路径逐行同步到 v5.2 `verdicts/` 路径（REVIEW_STATE / REVIEW_LEDGER / CITATION_AUDIT / PROOF_AUDIT / KILL_ARGUMENT / REGISTRY_HASH / LEAKAGE_AUDIT / INVARIANT_CHECK / IDEA_REPORT / IDEA_DAG…），新增"v5.2 机读评判产物"登记表（17 行）+ RUN_BUDGET 行
-- 孤儿引用清零：新增 `/rebuttal` skill（投稿被拒后的申诉信生成，管线缺口）；实现 `scripts/verifiers/verify_review_ledger.sh` + `verify_paper_audits.sh`（registry 承诺但从未存在的两个 external verifier）；`/auto-paper-improvement-loop` / `/research-refine-pipeline` / `/experiment-plan` 显式标注 "deferred（未随 OSS 分发）"；ESTIMATOR_VERIFICATION 标注 inactive（INV-E5 已移出 OSS）
-- CI 从无到有：`scripts/ci_check.py`（① md 断链扫描 ② 全仓版本号一致性 ③ plotting 三模块语法 + `--doctor`）+ `.workflow/ci.yml`（AtomGit Actions）+ `.pre-commit-config.yaml`
-- composite 组图真矢量：引擎在预览 SVG 之外产出**矢量面板 + `composite.tex`**（LaTeX 侧组图，graphicx-only，standalone/`\input` 双模编译）+ `composite_meta.json`（`raster_panels: true` 审计降级 A2 WARN）；`latex_include.tex` 指向 composite.tex；修复 caption 转义潜在 bug
-
-**P1 — 能力上限**
-- 评判 Schema 强制（v5.3）：`skills/shared-references/schemas/` 16 份 draft-2020-12 JSON Schema + `scripts/validate_verdicts.py`（stdlib-only 子集校验器 + 6 态词表 / `audited_input_hashes` / BUDGET_FLOOR / KILL `PASS⇒still_unresolved==0` 跨字段不变量）；orchestrator 每个 phase boundary 与收尾运行（违规 → WARN，`--strict` → BLOCKED）
-- plotting 测试底座：`tests/` 166 用例（色板 C*/对比度属性测试、A1–A10 fixture、渲染器冒烟、validator、e2e smoke）；发现并修复 tikz v2.0 色板漂移（注入色与 TOKENS 脱节 + `palette_check` 漏 `{HTML}`/`rgb()` 语法 → 注入色改活源 `extract_colors` 全语法）
-- 全局预算总账：`verdicts/RUN_BUDGET.json`（wall_clock / api_cost / pivot_count / ba_used + effort 档位 limits + per_phase），orchestrator 每个 boundary 记账核对，超限 BLOCKED 上报人类；旧 `BA_BUDGET.json` 记账并入（只读回退）
-- 实验安全门：`scripts/security_scan.py` 静态扫描（SEC-001–011 BLOCKED 级 + SEC-101–107 WARN 级，fail-closed，allowlist 只豁免 WARN/出口类）；experiment-execution Step 5.00 将"先扫描后 dispatch"硬接线进固定序列，DISPATCH.json 记录 `security_gate`
-- KILL 人类检查点（v5.3，默认 ON）：kill-argument 产出后暂停等待人类确认才允许换 idea（L5/L7/L9/L11/L13 全路径）；`human_skip=true` 或 `kill_checkpoint=false` 才全自动；确认记录进 `APPROVAL_LOG.txt`，下一 boundary 缺记录 → BLOCK
-
-**P2 — 体验与可维护性**
-- 25 个 SKILL.md 全英文统一（零 CJK；机读字段/路径/链接不变；术语表统一：kill argument / loop-back / budget floor / collision audit / budget floor…）
-- A10 文字重叠检测升级：viewBox+font 度量精确 bbox + tspan 换行/dy 累积 + 祖先 `<g>` transform 合成（translate/scale；rotate/matrix 标记 unsupported 安全跳过）；`CHAR_WIDTH_ESTIMATES` 常量化可测
-- e2e 冒烟 fixture：`fixtures/e2e_minimal/`（合成问题 + 秒级 toy 实验 + 17 项 mock verdicts，`validate_verdicts.py` 全 PASS、真实哈希）+ 9 项守卫测试（21-phase 计数、14 目录树双向核对、哈希重算）
-- 清理：`scripts/plotting/__pycache__/` 删除；output-protocol"15 个目录"→14、auto-pipeline"20 phases"→21 等 prose 漂移修正
-
-**版本号统一至 1.2.0**：根 SKILL.md + plugin.json + package.json + CITATION.cff + 25 子 skill + VERSIONING.md + README 双语徽章。
-
-**验证**：166 tests 全 PASS；`ci_check.py` OVERALL PASS（0 断链、版本一致、`--doctor` READY）；e2e fixture 17/17 verdict PASS；`security_scan.py --self-test` 16/16。
 
 ## [1.1.2] - 2026-08-09
 

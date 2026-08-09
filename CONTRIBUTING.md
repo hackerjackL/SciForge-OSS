@@ -21,7 +21,7 @@ Thanks for your interest! SciForge-OSS is a **pure-Skill-driven universal AI Sci
    python3 scripts/ci_check.py          # links + version consistency + plotting + full test suite
    python3 -m pytest tests/ -q          # (also runs inside ci_check.py)
    ```
-4. If you touched the release surface, follow `VERSIONING.md` (single version number across all 27 files + CHANGELOG entry).
+4. If you touched the release surface, follow `VERSIONING.md` (single version number across all 29 version-bearing files + CHANGELOG entry).
 5. Open the PR with a clear description of the problem and the fix.
 6. **Freeze convention**: once a PR is opened, treat its commits as frozen — further changes go into a NEW PR. (Repeated squash-merges racing late pushes dropped commits in the past; this convention exists because of that.)
 
