@@ -5,7 +5,8 @@
 # Usage: verify_paper_audits.sh <workspace_root> [--assurance submission]
 #
 # For each audit in the family:
-#   1. locate verdicts/<NAME>.json (fallback paper/<NAME>.json, pre-v5.2)
+#   1. locate .sciforge/verdicts/<NAME>.json (v6.0; fallbacks: verdicts/<NAME>.json
+#      (v5.2) and paper/<NAME>.json (pre-v5.2))
 #   2. require valid JSON with a 6-state `verdict` field
 #      (PASS / WARN / FAIL / NOT_APPLICABLE / BLOCKED / ERROR)
 #   3. require an `audited_input_hashes` object
@@ -82,14 +83,17 @@ fail() {
 # check_audit <NAME> — validate one audit JSON; returns via exit on error.
 check_audit() {
     local name="$1"
-    local path="$WS/verdicts/${name}.json"
+    local path="$WS/.sciforge/verdicts/${name}.json"   # v6.0 canonical home
+    if [[ ! -f "$path" ]]; then
+        path="$WS/verdicts/${name}.json"   # v5.2 fallback location
+    fi
     if [[ ! -f "$path" ]]; then
         path="$WS/paper/${name}.json"   # pre-v5.2 fallback location
     fi
 
     if [[ ! -f "$path" ]]; then
         if [[ "$ASSURANCE" == "submission" ]]; then
-            fail "${name}.json missing (assurance=submission requires it; looked in $WS/verdicts/ and $WS/paper/)"
+            fail "${name}.json missing (assurance=submission requires it; looked in $WS/.sciforge/verdicts/, $WS/verdicts/ and $WS/paper/)"
         fi
         echo "SKIP (not present): ${name}"
         return 0
@@ -189,7 +193,7 @@ check_audit "PROOF_AUDIT"
 if [[ "$ASSURANCE" == "submission" && -d "$WS/derivations" ]]; then
     check_audit "KILL_ARGUMENT"
 else
-    if [[ ! -f "$WS/verdicts/KILL_ARGUMENT.json" && ! -f "$WS/paper/KILL_ARGUMENT.json" ]]; then
+    if [[ ! -f "$WS/.sciforge/verdicts/KILL_ARGUMENT.json" && ! -f "$WS/verdicts/KILL_ARGUMENT.json" && ! -f "$WS/paper/KILL_ARGUMENT.json" ]]; then
         echo "SKIP (not required): KILL_ARGUMENT (assurance=$ASSURANCE, derivations/ $([[ -d "$WS/derivations" ]] && echo present || echo absent))"
     else
         check_audit "KILL_ARGUMENT"
