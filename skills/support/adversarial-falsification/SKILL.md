@@ -1,6 +1,6 @@
 ---
 name: adversarial-falsification
-version: 1.3.0
+version: 1.3.1
 description: "Stress-test an idea's hypotheses with domain-specific failure modes + Ouroboros basic integration (D dim). Phase 2.5 (MANDATORY). Invoke after idea-discovery, before the human checkpoint."
 type: support-skill
 role: idea-falsification-auditor
@@ -21,7 +21,7 @@ role: idea-falsification-auditor
 
 ## Use When
 
-Use this skill immediately after `/idea-discovery` produces candidate ideas, before `/novelty-check` filters them. Applied to every candidate idea that passed the 5-axis pre-screen.
+Use this skill immediately after `/idea-discovery` produces candidate ideas, before `/novelty-check` filters them. Applied to every candidate idea that passed the 6-axis pre-screen.
 
 Typical prompts:
 - "Falsify this idea"

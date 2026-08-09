@@ -182,7 +182,7 @@ The user's core concern is "false tricks" — ideas that look good early but fai
 
 ## 7. Integration with Data Insight
 
-The idea-discovery data-readiness axis produces a 5-axis idea-fit verdict that feeds into the **low-fidelity** evaluation:
+The idea-discovery data-readiness axis (one of the 6 axes of the idea-fit pre-screen) produces the verdict that feeds into the **low-fidelity** evaluation:
 
 | Axis | Used in | Question answered |
 |------|---------|-------------------|

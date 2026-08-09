@@ -36,9 +36,9 @@ Artifacts live in their **stage directory**, not the project root:
 
 | Stage | Directory | Examples |
 |-------|-----------|----------|
-| idea | `idea-stage/` | IDEA_DAG.md, IDEA_DAG_VISUAL.md |
+| idea | `.sciforge/refine-logs/` | IDEA_DAG.json, IDEA_DAG_VISUAL.md |
 | refine | `.sciforge/refine-logs/` | domain-signature.json, FALSIFICATION.md |
-| review | `.sciforge/audits/` | PAPER_CLAIM_AUDIT.json |
+| review | `.sciforge/verdicts/` (machine) + `.sciforge/audits/` (narrative) | PAPER_CLAIM_AUDIT.json, AUTO_REVIEW.md |
 | paper | `paper/` | main.tex, references.bib |
 | audit | `.sciforge/audits/` | CITATION_AUDIT.json, PROOF_AUDIT.json |
 | results | `results/` | CLAIMS_FROM_RESULTS.md |

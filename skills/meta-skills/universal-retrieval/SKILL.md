@@ -1,6 +1,6 @@
 ---
 name: universal-retrieval
-version: 1.3.0
+version: 1.3.1
 description: "Literature search + 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar) + v3.2 proxy auto-mount + filter-chain integrity audit + v6.0 wave protocol (broad wave mines GAP_REPORT.md, targeted waves per surviving idea). Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
 type: reference-skill
 role: academic-retriever
@@ -185,7 +185,7 @@ The filter-chain integrity audit writes to `literature/FILTER_CHAIN_AUDIT.json`:
 ```
 
 - `PASS` → Phase 5 proceeds
-- `WARN` → Phase 5 proceeds, but the `NEEDS_HUMAN_LIT_supplement` flag is passed to `.sciforge/PIPELINE_STATUS.json` (human supplements the literature later)
+- `WARN` → Phase 5 proceeds, but the `NEEDS_HUMAN_LIT_supplement` flag is recorded in `.sciforge/logs/pipeline.log` and the `.sciforge/PIPELINE_STATUS.md` execution report (human supplements the literature later)
 - `FAIL` (no core claim covered OR all citations unverified) → fall back to Phase 4 re-search (up to 3 rounds)
 
 ## Configuration

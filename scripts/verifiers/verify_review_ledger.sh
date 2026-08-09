@@ -2,8 +2,9 @@
 # verify_review_ledger.sh — external verifier for verdicts/REVIEW_LEDGER.json
 #
 # Checks (per Artifact Registry row for REVIEW_LEDGER.json):
-#   1. ledger file exists (verdicts/REVIEW_LEDGER.json, fallback
-#      review-stage/REVIEW_LEDGER.json for pre-v5.2 workspaces)
+#   1. ledger file exists (.sciforge/verdicts/REVIEW_LEDGER.json since v6.0,
+#      fallback verdicts/REVIEW_LEDGER.json (v5.2) and
+#      review-stage/REVIEW_LEDGER.json (pre-v5.2) for old workspaces)
 #   2. file is valid JSON
 #   3. top-level object has a details.rounds[] array
 #   4. every round object contains keys: score, verdict, action_items
@@ -30,13 +31,16 @@ if [[ ! -d "$WS" ]]; then
     exit 1
 fi
 
-# Locate the ledger: v5.2 canonical path first, pre-v5.2 fallback second.
-LEDGER="$WS/verdicts/REVIEW_LEDGER.json"
+# Locate the ledger: v6.0 canonical path first, then v5.2 and pre-v5.2 fallbacks.
+LEDGER="$WS/.sciforge/verdicts/REVIEW_LEDGER.json"
+if [[ ! -f "$LEDGER" ]]; then
+    LEDGER="$WS/verdicts/REVIEW_LEDGER.json"
+fi
 if [[ ! -f "$LEDGER" ]]; then
     LEDGER="$WS/review-stage/REVIEW_LEDGER.json"
 fi
 if [[ ! -f "$LEDGER" ]]; then
-    echo "VERIFY FAIL: REVIEW_LEDGER.json not found (looked in $WS/verdicts/ and $WS/review-stage/)" >&2
+    echo "VERIFY FAIL: REVIEW_LEDGER.json not found (looked in $WS/.sciforge/verdicts/, $WS/verdicts/ and $WS/review-stage/)" >&2
     exit 1
 fi
 

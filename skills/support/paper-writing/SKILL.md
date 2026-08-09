@@ -1,6 +1,6 @@
 ---
 name: paper-writing
-version: 1.3.0
+version: 1.3.1
 description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (8-class regex, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer
@@ -195,7 +195,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 **Theory / Derivation:**
 - Present the derivation results in neutral academic prose
 - Key equations with explanatory text
-- **Reproducibility is expressed as a neutral statement** ("All symbolic checks were performed with SymPy 1.13 and verified to 60 conditions"; "numerical sampling used a fixed random seed"), NOT as internal pipeline paths. The actual scripts/inputs are deposited in a supplementary archive (see Step 5 Reproducibility Statement) — they are NEVER referenced via `\path{derivations/...}` or `\texttt{experiments/...}` in the manuscript body. Internal artifact paths (`derivations/{problem_id}/`, `experiments/toy/`, `experiments/full/`, `methods/`, `.sciforge/refine-logs/`, `.sciforge/audits/`, `.sciforge/audits/`, `literature/`) are engineering scaffolding, not academic content.
+- **Reproducibility is expressed as a neutral statement** ("All symbolic checks were performed with SymPy 1.13 and verified to 60 conditions"; "numerical sampling used a fixed random seed"), NOT as internal pipeline paths. The actual scripts/inputs are deposited in a supplementary archive (see Step 5 Reproducibility Statement) — they are NEVER referenced via `\path{derivations/...}` or `\texttt{experiments/...}` in the manuscript body. Internal artifact paths (`derivations/{problem_id}/`, `experiments/toy/`, `experiments/full/`, `methods/`, `.sciforge/refine-logs/`, `.sciforge/audits/`, `.sciforge/verdicts/`, `.sciforge/logs/`, `literature/`) are engineering scaffolding, not academic content.
 - Include only intermediate results that aid understanding
 
 **Results:**
@@ -240,7 +240,7 @@ After writing, verify:
 
 | Class | Forbidden pattern (regex) | Required rewrite |
 |-------|---------------------------|------------------|
-| **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `.sciforge/refine-logs/`, `.sciforge/audits/`, `.sciforge/audits/`, `literature/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
+| **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `.sciforge/refine-logs/`, `.sciforge/audits/`, `.sciforge/verdicts/`, `.sciforge/logs/`, `literature/`, `code/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
 | **B. Phase / pipeline jargon** | `Phase [0-9]`, `toy stage`, `toy_gate`, `background dispatch`, `nohup`, `tmux`, `systemd`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: ?(lite\|balanced\|max\|beast)`, `role.?switch`, `senior.?reviewer`, `adversarial.?falsification` | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
 | **C. Audit-skill verdicts** | `Type I (LEAKY\|CLEAN\|WEAK)`, `Type IV (ESCAPE\|CLOSED\|N/A)`, `INV-G[0-9]`, `0 FATAL\|0 CRITICAL\|0 MAJOR.*MINOR`, `6 dimensions.*20.category`, `fidelity.*symbolic\|numerical\|qualitative`, `assurance.?contract` | Rewrite as neutral verification language ("All symbolic and numerical checks pass"; no taxonomy counts, no verdict enums) |
 | **D. Pipeline identifiers** | `Q-[A-Z]+-[A-Z0-9]+`, `INV-G[0-9]`, `problem.?anchor`, `Q-id`, `domain.?signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
