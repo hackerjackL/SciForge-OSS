@@ -99,13 +99,15 @@ verdicts directory); the orchestrator's resume protocol (output-protocol.md
 
 ## Known gaps (docs vague or conflicting — schemas stay permissive here)
 
-1. **REVIEW_LEDGER shape conflict.** auto-review-loop SKILL.md describes a JSONL
-   stream of round entries; artifact-registry.md describes a single object with
-   `details.rounds[]`. A `.json` file must be parseable JSON, so the schema follows
-   the registry (object form) — JSONL output will fail validation. Per-round field
-   names also differ between the two docs (`statistical_gate`/`action_items`/
-   `debate_rulings` vs `fidelity_delta`/`key_criticisms`/`actions_taken`); the schema
-   accepts the union, requiring only `round`/`score`/`verdict`/`phase`.
+1. **REVIEW_LEDGER shape conflict — closed in v1.3.2.** auto-review-loop SKILL.md
+   used to describe a JSONL stream of round entries; artifact-registry.md describes
+   a single object with `details.rounds[]`. The SKILL.md Phase E.5 contract now
+   matches the registry/schema (single JSON object, round history in
+   `details.rounds[]`, per-round union field names, review-loop verdict vocabulary
+   `ready`/`almost`/`not_ready` for round entries + 6-state envelope verdict);
+   `scripts/verifiers/verify_review_ledger.sh` enforces exactly this (per-round
+   vocabulary check; `phase: "finalized"` termination entries carry no
+   `action_items`).
 2. **BLINDSPOT_CHECK append semantics.** The doc says "one per round, appended", but a
    flat fixed-name file can hold one JSON document. The schema validates a single
    latest-round object; producers should overwrite with the latest round.
