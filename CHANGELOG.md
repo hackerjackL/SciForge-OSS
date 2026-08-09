@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.3.0] - 2026-08-09
+
+### 判断力深化：文献先行 gap 链 + 证据门槛学习 + `.sciforge/` 双层工作区（v6.0）
+
+> 本轮主题直接来自 CRUX 影子评估（arXiv:2607.27191，普林斯顿等 20+ 研究者把未公开 NeurIPS 真题交给 Opus 4.8 全流程做科研、原作者阅卷全拒）的判断力缺口分析：**工程满分、科学零分**的五个失败模式中，#1（不知道好论文长什么样/识别不了文献空白）与 #4 的对称面（有钱不会花）在此前版本只有部分防线，1.3.0 把防线修到链路上游。论文模板与配色体系不动；论文产出后的投稿/申诉维持人类职责（rebuttal 保持 advisory）。
+
+**P0 — 文献先行 gap 链（idea 生成链路重构）**
+- **universal-retrieval 波浪协议**：Phase 4 改为波浪式——**广谱波**先跑，产出 `literature/GAP_REPORT.md`（gap-id + gap_type∈{contradiction, unsolved_node, method_blank, data_blank, generalization_blank} + ≥1 个已验证引文证据键）；MCTS 选出存活 idea 后，每个 idea 一波**定向波**（追加进 `literature/TARGETED_WAVE_LOG.md`，含撞车预检），bib 全程累积不分叉
+- **idea-discovery gap 锚定**：每个晋级 idea 必须引一个 gap-id（或每轮至多 2 个 `exploratory` 豁免名额）；无锚且无豁免理由的 idea relevance 轴封顶 0.5（够不到 0.6 晋级线）——无文献锚的 idea 正是"薄弱结果包装成发现"的源头（CRUX 失败模式 #1）；idea 卡片必填字段 5→6（新增 `gap_anchor`）；锚定/重锚决策全程记录 `GAP_ANCHOR_LOG.md`
+- **novelty-check 联动**：FRONTIER_MAP 未解决节点与 GAP_REPORT gap-id 交叉链接；引用不存在的 gap-id → `gap_anchor_invalid` FAIL；撞车审计消费定向波的预检记录
+- **auto-pipeline Group A 重连**：广谱波先行，gap 锚定与全部终评分必须等 GAP_REPORT 就绪（`pending-literature` 语义扩展）；21 阶段 DAG 结构不变
+
+**P0 — `.sciforge/` 双层工作区（v6.0）**
+- **隐藏状态层**：`.sciforge/` 收纳 RUNSTATE.json / MANIFEST.md / APPROVAL_LOG.txt / PIPELINE_STATUS.md / verdicts/（v5.2 扁平契约不变，只搬家）/ 管线日志 / refine-logs/（含 FRONTIER_MAP、GAP_ANCHOR_LOG、abandoned/）/ audits/（audit_report + review-stage + citation_audit 叙述报告合并）/ tmp/
+- **交付层只留科研交付物**：literature（含 GAP_REPORT）/ methods / derivations / code / experiments / figures / paper / output + logs/（恢复本义：只放实验/训练日志）——人类打开成品工作区看到的是一个干净的 GitHub 式项目
+- **懒实例化 + 路由感知 N/A（人文场景动态清理）**：目录只在首次规范写入时创建，不再预建骨架；`VERIFICATION_ROUTING.json` 新增 `na_verdicts` 声明（theory-only 默认集 = EXPERIMENT_MATRIX / EVALUATION_PROTOCOL / BUDGET_FLOOR / REGISTRY_HASH 四项；后续声明式 skip 只增不减，如 Phase 11 无图追加 FIGURE_AUDITS）——`validate_verdicts.py` 对声明缺失报 **N/A 而非 pending**（声明了却产出 → WARN），wrap-up 清理把对应缺目录视为合法，人文 run 不再有空文件夹、verdict 汇总不再撒谎（"14 pass, 4 na" 而不是 "14 pass, 4 pending"）
+- **RUNSTATE 长续航契约**：每个 phase boundary 与人类检查点重写 `.sciforge/RUNSTATE.json`（schema 已注册）；orchestrator 启动先跑恢复协议（校验 verdict 完整性 → 迁移 legacy 路径 → 从 next_action 续跑）——天级运行不再怕会话死亡（CRUX 失败模式 #5 的工程解）；AGENT_GUIDE 的口语化 resume 说明替换为契约引用
+- **迁移兼容**：读新路径优先、legacy 路径回退；写永远走新路径；恢复时自动迁移并记录清理事件
+
+**P1 — 证据门槛学习（evidence_norm）**
+- domain-learner 增学 `evidence_norm_profile`（样本量规范 / 对照设计规范 / 效应报告规范 / 负结果规范 / 标杆期刊），从文献中读"标准"而不是读"结果"；survey 不足则保守默认并 WARN，绝不编造规范
+- 三个消费点接线（domain-signature-consumer.md 登记）：result-to-claim 的 evidence_sufficiency 按学科门槛校准（低于学科规范封顶 partial）；experiment-execution 的 full 矩阵规模对齐学科规范（toy 可小、full 必须够）；publishability-score 证据强度维按标杆期刊门槛打分、负结果规范决定负结果框架是否直接可发——**这是对"不知道好论文长什么样"的结构性解药**
+- domain-signature（1a hint）可携带粗粒度 evidence_norm 先验，learner 始终为准
+
+**P1 — 预算低耗守卫（失败模式 #4 对称面）**
+- wrap-up 与每次完成声明时：预算利用率 < 50% 上限 ∧ verdict 仍有 pending/IN_PROGRESS（或 BUDGET_FLOOR 未满足）→ WARN `budget_underuse`（用量表 + 未决 verdict 清单入 PIPELINE_VERDICT_SUMMARY + pipeline.log），完成声明被既有的 completion-declaration 拦截器接管（completion_justification 必须解释每条未试路线）——便宜地解决是允许的，静默欠探索不允许
+
+**治理同步**
+- artifact-registry 全部路径列迁移至 v6.0；新登记 GAP_REPORT.md / TARGETED_WAVE_LOG.md / GAP_ANCHOR_LOG.md / RUNSTATE.json（后者注明非 verdict、不走 validate_verdicts）；VERIFICATION_ROUTING 行补 na_verdicts 产出/消费
+- project-architecture-contract v3.0：标准布局重写为双层结构；根目录白名单、隐藏文件规则、README/MANIFEST 契约同步
+- schemas：VERIFICATION_ROUTING +na_verdicts；新增 RUNSTATE.schema.json；schemas/README 登记 N/A 机制与非 verdict schema；关闭 known gap #9（VERIFICATION_ROUTING 路径陈旧）
+- verification-routing.md §5：na_verdicts 默认集与扩展规则；output-manifest / startup-protocol / pipeline-integrity 等 52 个文件路径同步迁移
+
+**验证**：264 tests 全 PASS（新增 RUNSTATE schema 守卫 / theory-only N/A / 声明 N/A 却产出 → WARN 三例）；`ci_check.py` 四项 OVERALL PASS；validator e2e fixture 20/20（hybrid 0 na）；`security_scan.py --self-test` 23/23；skills/ + AGENT_GUIDE.md + tests/ + scripts/ 零 CJK 维持。
+
+
 ## [1.2.0] - 2026-08-09
 
 ### v5.3 治理加固 + 全英文化 + 工程化基础（hardening pass）

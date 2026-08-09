@@ -1,6 +1,6 @@
 ---
 name: quality-gate
-version: 1.2.0
+version: 1.3.0
 description: "Final pre-writing gate checking all upstream audits passed before paper-writing finalizes. Phase 12 boundary. Invoke to enforce the quality floor before the manuscript is sealed."
 type: reference-skill
 role: pre-writing-quality-gate
