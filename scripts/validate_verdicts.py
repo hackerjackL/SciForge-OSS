@@ -4,7 +4,9 @@
 Usage:
     python3 scripts/validate_verdicts.py <workspace_verdicts_dir> [--strict]
 
-Scans a research workspace's flat ``verdicts/`` directory (v5.2 layout, see
+Scans a research workspace's flat verdicts directory (``{problem_id}/
+.sciforge/verdicts/`` since v6.0, ``{problem_id}/verdicts/`` in pre-v6.0 run
+directories — the layout is identical, only the home moved; see
 skills/shared-references/output-protocol.md) and validates every known verdict
 artifact against its JSON Schema in skills/shared-references/schemas/.
 
@@ -15,6 +17,12 @@ Behavior
 - Unknown *.json / *.txt files => WARN (unregistered verdict).
 - Registered-but-missing files are NOT errors; they are listed as "pending"
   (verdicts appear progressively as the pipeline advances).
+- Routing-aware expectation (v6.0): if VERIFICATION_ROUTING.json is present and
+  declares ``na_verdicts`` (list of registered filenames the chosen route makes
+  Not-Applicable, see shared-references/verification-routing.md section 5), the
+  listed files are reported as "N/A" instead of pending when absent, and WARN
+  ("declared N/A but present") when present. Unknown names in ``na_verdicts``
+  => WARN.
 - Hash files PROBLEM_HASH.txt / REGISTRY_HASH.txt are not JSON and are checked
   directly: single-line lowercase SHA256 hex, 64 chars (regex ^[0-9a-f]{64}$).
   Exception: per method-registry SKILL.md section 3.5, REGISTRY_HASH.txt may
@@ -370,6 +378,36 @@ def check_hash_file(filename, text):
 # Driver
 # ---------------------------------------------------------------------------
 
+def load_na_verdicts(verdicts_dir):
+    """Read the routing-declared N/A set from VERIFICATION_ROUTING.json (v6.0).
+
+    Returns (na_set, problems). na_set contains only registered names; unknown
+    names are reported in problems (surfaced as WARN by the caller). A missing
+    or unreadable routing file simply means "no N/A declarations" (pre-v6.0
+    runs and runs that have not reached Phase 6 yet).
+    """
+    routing_path = Path(verdicts_dir) / "VERIFICATION_ROUTING.json"
+    if not routing_path.is_file():
+        return set(), []
+    try:
+        with open(routing_path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return set(), []  # schema validation of the file itself reports separately
+    declared = data.get("na_verdicts") if isinstance(data, dict) else None
+    if declared is None:
+        return set(), []
+    if not isinstance(declared, list) or not all(isinstance(x, str) for x in declared):
+        return set(), ["na_verdicts must be a list of registered verdict filenames"]
+    registered = set(REGISTRY) | set(HASH_FILES)
+    known = [name for name in declared if name in registered]
+    unknown = sorted(set(declared) - registered)
+    problems = []
+    if unknown:
+        problems.append("na_verdicts declares unregistered names: %s" % ", ".join(unknown))
+    return set(known), problems
+
+
 def load_schema(schema_name):
     schema_path = SCHEMA_DIR / schema_name
     if not schema_path.is_file():
@@ -443,6 +481,12 @@ def main(argv=None):
         print("error: not a directory: %s" % verdicts_dir, file=sys.stderr)
         return 2
 
+    # Routing-aware expectation (v6.0): VERIFICATION_ROUTING.json may declare
+    # registered verdicts as Not-Applicable for this run's route (e.g. a
+    # theory-only/humanities run never produces experiment verdicts). Declared
+    # names must be registered; absent declared files report N/A, not pending.
+    na_verdicts, na_problems = load_na_verdicts(verdicts_dir)
+
     results = []  # (filename, status, notes)
     seen = set()
 
@@ -470,8 +514,18 @@ def main(argv=None):
                 results.append((name, "WARN", ["unregistered .txt artifact in verdicts/"]))
         # other extensions (e.g. PIPELINE_VERDICT_SUMMARY.md narrative) are ignored
 
-    # registered but missing -> pending (never an error)
-    pending = sorted((set(REGISTRY) | set(HASH_FILES)) - seen)
+    # declared N/A but actually present -> routing/production inconsistency
+    for i, (name, status, notes) in enumerate(results):
+        if name in na_verdicts:
+            notes = list(notes) + ["declared N/A by VERIFICATION_ROUTING.json na_verdicts but present"]
+            results[i] = (name, "WARN" if status == "PASS" else status, notes)
+    for problem in na_problems:
+        results.append(("na_verdicts", "WARN", [problem]))
+
+    # registered but missing -> N/A (routing-declared) or pending (never an error)
+    missing = (set(REGISTRY) | set(HASH_FILES)) - seen
+    na_missing = sorted(missing & na_verdicts)
+    pending = sorted(missing - na_verdicts)
 
     # ----- report -----
     print("SciForge verdict validation")
@@ -480,7 +534,7 @@ def main(argv=None):
     print("  schemas   : %s" % SCHEMA_DIR)
     print()
 
-    name_width = max([len(r[0]) for r in results] + [len(p) for p in pending] + [4])
+    name_width = max([len(r[0]) for r in results] + [len(p) for p in pending] + [len(n) for n in na_missing] + [4])
     print("%-*s  %-8s  %s" % (name_width, "FILE", "STATUS", "NOTES"))
     print("%-*s  %-8s  %s" % (name_width, "-" * name_width, "-" * 8, "-" * 40))
 
@@ -494,13 +548,15 @@ def main(argv=None):
             n_warn += 1
         joined = "; ".join(notes) if notes else ""
         print("%-*s  %-8s  %s" % (name_width, name, status, joined))
+    for name in na_missing:
+        print("%-*s  %-8s  %s" % (name_width, name, "N/A", "routing-declared Not-Applicable for this run"))
     for name in pending:
         print("%-*s  %-8s  %s" % (name_width, name, "PENDING", "registered but not yet written"))
 
     print()
     print(
-        "Summary: %d pass, %d fail, %d warn, %d pending (of %d registered artifacts)"
-        % (n_pass, n_fail, n_warn, len(pending), len(REGISTRY) + len(HASH_FILES))
+        "Summary: %d pass, %d fail, %d warn, %d pending, %d na (of %d registered artifacts)"
+        % (n_pass, n_fail, n_warn, len(pending), len(na_missing), len(REGISTRY) + len(HASH_FILES))
     )
 
     if n_fail > 0:

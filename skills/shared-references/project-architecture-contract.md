@@ -1,6 +1,6 @@
 # Project Architecture Contract (SciForge-OSS — GitHub-Style, Clean Workspace)
 
-> **Status (v2.2)**: The single source of truth for the directory layout of EVERY project run — whether the entry was `/auto-pipeline` or a partial/manual skill invocation. Enforces a clean, GitHub-open-source-project-style structure from Phase 0 to Phase 16, so the workspace is inspectable, reproducible, and never accumulates cruft.
+> **Status (v3.0, aligned with output-protocol.md v6.0 two-tier split)**: The single source of truth for the directory layout of EVERY project run — whether the entry was `/auto-pipeline` or a partial/manual skill invocation. Enforces a clean, GitHub-open-source-project-style structure from Phase 0 to wrap-up, so the workspace is inspectable, reproducible, and never accumulates cruft. Pipeline state lives hidden in `.sciforge/`; the visible tree holds only scientific deliverables; directories materialize lazily on first write (output-protocol.md §Lazy Materialization).
 >
 > **Why this exists**: the user's mandate — "Every project opened like this, from the very start of the auto pipeline to the very end, must have a crystal-clear architecture — very much like a GitHub open-source project; the architecture must be clear. Even when a human does not start from auto-pipeline, the entire workspace is still guaranteed to be clean, tidy, and clear." Without an explicit contract, runs scatter files arbitrarily, leave orphan artifacts, and become unreviewable.
 
@@ -12,77 +12,71 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 
 ```
 {project_root}/                          ← one project = one root dir (the Q-id or a slug)
-├── README.md                             ← GitHub-style project README (Phase 0, updated through 16)
-├── MANIFEST.md                           ← every artifact logged here as it is produced
-├── PIPELINE_STATUS.json                  ← final orchestrator verdict (Phase 16)
-├── APPROVAL_LOG.txt                      ← human-checkpoint + test_mode bypass log (Phase 5, 3→4)
+├── README.md                             ← GitHub-style project README (Phase 0, updated through wrap-up)
+├── PROBLEM.md                            ← frozen Q-id + problem statement (Phase 0, INV-G1 anchor)
+├── AGENT_DOC.md                          ← Phase-0 config (discipline / venue / methodology / gates)
 │
-├── problem/
-│   └── PROBLEM.md                        ← frozen Q-id + problem statement (Phase 0, INV-G1 anchor)
-│
-├── refine-logs/
-│   ├── IDEA_CANDIDATES.md                ← ranked idea list (Phase 2)
-│   ├── IDEA_DAG.json                     ← DAG structure (Phase 2)
-│   ├── ENGINEERING_GROUNDING.md          ← EG report (Phase 2.5b)
-│   ├── MCTS_LOG.md                       ← MCTS iteration log (Phase 2)
-│   ├── FINAL_PROPOSAL.md                 ← the selected idea + verification_type (Phase 3, frozen)
-│   └── domain-signature.json             ← domain signature (Phase 1b, sole writer)
+├── .sciforge/                            ← [hidden state layer — v6.0] pipeline state, verification, audit trail
+│   ├── RUNSTATE.json                     ← long-horizon resume checkpoint (rewritten at every boundary)
+│   ├── MANIFEST.md                       ← every artifact logged here as it is produced
+│   ├── PIPELINE_STATUS.md                ← execution report (phase trail)
+│   ├── APPROVAL_LOG.txt                  ← human-checkpoint + test_mode bypass log
+│   ├── verdicts/                         ← all machine-readable verdicts (flat, fixed names — see output-protocol.md)
+│   ├── logs/                             ← pipeline state stream: pipeline.log + phase_<n>.log
+│   ├── refine-logs/
+│   │   ├── IDEA_CANDIDATES.md / IDEA_DAG.json / MCTS_LOG.md / GAP_ANCHOR_LOG.md
+│   │   ├── ENGINEERING_GROUNDING.md      ← EG report (Phase 2.5b)
+│   │   ├── FRONTIER_MAP.json             ← frontier node graph (Phase 3)
+│   │   ├── FINAL_PROPOSAL.md             ← the selected idea + verification_type (frozen)
+│   │   └── domain-signature.json         ← domain signature (Phase 1b, sole writer)
+│   └── audits/                           ← narrative audit reports
+│       ├── LOGIC_VERIFICATION.md / LEAKAGE_AUDIT.md / INVARIANT_CHECK.md (narratives)
+│       ├── CLAIMS_FROM_RESULTS.md        ← 3-fidelity claim gate narrative (Phase 10)
+│       ├── AUTO_REVIEW.md                ← cross-model review narrative (Phase 14)
+│       └── CITATION_AUDIT.md             ← 3-layer citation audit narrative (Phase 15)
 │
 ├── literature/
-│   ├── landscape_report.md               ← literature survey (Phase 4)
-│   ├── references.bib                    ← verified BibTeX (Phase 4)
-│   ├── verified_papers.json              ← structured metadata (Phase 4)
-│   ├── VERIFICATION_LOG.md               ← per-paper verification status (Phase 4)
-│   ├── FILTER_CHAIN_AUDIT.json           ← screening-chain completeness audit (Phase 4, v2.2)
+│   ├── landscape_report.md               ← literature survey (broad wave)
+│   ├── references.bib                    ← verified BibTeX (cumulative across waves)
+│   ├── GAP_REPORT.md                     ← gap-mining report, gap-id anchored (v6.0 gap chain)
+│   ├── TARGETED_WAVE_LOG.md              ← per-idea targeted retrieval waves (v6.0 gap chain)
+│   ├── verified_papers.json              ← structured metadata
+│   ├── VERIFICATION_LOG.md               ← per-paper verification status
+│   ├── FILTER_CHAIN_AUDIT.json           ← screening-chain completeness audit
 │   └── .pending/                         ← background literature queries (if proxy timed out)
 │
 ├── methods/
 │   ├── METHOD_REGISTRY.md                ← 8-section registry (Phase 5)
-│   ├── REGISTRY_HASH.txt                 ← SHA256 of Section 3 (Phase 5)
 │   ├── METHOD_BINDING.md                 ← derived binding (Phase 5)
-│   └── OUTCOME_CLASSIFICATION.md         ← primary/secondary outcomes (Phase 5)
+│   ├── OUTCOME_CLASSIFICATION.md         ← primary/secondary outcomes (Phase 5)
+│   └── EVALUATION_PROTOCOL.md            ← pre-registration quartet narrative (Phase 5)
 │
 ├── derivations/
 │   └── {problem_id}/
 │       ├── premises.md                   ← frozen assumptions (Phase 6)
-│       ├── derivation.py                 ← SymPy script (Phase 6)
 │       ├── derivation_output.md          ← derivation report (Phase 6)
 │       └── verification_report.md        ← SymPy verification (Phase 6)
 │
-├── experiments/                          ← v2.0/v2.2 experiment execution layer
-│   ├── toy/
-│   │   └── session_{timestamp}/
-│   │       ├── toy_experiment.py          ← agent-written toy script (Phase 6b)
-│   │       ├── RESULT.json                ← toy gate verdict, multi-metric (Phase 6b)
-│   │       ├── experiment_plan.json       ← toy design rationale (Phase 6b)
-│   │       └── (output plots: *.png + *.pdf, dual output v2.2)
-│   └── full/
-│       ├── {experiment_id}.py            ← agent-written full script (Phase 6c)
-│       ├── FULL_EXPERIMENT_DISPATCH.json ← background dispatch metadata (Phase 6c)
-│       ├── STATUS.json                   ← periodic status from background job
-│       ├── {experiment_id}.log           ← stdout/stderr log
-│       ├── {experiment_id}.pid           ← PID file (nohup mode)
-│       ├── checkpoints/                  ← intermediate checkpoints
-│       └── (output: *.pdf + *.png dual, v2.2)
+├── code/                                 ← [single home] for all scripts (v5.0, unchanged)
+│   ├── derivations/                      ←   derivation/symbolic-verification scripts
+│   ├── experiments/                      ←   experiment scripts (toy/full/ablation/hyperparameter)
+│   ├── figures/                          ←   rendering scripts
+│   └── utils/
 │
-├── figures/                              ← v2.2 unified-plotting output (dual PDF+SVG)
+├── experiments/                          ← experiment execution layer (deliverables: results + data)
+│   ├── toy/session_{timestamp}/          ← toy_experiment.py + RESULT.json + experiment_plan.json
+│   ├── full/group_<name>/                ← per-matrix-group results (RESULT.json / data)
+│   └── data/<dataset_id>/                ← downloaded raw data
+│
+├── logs/                                 ← [experiment & training logs ONLY — v6.0]
+│   ├── experiments/{experiment_id}.log   ← stdout/stderr tee of each run
+│   └── checkpoints/                      ← model/training checkpoints
+│
+├── figures/                              ← unified-plotting output (PDF+SVG)
 │   ├── FIGURE_INDEX.md                   ← all generated figures index
 │   └── {figure_name}/
-│       ├── output.pdf                     ← LaTeX-embedded (the only format in the paper)
-│       ├── output.svg                    ← viewing/editing (agent, browser)
-│       ├── render.py                     ← Python source (data plots) OR
-│       ├── spec.d2                        ← d2 source (diagrams) OR
-│       ├── source.md                     ← AI-direct source (≤4 nodes)
-│       └── input_data.json               ← preserved input data (Python data plots)
-│
-├── audit_report/
-│   ├── LOGIC_VERIFICATION.md            ← 6-dim logic audit (Phase 8)
-│   ├── LOGIC_VERIFICATION.json           ← machine-readable verdict (Phase 8)
-│   ├── LEAKAGE_AUDIT.md                 ← Type I + Type IV audit (Phase 7)
-│   ├── LEAKAGE_AUDIT.json                ← machine-readable verdict (Phase 7)
-│   ├── INVARIANT_CHECK.md               ← INV-G1 freeze check (Phase 9)
-│   ├── INVARIANT_CHECK.json             ← machine-readable verdict (Phase 9)
-│   └── CLAIMS_FROM_RESULTS.md            ← 3-fidelity claim gate (Phase 10)
+│       ├── output.pdf / output.svg       ← deliverable pair
+│       └── figure_audit.json             ← per-figure audit detail
 │
 ├── paper/
 │   ├── main.tex                          ← master LaTeX (unified elsarticle skeleton)
@@ -90,15 +84,11 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 │   ├── references.bib                    ← symlink/copy from literature/references.bib
 │   ├── sections/                         ← mode-selected section files (paper-modes §3)
 │   ├── figures/                          ← symlinks to ../figures/{name}/output.pdf
-│   ├── main.pdf                          ← compiled PDF (Phase 13, zero-warnings)
-│   ├── compile.log                       ← LaTeX compile log (Phase 13)
-│   └── COMPILE_REPORT.json               ← compile status (Phase 13)
+│   ├── main.pdf                          ← compiled PDF (zero-warnings)
+│   ├── compile.log                       ← LaTeX compile log
+│   └── COMPILE_REPORT.json               ← compile status
 │
-├── review/                               ← Phase 14 auto-review-loop
-│   ├── REVIEW_REPORT.md                  ← cross-model review verdict
-│   └── KILL_ARGUMENT.md                  ← anti-self-deception exercise
-│
-└── output/                               ← final assembled products (Phase 16)
+└── output/                               ← final assembled products (archive phase)
     ├── PAPER.md                          ← markdown version (if format=markdown/both)
     ├── PAPER.pdf                         ← copy of paper/main.pdf
     └── ARTIFACT_MANIFEST.json            ← full artifact inventory + hashes
@@ -148,7 +138,7 @@ The README is UPDATED at each phase boundary (not just written once) — the "Ke
 
 ## 3. MANIFEST.md (Artifact Inventory, Appended Per-Phase)
 
-Every artifact produced is appended to `MANIFEST.md` as it is created (per the Output Manifest Protocol). The manifest is the single index — a reviewer scans it to see what exists.
+Every artifact produced is appended to `.sciforge/MANIFEST.md` as it is created (per the Output Manifest Protocol). The manifest is the single index — a reviewer scans it to see what exists.
 
 **MANIFEST.md format**:
 ```markdown
@@ -157,7 +147,7 @@ Every artifact produced is appended to `MANIFEST.md` as it is created (per the O
 | Phase | Artifact | Path | Status | Hash (optional) |
 |-------|----------|------|--------|-----------------|
 | 0 | PROBLEM.md | problem/PROBLEM.md | frozen | sha256:... |
-| 2 | IDEA_CANDIDATES.md | refine-logs/IDEA_CANDIDATES.md | done | |
+| 2 | IDEA_CANDIDATES.md | .sciforge/refine-logs/IDEA_CANDIDATES.md | done | |
 | 4 | references.bib | literature/references.bib | verified (N entries) | |
 | 6 | derivation_output.md | derivations/{id}/derivation_output.md | machine-verified | |
 | 6b | RESULT.json | experiments/toy/session_*/RESULT.json | PASS | |
@@ -172,7 +162,7 @@ Every artifact produced is appended to `MANIFEST.md` as it is created (per the O
 The contract applies whether the entry was `/auto-pipeline` (full 21-phase run) OR a partial/manual skill invocation (e.g., a human running `/theory-derivation` alone for debugging). Rules:
 
 1. **One project = one root dir.** Never scatter artifacts across the filesystem. If a human invokes a skill without a project root, the skill creates `{cwd}/{slug}/` first and writes there.
-2. **No orphan files at the root.** Only `README.md`, `MANIFEST.md`, `PIPELINE_STATUS.json`, `APPROVAL_LOG.txt` live at the root. All other artifacts go in a named subdirectory.
+2. **No orphan files at the root.** Only the top-level entry files (`README.md`, `PROBLEM.md`, `AGENT_DOC.md`, and the registered root contract artifacts — `CLAIMS_FROM_RESULTS.md`, `EXPERIMENT_LOG.md`, `NARRATIVE_REPORT.md`) live at the root. All other artifacts go in a named subdirectory; pipeline state goes in `.sciforge/`.
 3. **No orphan subdirectories.** Every subdirectory must contain at least one artifact logged in `MANIFEST.md`. Empty dirs are deleted.
 4. **No leftover intermediates.** Build artifacts (`*.aux`, `*.bbl`, `*.log` except `compile.log`, `*.out`) go in `paper/.build/` (gitignored-equivalent) — NOT scattered in `paper/`. `compile.log` is the only log retained at `paper/compile.log`.
 5. **Symlinks for shared assets.** `paper/references.bib` and `paper/figures/*.pdf` are symlinks to `literature/references.bib` and `figures/*/output.pdf` — single source of truth, no duplication.
@@ -206,7 +196,7 @@ Verdict: all-PASS → COMPLETED; any WARN → COMPLETED with warnings logged; an
 - **MANIFEST.md is appended, never overwritten.** Each phase adds its row; no phase deletes prior rows.
 - **Partial runs obey the same hygiene.** A `/theory-derivation` invocation alone still creates the tree — no flat-file clutter.
 - **The cleanliness audit is a Phase 16 gate.** A run is not COMPLETED until the audit passes (or WARNs with logged reasons).
-- **No hidden files except `.build/` (LaTeX intermediates) and `.pending/` (background literature).** Both are gitignored-equivalent and not part of the deliverable.
+- **No hidden files except `.sciforge/` (the v6.0 hidden state layer — durable, part of the run record), `.build/` (LaTeX intermediates) and `.pending/` (background literature).** `.build/` and `.pending/` are gitignored-equivalent and not part of the deliverable.
 
 ---
 
