@@ -34,8 +34,8 @@ Collect every reviewer point from the review artifacts, classify each with the a
 ## Inputs
 
 - `.sciforge/audits/AUTO_REVIEW.md` — narrative review log (per-round criticisms, debate transcripts)
-- `.sciforge/verdicts/REVIEW_STATE.json` — machine-readable round state; carries `response_class` per concern (v5.2 path; read fallback `.sciforge/audits/REVIEW_STATE.json`)
-- `.sciforge/verdicts/REVIEW_LEDGER.json` — per-round ledger (`details.rounds[]`: score, verdict, action_items, debate_rulings, statistical_gate) (v5.2 path; read fallback `.sciforge/audits/REVIEW_LEDGER.json`)
+- `.sciforge/verdicts/REVIEW_STATE.json` — machine-readable round state; carries `response_class` per concern (v5.2 path; read fallback `.sciforge/verdicts/REVIEW_STATE.json`)
+- `.sciforge/verdicts/REVIEW_LEDGER.json` — per-round ledger (`details.rounds[]`: score, verdict, action_items, debate_rulings, statistical_gate) (v5.2 path; read fallback `.sciforge/verdicts/REVIEW_LEDGER.json`)
 - `paper/main.tex` (+ `paper/sections/*.tex`) — the manuscript the responses quote and change
 - **Optional**: a rejection letter or external reviewer report pasted by the user — when present, it is the primary point source; internal review artifacts are secondary context.
 

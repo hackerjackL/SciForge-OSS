@@ -5,8 +5,15 @@
   "license": "MIT",
   "type": "module",
   "keywords": [
-    "ai-scientist", "research", "latex", "open-science", "discipline-agnostic",
-    "ai-for-science", "skill-driven", "dag", "auto-pipeline"
+    "ai-scientist",
+    "research",
+    "latex",
+    "open-science",
+    "discipline-agnostic",
+    "ai-for-science",
+    "skill-driven",
+    "dag",
+    "auto-pipeline"
   ],
   "homepage": "https://atomgit.com/GewisLab/SciForge-OSS",
   "repository": {
@@ -26,7 +33,9 @@
     "VERSIONING.md",
     "CITATION.cff",
     "scripts/",
-    "bin/"
+    "bin/",
+    "tests/",
+    "fixtures/"
   ],
   "bin": {
     "sciforge": "./bin/sciforge.js"

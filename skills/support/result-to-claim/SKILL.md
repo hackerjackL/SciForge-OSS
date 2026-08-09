@@ -11,7 +11,7 @@ role: result-to-claim-gate
 ## Quick Reference
 
 - **Purpose**: 3-fidelity claim gate (symbolic/numerical/qualitative) + confidence assessment
-- **Input**: derivations/{problem_id}/ + .sciforge/audits/LOGIC_VERIFICATION.json
+- **Input**: derivations/{problem_id}/ + .sciforge/verdicts/LOGIC_VERIFICATION.json
 - **Output**: CLAIMS_FROM_RESULTS.md (with confidence assessment)
 - **Key**: theoretical confidence vs grounding confidence emitted separately; primary outcomes require ≥ numerical fidelity
 
@@ -198,7 +198,7 @@ Gather derivation/verification evidence from whatever sources are available in t
 
 1. **Symbolic derivation logs** (`code/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
 2. **Numerical sanity checks** (`derivations/{problem_id}/verification_report.md`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
-3. **Logic verification audit** (`.sciforge/audits/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
+3. **Logic verification audit** (`.sciforge/verdicts/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
 4. **.sciforge/refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
 5. **docs/research_contract.md**: optional project-level contract (read if present).
 
@@ -315,7 +315,7 @@ FIDELITY GATE:
 
 ### Step 3.5: Check Logic Verification Audit
 
-Read `.sciforge/audits/LOGIC_VERIFICATION.json` (from `/logic-verification`):
+Read `.sciforge/verdicts/LOGIC_VERIFICATION.json` (from `/logic-verification`):
 - `logic_status` from the file.
 - Attach to verdict output:
   - `logic_status: pass | warn | fail`

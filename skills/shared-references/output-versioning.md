@@ -40,7 +40,8 @@ Artifacts live in their **stage directory**, not the project root:
 | refine | `.sciforge/refine-logs/` | domain-signature.json, FALSIFICATION.md |
 | review | `.sciforge/verdicts/` (machine) + `.sciforge/audits/` (narrative) | PAPER_CLAIM_AUDIT.json, AUTO_REVIEW.md |
 | paper | `paper/` | main.tex, references.bib |
-| audit | `.sciforge/audits/` | CITATION_AUDIT.json, PROOF_AUDIT.json |
+| audit (machine verdicts) | `.sciforge/verdicts/` | CITATION_AUDIT.json, PROOF_AUDIT.json |
+| audit (narratives) | `.sciforge/audits/` | CITATION_AUDIT.md, LOGIC_VERIFICATION.md, AUTO_REVIEW.md |
 | results | `results/` | CLAIMS_FROM_RESULTS.md |
 | data_analysis | `data_analysis/` | ANALYSIS_REPORT.md |
 | replication | `replication/` | REPLICATION_PACKAGE.md |

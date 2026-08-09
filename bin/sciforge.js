@@ -44,6 +44,8 @@ function cmd_init(target) {
   };
   copyTree("skills");
   copyTree("scripts");  // v5.3: toolchain (plotting/validators/security scan) ships with the skills
+  copyTree("tests");    // v1.3.2: self-verification suite ships with the package
+  copyTree("fixtures"); // v1.3.2: e2e fixture workspace (verdict contract pins)
   for (const f of ["AGENT_GUIDE.md", "SKILL.md", "README.md", "LICENSE", "VERSIONING.md", "CITATION.cff", "package.json"]) {
     const s = join(PKG_ROOT, f);
     if (existsSync(s)) copyFileSync(s, join(dst, f));

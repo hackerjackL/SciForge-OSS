@@ -62,11 +62,11 @@ The verifier reads from the project root. It does not modify any files except it
 
 **Inputs** (checked, not consumed):
 - `.sciforge/refine-logs/FINAL_PROPOSAL.md` — from the orchestrator's Phase 1 (problem understanding); must contain the frozen Q-id
-- `.sciforge/audits/LEAKAGE_AUDIT.json` — from `/leakage-audit` (for the pre-paper-writing gate)
+- `.sciforge/verdicts/LEAKAGE_AUDIT.json` — from `/leakage-audit` (for the pre-paper-writing gate)
 - Current phase's working artifact (derivation chain / verification audit / paper draft / claim) — path passed by the orchestrator
 
 **Outputs**:
-- `.sciforge/audits/INVARIANT_CHECK.json` — machine-readable verdict (6-state schema)
+- `.sciforge/verdicts/INVARIANT_CHECK.json` — machine-readable verdict (6-state schema)
 - `.sciforge/audits/INVARIANT_CHECK.md` — human-readable summary
 
 ## Verdict Schema
@@ -86,7 +86,7 @@ The overall verdict for a phase boundary is the **worst** verdict across all tri
 
 ## Output Format
 
-Write to `.sciforge/audits/INVARIANT_CHECK.json`:
+Write to `.sciforge/verdicts/INVARIANT_CHECK.json`:
 
 ```json
 {
@@ -135,7 +135,7 @@ With only INV-G1 active, the overall verdict = INV-G1's verdict.
 
 ### Step 4: Emit Output
 
-Write `.sciforge/audits/INVARIANT_CHECK.json` and `.sciforge/audits/INVARIANT_CHECK.md`.
+Write `.sciforge/verdicts/INVARIANT_CHECK.json` and `.sciforge/audits/INVARIANT_CHECK.md`.
 
 ### Step 5: Return to Orchestrator
 

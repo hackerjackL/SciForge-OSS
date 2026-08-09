@@ -41,7 +41,7 @@ Create or maintain a workspace named `.sciforge/audits/` for all review outputs.
 
 Key artifacts produced:
 - `.sciforge/audits/AUTO_REVIEW.md` — cumulative review log
-- `.sciforge/audits/REVIEW_STATE.json` — checkpoint state for recovery
+- `.sciforge/verdicts/REVIEW_STATE.json` — checkpoint state for recovery
 - `.sciforge/audits/REVIEWER_MEMORY.md` — reviewer's persistent memory (hard / nightmare only)
 - `CLAIMS_FROM_RESULTS.md` — generated at termination via `/result-to-claim` (if available)
 
@@ -72,7 +72,7 @@ These knobs shape loop behavior. Treat them as defaults; the user may override a
 
 ## State Persistence (Compact Recovery)
 
-Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `.sciforge/audits/REVIEW_STATE.json` after each round.
+Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `.sciforge/verdicts/REVIEW_STATE.json` after each round.
 
 State fields:
 - `round` — current round number
@@ -99,7 +99,7 @@ State fields:
 
 ### Initialization
 
-1. **Check for `.sciforge/audits/REVIEW_STATE.json`** (fall back to `./REVIEW_STATE.json` for legacy projects):
+1. **Check for `.sciforge/verdicts/REVIEW_STATE.json`** (fall back to `./REVIEW_STATE.json` for legacy projects):
    - If neither path exists: **fresh start**.
    - If it exists AND `status` is `completed`: **fresh start** (previous loop finished normally).
    - If it exists AND `status` is `in_progress` AND `timestamp` is older than 24 hours: **fresh start** (stale state from a killed / abandoned run — delete the file and start over).
@@ -289,7 +289,7 @@ Then extract structured fields:
    - `checked_clear` — the artifacts explicitly address this failure mode (e.g. a DWH test for endogeneity is present and passes) → no action.
    - `not_applicable` — this failure mode does not apply to this problem (e.g. `no_placebo` for a pure-theory paper) → record the reason in one clause.
    - `unresolved` — the failure mode applies but the artifacts do NOT address it → **add to this round's fix list as a MAJOR (or CRITICAL if the failure-mode catalog marks it `fatal`)**, independent of the generic Phase C weakness list.
-3. **Write `.sciforge/audits/BLINDSPOT_CHECK.json`** (one per round, appended):
+3. **Write `.sciforge/verdicts/BLINDSPOT_CHECK.json`** (v6.0: machine-readable verdict → verdicts/ directory; single fixed-name file **overwritten with the latest round** — a flat fixed-name file holds one JSON document, so per-round history is recorded in AUTO_REVIEW.md, not appended here):
    ```json
    {"round":N,"evidence_type":"<x>","failure_modes_checked":[
      {"mode":"endogeneity","verdict":"checked_clear","evidence":"methods/METHOD_REGISTRY.md:42 DWH p=0.31"},
@@ -475,7 +475,7 @@ This is the authoritative record. Do NOT truncate or paraphrase.]
 - Difficulty: [medium/hard/nightmare]
 ```
 
-**Write `.sciforge/audits/REVIEW_STATE.json`** with current round, score, verdict, and any pending derivations.
+**Write `.sciforge/verdicts/REVIEW_STATE.json`** with current round, score, verdict, and any pending derivations.
 
 **Append to `findings.md`** (when `COMPACT = true`): one-line entry per key finding this round:
 ```markdown

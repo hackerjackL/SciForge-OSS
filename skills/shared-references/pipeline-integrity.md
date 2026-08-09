@@ -65,7 +65,7 @@ Write to .sciforge/refine-logs/pipeline-integrity.md:
 | 6: theory-derivation | METHOD_REGISTRY.md | MUST | Fall back to Phase 5 |
 | 7: leakage-audit | derivations/{problem_id}/ | MUST | Fall back to Phase 6 |
 | 8: logic-verification | derivations/{problem_id}/ | MUST | Fall back to Phase 6 |
-| 9: invariant-check | .sciforge/audits/LEAKAGE_AUDIT.json | MUST | Fall back to Phase 7 |
+| 9: invariant-check | .sciforge/verdicts/LEAKAGE_AUDIT.json | MUST | Fall back to Phase 7 |
 | 10: result-to-claim | LOGIC_VERIFICATION.json | MUST | Fall back to Phase 8 |
 | 11: unified-plotting | CLAIMS_FROM_RESULTS.md | OPTIONAL | Skip |
 | 12: paper-writing | CLAIMS_FROM_RESULTS.md | MUST | Fall back to Phase 10 |

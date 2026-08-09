@@ -145,9 +145,9 @@ def test_fixture_verdict_set_is_complete():
     """The fixture pins the artifact contract: exactly one file per
     registered end-of-pipeline verdict (no extras, none missing)."""
     present = {p.name for p in MOCK_VERDICTS.iterdir() if p.is_file()}
-    extra = present - EXPECTED_VERDICT_FILES - {"METHOD_REGISTRY_SNIPPET.md"}
+    extra = present - EXPECTED_VERDICT_FILES
     assert not extra, f"unexpected files in mock_verdicts/: {sorted(extra)}"
-    assert present == EXPECTED_VERDICT_FILES | {"METHOD_REGISTRY_SNIPPET.md"}
+    assert present == EXPECTED_VERDICT_FILES
 
 
 def test_mock_verdicts_pass_validator(tmp_path):
@@ -195,7 +195,7 @@ def test_registry_hash_matches_registry_snippet():
     """Method hash-lock: REGISTRY_HASH.txt = sha256 of the locked Section 3
     snippet (stand-in for METHOD_REGISTRY.md Section 3)."""
     recorded = (MOCK_VERDICTS / "REGISTRY_HASH.txt").read_text(encoding="utf-8")
-    snippet = MOCK_VERDICTS / "METHOD_REGISTRY_SNIPPET.md"
+    snippet = FIXTURE_DIR / "methods" / "METHOD_REGISTRY_SNIPPET.md"
     assert recorded.strip() == sha256_of(snippet)
     assert re.fullmatch(r"[0-9a-f]{64}\n?", recorded), (
         "REGISTRY_HASH.txt must be single-line lowercase sha256 hex"

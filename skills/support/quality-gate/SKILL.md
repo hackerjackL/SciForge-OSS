@@ -49,7 +49,7 @@ These checks have clear yes/no answers based on file content, field existence, o
 | Pattern | Example | Rule |
 |---------|---------|------|
 | Field existence | "Does `METHOD_REGISTRY.md` Section 3 have a `method` entry?" | Parse file, check field presence |
-| File presence | "Does `.sciforge/audits/LEAKAGE_AUDIT.json` exist with `verdict: PASS`?" | Check file existence + parse JSON |
+| File presence | "Does `.sciforge/verdicts/LEAKAGE_AUDIT.json` exist with `verdict: PASS`?" | Check file existence + parse JSON |
 | Count comparison | "Are there ≥ 2 primary outcomes with fidelity ≥ numerical?" | Count from CLAIMS_FROM_RESULTS.md |
 | Hash match | "Does `REGISTRY_HASH.txt` match Section 3?" | Compute SHA256, compare |
 
@@ -161,8 +161,8 @@ OSS has **no discipline overlay**. The universal QF-G* checks below apply to eve
 | ID | Criterion | Type | Check | PASS condition |
 |----|-----------|------|-------|----------------|
 | QF-G1 | Derivation chain exists | D | `derivations/{problem_id}/derivation_output.md` exists and is non-empty | File exists + non-empty |
-| QF-G2 | Logic audit PASS | D | `.sciforge/audits/LOGIC_VERIFICATION.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
-| QF-G3 | Leakage audit PASS | D | `.sciforge/audits/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
+| QF-G2 | Logic audit PASS | D | `.sciforge/verdicts/LOGIC_VERIFICATION.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
+| QF-G3 | Leakage audit PASS | D | `.sciforge/verdicts/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G4 | Result-to-claim verdict | D | `CLAIMS_FROM_RESULTS.md` exists with `claim_supported: yes` or `partial` | claim_supported ∈ {yes, partial}; NOT `no` |
 | QF-G5 | Primary outcome fidelity | D | **CONSUME** `/result-to-claim` fidelity verdicts (per-entry records of primary outcomes ≥ numerical in `CLAIMS_FROM_RESULTS.md`); do NOT recompute the ladder | ≥ 1 primary at numerical+ (per result-to-claim verdicts) |
 | QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` INV-G1 verdict (frozen Q-id in `.sciforge/refine-logs/FINAL_PROPOSAL.md`); do NOT re-check | INV-G1 verdict = PASS |
@@ -189,8 +189,8 @@ Produce `.sciforge/audits/QUALITY_FLOOR_REPORT.md`:
 | ID | Criterion | Verdict | Evidence |
 |----|-----------|---------|----------|
 | QF-G1 | Derivation chain exists | PASS | results/sympy/derivation_01.log (2.3KB) |
-| QF-G2 | Logic audit PASS | PASS | .sciforge/audits/LOGIC_VERIFICATION.json verdict=PASS |
-| QF-G3 | Leakage audit PASS | WARN | .sciforge/audits/LEAKAGE_AUDIT.json verdict=WARN (Type I WEAK on outcome O2) |
+| QF-G2 | Logic audit PASS | PASS | .sciforge/verdicts/LOGIC_VERIFICATION.json verdict=PASS |
+| QF-G3 | Leakage audit PASS | WARN | .sciforge/verdicts/LEAKAGE_AUDIT.json verdict=WARN (Type I WEAK on outcome O2) |
 | QF-G4 | Result-to-claim verdict | PASS | CLAIMS_FROM_RESULTS.md claim_supported=partial |
 | QF-G5 | Primary outcome fidelity | PASS | 2/3 primary outcomes at numerical+ fidelity |
 | QF-G6 | Problem anchor frozen | PASS | Q-id SCIMATH-042 in FINAL_PROPOSAL + derivation_01.log |

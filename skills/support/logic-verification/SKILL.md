@@ -37,14 +37,14 @@ The project directory containing:
 - `derivations/{problem_id}/derivation_output.md` — the derivation to audit (from `/theory-derivation`)
 - `paper/main.tex` + `paper/sections/*.tex` — if auditing a paper draft (from `/paper-writing`)
 - `.sciforge/audits/LOGIC_VERIFICATION.md` — cumulative round-by-round audit log (created by this skill)
-- `.sciforge/audits/LOGIC_VERIFICATION.json` — machine-readable verdict (always emitted)
-- `.sciforge/audits/LOGIC_CHECK_STATE.json` — compact recovery state (written after each round)
+- `.sciforge/verdicts/LOGIC_VERIFICATION.json` — machine-readable verdict (always emitted)
+- `.sciforge/logs/LOGIC_CHECK_STATE.json` — compact recovery state (written after each round)
 
 ## Configuration
 
 - **MAX_REVIEW_ROUNDS = 3** — maximum review → fix → re-review iterations before falling through to the Unrecoverable Argument Protocol.
 - **AUDIT_DOC = `.sciforge/audits/LOGIC_VERIFICATION.md`** — cumulative log.
-- **STATE_FILE = `.sciforge/audits/LOGIC_CHECK_STATE.json`** — recovery state.
+- **STATE_FILE = `.sciforge/logs/LOGIC_CHECK_STATE.json`** — recovery state.
 - **RENDER_HTML = true** — auto-render the audit log to HTML at workflow end.
 
 ## Acceptance Gate
@@ -216,7 +216,7 @@ If after MAX_REVIEW_ROUNDS the argument still has open FATAL/CRITICAL issues →
 
 ### Phase 5: Emit Verdict
 
-Write `.sciforge/audits/LOGIC_VERIFICATION.json`:
+Write `.sciforge/verdicts/LOGIC_VERIFICATION.json`:
 ```json
 {
   "verdict": "one of: PASS | WARN | FAIL | BLOCKED | ERROR",
@@ -278,8 +278,8 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 The final output is:
 1. `.sciforge/audits/ARGUMENT_SKELETON.md` — dependency DAG + assumption ledger + micro-claim inventory
 2. `.sciforge/audits/LOGIC_VERIFICATION.md` — cumulative round-by-round audit log
-3. `.sciforge/audits/LOGIC_VERIFICATION.json` — machine-readable verdict (consumed by `/leakage-audit`, `/result-to-claim`, `/quality-gate`)
-4. `.sciforge/audits/LOGIC_CHECK_STATE.json` — compact recovery state
+3. `.sciforge/verdicts/LOGIC_VERIFICATION.json` — machine-readable verdict (consumed by `/leakage-audit`, `/result-to-claim`, `/quality-gate`)
+4. `.sciforge/logs/LOGIC_CHECK_STATE.json` — compact recovery state
 5. `.sciforge/audits/UNRECOVERABLE_ARGUMENT.md` (only if Phase 4 escalates)
 
 ## Composing With Other Skills

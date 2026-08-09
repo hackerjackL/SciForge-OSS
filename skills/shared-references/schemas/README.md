@@ -108,9 +108,10 @@ verdicts directory); the orchestrator's resume protocol (output-protocol.md
    `scripts/verifiers/verify_review_ledger.sh` enforces exactly this (per-round
    vocabulary check; `phase: "finalized"` termination entries carry no
    `action_items`).
-2. **BLINDSPOT_CHECK append semantics.** The doc says "one per round, appended", but a
-   flat fixed-name file can hold one JSON document. The schema validates a single
-   latest-round object; producers should overwrite with the latest round.
+2. **BLINDSPOT_CHECK append semantics — closed in v1.3.2.** The doc used to say
+   "one per round, appended"; a flat fixed-name file can hold one JSON document.
+   auto-review-loop Phase B.2 now states the contract explicitly: overwrite with
+   the latest round, per-round history lives in AUTO_REVIEW.md.
 3. **LEAKAGE_AUDIT `audited_input_hashes`.** The skill's own Step-6 JSON example omits
    it, but artifact-registry.md invariant 2 requires it for every audit JSON — the
    schema enforces it (registry wins).

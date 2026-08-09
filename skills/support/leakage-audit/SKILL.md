@@ -69,7 +69,7 @@ The audit reads from and writes to the project root:
 
 **Outputs**:
 - `.sciforge/audits/LEAKAGE_AUDIT.md` — human-readable audit report
-- `.sciforge/audits/LEAKAGE_AUDIT.json` — machine-readable verdict (consumed by downstream skills)
+- `.sciforge/verdicts/LEAKAGE_AUDIT.json` — machine-readable verdict (consumed by downstream skills)
 - `.sciforge/audits/Type_I.md`, `.sciforge/audits/Type_IV.md` — per-lens detail
 
 If `methods/METHOD_REGISTRY.md` does not exist, **ABORT and tell the user to run `/method-registry` first.** Audit without registry is meaningless.
@@ -223,7 +223,7 @@ Write to `.sciforge/audits/LEAKAGE_AUDIT.md`:
 
 ### Step 6: Emit Machine-Readable Verdict
 
-Write to `.sciforge/audits/LEAKAGE_AUDIT.json`:
+Write to `.sciforge/verdicts/LEAKAGE_AUDIT.json`:
 ```json
 {
   "verdict": "FAIL",
@@ -275,7 +275,7 @@ If the current method cannot be identified, the audit emits `BLOCKED` instead of
 
 ### Callback lifecycle (bounded loop)
 1. Audit finds Type I LEAKY → emits `callback` in LEAKAGE_AUDIT.json
-2. Orchestrator reads `callback` → re-invokes `/method-registry --callback .sciforge/audits/LEAKAGE_AUDIT.json`
+2. Orchestrator reads `callback` → re-invokes `/method-registry --callback .sciforge/verdicts/LEAKAGE_AUDIT.json`
 3. `/method-registry` revises METHOD_BINDING.md → emits `METHOD_BINDING_DIFF.md`
 4. Orchestrator re-invokes `/leakage-audit` to confirm the fix
 5. If the same logic gap persists → repeat (up to 3 iterations)
@@ -320,7 +320,7 @@ The audit produces:
 1. `.sciforge/audits/Type_I.md` — per-implication logic-gap classification (CLEAN / WEAK / LEAKY)
 2. `.sciforge/audits/Type_IV.md` — per-verification empirical-escape classification (CLOSED / ESCAPE / NO_VERIFICATION)
 3. `.sciforge/audits/LEAKAGE_AUDIT.md` — consolidated human-readable report with verdict and recommendations
-4. `.sciforge/audits/LEAKAGE_AUDIT.json` — machine-readable verdict consumed by downstream skills
+4. `.sciforge/verdicts/LEAKAGE_AUDIT.json` — machine-readable verdict consumed by downstream skills
 
 ## Composing With Other Skills
 
