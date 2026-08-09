@@ -462,7 +462,7 @@ SciForge-OSS 的完成离不开以下贡献，谨此致以诚挚谢意：
 
 - **Luo H. W.**（GewisLab 负责人）——项目发起、核心研究思路与整体架构设计。
 - **Yang J. T.**——主要开发者，负责框架的实现与工程落地。
-- **Yang J. T.、Lu Y. H.、Li L. S.、Jia W. H.、Qiu Y. M.、Zhang W. B.**——慷慨提供计算资源（API token）支持，支撑本仓库持续的自迭代、优化与维护。
+- **Yang J. T.、Lu Y. H.、Li L. S.、Jia W. H.、Qiu Y. M.、Zhang W. B.**（排名不分先后）——慷慨提供计算资源（API token）支持，支撑本仓库持续的自迭代、优化与维护。
 
 同时感谢所有通过 issue 与 pull request 改进 SciForge-OSS 的贡献者。
 
