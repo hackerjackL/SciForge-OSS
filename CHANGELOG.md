@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.3.2] - 2026-08-09
+
+### fix-bug 第二轮：判定文件位置/形状契约的系统性对账（4 个提交，274 tests）
+
+**🔴 REVIEW_LEDGER 形状冲突（known gap #1）——外部 verifier 拒绝官方 fixture**
+- `verify_review_ledger.sh` 对 per-round verdict 强制 6-state 信封词汇、且要求每条 rounds[] 条目带 action_items——而轮次 verdict 的合法词汇是 review 循环的 `ready`/`almost`/`not_ready`，终止条目（phase=finalized）天然没有 action_items。**canonical e2e fixture 自己都过不了外部验证**，真实 run 的 ledger 必被拒
+- 修复：per-round 词汇表改为 review 循环词汇（兼容 6-state 写法）；finalized 条目只要求 score+verdict
+- auto-review-loop Phase E.5 重写为注册契约：**单个 JSON 对象**（不是 JSONL 流）写在 `.sciforge/verdicts/REVIEW_LEDGER.json`（不是 audits/），轮次历史在 `details.rounds[]`，信封/per-round 词汇分工写明；REVIEW_STATE 路径同步修正
+- BLINDSPOT_CHECK 同病同治（known gap #2）：单文件覆写最新轮、历史进 AUTO_REVIEW.md；路径 audits/→verdicts/
+
+**🔴 机读 verdict 错位 audits/ 的批量清扫（v5.2 陈旧路径 × v6.0 批量迁移的复合遗留）**
+- 11 个文件中 `.sciforge/audits/*.json`（LEAKAGE_AUDIT / INVARIANT_CHECK / LOGIC_VERIFICATION / REVIEW_STATE …）全部改回 `.sciforge/verdicts/`——机读判定只住 verdicts/
+- LOGIC_CHECK_STATE.json（未注册的恢复状态）移入 `.sciforge/logs/`（既不能进 verdicts/ 触发未注册 WARN，也不是叙述报告）
+- output-versioning 阶段表拆分为机读/叙述两行
+
+**🟡 validator 加固 + fixture 归位**
+- `validate_verdicts.py`：verdicts/ 内除 PIPELINE_VERDICT_SUMMARY.md 外的任何 .md → WARN（叙述报告误入判定目录的哨兵）
+- e2e fixture 的 METHOD_REGISTRY_SNIPPET.md（哈希靶标）移出 verdicts/ 至 `fixtures/e2e_minimal/methods/`（新哨兵下保持全绿）
+
+**🟢 其他**
+- `sciforge init` + package.json `files` 带上 tests/ + fixtures/——下游安装可自验（ci_check 原样跑）
+- schemas/README known gaps 关闭 7 个（#1/#2/#3/#5/#6/#7/#11，#6 字段名由 fixture 钉死并记录）；剩 4 个均为设计内良性项
+- 回归测试 +10（264→274）：review 词汇/finalized 条目通过、未知轮次词汇拒绝、误入 .md WARN/strict 拦截、PIPELINE_VERDICT_SUMMARY.md 豁免
+
+**验证**：274 tests 全 PASS；ci_check 四项 OVERALL PASS；verifier 对 canonical fixture 实测 PASS；security_scan 23/23；零 CJK 维持。
+
+
 ## [1.3.1] - 2026-08-09
 
 ### v6.0 迁移后的 fix-bug 轮（15 处修复 + 6 个回归测试）

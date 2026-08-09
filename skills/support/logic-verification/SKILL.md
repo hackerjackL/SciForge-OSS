@@ -1,6 +1,6 @@
 ---
 name: logic-verification
-version: 1.3.1
+version: 1.3.2
 description: "6-dimension logical consistency audit + 20-category issue taxonomy + acceptance gate (zero FATAL/CRITICAL). Phase 8. Invoke to rigorously verify a derivation/argument/proof."
 type: support-skill
 role: logical-consistency-auditor
