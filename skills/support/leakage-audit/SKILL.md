@@ -68,9 +68,9 @@ The audit reads from and writes to the project root:
 - `src/` (or wherever the derivation/sandbox code lives)
 
 **Outputs**:
-- `audit_report/LEAKAGE_AUDIT.md` — human-readable audit report
-- `audit_report/LEAKAGE_AUDIT.json` — machine-readable verdict (consumed by downstream skills)
-- `audit_report/Type_I.md`, `audit_report/Type_IV.md` — per-lens detail
+- `.sciforge/audits/LEAKAGE_AUDIT.md` — human-readable audit report
+- `.sciforge/audits/LEAKAGE_AUDIT.json` — machine-readable verdict (consumed by downstream skills)
+- `.sciforge/audits/Type_I.md`, `.sciforge/audits/Type_IV.md` — per-lens detail
 
 If `methods/METHOD_REGISTRY.md` does not exist, **ABORT and tell the user to run `/method-registry` first.** Audit without registry is meaningless.
 
@@ -155,7 +155,7 @@ For each implication/outcome:
 - Use the LLM to evaluate: "Does this implication follow from these assumptions?"
 - If "no" or "only with additional assumptions" → **Type I leakage**
 
-Output: `audit_report/Type_I.md` with one entry per implication, classified as:
+Output: `.sciforge/audits/Type_I.md` with one entry per implication, classified as:
 - `CLEAN` (follows)
 - `WEAK` (follows with caveats; document)
 - `LEAKY` (does not follow without additional assumptions)
@@ -174,7 +174,7 @@ For each verification outcome (from `/logic-verification` + `/dynamic-sandbox`):
 - Does the numerical result confirm the theoretical premise within the regime where the assumption holds?
 - If the result diverges, is it because the assumption breaks outside a regime?
 
-Output: `audit_report/Type_IV.md` with one entry per verification, classified as:
+Output: `.sciforge/audits/Type_IV.md` with one entry per verification, classified as:
 - `CLOSED` (verification confirms premise in the valid regime)
 - `ESCAPE` (verification "works" numerically but outside the regime where the premise is valid)
 - `NO_VERIFICATION` (no numerical verification ran — advisory only)
@@ -195,7 +195,7 @@ The audit verdict is the gate for `/paper-writing`:
 
 ### Step 5: Persist the Audit Report
 
-Write to `audit_report/LEAKAGE_AUDIT.md`:
+Write to `.sciforge/audits/LEAKAGE_AUDIT.md`:
 ```markdown
 # Leakage Audit Report
 
@@ -223,7 +223,7 @@ Write to `audit_report/LEAKAGE_AUDIT.md`:
 
 ### Step 6: Emit Machine-Readable Verdict
 
-Write to `audit_report/LEAKAGE_AUDIT.json`:
+Write to `.sciforge/audits/LEAKAGE_AUDIT.json`:
 ```json
 {
   "verdict": "FAIL",
@@ -275,14 +275,14 @@ If the current method cannot be identified, the audit emits `BLOCKED` instead of
 
 ### Callback lifecycle (bounded loop)
 1. Audit finds Type I LEAKY → emits `callback` in LEAKAGE_AUDIT.json
-2. Orchestrator reads `callback` → re-invokes `/method-registry --callback audit_report/LEAKAGE_AUDIT.json`
+2. Orchestrator reads `callback` → re-invokes `/method-registry --callback .sciforge/audits/LEAKAGE_AUDIT.json`
 3. `/method-registry` revises METHOD_BINDING.md → emits `METHOD_BINDING_DIFF.md`
 4. Orchestrator re-invokes `/leakage-audit` to confirm the fix
 5. If the same logic gap persists → repeat (up to 3 iterations)
 6. **If 3 iterations exhausted on the same logic gap → orchestrator halts with fallback**:
    - Downgrade `METHOD_BINDING.md` status to `DRAFT`
    - Append `LOGIC_GAP_FUNDAMENTAL_ISSUE` flag to `METHOD_BINDING.md`
-   - Log halt event in `methods/APPROVAL_LOG.txt` with `action=CALLBACK_EXHAUSTED`
+   - Log halt event in `methods/.sciforge/APPROVAL_LOG.txt` with `action=CALLBACK_EXHAUSTED`
    - Report to user: "The logic gap is fundamental — the implication cannot be defended under the current assumptions. Recommend returning to `/idea-discovery` to select a different approach to the problem."
    - **Do NOT silently continue** — a logic gap surviving 3 method swaps indicates the approach itself is flawed, not a method selection problem.
 
@@ -298,7 +298,7 @@ The audit REJECTS the project (returns FAIL) if any of:
 | G4 | Section 3 (Method Selection) is post-hoc | Pre-registration violated |
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `.sciforge/verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:
@@ -317,10 +317,10 @@ The audit REJECTS the project (returns FAIL) if any of:
 ## Output Shape
 
 The audit produces:
-1. `audit_report/Type_I.md` — per-implication logic-gap classification (CLEAN / WEAK / LEAKY)
-2. `audit_report/Type_IV.md` — per-verification empirical-escape classification (CLOSED / ESCAPE / NO_VERIFICATION)
-3. `audit_report/LEAKAGE_AUDIT.md` — consolidated human-readable report with verdict and recommendations
-4. `audit_report/LEAKAGE_AUDIT.json` — machine-readable verdict consumed by downstream skills
+1. `.sciforge/audits/Type_I.md` — per-implication logic-gap classification (CLEAN / WEAK / LEAKY)
+2. `.sciforge/audits/Type_IV.md` — per-verification empirical-escape classification (CLOSED / ESCAPE / NO_VERIFICATION)
+3. `.sciforge/audits/LEAKAGE_AUDIT.md` — consolidated human-readable report with verdict and recommendations
+4. `.sciforge/audits/LEAKAGE_AUDIT.json` — machine-readable verdict consumed by downstream skills
 
 ## Composing With Other Skills
 

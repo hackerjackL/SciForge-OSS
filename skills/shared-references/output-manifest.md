@@ -1,28 +1,28 @@
-# Output Manifest Protocol (SciForge-OSS — MANIFEST.md append-only ledger)
+# Output Manifest Protocol (SciForge-OSS — .sciforge/MANIFEST.md append-only ledger)
 
-> **Status (v2.8 — backfilled missing contract)**: Defines the **MANIFEST.md append-only ledger** protocol every skill MUST follow. Backfilled in v2.8 because 16 SKILL.md files referenced this contract but the file itself was missing from OSS inheritance — a historical gap. This file closes that gap.
+> **Status (v2.8 — backfilled missing contract)**: Defines the **.sciforge/MANIFEST.md append-only ledger** protocol every skill MUST follow. Backfilled in v2.8 because 16 SKILL.md files referenced this contract but the file itself was missing from OSS inheritance — a historical gap. This file closes that gap.
 >
-> **Core principle**: Every output file is logged to `MANIFEST.md` at the project root via append-only. MANIFEST.md is the single ledger of what was produced, when, by which skill, at which path (both timestamped and fixed). Pre-flight checks at every skill entry read MANIFEST.md to confirm upstream prerequisites exist.
+> **Core principle**: Every output file is logged to `.sciforge/MANIFEST.md` (the hidden state layer of the project root) via append-only. .sciforge/MANIFEST.md is the single ledger of what was produced, when, by which skill, at which path (both timestamped and fixed). Pre-flight checks at every skill entry read .sciforge/MANIFEST.md to confirm upstream prerequisites exist.
 
 ## Quick Reference
 
-- **Purpose**: locks the MANIFEST.md append-only protocol; all output files repo-wide registered uniformly
+- **Purpose**: locks the .sciforge/MANIFEST.md append-only protocol; all output files repo-wide registered uniformly
 - **Producer**: every skill appends a row after dual-writing its output
-- **Consumer**: pre-flight check at every skill entry reads MANIFEST.md to verify prerequisites
-- **Output**: MANIFEST.md at project root (append-only, never rewrite)
+- **Consumer**: pre-flight check at every skill entry reads .sciforge/MANIFEST.md to verify prerequisites
+- **Output**: .sciforge/MANIFEST.md in the project's .sciforge/ state directory (append-only, never rewrite)
 - **Key**: append-only ledger; never rewrite or delete rows; pre-flight gate
 
-## MANIFEST.md Location
+## .sciforge/MANIFEST.md Location
 
 ```
-<project_root>/MANIFEST.md
+<project_root>/.sciforge/MANIFEST.md
 ```
 
-Single file at project root. Never stage-scoped — MANIFEST.md is the global ledger across all stages.
+Single file at project root. Never stage-scoped — .sciforge/MANIFEST.md is the global ledger across all stages.
 
 ## Append Row Schema
 
-Every skill, after dual-writing its output (per [`output-versioning.md`](output-versioning.md)), appends ONE row to MANIFEST.md:
+Every skill, after dual-writing its output (per [`output-versioning.md`](output-versioning.md)), appends ONE row to .sciforge/MANIFEST.md:
 
 ```markdown
 | <YYYY-MM-DDTHH:MM:SSZ> | <skill_name> | <artifact_name> | <stage_dir>/<timestamped_path> | <stage_dir>/<fixed_path> | <sha256_hash> |
@@ -30,7 +30,7 @@ Every skill, after dual-writing its output (per [`output-versioning.md`](output-
 
 **Example row**:
 ```markdown
-| 2026-07-21T10:00:00Z | /domain-learner | domain-signature | refine-logs/domain-signature_20260721T100000Z.json | refine-logs/domain-signature.json | a3f5e8c1d2b4f6a8e0c2d4b6f8a0e2c4d6b8f0a2c4e6d8b0f2a4 |
+| 2026-07-21T10:00:00Z | /domain-learner | domain-signature | .sciforge/refine-logs/domain-signature_20260721T100000Z.json | .sciforge/refine-logs/domain-signature.json | a3f5e8c1d2b4f6a8e0c2d4b6f8a0e2c4d6b8f0a2c4e6d8b0f2a4 |
 ```
 
 **Field semantics**:
@@ -46,7 +46,7 @@ Every skill, after dual-writing its output (per [`output-versioning.md`](output-
 At skill entry, before any work, the skill MUST:
 
 ```
-Step 1: Read MANIFEST.md
+Step 1: Read .sciforge/MANIFEST.md
 Step 2: For each declared prerequisite (from the skill's SKILL.md "Consumes" section):
         → check if a row exists with matching artifact_name
         → check if the fixed_path file exists
@@ -62,18 +62,18 @@ Step 5: If any missing: BLOCK (missing prerequisites are blocking — the skill 
 
 ## Append-Only Contract
 
-- **MANIFEST.md is append-only.** No skill rewrites, reorders, or deletes rows. A new run appends new rows; it does NOT update old rows.
+- **.sciforge/MANIFEST.md is append-only.** No skill rewrites, reorders, or deletes rows. A new run appends new rows; it does NOT update old rows.
 - **Stale rows are the audit trail.** If a skill overwrites the fixed-name copy, the NEW run appends a new row with the new hash; the OLD row remains (its hash is now stale, which is the intended audit record of "this file was updated at time X").
-- **Never delete MANIFEST.md.** It is the global ledger; deleting it breaks every downstream skill's pre-flight check.
+- **Never delete .sciforge/MANIFEST.md.** It is the global ledger; deleting it breaks every downstream skill's pre-flight check.
 - **One row per dual-write.** A skill that produces 3 artifacts appends 3 rows, not 1 summary row. Granularity is per-artifact.
 
 ## Boundaries
 
-- **MANIFEST.md is append-only.** Never rewrite, reorder, or delete rows. New runs append; old rows remain as audit.
+- **.sciforge/MANIFEST.md is append-only.** Never rewrite, reorder, or delete rows. New runs append; old rows remain as audit.
 - **Stale is advisory; missing is blocking.** Pre-flight WARNs on staleness, BLOCKs on missing — never invert these.
 - **One row per artifact.** Do NOT summary-row multiple artifacts; each gets its own row for per-artifact audit.
 - **SHA-256 is mandatory.** The hash field is not optional — downstream staleness detection depends on it.
-- **MANIFEST.md sits at project root, not stage-scoped.** It is the global ledger; stage-scoping would fragment the audit trail.
+- **.sciforge/MANIFEST.md sits at project root, not stage-scoped.** It is the global ledger; stage-scoping would fragment the audit trail.
 - **Pre-flight check is at skill entry, not skill exit.** Verify prerequisites BEFORE working; do not discover missing inputs mid-work.
 
 ## See Also

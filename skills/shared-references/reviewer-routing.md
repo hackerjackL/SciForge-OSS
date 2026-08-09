@@ -9,7 +9,7 @@
 1. **Role switching is mandatory** — the agent must switch roles explicitly; it cannot "be both player and referee"
 2. **Re-read the artifacts** — after each role switch, the agent must re-read the artifact files; it must not rely on memory
 3. **Structured checklists** — reviews use structured checklists, not a free-form "just review it"
-4. **Review-trail preservation** — the output of each review is preserved in full in the `review-stage/` directory
+4. **Review-trail preservation** — the output of each review is preserved in full in the `.sciforge/audits/` directory
 
 ## Role Definitions
 
@@ -38,5 +38,5 @@ Researcher → applies fixes per the adjudication → enters the next round
 
 - Role switching is managed by `/auto-review-loop`
 - Review checklists are defined by the corresponding skills (`/logic-verification`, `/quality-gate`)
-- All review outputs are saved in the `review-stage/` directory
+- All review outputs are saved in the `.sciforge/audits/` directory
 - See also [`/auto-review-loop`](../support/auto-review-loop/SKILL.md)

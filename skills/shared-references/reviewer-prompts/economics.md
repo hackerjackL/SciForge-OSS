@@ -103,7 +103,7 @@ Before scoring, the reviewer MUST read the following artifacts in this exact ord
 2. `methods/OUTCOME_CLASSIFICATION.md` — for the primary vs. secondary outcome partition. The reviewer must verify that the paper's headline claims align with primary-outcome verdicts, not secondary.
 3. `CLAIMS_FROM_RESULTS.md` — for the per-claim significance gate (`yes` / `partial` / `no`) and the Claims-Evidence Matrix. Mismatch between this file and the manuscript prose is rejection-worthy.
 4. `paper/main.pdf` (or `paper/main.tex` + `paper/sections/*.tex`) — for the manuscript itself.
-5. `audit_report/LEAKAGE_AUDIT.md` (+ `.json`) — for known AIM leakage issues already flagged upstream; the reviewer must verify the manuscript addresses them.
+5. `.sciforge/audits/LEAKAGE_AUDIT.md` (+ `.json`) — for known AIM leakage issues already flagged upstream; the reviewer must verify the manuscript addresses them.
 6. `methods/REGISTRY_HASH.txt` — to confirm pre-registration is locked and unchanged since `OUTCOME_CLASSIFICATION.md` was produced.
 7. `replication/run_all.sh` + `replication/VERIFICATION_REPORT.md` — when available, to verify the replication package reproduces every figure and table.
 

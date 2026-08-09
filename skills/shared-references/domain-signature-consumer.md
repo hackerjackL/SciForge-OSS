@@ -2,18 +2,18 @@
 
 > **Status (v2.3 — wiring layer, v2.8 — learner-first downgrade of Phase 1a)**: Defines how every downstream skill consumes the domain signature produced by `/domain-learner` (Phase 1b). This is the **wiring layer** that makes domain adaptation automatic. `/domain-signature` (Phase 1a) is downgraded to an OPTIONAL hint file consumed only by the learner as a prior — downstream skills never read it.
 >
-> **Core principle**: Every skill reads `refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. No skill hard-codes domain-specific logic.
+> **Core principle**: Every skill reads `.sciforge/refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. No skill hard-codes domain-specific logic.
 
 ## Quick Reference
 
 - **Purpose**: Defines how every downstream skill automatically consumes the domain signature
-- **Input**: refine-logs/domain-signature.json (from /domain-learner — the single source of truth)
+- **Input**: .sciforge/refine-logs/domain-signature.json (from /domain-learner — the single source of truth)
 - **Output**: Per-skill adaptive behavior (no manual configuration required)
 - **Key**: Every skill reads the signature at startup and adapts automatically; the hint file is never read
 
 ## Signature Location
 
-The domain signature is written to `refine-logs/domain-signature.json` by Phase 1b (`/domain-learner`) — the sole writer. Every downstream skill reads this file at startup. Phase 1a (`/domain-signature`) writes a separate `refine-logs/domain-signature-hint.json` consumed ONLY by the learner as a prior; downstream skills MUST NOT read the hint.
+The domain signature is written to `.sciforge/refine-logs/domain-signature.json` by Phase 1b (`/domain-learner`) — the sole writer. Every downstream skill reads this file at startup. Phase 1a (`/domain-signature`) writes a separate `.sciforge/refine-logs/domain-signature-hint.json` consumed ONLY by the learner as a prior; downstream skills MUST NOT read the hint.
 
 ## Consumption Rules by Skill
 
@@ -116,6 +116,51 @@ The domain signature is written to `refine-logs/domain-signature.json` by Phase 
 }
 ```
 
+### /result-to-claim — Evidence Sufficiency Calibration (evidence_norm, v6.0)
+
+```json
+{
+  "signature_consumption": {
+    "field": "evidence_norm_profile",
+    "action": "calibrate_evidence_sufficiency",
+    "mapping": {
+      "rule": "a claim's evidence_sufficiency is judged against the DISCIPLINE's bar, not a universal one: sample/scale below sample_size_norm -> sufficiency capped at 'partial'; missing control_design_norm controls -> the claim cannot be 'symbolic/numerical-complete'; effect reported without effect_reporting_norm's expected quantification -> downgrade one fidelity level",
+      "unknown_norm": "if evidence_norm_profile says 'unknown — defaulting to conservative', use the conservative built-in bar and flag evidence_norm_missing (WARN, recorded in the claim's grounding note)"
+    }
+  }
+}
+```
+
+### /experiment-execution — Matrix Sizing (evidence_norm, v6.0)
+
+```json
+{
+  "signature_consumption": {
+    "field": "evidence_norm_profile.sample_size_norm",
+    "action": "size_experiment_matrix",
+    "mapping": {
+      "rule": "seed counts, run counts, and scale_ratio in the mandatory experiment matrix must reach the discipline's published norm (the toy gate may run smaller, but the FULL matrix must meet the norm, or the shortfall is explicitly justified in BUDGET_FLOOR's completion_justification)",
+      "unknown_norm": "default: >= 3 seeds, >= 2 scales, baseline + ablation groups (the method-registry section 3.5 minimums)"
+    }
+  }
+}
+```
+
+### /publishability-score — Evidence-Strength Weighting (evidence_norm, v6.0)
+
+```json
+{
+  "signature_consumption": {
+    "field": "evidence_norm_profile",
+    "action": "weight_evidence_strength_dimension",
+    "mapping": {
+      "rule": "the evidence-strength dimension is scored against the discipline's exemplar-venue bar: claims meeting sample_size_norm + control_design_norm + effect_reporting_norm score full; each unmet norm deducts per the skill's rubric; negative_result_norm decides whether a negative-result framing is publishable-as-is or must carry a power analysis",
+      "unknown_norm": "score against the conservative default bar and note evidence_norm_missing in the score report"
+    }
+  }
+}
+```
+
 ### /novelty-check — Threshold Adjustment
 
 ```json
@@ -139,7 +184,7 @@ The domain signature is written to `refine-logs/domain-signature.json` by Phase 
 Every skill MUST execute the following at startup:
 
 ```
-Step 1: Check for refine-logs/domain-signature.json
+Step 1: Check for .sciforge/refine-logs/domain-signature.json
 Step 2: If exists, read the signature
 Step 3: Look up the consumption rules for this skill in this protocol
 Step 4: Apply the rules (adjust weights, load failure modes, select style)
@@ -148,7 +193,7 @@ Step 5: If no signature exists, use default behavior (no domain adaptation)
 
 ## Fallback
 
-If `refine-logs/domain-signature.json` does not exist:
+If `.sciforge/refine-logs/domain-signature.json` does not exist:
 
 - All skills use their default behavior (no domain-specific adaptation)
 - This is equivalent to `domain: general` in the legacy approach

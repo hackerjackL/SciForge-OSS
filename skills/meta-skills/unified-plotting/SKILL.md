@@ -176,7 +176,7 @@ From the request, extract:
 4. **Title** — figure title (optional)
 5. **Legend** — series labels and grouping
 6. **Annotations** — specific points, regions, or formulas to emphasize
-7. **Q-id** — the frozen problem Q-id (from `refine-logs/FINAL_PROPOSAL.md`) — reference in the figure's preserved spec
+7. **Q-id** — the frozen problem Q-id (from `.sciforge/refine-logs/FINAL_PROPOSAL.md`) — reference in the figure's preserved spec
 
 Validate data shape matches chart type:
 - Line plot → 2D coordinate array (x, y)
@@ -319,7 +319,7 @@ Append to `figures/FIGURE_INDEX.md`:
 
 ### Step 6.5: Update the verdict mirror (v5.3 — FIGURE_AUDITS.json)
 
-After every figure render/re-render, update the machine-readable mirror `verdicts/FIGURE_AUDITS.json` so downstream skills can check all figure audits with one flat read (the per-figure detail stays in `figures/{figure_name}/figure_audit.json`):
+After every figure render/re-render, update the machine-readable mirror `.sciforge/verdicts/FIGURE_AUDITS.json` so downstream skills can check all figure audits with one flat read (the per-figure detail stays in `figures/{figure_name}/figure_audit.json`):
 
 ```json
 {
@@ -334,7 +334,7 @@ After every figure render/re-render, update the machine-readable mirror `verdict
 }
 ```
 
-Semantics: read the existing mirror (if present), upsert this figure's entry, rewrite the file. A figure re-rendered after fixes overwrites its own entry. Consumers (`/paper-writing`, `/paper-compile`) gate on it: any entry at FAIL blocks figure inclusion until fixed. Contract: [`artifact-registry.md`](../../shared-references/artifact-registry.md) row `verdicts/FIGURE_AUDITS.json`; schema: [`schemas/FIGURE_AUDITS.schema.json`](../../shared-references/schemas/FIGURE_AUDITS.schema.json).
+Semantics: read the existing mirror (if present), upsert this figure's entry, rewrite the file. A figure re-rendered after fixes overwrites its own entry. Consumers (`/paper-writing`, `/paper-compile`) gate on it: any entry at FAIL blocks figure inclusion until fixed. Contract: [`artifact-registry.md`](../../shared-references/artifact-registry.md) row `.sciforge/verdicts/FIGURE_AUDITS.json`; schema: [`schemas/FIGURE_AUDITS.schema.json`](../../shared-references/schemas/FIGURE_AUDITS.schema.json).
 
 ## Required Workspace
 

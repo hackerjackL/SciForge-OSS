@@ -45,12 +45,12 @@ For each idea, check against existing literature (via `/universal-retrieval`). *
 
 1. **Binary novelty (existing, retained)** — search for prior work matching the idea's hypothesis and methodology; if a matching paper is found → check whether the idea provides clear differentiation. Score: 1-10 (1 = already done, 10 = fully novel).
    - ≥ 7 → `novel`; 4-6 → `partially_novel`; < 4 → `not_novel`
-2. **Frontier advancement (v3.2 new, MANDATORY)** — produce `refine-logs/FRONTIER_GAP.md` containing all 3 items; missing any one → `WARN` (cannot enter the Phase 3→4 checkpoint):
+2. **Frontier advancement (v3.2 new, MANDATORY)** — produce `.sciforge/refine-logs/FRONTIER_GAP.md` containing all 3 items; missing any one → `WARN` (cannot enter the Phase 3→4 checkpoint):
    - **Frontier baseline**: explicitly list "the current SOTA / known strongest results / latest open problems in this sub-direction at the starting point of this research"; every item must attach at least 1 citation from the last 2 years (min_year=2020 onwards, but prefer the last 2 years). Never write "no research exists to our knowledge" — that is empty talk; be specific: "[Smith2024] reached X, [Lee2025] improved to Y, but Z remains unsolved".
    - **Delta claim**: state what this idea advances relative to the frontier baseline, in one sentence of increment ("we propose mechanism W, advancing Z from unsolvable to conditionally solvable / improving by Δ% on benchmark K"). The delta must be falsifiable — if delta is 0 or negative after the idea runs, the Phase 14 kill-argument will catch it.
    - **Why-not-before**: 3 reasons covering at least 2 of the 3 categories "technical constraints", "theoretical blind spots", "data availability". Prevents trivial novelty of the form "predecessors didn't do it because it is meaningless". If 3 reasons cannot be found, mark `why_not_before_weak` and deduct 2 from the novelty score.
 
-**Frontier map (v3.2 new)**: extract highly-cited papers from the last 2 years from `/universal-retrieval`'s `landscape_report.md` + `references.bib` to build a "frontier node graph" (each node = 1 paper from the last 2 years + its claims + open problems), written into `refine-logs/FRONTIER_MAP.json`. This idea must land on one of the "unsolved nodes" in this graph; landing on a "solved node" or a "blank meaningless region" → mark `not_novel` or `trivial_novel`. This graph is also directly consumed by `/paper-writing`'s Introduction section (the frontier-advancement triplet is exactly the Intro's contribution positioning).
+**Frontier map (v3.2 new, gap-linked in v6.0)**: extract highly-cited papers from the last 2 years from `/universal-retrieval`'s `landscape_report.md` + `references.bib` to build a "frontier node graph" (each node = 1 paper from the last 2 years + its claims + open problems), written into `.sciforge/refine-logs/FRONTIER_MAP.json`. **v6.0 gap chain**: the graph's "unsolved nodes" are cross-linked to `literature/GAP_REPORT.md` gap-ids (every unsolved node that matches a GAP_REPORT entry carries that gap-id), and each idea's `gap_anchor` (from `.sciforge/refine-logs/GAP_ANCHOR_LOG.md`) must resolve: a cited gap-id that does not exist in GAP_REPORT.md → `gap_anchor_invalid` (FAIL); an idea landing on a frontier node linked to its anchored gap → frontier/novelty evidence recorded as `gap_consistent`. This idea must land on one of the "unsolved nodes" in this graph; landing on a "solved node" or a "blank meaningless region" → mark `not_novel` or `trivial_novel`. This graph is also directly consumed by `/paper-writing`'s Introduction section (the frontier-advancement triplet is exactly the Intro's contribution positioning).
 
 **Binary + frontier composite novelty score**:
 ```
@@ -62,7 +62,7 @@ where `frontier_advance` ∈ [1,10]: clear frontier baseline + falsifiable delta
 
 **Collision audit (v5.0 new mandatory step) — resolves the blind spot of "has anyone done this idea"**:
 
-Observed in practice: ideas were generated without comparison against existing work, and the literature survey also missed checks — explicit per-paper collision checks are required. For each idea (using `/universal-retrieval`'s retrieval results; supplement with targeted retrieval if insufficient):
+Observed in practice: ideas were generated without comparison against existing work, and the literature survey also missed checks — explicit per-paper collision checks are required. For each idea (using `/universal-retrieval`'s retrieval results — including the v6.0 **targeted waves** logged in `literature/TARGETED_WAVE_LOG.md`, which already carry a per-idea collision pre-check; supplement with further targeted retrieval if insufficient):
 
 1. **Recall TOP-5 similar works**: search by "same problem domain + same method family", take the ≤5 most similar papers (must include work from the last 2 years; recall zero → the retrieval itself is suspect, mark `retrieval_suspect` and trigger re-retrieval)
 2. **3-dimensional comparison matrix**: score each paper on 3 dimensions (0/1) — `same_problem` (same research question/RQ), `same_method` (same method family or differs only in components), `same_data` (same dataset/benchmark); write into the `collision_matrix` field of `novelty_report.json`
@@ -137,7 +137,7 @@ score = novelty × 0.45 + feasibility × 0.25 + relevance × 0.15 + engineering_
 
 ### Step 1: Load Ideas from the DAG
 
-Read `refine-logs/IDEA_DAG.json` — all ideas generated by `/idea-discovery` (aligned with idea-discovery's DAG path; OSS stores uniformly under `refine-logs/`).
+Read `.sciforge/refine-logs/IDEA_DAG.json` — all ideas generated by `/idea-discovery` (aligned with idea-discovery's DAG path; OSS stores uniformly under `.sciforge/refine-logs/`).
 Each idea has:
 - `id` — unique identifier
 - `title` — short description
@@ -195,9 +195,9 @@ If no idea passes:
 
 ## Output Artifacts
 
-- `refine-logs/novelty_report.json` — full evaluation of all ideas (same directory as idea-discovery's DAG)
-- `refine-logs/novelty_{idea_id}.md` — detailed evaluation per idea
-- `refine-logs/survivor.md` — the selected idea
+- `.sciforge/refine-logs/novelty_report.json` — full evaluation of all ideas (same directory as idea-discovery's DAG)
+- `.sciforge/refine-logs/novelty_{idea_id}.md` — detailed evaluation per idea
+- `.sciforge/refine-logs/survivor.md` — the selected idea
 
 ## Downstream Skill Invocation
 

@@ -11,7 +11,7 @@ role: result-to-claim-gate
 ## Quick Reference
 
 - **Purpose**: 3-fidelity claim gate (symbolic/numerical/qualitative) + confidence assessment
-- **Input**: derivations/{problem_id}/ + audit_report/LOGIC_VERIFICATION.json
+- **Input**: derivations/{problem_id}/ + .sciforge/audits/LOGIC_VERIFICATION.json
 - **Output**: CLAIMS_FROM_RESULTS.md (with confidence assessment)
 - **Key**: theoretical confidence vs grounding confidence emitted separately; primary outcomes require ≥ numerical fidelity
 
@@ -47,24 +47,24 @@ Before allowing `/paper-writing` to proceed, verify:
 2. `result-to-claim` has been invoked (check for `CLAIMS_FROM_RESULTS.md`).
 3. If not invoked: **BLOCK paper writing** and require `/result-to-claim` first.
 4. If invoked but verdict is `no` or `partial`: **BLOCK paper writing** until claim is revised.
-5. **Problem anchor integrity**: `refine-logs/FINAL_PROPOSAL.md` exists with the frozen Q-id (verified at Step 0). This is the same check performed by `/invariant-check` INV-G1 at the phase boundary.
+5. **Problem anchor integrity**: `.sciforge/refine-logs/FINAL_PROPOSAL.md` exists with the frozen Q-id (verified at Step 0). This is the same check performed by `/invariant-check` INV-G1 at the phase boundary.
 
 This check is mandatory and cannot be skipped for any OSS output.
 
 ## Required Workspace
 
 - `derivations/{problem_id}/` — derivation/verification output files (SymPy proof logs, numerical sanity check results)
-- `refine-logs/FINAL_PROPOSAL.md` — intended claims and derivation design (primary source for pre-specified claims)
+- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — intended claims and derivation design (primary source for pre-specified claims)
 - `docs/research_contract.md` — optional project-level research contract (read if present; not produced by any skill)
 - `findings.md` — append postmortem / confirmed claims here
-- `audit_report/LOGIC_VERIFICATION.md` — analysis report from `/logic-verification` (read if present)
+- `.sciforge/audits/LOGIC_VERIFICATION.md` — analysis report from `/logic-verification` (read if present)
 - `CLAIMS_FROM_RESULTS.md` — output: the structured verdict
 
 ## Configuration
 
 - **External reviewer model** — the cross-model reviewer used for objective claim evaluation. Should be a different model family from the host agent.
 - **Fidelity threshold** — the minimum fidelity level required to support a **primary** claim. Default: `numerical` (a primary claim must have at least numerical sanity-check support; symbolic-only is "partial", qualitative-only is "no"). Configurable to `symbolic` (stricter — requires full proof) or `qualitative` (lenient — qualitative reasoning suffices).
-- **Outcome classification** — outcomes are classified as **primary** (pre-specified in `refine-logs/FINAL_PROPOSAL.md`, directly testable predictions of the theoretical model) or **secondary** (mechanism tests, robustness checks, additional analyses). The fidelity gate operates on primary outcomes only.
+- **Outcome classification** — outcomes are classified as **primary** (pre-specified in `.sciforge/refine-logs/FINAL_PROPOSAL.md`, directly testable predictions of the theoretical model) or **secondary** (mechanism tests, robustness checks, additional analyses). The fidelity gate operates on primary outcomes only.
 
 ## The 3-Fidelity Claim Ladder (OSS Universal)
 
@@ -198,8 +198,8 @@ Gather derivation/verification evidence from whatever sources are available in t
 
 1. **Symbolic derivation logs** (`code/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
 2. **Numerical sanity checks** (`derivations/{problem_id}/verification_report.md`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
-3. **Logic verification audit** (`audit_report/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
-4. **refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
+3. **Logic verification audit** (`.sciforge/audits/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
+4. **.sciforge/refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
 5. **docs/research_contract.md**: optional project-level contract (read if present).
 
 Assemble the key information:
@@ -277,7 +277,7 @@ Extract structured fields from the external reviewer's response:
 Apply the 3-fidelity gate to **primary** outcomes only:
 
 1. Parse the external reviewer's `fidelity_level` verdict.
-2. **Classify outcomes** (read `refine-logs/FINAL_PROPOSAL.md` to determine pre-specification):
+2. **Classify outcomes** (read `.sciforge/refine-logs/FINAL_PROPOSAL.md` to determine pre-specification):
    - **Primary outcomes**: pre-specified, directly testable predictions of the theoretical model.
    - **Secondary outcomes**: mechanism tests, robustness checks, additional analyses (NOT pre-specified).
 3. **Apply fidelity gate (on PRIMARY outcomes only)**:
@@ -315,7 +315,7 @@ FIDELITY GATE:
 
 ### Step 3.5: Check Logic Verification Audit
 
-Read `audit_report/LOGIC_VERIFICATION.json` (from `/logic-verification`):
+Read `.sciforge/audits/LOGIC_VERIFICATION.json` (from `/logic-verification`):
 - `logic_status` from the file.
 - Attach to verdict output:
   - `logic_status: pass | warn | fail`
@@ -395,8 +395,8 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 - **Risks**: [assumptions that may not hold in OSS sandbox]
 
 ### Engineering Grounding (from Phase 5b, inherited, not recomputed)
-- **Score**: [0-10] (inherited from `refine-logs/ENGINEERING_GROUNDING.md` eg_average)
-- **Report**: See `refine-logs/ENGINEERING_GROUNDING.md` for full 8-dim breakdown + downside protection
+- **Score**: [0-10] (inherited from `.sciforge/refine-logs/ENGINEERING_GROUNDING.md` eg_average)
+- **Report**: See `.sciforge/refine-logs/ENGINEERING_GROUNDING.md` for full 8-dim breakdown + downside protection
 - **Risks**: [engineering risks from Phase 5b — compute, deps, ai_dev_cycle, reproducibility, capital, code_complexity, temporal_maturity, regulatory]
 
 ### Combined Assessment

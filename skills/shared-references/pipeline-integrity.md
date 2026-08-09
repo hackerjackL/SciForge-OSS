@@ -24,7 +24,7 @@ For each prerequisite of this phase:
 
 ```
 If the phase consumes domain signature:
-  Check if refine-logs/domain-signature.json exists
+  Check if .sciforge/refine-logs/domain-signature.json exists
   If EXISTS → PASS (signature is available)
   If NOT EXISTS → log WARN, use defaults, continue
 ```
@@ -41,7 +41,7 @@ Check the phase's mode:
 ### Step 4: Pre-Flight Log
 
 ```
-Write to refine-logs/pipeline-integrity.md:
+Write to .sciforge/refine-logs/pipeline-integrity.md:
   - Phase number
   - Phase name
   - Prerequisites status (PASS/FAIL/BLOCKED)
@@ -65,7 +65,7 @@ Write to refine-logs/pipeline-integrity.md:
 | 6: theory-derivation | METHOD_REGISTRY.md | MUST | Fall back to Phase 5 |
 | 7: leakage-audit | derivations/{problem_id}/ | MUST | Fall back to Phase 6 |
 | 8: logic-verification | derivations/{problem_id}/ | MUST | Fall back to Phase 6 |
-| 9: invariant-check | audit_report/LEAKAGE_AUDIT.json | MUST | Fall back to Phase 7 |
+| 9: invariant-check | .sciforge/audits/LEAKAGE_AUDIT.json | MUST | Fall back to Phase 7 |
 | 10: result-to-claim | LOGIC_VERIFICATION.json | MUST | Fall back to Phase 8 |
 | 11: unified-plotting | CLAIMS_FROM_RESULTS.md | OPTIONAL | Skip |
 | 12: paper-writing | CLAIMS_FROM_RESULTS.md | MUST | Fall back to Phase 10 |
@@ -84,12 +84,12 @@ Write to refine-logs/pipeline-integrity.md:
 **Mode**: MUST
 
 ## Prerequisites
-- [PASS] refine-logs/domain-signature.json exists
+- [PASS] .sciforge/refine-logs/domain-signature.json exists
 - [PASS] Q-id is frozen
 - [INFO] Domain signature: evidence_type=causal_inference
 
 ## Domain Signature
-- [FOUND] refine-logs/domain-signature.json
+- [FOUND] .sciforge/refine-logs/domain-signature.json
 - Applied: perspective_weights = {theoretical: 0.3, computational: 0.5, qualitative: 0.2}
 
 ## Decision

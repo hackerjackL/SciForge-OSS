@@ -11,8 +11,8 @@ role: method-registry-builder
 ## Quick Reference
 
 - **Purpose**: method pre-registration + hash lock + forced human approval, preventing post-hoc method selection
-- **Input**: refine-logs/FINAL_PROPOSAL.md
-- **Output**: METHOD_REGISTRY.md + REGISTRY_HASH.txt + APPROVAL_LOG.txt
+- **Input**: .sciforge/refine-logs/FINAL_PROPOSAL.md
+- **Output**: METHOD_REGISTRY.md + REGISTRY_HASH.txt + .sciforge/APPROVAL_LOG.txt
 - **Key**: 8-section schema; Section 3 (Method Selection) locked; assumption quality scoring (new); forced human approval
 
 > **Status**: Builds a structured `METHOD_REGISTRY.md` that locks the method selection BEFORE derivations are run, preventing post-hoc method shopping and scope creep. **OSS is discipline-agnostic** — there are no discipline overlays (no economics AIM schema, no cs-ml SOTA schema, no physics PNV schema). Only the universal 8-section schema with a Type I Logic Gap self-audit is active. Copied from main SciForge and trimmed to OSS's single-row design.
@@ -50,7 +50,7 @@ This skill defines:
 
 The registry lives at `methods/METHOD_REGISTRY.md`. The structure is rigid; each section is required. Related artifacts:
 - `methods/REGISTRY_HASH.txt` — SHA256 of the registry Section 3, cited to prove pre-registration.
-- `methods/APPROVAL_LOG.txt` — structured human-checkpoint log (timestamp / approver / approved_section_3_hash / signature).
+- `methods/.sciforge/APPROVAL_LOG.txt` — structured human-checkpoint log (timestamp / approver / approved_section_3_hash / signature).
 - `methods/METHOD_BINDING.md` — derived from Section 3, consumed by `/theory-derivation` and `/leakage-audit`.
 - `methods/OUTCOME_CLASSIFICATION.md` — extracted from Section 4, consumed by `/result-to-claim` and `/invariant-check`.
 - `AGENT_DOC.md` — gets a "Method Registry: METHOD_REGISTRY.md" pointer.
@@ -153,7 +153,7 @@ The `estimated_minutes` total drives `/experiment-execution`'s background-schedu
 
 **Field feedback**: evaluation must be "uniform comparison, fair, not sloppy" — how metrics are chosen, how baselines are run, and how results are reported must all be locked **before seeing results**; otherwise the agent will (unintentionally) pick evaluation methods favorable to itself. This section is hash-locked together with §3.5 and cannot be changed during experiments.
 
-**Pre-registration quartet** (written to `methods/EVALUATION_PROTOCOL.md` + machine-readable `verdicts/EVALUATION_PROTOCOL.json`):
+**Pre-registration quartet** (written to `methods/EVALUATION_PROTOCOL.md` + machine-readable `.sciforge/verdicts/EVALUATION_PROTOCOL.json`):
 
 1. **Metrics lock**: the primary metric for the PRIMARY outcome + the full set of reported metrics are locked here (name, computation, aggregation mean±std). **No adding or removing metrics after experiments** — wanting to add a metric = changing the method = redoing the §3 hash lock
 2. **Baseline parity**: each baseline's run conditions are **aligned item by item** and locked in a table — same data split (same split, same seed), same preprocessing, same compute budget (training steps / epochs / time cap), same tuning effort (baselines may also be tuned per their literature-recommended values; no "our method finely tuned, baselines run raw"). Comparison results with misaligned conditions must not enter the paper (`/result-to-claim` validates the `parity_check` field)
@@ -202,12 +202,12 @@ Pre-registered outcome classification. **Cannot be changed post-hoc.**
 | Approved Section 3 hash | [SHA256] |
 | Approval signature | [user-provided] |
 
-**Approval Log**: `methods/APPROVAL_LOG.txt` appends an entry on each approval/re-approval event. Schema:
+**Approval Log**: `methods/.sciforge/APPROVAL_LOG.txt` appends an entry on each approval/re-approval event. Schema:
 ```
 [timestamp] | [approver] | [action: INITIAL_APPROVAL | RE_APPROVAL | DRIFT_DETECTED] | [section_3_hash] | [signature]
 ```
 
-This is a **forced human checkpoint**. The agent cannot self-approve. The agent cannot proceed to `/theory-derivation` until `APPROVAL_LOG.txt` contains an `INITIAL_APPROVAL` entry matching the current Section 3 hash.
+This is a **forced human checkpoint**. The agent cannot self-approve. The agent cannot proceed to `/theory-derivation` until `.sciforge/APPROVAL_LOG.txt` contains an `INITIAL_APPROVAL` entry matching the current Section 3 hash.
 
 ## 8. Update Log
 
@@ -219,7 +219,7 @@ This is a **forced human checkpoint**. The agent cannot self-approve. The agent 
 1. Compute new SHA256 of Section 3
 2. Compare against `REGISTRY_HASH.txt`
 3. If different → require re-approval (Step 7) before downstream skills can proceed
-4. Log drift event in `APPROVAL_LOG.txt` with action `DRIFT_DETECTED`
+4. Log drift event in `.sciforge/APPROVAL_LOG.txt` with action `DRIFT_DETECTED`
 ```
 
 ## Workflow
@@ -231,8 +231,8 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 ### Step 1: Locate Existing Artifacts
 
 Derive sections from existing artifacts:
-- `refine-logs/FINAL_PROPOSAL.md` Problem Anchor + Q-id → Section 1
-- `refine-logs/IDEA_DAG.json` + `refine-logs/FINAL_PROPOSAL.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
+- `.sciforge/refine-logs/FINAL_PROPOSAL.md` Problem Anchor + Q-id → Section 1
+- `.sciforge/refine-logs/IDEA_DAG.json` + `.sciforge/refine-logs/FINAL_PROPOSAL.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
 
 If none exist, this is the **first** pre-writing step. Initialize an empty registry with the schema above and ask the user to fill in Sections 2-4, or — if there is enough context — propose a draft for user approval.
 
@@ -273,7 +273,7 @@ Run the universal Type I Logic Gap self-check (SA-G1 / SA-G2 / SA-G3). Record fi
 1. Present the completed registry to the user
 2. Compute `SHA256(Section 3 text)` → write to `methods/REGISTRY_HASH.txt`
 3. Ask user to explicitly approve: "Do you approve this method registry? Section 3 will be locked."
-4. On approval: append entry to `methods/APPROVAL_LOG.txt` with `action=INITIAL_APPROVAL`
+4. On approval: append entry to `methods/.sciforge/APPROVAL_LOG.txt` with `action=INITIAL_APPROVAL`
 5. Without approval: registry is `DRAFT`, downstream skills MUST reject
 
 ### Step 8: Derive METHOD_BINDING.md
@@ -291,7 +291,7 @@ Extract Section 3 into `methods/METHOD_BINDING.md`:
 
 ## Callback Protocol
 If `/leakage-audit` finds CRITICAL Type I leakage AND this binding is identifiable,
-the orchestrator re-invokes `/method-registry --callback audit_report/LEAKAGE_AUDIT.json`
+the orchestrator re-invokes `/method-registry --callback .sciforge/audits/LEAKAGE_AUDIT.json`
 to revise Section 3. Bounded to 3 iterations.
 ```
 
@@ -316,7 +316,7 @@ claim supported if ≥ 1 primary outcome reaches the configured fidelity thresho
 
 ### Step 10: Persist & Link
 
-Write `methods/METHOD_REGISTRY.md`. Update `AGENT_DOC.md` with registry pointer. Write `methods/REGISTRY_HASH.txt`, `methods/APPROVAL_LOG.txt`, `methods/METHOD_BINDING.md`, `methods/OUTCOME_CLASSIFICATION.md`.
+Write `methods/METHOD_REGISTRY.md`. Update `AGENT_DOC.md` with registry pointer. Write `methods/REGISTRY_HASH.txt`, `methods/.sciforge/APPROVAL_LOG.txt`, `methods/METHOD_BINDING.md`, `methods/OUTCOME_CLASSIFICATION.md`.
 
 ### Step 11: Notify Downstream
 
@@ -337,9 +337,9 @@ The hash lock is the cryptographic pre-registration. Once `REGISTRY_HASH.txt` is
 2. Agent modifies Section 3
 3. Agent computes new SHA256
 4. Agent detects drift vs `REGISTRY_HASH.txt`
-5. Agent logs `DRIFT_DETECTED` in `APPROVAL_LOG.txt`
+5. Agent logs `DRIFT_DETECTED` in `.sciforge/APPROVAL_LOG.txt`
 6. Agent presents drift to user: "Section 3 changed from [old hash] to [new hash]. Reason: [leakage callback]. Re-approve?"
-7. On re-approval: append `RE_APPROVAL` entry to `APPROVAL_LOG.txt`, update `REGISTRY_HASH.txt`
+7. On re-approval: append `RE_APPROVAL` entry to `.sciforge/APPROVAL_LOG.txt`, update `REGISTRY_HASH.txt`
 
 ## 6-State Verdict Schema
 
@@ -358,19 +358,19 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 
 When `/leakage-audit` finds CRITICAL Type I leakage (LEAKY on a primary outcome) and `METHOD_BINDING.md` is identifiable, the callback fires:
 1. `/leakage-audit` emits `callback` field in `LEAKAGE_AUDIT.json`
-2. Orchestrator re-invokes `/method-registry --callback audit_report/LEAKAGE_AUDIT.json`
+2. Orchestrator re-invokes `/method-registry --callback .sciforge/audits/LEAKAGE_AUDIT.json`
 3. `/method-registry` revises Section 3 → emits `METHOD_BINDING_DIFF.md`
 4. Orchestrator re-invokes `/leakage-audit` to confirm the fix
 5. If same logic gap persists → repeat (up to 3 iterations)
 6. **If 3 iterations exhausted on the same logic gap → orchestrator halts with fallback**:
    - Downgrade `METHOD_BINDING.md` status to `DRAFT`
    - Append `LOGIC_GAP_FUNDAMENTAL_ISSUE` flag to `METHOD_BINDING.md`
-   - Log halt event in `APPROVAL_LOG.txt` with `action=CALLBACK_EXHAUSTED`
+   - Log halt event in `.sciforge/APPROVAL_LOG.txt` with `action=CALLBACK_EXHAUSTED`
    - Report to user: "The logic gap is fundamental — the implication cannot be defended under the current assumptions. Recommend returning to `/idea-discovery` to select a different approach to the problem."
    - **Do NOT silently continue** — a logic gap surviving 3 method swaps indicates the approach itself is flawed, not a method selection problem.
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes to `.sciforge/verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:
@@ -379,7 +379,7 @@ When `/leakage-audit` finds CRITICAL Type I leakage (LEAKY on a primary outcome)
 ## Boundaries
 
 - **No silent edits after approval.** Section 3 is hash-locked. Any change requires re-approval.
-- **Forced human checkpoint.** The agent cannot self-approve. `APPROVAL_LOG.txt` must contain a user `INITIAL_APPROVAL` entry before downstream skills proceed.
+- **Forced human checkpoint.** The agent cannot self-approve. `.sciforge/APPROVAL_LOG.txt` must contain a user `INITIAL_APPROVAL` entry before downstream skills proceed.
 - **3-round callback limit.** Do not exceed 3 method revisions for the same logic gap. If exhausted, halt and report.
 - **No discipline overlays.** OSS has no `overlays/{economics,cs-ml,physics}.md`. Do not reintroduce discipline-specific Section 2 schema (AIM T/I/P, SOTA baseline/target, PNV Physical assumptions) or Section 6 pitfall checklists (14-class econ, 14-class cs-ml, 10-class physics). The universal schema above is the complete template. If a problem seems to need a discipline-specific check, the agent's runtime reasoning in `/theory-derivation` handles it, NOT an overlay.
 - **This skill is structural, not substantive.** It cannot replace subject-matter expertise. The Type I self-check catches canonical logic gaps, not novel methodological flaws.
@@ -389,7 +389,7 @@ When `/leakage-audit` finds CRITICAL Type I leakage (LEAKY on a primary outcome)
 The final output is:
 1. `methods/METHOD_REGISTRY.md` — the 8-section universal registry
 2. `methods/REGISTRY_HASH.txt` — SHA256 of Section 3
-3. `methods/APPROVAL_LOG.txt` — human-checkpoint log
+3. `methods/.sciforge/APPROVAL_LOG.txt` — human-checkpoint log
 4. `methods/METHOD_BINDING.md` — derived from Section 3, consumed by `/theory-derivation` and `/leakage-audit`
 5. `methods/OUTCOME_CLASSIFICATION.md` — extracted from Section 4, consumed by `/result-to-claim` and `/invariant-check`
 

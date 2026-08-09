@@ -18,12 +18,12 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 │
 ├── .sciforge/                            ← [hidden state layer — v6.0] pipeline state, verification, audit trail
 │   ├── RUNSTATE.json                     ← long-horizon resume checkpoint (rewritten at every boundary)
-│   ├── MANIFEST.md                       ← every artifact logged here as it is produced
-│   ├── PIPELINE_STATUS.md                ← execution report (phase trail)
-│   ├── APPROVAL_LOG.txt                  ← human-checkpoint + test_mode bypass log
-│   ├── verdicts/                         ← all machine-readable verdicts (flat, fixed names — see output-protocol.md)
+│   ├── .sciforge/MANIFEST.md                       ← every artifact logged here as it is produced
+│   ├── .sciforge/PIPELINE_STATUS.md                ← execution report (phase trail)
+│   ├── .sciforge/APPROVAL_LOG.txt                  ← human-checkpoint + test_mode bypass log
+│   ├── .sciforge/verdicts/                         ← all machine-readable verdicts (flat, fixed names — see output-protocol.md)
 │   ├── logs/                             ← pipeline state stream: pipeline.log + phase_<n>.log
-│   ├── refine-logs/
+│   ├── .sciforge/refine-logs/
 │   │   ├── IDEA_CANDIDATES.md / IDEA_DAG.json / MCTS_LOG.md / GAP_ANCHOR_LOG.md
 │   │   ├── ENGINEERING_GROUNDING.md      ← EG report (Phase 2.5b)
 │   │   ├── FRONTIER_MAP.json             ← frontier node graph (Phase 3)
@@ -119,7 +119,7 @@ Every project root has a `README.md` (created at Phase 0, updated through Phase 
 - checkpoints_bypassed: {true|false} (if test_mode)
 
 ## Directory Layout
-See [`project-architecture-contract.md`](./project-architecture-contract.md) § "Required Workspace" for the full canonical tree (this template section is copied into each run's `PIPELINE_STATUS.md`; the link resolves to the contract file itself when viewed in-tree).
+See [`project-architecture-contract.md`](./project-architecture-contract.md) § "Required Workspace" for the full canonical tree (this template section is copied into each run's `.sciforge/PIPELINE_STATUS.md`; the link resolves to the contract file itself when viewed in-tree).
 
 ## How to Reproduce
 1. {entry command that produced this run}
@@ -136,11 +136,11 @@ The README is UPDATED at each phase boundary (not just written once) — the "Ke
 
 ---
 
-## 3. MANIFEST.md (Artifact Inventory, Appended Per-Phase)
+## 3. .sciforge/MANIFEST.md (Artifact Inventory, Appended Per-Phase)
 
 Every artifact produced is appended to `.sciforge/MANIFEST.md` as it is created (per the Output Manifest Protocol). The manifest is the single index — a reviewer scans it to see what exists.
 
-**MANIFEST.md format**:
+**.sciforge/MANIFEST.md format**:
 ```markdown
 # Artifact Manifest — {Q-id}
 
@@ -163,11 +163,11 @@ The contract applies whether the entry was `/auto-pipeline` (full 21-phase run) 
 
 1. **One project = one root dir.** Never scatter artifacts across the filesystem. If a human invokes a skill without a project root, the skill creates `{cwd}/{slug}/` first and writes there.
 2. **No orphan files at the root.** Only the top-level entry files (`README.md`, `PROBLEM.md`, `AGENT_DOC.md`, and the registered root contract artifacts — `CLAIMS_FROM_RESULTS.md`, `EXPERIMENT_LOG.md`, `NARRATIVE_REPORT.md`) live at the root. All other artifacts go in a named subdirectory; pipeline state goes in `.sciforge/`.
-3. **No orphan subdirectories.** Every subdirectory must contain at least one artifact logged in `MANIFEST.md`. Empty dirs are deleted.
+3. **No orphan subdirectories.** Every subdirectory must contain at least one artifact logged in `.sciforge/MANIFEST.md`. Empty dirs are deleted.
 4. **No leftover intermediates.** Build artifacts (`*.aux`, `*.bbl`, `*.log` except `compile.log`, `*.out`) go in `paper/.build/` (gitignored-equivalent) — NOT scattered in `paper/`. `compile.log` is the only log retained at `paper/compile.log`.
 5. **Symlinks for shared assets.** `paper/references.bib` and `paper/figures/*.pdf` are symlinks to `literature/references.bib` and `figures/*/output.pdf` — single source of truth, no duplication.
 6. **Stale-file detection (Phase 6.5 of paper-compile already).** Any `.tex` in `sections/` not `\input`'ed by `main.tex` is flagged. Same for any figure in `figures/` not referenced in the paper.
-7. **Partial-run hygiene.** If a human runs `/theory-derivation` alone (no full pipeline), the skill STILL creates the project tree (`derivations/{id}/`, appends to `MANIFEST.md`) — partial runs do not produce flat-file clutter.
+7. **Partial-run hygiene.** If a human runs `/theory-derivation` alone (no full pipeline), the skill STILL creates the project tree (`derivations/{id}/`, appends to `.sciforge/MANIFEST.md`) — partial runs do not produce flat-file clutter.
 
 ---
 
@@ -178,7 +178,7 @@ At Phase 16 (final assembly), the orchestrator runs a cleanliness audit before d
 | Check | PASS | WARN | FAIL |
 |-------|------|------|------|
 | README.md exists with all required sections | all sections filled | partial | missing |
-| MANIFEST.md lists every produced artifact | complete | <3 missing | >3 missing |
+| .sciforge/MANIFEST.md lists every produced artifact | complete | <3 missing | >3 missing |
 | No orphan files at root (beyond the 4 allowed) | only 4 root files | 1-2 extra | >2 extra |
 | No empty subdirectories | none | 1 empty | >1 empty |
 | paper/ has only main.tex + sections/ + figures/ + main.pdf + compile.log + COMPILE_REPORT.json (+ .build/) | clean | 1 stray | >1 stray |
@@ -193,7 +193,7 @@ Verdict: all-PASS → COMPLETED; any WARN → COMPLETED with warnings logged; an
 
 - **The project root is the single source of truth.** No artifacts outside it. No absolute paths in artifacts that break portability (use relative paths within the project).
 - **README.md is mandatory, not optional.** A project without a README is not "clean" — it is incomplete.
-- **MANIFEST.md is appended, never overwritten.** Each phase adds its row; no phase deletes prior rows.
+- **.sciforge/MANIFEST.md is appended, never overwritten.** Each phase adds its row; no phase deletes prior rows.
 - **Partial runs obey the same hygiene.** A `/theory-derivation` invocation alone still creates the tree — no flat-file clutter.
 - **The cleanliness audit is a Phase 16 gate.** A run is not COMPLETED until the audit passes (or WARNs with logged reasons).
 - **No hidden files except `.sciforge/` (the v6.0 hidden state layer — durable, part of the run record), `.build/` (LaTeX intermediates) and `.pending/` (background literature).** `.build/` and `.pending/` are gitignored-equivalent and not part of the deliverable.

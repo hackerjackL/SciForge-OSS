@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sciforge/schemas/FIGURE_AUDITS.schema.json",
   "title": "FIGURE_AUDITS.json - all-figure audit summary mirror",
-  "description": "Mirror of the per-figure figure_audit.json verdicts, maintained by unified-plotting Step 6.5 (v5.3) so downstream skills (/paper-writing, /paper-compile) can read every figure's audit state from one flat verdicts/ file. Per-figure detail stays in figures/<name>/figure_audit.json.",
+  "description": "Mirror of the per-figure figure_audit.json verdicts, maintained by unified-plotting Step 6.5 (v5.3) so downstream skills (/paper-writing, /paper-compile) can read every figure's audit state from one flat .sciforge/verdicts/ file. Per-figure detail stays in figures/<name>/figure_audit.json.",
   "type": "object",
   "required": [
     "schema_version",

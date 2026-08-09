@@ -12,7 +12,7 @@
     },
     "evidence_type": {
       "type": "string",
-      "description": "Evidence type from refine-logs/domain-signature.json that selected the failure-mode row."
+      "description": "Evidence type from .sciforge/refine-logs/domain-signature.json that selected the failure-mode row."
     },
     "failure_modes_checked": {
       "type": "array",

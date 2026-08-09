@@ -8,7 +8,7 @@
 
 - **Purpose**: recurring monitoring of competitors, triggering an update PR when an OSS differentiator is found to be closed/overturned
 - **Input**: scheduled trigger (quarterly) + competitor framework release notes / benchmarks / papers
-- **Output**: `refine-logs/competitive-drift-report-<YYYYQQ>.json` + update PR if any differentiator decayed
+- **Output**: `.sciforge/refine-logs/competitive-drift-report-<YYYYQQ>.json` + update PR if any differentiator decayed
 - **Invocation**: quarterly cron OR manual `/competitive-drift-monitor` invoke
 - **Key**: this is not "write another competitor comparison"; it is "detect whether the differences identified in the last comparison still hold, and trigger updates for those that no longer hold"
 
@@ -122,7 +122,7 @@ For each differentiator, decay_state transitions are judged against specific evi
 
 ## Report Schema (machine-readable)
 
-`refine-logs/competitive-drift-report-<YYYYQQ>.json`:
+`.sciforge/refine-logs/competitive-drift-report-<YYYYQQ>.json`:
 
 ```json
 {

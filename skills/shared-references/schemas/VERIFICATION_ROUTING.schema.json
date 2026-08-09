@@ -13,7 +13,7 @@
     },
     "evidence_type": {
       "type": "string",
-      "description": "Evidence type from refine-logs/domain-signature.json (e.g. correlational, causal_inference, simulational, empirical, experimental, derivational). Left free-form because domain-signature may carry secondary/union types (e.g. theory+experiment)."
+      "description": "Evidence type from .sciforge/refine-logs/domain-signature.json (e.g. correlational, causal_inference, simulational, empirical, experimental, derivational). Left free-form because domain-signature may carry secondary/union types (e.g. theory+experiment)."
     },
     "reason": {
       "type": "string",
@@ -22,7 +22,7 @@
     "na_verdicts": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "v6.0: registered verdict filenames (per output-protocol.md verdicts/ table) that this run will legitimately never produce. Absent listed files validate as N/A, not pending. Orchestrator writes the route default set (verification-routing.md section 5) at Phase 6 entry and appends later declared skips (e.g. FIGURE_AUDITS.json on a Phase 11 figure skip)."
+      "description": "v6.0: registered verdict filenames (per output-protocol.md .sciforge/verdicts/ table) that this run will legitimately never produce. Absent listed files validate as N/A, not pending. Orchestrator writes the route default set (verification-routing.md section 5) at Phase 6 entry and appends later declared skips (e.g. FIGURE_AUDITS.json on a Phase 11 figure skip)."
     }
   },
   "additionalProperties": true

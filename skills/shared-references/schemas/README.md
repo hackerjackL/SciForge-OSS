@@ -15,7 +15,7 @@ promises checkable.
 
 - One schema per verdict artifact: `skills/shared-references/schemas/<NAME>.schema.json`,
   where `<NAME>` is exactly the verdict filename without `.json`
-  (e.g. `verdicts/REVIEW_STATE.json` → `schemas/REVIEW_STATE.schema.json`).
+  (e.g. `.sciforge/verdicts/REVIEW_STATE.json` → `schemas/REVIEW_STATE.schema.json`).
 - All schemas are JSON Schema **draft 2020-12**, but restricted to the subset the
   stdlib validator understands (see below) — do not use `$ref`, `oneOf`, `const`, etc.
 - The two hash artifacts are **not JSON** and have no schema file:
@@ -77,7 +77,7 @@ error rather than silently ignored, so schemas never over-promise.
 
 ## How to add a new verdict schema
 
-1. Add the fixed filename to the `verdicts/` tree in
+1. Add the fixed filename to the `.sciforge/verdicts/` tree in
    [`../output-protocol.md`](../output-protocol.md) first (that file is the single
    authority for directory layout), then a row in
    [`../artifact-registry.md`](../artifact-registry.md).
@@ -93,8 +93,8 @@ error rather than silently ignored, so schemas never over-promise.
 
 `RUNSTATE.schema.json` defines the long-horizon resume checkpoint
 (`{problem_id}/.sciforge/RUNSTATE.json`). It lives here for discoverability but is
-NOT a verdict artifact and NOT validated by `validate_verdicts.py` (which scans only
-the verdicts/ directory); the orchestrator's resume protocol (output-protocol.md
+NOT a verdict artifact and NOT validated by `validate_verdicts.py` (which scans only the
+verdicts directory); the orchestrator's resume protocol (output-protocol.md
 §Long-Horizon Resume Contract) and `tests/test_e2e_smoke.py` check it instead.
 
 ## Known gaps (docs vague or conflicting — schemas stay permissive here)
@@ -131,7 +131,7 @@ the verdicts/ directory); the orchestrator's resume protocol (output-protocol.md
    `audited_input_hashes`, and the `aigc_scan` field (writing-principles.md §0.5) are
    promised; `aigc_scan`'s internal shape is unconstrained.
 9. **VERIFICATION_ROUTING path — closed in v6.0.** verification-routing.md used to
-   say `refine-logs/VERIFICATION_ROUTING.json`; the canonical location was `verdicts/`
+   say `.sciforge/refine-logs/VERIFICATION_ROUTING.json`; the canonical location was `.sciforge/verdicts/`
    since v5.2 and is `.sciforge/verdicts/` since v6.0 — verification-routing.md now
    points at the current canonical path (single-authority rule).
 10. **PROBLEM_HASH / REGISTRY_HASH are .txt**, so they are regex-checked in the

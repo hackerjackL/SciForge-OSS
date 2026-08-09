@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sciforge/schemas/RUNSTATE.schema.json",
   "title": "RUNSTATE.json - long-horizon resume checkpoint (v6.0)",
-  "description": "Lives at {problem_id}/.sciforge/RUNSTATE.json (NOT inside verdicts/ — it is runtime state, not a judgment). Rewritten by the orchestrator at every phase boundary and at forced human checkpoints. The resume contract in output-protocol.md §Long-Horizon Resume Contract consumes it: a new orchestrator session finding status != completed verifies the verdict trail and resumes from next_action. Validated by the resume protocol (and by tests/test_e2e_smoke.py), not by validate_verdicts.py.",
+  "description": "Lives at {problem_id}/.sciforge/RUNSTATE.json (NOT inside .sciforge/verdicts/ — it is runtime state, not a judgment). Rewritten by the orchestrator at every phase boundary and at forced human checkpoints. The resume contract in output-protocol.md §Long-Horizon Resume Contract consumes it: a new orchestrator session finding status != completed verifies the verdict trail and resumes from next_action. Validated by the resume protocol (and by tests/test_e2e_smoke.py), not by validate_verdicts.py.",
   "type": "object",
   "required": [
     "schema_version",

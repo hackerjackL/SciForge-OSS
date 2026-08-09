@@ -9,7 +9,7 @@
 3. Downstream skills always read the fixed-name file
 
 **Timestamped**: IDEA_REPORT.md, FINAL_PROPOSAL.md, AUTO_REVIEW.md, paper/main.tex, status files
-**Not timestamped**: append-only files (findings.md), per-round numbered files (round_N_*.md), MANIFEST.md
+**Not timestamped**: append-only files (findings.md), per-round numbered files (round_N_*.md), .sciforge/MANIFEST.md
 
 ## Manifest Records
 
@@ -29,10 +29,10 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 {problem_id}/
 ├── .sciforge/          ← [hidden state layer] long-horizon resume + verification + audit trail (v6.0)
 │   ├── RUNSTATE.json   ←   long-horizon checkpoint, rewritten at every phase boundary (resume contract, v6.0)
-│   ├── MANIFEST.md     ←   artifact write audit trail (every write appends one row)
-│   ├── APPROVAL_LOG.txt ←  human-checkpoint approval records (method lock, idea selection, KILL confirmation)
-│   ├── PIPELINE_STATUS.md ← execution report (the full phase trail)
-│   ├── verdicts/       ←   the [unified directory] for all machine-readable pipeline verdicts (flat, fixed names — v5.2 contract unchanged, only the home moved)
+│   ├── .sciforge/MANIFEST.md     ←   artifact write audit trail (every write appends one row)
+│   ├── .sciforge/APPROVAL_LOG.txt ←  human-checkpoint approval records (method lock, idea selection, KILL confirmation)
+│   ├── .sciforge/PIPELINE_STATUS.md ← execution report (the full phase trail)
+│   ├── .sciforge/verdicts/       ←   the [unified directory] for all machine-readable pipeline verdicts (flat, fixed names — v5.2 contract unchanged, only the home moved)
 │   │   ├── VERIFICATION_ROUTING.json   ← verification routing decision + na_verdicts declaration (Phase 6 entry point)
 │   │   ├── PROBLEM_HASH.txt            ← INV-G1 problem-content hash (invariant-check)
 │   │   ├── REGISTRY_HASH.txt           ← method hash-lock (method-registry)
@@ -55,18 +55,18 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   │                                  the orchestrator books entries and checks the caps at every phase boundary;
 │   │   │                                  bookkeeping from the old BA_BUDGET.json is merged into this file, BA_BUDGET.json remains as a read-only fallback)
 │   │   ├── FIGURE_AUDITS.json          ← all-figure audit summary mirror (unified-plotting; per-figure detail still ships with each figure_audit.json)
-│   │   └── PIPELINE_VERDICT_SUMMARY.md ← pipeline verdict overview (rewritten by the orchestrator at every phase boundary; derived document, the only .md allowed inside verdicts/)
+│   │   └── PIPELINE_VERDICT_SUMMARY.md ← pipeline verdict overview (rewritten by the orchestrator at every phase boundary; derived document, the only .md allowed inside .sciforge/verdicts/)
 │   ├── logs/           ←   [pipeline state stream] (v6.0: pipeline logs only; experiment/training logs live in visible logs/)
 │   │   ├── pipeline.log    ← auto-pipeline status stream (the single authoritative status record)
 │   │   └── phase_<n>.log   ← per-phase run logs (written by each skill, no longer scattered)
-│   ├── refine-logs/    ←   decision-process artifacts (idea-discovery + novelty-check + domain learning)
+│   ├── .sciforge/refine-logs/    ←   decision-process artifacts (idea-discovery + novelty-check + domain learning)
 │   │   ├── IDEA_REPORT.md / IDEA_CANDIDATES.md / IDEA_DAG.json / MCTS_LOG.md
 │   │   ├── GAP_ANCHOR_LOG.md  ← gap-anchoring decision per idea (v6.0 gap chain)
 │   │   ├── FRONTIER_MAP.json  ← frontier node graph (novelty-check)
 │   │   ├── domain-signature.json / domain-signature-hint.json ← domain signature (Phase 1b sole writer; 1a hint)
 │   │   ├── FINAL_PROPOSAL.md  ← frozen selected idea
 │   │   └── abandoned/<idea_id>/ ← KILL/PIVOT archives of rejected branches
-│   ├── audits/         ←   [narrative audit reports] (v6.0 merge of audit_report/ + review-stage/ + citation_audit/)
+│   ├── audits/         ←   [narrative audit reports] (v6.0 merge of .sciforge/audits/ + .sciforge/audits/ + .sciforge/audits/)
 │   │   ├── LOGIC_VERIFICATION.md / LEAKAGE_AUDIT.md / INVARIANT_CHECK.md / Type_I.md … Type_IV.md
 │   │   ├── CLAIMS_FROM_RESULTS.md ← 3-fidelity claim gate narrative (result-to-claim)
 │   │   ├── AUTO_REVIEW.md         ← cross-model review narrative (auto-review-loop)
@@ -100,14 +100,14 @@ The tree above is a **registry of canonical locations, not a pre-created skeleto
 
 1. A skill that writes an artifact creates its target directory at write time (`mkdir -p` semantics); no phase pre-creates the tree.
 2. Whole subtrees that a run legitimately never touches simply never exist. A theory-only/humanities run has no `experiments/`, `code/experiments/`, `logs/`, or `figures/` — that is CORRECT, not an error to be filled with placeholders.
-3. Which verdicts a run will never produce is DECLARED, not guessed: `.sciforge/verdicts/VERIFICATION_ROUTING.json` carries `na_verdicts` (filenames from the verdicts/ table above that the chosen route + declared skips make Not-Applicable). `validate_verdicts.py` reports them as **N/A** instead of pending, and the wrap-up cleanliness audit treats the corresponding absent directories as legitimate. Default declaration sets per route are defined in [`verification-routing.md`](verification-routing.md) §5; the orchestrator copies the applicable set into the routing decision at Phase 6 entry and extends it with later declared skips (e.g., a Phase 11 figure-skip adds `FIGURE_AUDITS.json`).
+3. Which verdicts a run will never produce is DECLARED, not guessed: `.sciforge/verdicts/VERIFICATION_ROUTING.json` carries `na_verdicts` (filenames from the .sciforge/verdicts/ table above that the chosen route + declared skips make Not-Applicable). `validate_verdicts.py` reports them as **N/A** instead of pending, and the wrap-up cleanliness audit treats the corresponding absent directories as legitimate. Default declaration sets per route are defined in [`verification-routing.md`](verification-routing.md) §5; the orchestrator copies the applicable set into the routing decision at Phase 6 entry and extends it with later declared skips (e.g., a Phase 11 figure-skip adds `FIGURE_AUDITS.json`).
 4. Emptiness rule: because of rule 1 an empty directory can only arise from an aborted write — the wrap-up protocol deletes it (after checking the MANIFEST for a contract reference).
 
 ### Two-Tier Split Principles (v6.0)
 
 1. **Delivery layer (visible)**: everything a reviewer/submitter needs — literature, methods, derivations, code, experiments, figures, paper, output, plus experiment logs. Post-paper engagement (submission, rebuttal correspondence) is human territory; the pipeline's job ends at a complete `output/` bundle.
 2. **`.sciforge/` (hidden)**: pipeline state, verification verdicts, decision-process trail, manifest, resume checkpoint. Hidden so a delivered workspace reads like a clean GitHub project; durable so a days-long run can resume after any interruption.
-3. **verdicts/ contract unchanged from v5.2** — flat, fixed names, one scan reveals the whole pipeline's judgment state. Only its home moved (`verdicts/` → `.sciforge/verdicts/`).
+3. **.sciforge/verdicts/ contract unchanged from v5.2** — flat, fixed names, one scan reveals the whole pipeline's judgment state. Only its home moved (`.sciforge/verdicts/` → `.sciforge/verdicts/`).
 4. **Single status file**: PIPELINE_STATUS events exist only in `.sciforge/logs/pipeline.log`; no stage may create its own PIPELINE_STATUS copy; at summarization time the orchestrator reads the entire `.sciforge/verdicts/` directory to generate the pipeline verdict overview (`.sciforge/verdicts/PIPELINE_VERDICT_SUMMARY.md`, rewritten at every phase boundary).
 5. **Migration compatibility (reads fall back, writes never do)**: reads try the v6.0 path first, then the legacy path — `.sciforge/verdicts/` ← `verdicts/`; `.sciforge/logs/` ← `logs/` (pipeline state files); `.sciforge/refine-logs/` ← `refine-logs/`; `.sciforge/audits/` ← `audit_report/` + `review-stage/` + `citation_audit/`; `.sciforge/MANIFEST.md` ← root `MANIFEST.md`. Writes always go to the v6.0 path. A resumed run that finds only legacy paths migrates them into `.sciforge/` at the next boundary (logged as a cleanup event).
 
@@ -116,7 +116,7 @@ The tree above is a **registry of canonical locations, not a pre-created skeleto
 Runs are long (hours to days) and sessions die. `.sciforge/RUNSTATE.json` is the machine-readable checkpoint that makes interruption survivable:
 
 1. **Written at every phase boundary** (and at forced human checkpoints) by the orchestrator: current phase, last completed boundary, next action, run status, pending human approvals, budget snapshot. Schema: `skills/shared-references/schemas/RUNSTATE.schema.json`.
-2. **Resume protocol** (orchestrator startup): if `{problem_id}/.sciforge/RUNSTATE.json` exists with status ≠ `completed` → run `python3 scripts/validate_verdicts.py {problem_id}/.sciforge/verdicts/` to verify state integrity → migrate any legacy-path artifacts (rule 5 above) → resume from `next_action`. A missing/corrupt RUNSTATE with a non-empty verdicts/ directory is itself a WARN (`resume_state_lost`) — resume is still possible from the verdict trail, but the human is told the checkpoint was lost.
+2. **Resume protocol** (orchestrator startup): if `{problem_id}/.sciforge/RUNSTATE.json` exists with status ≠ `completed` → run `python3 scripts/validate_verdicts.py {problem_id}/.sciforge/verdicts/` to verify state integrity → migrate any legacy-path artifacts (rule 5 above) → resume from `next_action`. A missing/corrupt RUNSTATE with a non-empty .sciforge/verdicts/ directory is itself a WARN (`resume_state_lost`) — resume is still possible from the verdict trail, but the human is told the checkpoint was lost.
 3. **Status vocabulary**: `running` / `paused_checkpoint` (awaiting human approval) / `paused_blocked` (BLOCKED verdict, human decision needed) / `completed` / `killed`.
 
 ## Verdict Schema Enforcement (v5.3, extended v6.0 — cures "misspelled/omitted fields going unnoticed")

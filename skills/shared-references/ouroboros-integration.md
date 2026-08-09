@@ -26,7 +26,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │  Phase 1: problem understanding (basic layer — NEW v2.8)       │
 │    → OSS parses problem for "data-relevant" signals             │
-│    → emits refine-logs/data-requirements-seed.json             │
+│    → emits .sciforge/refine-logs/data-requirements-seed.json             │
 │      (early hint: which variables/datasets the problem implies) │
 │    → NOT a full requirement spec yet — just a seed             │
 └─────────────────────────────────────────────────────────────────┘
@@ -36,7 +36,7 @@
 │  Phase 2.5: adversarial-falsification                          │
 │    → OSS finalizes data-requirements.json (full spec)          │
 │      from the seed + falsification exposure of data gaps       │
-│    → emits data-requirements.json to refine-logs/              │
+│    → emits data-requirements.json to .sciforge/refine-logs/              │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼  (call Ouroboros)
@@ -71,7 +71,7 @@
 
 **Producer**: OSS Phase 1 (problem understanding) — emits an early *seed* of data requirements, NOT a full spec. This lets Ouroboros warm-start before Phase 2.5 finalizes.
 
-#### `refine-logs/data-requirements-seed.json`
+#### `.sciforge/refine-logs/data-requirements-seed.json`
 
 ```json
 {
@@ -121,7 +121,7 @@
 
 **Producer**: OSS Phase 2.5 — finalizes the full data requirement spec from the seed + falsification exposure.
 
-#### `refine-logs/data-requirements.json`
+#### `.sciforge/refine-logs/data-requirements.json`
 
 ```json
 {
@@ -175,7 +175,7 @@
 
 **Producer**: Ouroboros Data-Insight — returns availability + quality assessment.
 
-#### `refine-logs/data-availability-report.json`
+#### `.sciforge/refine-logs/data-availability-report.json`
 
 ```json
 {
@@ -289,9 +289,9 @@ If Ouroboros is not available (network error, service down, not configured):
 
 | File | Producer | Consumer | Phase |
 |------|----------|----------|-------|
-| `refine-logs/data-requirements-seed.json` | OSS Phase 1 | OSS Phase 2.5 | 1 → 2.5 |
-| `refine-logs/data-requirements.json` | OSS Phase 2.5 | Ouroboros | 2.5 → Ouroboros |
-| `refine-logs/data-availability-report.json` | Ouroboros | OSS Phase 10 | Ouroboros → 10 |
+| `.sciforge/refine-logs/data-requirements-seed.json` | OSS Phase 1 | OSS Phase 2.5 | 1 → 2.5 |
+| `.sciforge/refine-logs/data-requirements.json` | OSS Phase 2.5 | Ouroboros | 2.5 → Ouroboros |
+| `.sciforge/refine-logs/data-availability-report.json` | Ouroboros | OSS Phase 10 | Ouroboros → 10 |
 | `CLAIMS_FROM_RESULTS.md` (TDAL block) | OSS Phase 10 | OSS Phase 12 | 10 → 12 |
 
 ### Boundaries (Section A)

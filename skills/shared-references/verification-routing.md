@@ -4,7 +4,7 @@
 
 ## 1. Routing rules (entry-point decision, decided once and final)
 
-At the Phase 6 (theory-derivation / experiment-execution) entry, read `evidence_type` from `.sciforge/refine-logs/domain-signature.json` plus the problem's own computability signals, route per the table below, and write to `.sciforge/verdicts/VERIFICATION_ROUTING.json` (canonical location since v5.2 — `.sciforge/verdicts/` since v6.0; pre-v6.0 fallback `verdicts/`):
+At the Phase 6 (theory-derivation / experiment-execution) entry, read `evidence_type` from `.sciforge/refine-logs/domain-signature.json` plus the problem's own computability signals, route per the table below, and write to `.sciforge/verdicts/VERIFICATION_ROUTING.json` (v6.0 canonical home; legacy fallbacks, read-only: v5.2 `verdicts/`, pre-v5.2 `refine-logs/`):
 
 | Route | Trigger condition | Verification chain |
 |------|---------|--------|

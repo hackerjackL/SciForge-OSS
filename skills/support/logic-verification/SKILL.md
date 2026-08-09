@@ -36,15 +36,15 @@ Systematically verify a derivation / argument / paper draft via structured proof
 The project directory containing:
 - `derivations/{problem_id}/derivation_output.md` — the derivation to audit (from `/theory-derivation`)
 - `paper/main.tex` + `paper/sections/*.tex` — if auditing a paper draft (from `/paper-writing`)
-- `audit_report/LOGIC_VERIFICATION.md` — cumulative round-by-round audit log (created by this skill)
-- `audit_report/LOGIC_VERIFICATION.json` — machine-readable verdict (always emitted)
-- `audit_report/LOGIC_CHECK_STATE.json` — compact recovery state (written after each round)
+- `.sciforge/audits/LOGIC_VERIFICATION.md` — cumulative round-by-round audit log (created by this skill)
+- `.sciforge/audits/LOGIC_VERIFICATION.json` — machine-readable verdict (always emitted)
+- `.sciforge/audits/LOGIC_CHECK_STATE.json` — compact recovery state (written after each round)
 
 ## Configuration
 
 - **MAX_REVIEW_ROUNDS = 3** — maximum review → fix → re-review iterations before falling through to the Unrecoverable Argument Protocol.
-- **AUDIT_DOC = `audit_report/LOGIC_VERIFICATION.md`** — cumulative log.
-- **STATE_FILE = `audit_report/LOGIC_CHECK_STATE.json`** — recovery state.
+- **AUDIT_DOC = `.sciforge/audits/LOGIC_VERIFICATION.md`** — cumulative log.
+- **STATE_FILE = `.sciforge/audits/LOGIC_CHECK_STATE.json`** — recovery state.
 - **RENDER_HTML = true** — auto-render the audit log to HTML at workflow end.
 
 ## Acceptance Gate
@@ -160,7 +160,7 @@ Read the argument / derivation / paper draft. Extract:
 
 ### Phase 0.5: Build Skeleton
 
-Create `audit_report/ARGUMENT_SKELETON.md`:
+Create `.sciforge/audits/ARGUMENT_SKELETON.md`:
 - Dependency DAG (which claim depends on which)
 - Assumption ledger (every assumption, where stated, where used)
 - Micro-claim inventory (every assertion, its location, its justification)
@@ -182,7 +182,7 @@ The audit flags each issue with:
 For each FATAL/CRITICAL/MAJOR issue:
 1. Read the issue + minimal fix recommendation
 2. Apply the fix in the source document (derivation / paper draft)
-3. Record the fix in `audit_report/LOGIC_VERIFICATION.md`
+3. Record the fix in `.sciforge/audits/LOGIC_VERIFICATION.md`
 4. Re-verify the fix with SymPy (if mathematical) or with a structured re-check (if logical)
 
 Never fabricate a fix. If a fix requires a new assumption, state it explicitly. If a fix requires weakening the claim, do so honestly.
@@ -209,14 +209,14 @@ If a counterexample is found → the lemma is INVALID → FATAL severity → fix
 ### Phase 4: Convergence or Escalation
 
 If after MAX_REVIEW_ROUNDS the argument still has open FATAL/CRITICAL issues → **Unrecoverable Argument Protocol**:
-1. Write `audit_report/UNRECOVERABLE_ARGUMENT.md` with the open issues + why each fix failed
+1. Write `.sciforge/audits/UNRECOVERABLE_ARGUMENT.md` with the open issues + why each fix failed
 2. Downgrade the argument status to `NOT YET COHERENT`
 3. Recommend returning to `/theory-derivation` for a reframed derivation OR `/idea-discovery` for a different approach
 4. **Do NOT silently pass** — a FATAL issue surviving 3 rounds indicates the argument is fundamentally flawed
 
 ### Phase 5: Emit Verdict
 
-Write `audit_report/LOGIC_VERIFICATION.json`:
+Write `.sciforge/audits/LOGIC_VERIFICATION.json`:
 ```json
 {
   "verdict": "one of: PASS | WARN | FAIL | BLOCKED | ERROR",
@@ -241,7 +241,7 @@ Verdict mapping:
 
 ### Phase 6: Render HTML (if enabled)
 
-Auto-render `audit_report/LOGIC_VERIFICATION.md` to HTML inline by the agent. Non-blocking: if rendering fails, log and continue.
+Auto-render `.sciforge/audits/LOGIC_VERIFICATION.md` to HTML inline by the agent. Non-blocking: if rendering fails, log and continue.
 
 ## 6-State Verdict Schema
 
@@ -257,7 +257,7 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 | `ERROR` | Skill itself failed | Internal error |
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `.sciforge/verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:
@@ -276,11 +276,11 @@ This skill uses the 6-state machine defined in [`assurance-contract.md`](../../s
 ## Output Shape
 
 The final output is:
-1. `audit_report/ARGUMENT_SKELETON.md` — dependency DAG + assumption ledger + micro-claim inventory
-2. `audit_report/LOGIC_VERIFICATION.md` — cumulative round-by-round audit log
-3. `audit_report/LOGIC_VERIFICATION.json` — machine-readable verdict (consumed by `/leakage-audit`, `/result-to-claim`, `/quality-gate`)
-4. `audit_report/LOGIC_CHECK_STATE.json` — compact recovery state
-5. `audit_report/UNRECOVERABLE_ARGUMENT.md` (only if Phase 4 escalates)
+1. `.sciforge/audits/ARGUMENT_SKELETON.md` — dependency DAG + assumption ledger + micro-claim inventory
+2. `.sciforge/audits/LOGIC_VERIFICATION.md` — cumulative round-by-round audit log
+3. `.sciforge/audits/LOGIC_VERIFICATION.json` — machine-readable verdict (consumed by `/leakage-audit`, `/result-to-claim`, `/quality-gate`)
+4. `.sciforge/audits/LOGIC_CHECK_STATE.json` — compact recovery state
+5. `.sciforge/audits/UNRECOVERABLE_ARGUMENT.md` (only if Phase 4 escalates)
 
 ## Composing With Other Skills
 

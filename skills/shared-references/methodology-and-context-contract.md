@@ -32,7 +32,7 @@ Otherwise, list the open/anti-stop case and continue. If continuing, you must na
 
 | Mechanism | Rule |
 |-----------|------|
-| **Bundle-out** | Large full prompts/instructions are written to a bundle file (e.g. `refine-logs/<phase>.bundle.md`); inter-phase handoffs reference the *path*, not the full text. |
+| **Bundle-out** | Large full prompts/instructions are written to a bundle file (e.g. `.sciforge/refine-logs/<phase>.bundle.md`); inter-phase handoffs reference the *path*, not the full text. |
 | **Compact-forward** | A phase whose prior artifact is ≥ ~200 lines must first write a compact 20-40 line summary file, then base the next phase on that summary — not the raw dump. |
 | **State persistence** | Always persist phase state (round, scores, frozen decisions) to a structured JSON (`*_STATE.json`) so a full run can resume after compaction without re-deriving. |
 | **Pointer-load shared refs** | Shared discipline files are referenced by path (pointer-load), never copied into per-skill bodies — one canonical source, zero duplication. |

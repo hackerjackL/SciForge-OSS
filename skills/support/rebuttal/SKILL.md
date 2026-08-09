@@ -11,8 +11,8 @@ role: rebuttal-letter-writer
 ## Quick Reference
 
 - **Purpose**: turn reviews (or a rejection letter) into a point-by-point rebuttal/appeal letter with evidence-backed responses and exact manuscript changes
-- **Input**: review-stage/AUTO_REVIEW.md + verdicts/REVIEW_STATE.json + verdicts/REVIEW_LEDGER.json + paper/main.tex (+ optional pasted rejection letter)
-- **Output**: paper/REBUTTAL_LETTER.md (+ MANIFEST.md entry)
+- **Input**: .sciforge/audits/AUTO_REVIEW.md + .sciforge/verdicts/REVIEW_STATE.json + .sciforge/verdicts/REVIEW_LEDGER.json + paper/main.tex (+ optional pasted rejection letter)
+- **Output**: paper/REBUTTAL_LETTER.md (+ .sciforge/MANIFEST.md entry)
 - **Key**: classify each point via `response_class`; quote → concede where warranted → evidence-backed response → exact manuscript change; never claim new experiments without ledger/matrix evidence
 
 ## Use When
@@ -33,9 +33,9 @@ Collect every reviewer point from the review artifacts, classify each with the a
 
 ## Inputs
 
-- `review-stage/AUTO_REVIEW.md` — narrative review log (per-round criticisms, debate transcripts)
-- `verdicts/REVIEW_STATE.json` — machine-readable round state; carries `response_class` per concern (v5.2 path; read fallback `review-stage/REVIEW_STATE.json`)
-- `verdicts/REVIEW_LEDGER.json` — per-round ledger (`details.rounds[]`: score, verdict, action_items, debate_rulings, statistical_gate) (v5.2 path; read fallback `review-stage/REVIEW_LEDGER.json`)
+- `.sciforge/audits/AUTO_REVIEW.md` — narrative review log (per-round criticisms, debate transcripts)
+- `.sciforge/verdicts/REVIEW_STATE.json` — machine-readable round state; carries `response_class` per concern (v5.2 path; read fallback `.sciforge/audits/REVIEW_STATE.json`)
+- `.sciforge/verdicts/REVIEW_LEDGER.json` — per-round ledger (`details.rounds[]`: score, verdict, action_items, debate_rulings, statistical_gate) (v5.2 path; read fallback `.sciforge/audits/REVIEW_LEDGER.json`)
 - `paper/main.tex` (+ `paper/sections/*.tex`) — the manuscript the responses quote and change
 - **Optional**: a rejection letter or external reviewer report pasted by the user — when present, it is the primary point source; internal review artifacts are secondary context.
 
@@ -53,7 +53,7 @@ Reuse the anti-shrinkage vocabulary from `REVIEW_STATE.json` (see [`../auto-revi
 
 | response_class | Reviewer says | Rebuttal posture |
 |---|---|---|
-| `experiment_redesign` | evidence gap (power, missing baseline, missing ablation) | cite completed matrix cells from `verdicts/EXPERIMENT_MATRIX.json` / `EXPERIMENT_LOG.md`, or commit to the exact run and label it **pending** — never as done |
+| `experiment_redesign` | evidence gap (power, missing baseline, missing ablation) | cite completed matrix cells from `.sciforge/verdicts/EXPERIMENT_MATRIX.json` / `EXPERIMENT_LOG.md`, or commit to the exact run and label it **pending** — never as done |
 | `pivot` | method-level flaw | explain the method change already made or proposed, with the affected sections |
 | `kill` | core assumption false | if the kill argument stands, concede the claim's scope; if refuted, present the refutation with derivation/citation evidence |
 | `wording` | presentation/clarity | concede and give the exact rewording; a letter made only of `wording` responses inherits the `shrinkage_only_response` FAIL — flag it to the user |
@@ -88,7 +88,7 @@ Effort follows [`../../shared-references/effort-contract.md`](../../shared-refer
 
 ## Gate (anti-fantasy)
 
-The letter MUST NOT claim new experiments, results, or numbers were produced unless evidence exists in `verdicts/EXPERIMENT_MATRIX.json` (cell completed) or `EXPERIMENT_LOG.md` (run logged) — see [`../../shared-references/fantasy-prevention.md`](../../shared-references/fantasy-prevention.md). Any promised-but-unrun work must be labeled **planned / pending** with its matrix cell ID. A draft containing an unsupported "we have since run..." claim is rejected by this skill before writing the output file.
+The letter MUST NOT claim new experiments, results, or numbers were produced unless evidence exists in `.sciforge/verdicts/EXPERIMENT_MATRIX.json` (cell completed) or `EXPERIMENT_LOG.md` (run logged) — see [`../../shared-references/fantasy-prevention.md`](../../shared-references/fantasy-prevention.md). Any promised-but-unrun work must be labeled **planned / pending** with its matrix cell ID. A draft containing an unsupported "we have since run..." claim is rejected by this skill before writing the output file.
 
 ## Artifact contract
 
@@ -96,9 +96,9 @@ Output is `paper/REBUTTAL_LETTER.md`, produced per the versioned-write protocol 
 
 1. Write timestamped copy `paper/REBUTTAL_LETTER_{YYYYMMDD_HHmmss}.md` (history).
 2. Copy to fixed-name `paper/REBUTTAL_LETTER.md` (downstream reads the fixed name).
-3. Append a row to `MANIFEST.md` (Timestamp | /rebuttal | paper/REBUTTAL_LETTER.md | rebuttal | description + consumer).
+3. Append a row to `.sciforge/MANIFEST.md` (Timestamp | /rebuttal | paper/REBUTTAL_LETTER.md | rebuttal | description + consumer).
 
-Registered relationships in the [Artifact Registry](../../shared-references/artifact-registry.md): this skill consumes `review-stage/AUTO_REVIEW.md` + `verdicts/REVIEW_STATE.json` (both list `/rebuttal` as consumer) and `verdicts/REVIEW_LEDGER.json`; `paper/REBUTTAL_LETTER.md` is the narrative deliverable of this skill (stage directory `paper/`, fixed name).
+Registered relationships in the [Artifact Registry](../../shared-references/artifact-registry.md): this skill consumes `.sciforge/audits/AUTO_REVIEW.md` + `.sciforge/verdicts/REVIEW_STATE.json` (both list `/rebuttal` as consumer) and `.sciforge/verdicts/REVIEW_LEDGER.json`; `paper/REBUTTAL_LETTER.md` is the narrative deliverable of this skill (stage directory `paper/`, fixed name).
 
 ## Output Protocols
 
@@ -153,7 +153,7 @@ manuscript changes are quoted as diffs and highlighted in the revision.
 
 - `paper/REBUTTAL_LETTER_{timestamp}.md` — versioned history copy
 - `paper/REBUTTAL_LETTER.md` — fixed-name latest copy (the deliverable)
-- `MANIFEST.md` — one appended row for the write
+- `.sciforge/MANIFEST.md` — one appended row for the write
 
 ## Key Rules
 

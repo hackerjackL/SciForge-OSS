@@ -100,7 +100,7 @@ Only the human user can waive a failure past round 3; the orchestrator never sel
 
 These checkpoints are non-negotiable. The pipeline halts until the human confirms.
 
-Additionally (v5.3): the **KILL checkpoint** is ON by default — when a kill argument is produced before idea regeneration (loop-back rows L5/L7/L9/L11/L13), the orchestrator pauses for human confirmation. Delegate it with `human_skip=true` (all checkpoints) or `kill_checkpoint=false` (this one only); confirmations are recorded in `APPROVAL_LOG.txt`.
+Additionally (v5.3): the **KILL checkpoint** is ON by default — when a kill argument is produced before idea regeneration (loop-back rows L5/L7/L9/L11/L13), the orchestrator pauses for human confirmation. Delegate it with `human_skip=true` (all checkpoints) or `kill_checkpoint=false` (this one only); confirmations are recorded in `.sciforge/APPROVAL_LOG.txt`.
 
 ---
 
@@ -126,7 +126,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | `discipline-context.md` | OSS single-row (`general`) discipline contract | OSS rewritten (no 4-level fallback) |
 | `discipline-writing.md` | Universal section-by-section writing guide (no per-discipline guides) | OSS rewritten (discipline-agnostic) |
 | `color-themes.md` | Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) | Carried from OSS (already discipline-agnostic) |
-| `artifact-registry.md` + `output-protocol.md` | Artifact contracts + the single-authority workspace tree (verdicts/ unified) | OSS v5.2/v5.3 governance |
+| `artifact-registry.md` + `output-protocol.md` | Artifact contracts + the single-authority workspace tree (.sciforge/verdicts/ unified) | OSS v5.2/v5.3 governance |
 | `schemas/` + `scripts/validate_verdicts.py` | JSON Schemas + validator for every machine-readable verdict | OSS v5.3 (schema enforcement) |
 | `verification-routing.md` | experiment-first / theory-only / hybrid routing contract | OSS v5.0 |
 
@@ -174,9 +174,9 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 
 The orchestrator runs the full 21-phase loop. Forced human checkpoints at Phase 3→4 (pick final idea) and Phase 5→6 (approve method registry).
 
-### Resume from checkpoint
+### Resume from checkpoint (v6.0 RUNSTATE contract)
 
-If a prior run halted at a forced human checkpoint or a BLOCKED fallback, the orchestrator can resume from the last completed phase:
+Long runs survive interruptions structurally, not by memory: the orchestrator rewrites `{problem_id}/.sciforge/RUNSTATE.json` at every phase boundary and human checkpoint (current phase / last completed boundary / next action / status / pending approvals / budget snapshot — schema: `skills/shared-references/schemas/RUNSTATE.schema.json`). On startup the orchestrator runs the resume protocol (output-protocol.md §Long-Horizon Resume Contract): if a non-completed RUNSTATE exists it verifies the verdict trail (`scripts/validate_verdicts.py`), migrates any legacy-path artifacts into `.sciforge/`, and resumes from `next_action`. A human resuming explicitly can still say:
 
 ```
 "continue the research on Q015 — I have already picked idea 2"

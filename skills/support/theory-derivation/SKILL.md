@@ -11,7 +11,7 @@ role: theory-builder-and-symbolic-verifier
 ## Quick Reference
 
 - **Purpose**: SymPy symbolic derivation + step-by-step machine verification; theory-only mode uses engine=manual
-- **Input**: refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
+- **Input**: .sciforge/refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
 - **Output**: code/derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
 - **Key**: SymPy verification at every step; 3 modes (derive/verify/simplify); theory-only steps marked [not machine-verified]
 
@@ -64,7 +64,7 @@ Extract and normalize:
 - Any user-provided formula chain, sketch, messy notes, or current draft
 - Nearby local theory files if the request points to them
 - Desired output style if specified: internal alignment note, paper-style theory draft, or blocker report
-- **The frozen Q-id** (from `refine-logs/FINAL_PROPOSAL.md`, verified by INV-G1) — every derivation must reference this Q-id
+- **The frozen Q-id** (from `.sciforge/refine-logs/FINAL_PROPOSAL.md`, verified by INV-G1) — every derivation must reference this Q-id
 
 If the target, object, notation, or assumptions are ambiguous, state the exact interpretation being used before deriving anything.
 
@@ -79,7 +79,7 @@ Determine the target derivation file with this priority:
 
 Read the relevant local context: the chosen target derivation file (if it already exists), and any local theory notes, formula drafts, appendix notes, or files explicitly mentioned by the user. Extract: target formula / theory goal, current formula chain, assumptions, notation, known blockers, desired output mode.
 
-Also read `refine-logs/FINAL_PROPOSAL.md` to recover the frozen Q-id and the selected idea's framing + assumptions (from `/idea-discovery`). The derivation must be consistent with the selected idea.
+Also read `.sciforge/refine-logs/FINAL_PROPOSAL.md` to recover the frozen Q-id and the selected idea's framing + assumptions (from `/idea-discovery`). The derivation must be consistent with the selected idea.
 
 ### Step 2: Freeze the Target
 
@@ -206,7 +206,7 @@ Write the target derivation file using this structure:
 ```md
 # Derivation Package
 
-**Q-id**: [frozen — from refine-logs/FINAL_PROPOSAL.md]
+**Q-id**: [frozen — from .sciforge/refine-logs/FINAL_PROPOSAL.md]
 **Generated**: [date]
 **Status**: COHERENT AS STATED / COHERENT AFTER REFRAMING / NOT YET COHERENT
 
@@ -266,10 +266,10 @@ Write:
 
 ### Machine-readable verdict (v5.2 — always emit)
 
-Whatever the outcome, write `verdicts/PROOF_AUDIT.json` — the step-by-step proof-verification verdict in the audit envelope (`audit_skill` / `verdict` / `reason_code` / `summary` / `audited_input_hashes` / `details` per [`assurance-contract.md`](../../shared-references/assurance-contract.md) and [`schemas/PROOF_AUDIT.schema.json`](../../shared-references/schemas/PROOF_AUDIT.schema.json)). Coherent derivation → PASS; close-but-not-coherent → WARN or FAIL with the mismatch in `details`; cannot-be-made-coherent → FAIL/BLOCKED with the blocker as `reason_code`. A missing PROOF_AUDIT.json is a chain break — never silent-skip. The narrative stays in the derivation package (`derivations/`); consumers: `/paper-writing` Phase 6 verifier, `/publishability-score`.
+Whatever the outcome, write `.sciforge/verdicts/PROOF_AUDIT.json` — the step-by-step proof-verification verdict in the audit envelope (`audit_skill` / `verdict` / `reason_code` / `summary` / `audited_input_hashes` / `details` per [`assurance-contract.md`](../../shared-references/assurance-contract.md) and [`schemas/PROOF_AUDIT.schema.json`](../../shared-references/schemas/PROOF_AUDIT.schema.json)). Coherent derivation → PASS; close-but-not-coherent → WARN or FAIL with the mismatch in `details`; cannot-be-made-coherent → FAIL/BLOCKED with the blocker as `reason_code`. A missing PROOF_AUDIT.json is a chain break — never silent-skip. The narrative stays in the derivation package (`derivations/`); consumers: `/paper-writing` Phase 6 verifier, `/publishability-score`.
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `.sciforge/verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:

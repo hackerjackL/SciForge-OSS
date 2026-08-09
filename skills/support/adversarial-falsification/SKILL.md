@@ -38,7 +38,7 @@ For each candidate idea, execute 5 attack vectors to find its weakest point. The
 
 ### Phase 0: Load Domain Signature & Failure Modes
 
-Read `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner` — the sole source of truth per v2.8; Phase 1a `/domain-signature` writes only the `domain-signature-hint.json` prior) to auto-load domain-specific failure modes:
+Read `.sciforge/refine-logs/domain-signature.json` (from Phase 1b `/domain-learner` — the sole source of truth per v2.8; Phase 1a `/domain-signature` writes only the `domain-signature-hint.json` prior) to auto-load domain-specific failure modes:
 
 1. Read the domain signature → extract `failure_mode_profile.common_failures`
 2. Query `shared-references/domain-failure-modes.md` for matching failure modes
@@ -139,7 +139,7 @@ Estimate minimum resources needed for the OSS sandbox and whether OSS can provid
 
 Estimate real-world engineering feasibility using the 8-dimension EG axis (AI perspective). This phase runs AFTER Phase 5a, but is **independent** — even if Phase 5a BLOCKED the idea (OSS sandbox can't run it), Phase 5b still executes to assess whether AI can implement the idea in code/experiments outside the sandbox. Phase 5b only skips if the idea is purely theoretical (no code/experiment needed).
 
-The agent computes the 8 sub-dimensions per the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) and produces `refine-logs/ENGINEERING_GROUNDING.md`:
+The agent computes the 8 sub-dimensions per the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) and produces `.sciforge/refine-logs/ENGINEERING_GROUNDING.md`:
 
 ```markdown
 ## Engineering Grounding Estimate — IDEA-{id}

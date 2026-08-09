@@ -1,7 +1,7 @@
 ---
 name: universal-retrieval
 version: 1.2.0
-description: "Literature search + 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar) + v3.2 proxy auto-mount + filter-chain integrity audit. Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
+description: "Literature search + 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar) + v3.2 proxy auto-mount + filter-chain integrity audit + v6.0 wave protocol (broad wave mines GAP_REPORT.md, targeted waves per surviving idea). Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
 type: reference-skill
 role: academic-retriever
 ---
@@ -11,9 +11,9 @@ role: academic-retriever
 ## Quick Reference
 
 - **Purpose**: Multi-source academic search + 3-layer anti-hallucination citation verification
-- **Input**: Search query
-- **Output**: references.bib + landscape_report.md + VERIFICATION_LOG.md
-- **Key**: 6 sources (arXiv→S2→CrossRef→PubMed→Web→OpenAlex); every citation must pass verification
+- **Input**: Search query (+ wave mode: broad | targeted)
+- **Output**: references.bib + landscape_report.md + VERIFICATION_LOG.md + **GAP_REPORT.md (broad wave)** + **TARGETED_WAVE_LOG.md (targeted waves)**
+- **Key**: 6 sources (arXiv→S2→CrossRef→PubMed→Web→OpenAlex); every citation must pass verification; v6.0 gap chain: literature is the upstream of ideas, not their filter
 
 ## Use When
 
@@ -39,6 +39,27 @@ Non-negotiable goals:
 2. **No paper is silently dropped** — every candidate paper is either verified or explicitly marked unverifiable
 3. **The 3-layer anti-hallucination protocol is mandatory** — arXiv batch check → CrossRef DOI → Semantic Scholar fuzzy match
 4. **Every citation carries a verifiable DOI or arXiv ID** — no "forthcoming"/"submitted" entries without verification
+
+## Wave Protocol (v6.0 gap chain — literature first, ideas second)
+
+**Why** (CRUX arXiv:2607.27191 failure mode #1): an agent that generates ideas before reading the literature cannot tell which questions are worth asking — it packages thin results as findings and never identifies the gaps its work should fill. The pipeline therefore runs retrieval in **waves**, and idea-scoring waits on the first one:
+
+1. **Broad wave** (Phase 4 entry, before idea scoring settles): full multi-source survey per the steps below. Besides `references.bib` / `landscape_report.md`, the broad wave MUST mine and write `literature/GAP_REPORT.md` — the structured gap list:
+
+   ```markdown
+   ## GAP_REPORT — {problem domain} (broad wave, {date})
+   | gap-id | gap_type | statement | evidence (cite keys) | priority |
+   |--------|----------|-----------|----------------------|----------|
+   | GAP-01 | contradiction | <one sentence: two camps report incompatible findings> | @a2024, @b2025 | high |
+   | GAP-02 | unsolved_node | <an open problem the frontier papers explicitly name> | @c2025 | high |
+   | GAP-03 | method_blank | <no existing method handles setting X> | @d2023, @e2024 | medium |
+   | GAP-04 | data_blank | <no public dataset/benchmark covers Y> | @f2024 | medium |
+   | GAP-05 | generalization_blank | <results shown only for Z; extension unknown> | @g2025 | low |
+   ```
+
+   Rules: every gap carries ≥1 verified cite key from `references.bib` (no gap may rest on an unverified or absent paper — the 3-layer protocol applies to gap evidence too); `gap_type` ∈ {contradiction, unsolved_node, method_blank, data_blank, generalization_blank}; `landscape_report.md` §Gap identification and GAP_REPORT.md must agree (the report is the narrative, GAP_REPORT.md the machine-anchored list).
+2. **Gap anchoring hand-off**: `/idea-discovery` consumes GAP_REPORT.md — every promoted idea must cite a gap-id (or a capped `exploratory` slot); idea-scoring before GAP_REPORT.md is readable is forbidden (`pending-literature`, see auto-pipeline Group A).
+3. **Targeted waves** (after MCTS selection, before Phase 3 novelty collision): one retrieval wave per surviving idea, seeded by its anchored gap + idea-specific keywords; new papers pass the same 3-layer verification and are appended to `references.bib` / `verified_papers.json`; each wave is logged as one append-only entry in `literature/TARGETED_WAVE_LOG.md` (idea-id → gap-id → queries → papers added → collision pre-check note). Targeted waves that find a direct duplicate of the idea must say so in the log — `/novelty-check` reads it.
 
 ## Data Sources
 
@@ -164,7 +185,7 @@ The filter-chain integrity audit writes to `literature/FILTER_CHAIN_AUDIT.json`:
 ```
 
 - `PASS` → Phase 5 proceeds
-- `WARN` → Phase 5 proceeds, but the `NEEDS_HUMAN_LIT_supplement` flag is passed to `PIPELINE_STATUS.json` (human supplements the literature later)
+- `WARN` → Phase 5 proceeds, but the `NEEDS_HUMAN_LIT_supplement` flag is passed to `.sciforge/PIPELINE_STATUS.json` (human supplements the literature later)
 - `FAIL` (no core claim covered OR all citations unverified) → fall back to Phase 4 re-search (up to 3 rounds)
 
 ## Configuration
@@ -216,22 +237,25 @@ Organize verified papers into a structured survey:
 1. **Sub-direction clustering** — group by research sub-field
 2. **Methodology families** — group by method (theory, experiment, simulation)
 3. **Timeline map** — how the field evolved over time
-4. **Gap identification** — which questions remain unanswered
+4. **Gap identification** — which questions remain unanswered; in the broad wave this step MUST emit `literature/GAP_REPORT.md` (gap-id anchored table per §Wave Protocol) — gap statements without ≥1 verified cite key are rejected
 
 ### Step 5: Generate Citation Artifacts
 
 For each verified paper:
-1. Generate the BibTeX entry → `literature/references.bib`
+1. Generate the BibTeX entry → `literature/references.bib` (cumulative across waves — targeted waves append, never fork a second bib)
 2. Generate structured JSON → `literature/verified_papers.json`
 3. Write the verification status → `literature/VERIFICATION_LOG.md`
+4. Broad wave only: write `literature/GAP_REPORT.md` (Step 4.4); targeted waves only: append the wave entry to `literature/TARGETED_WAVE_LOG.md`
 
 ## Output Artifacts
 
 - `literature/landscape_report.md` — structured survey report
-- `literature/references.bib` — BibTeX for all verified papers
+- `literature/references.bib` — BibTeX for all verified papers (cumulative across waves)
 - `literature/verified_papers.json` — structured metadata
 - `literature/VERIFICATION_LOG.md` — verification status per paper
 - `literature/unverified_papers.json` — papers that failed verification (with reasons)
+- `literature/GAP_REPORT.md` — gap-mining report of the broad wave (gap-id + type + cited evidence; v6.0 gap chain; consumed by /idea-discovery + /novelty-check + /paper-writing Introduction)
+- `literature/TARGETED_WAVE_LOG.md` — append-only log of per-idea targeted waves (idea-id → gap-id → papers added → collision pre-check; v6.0 gap chain; consumed by /novelty-check)
 
 ## Downstream Skill Invocation
 
