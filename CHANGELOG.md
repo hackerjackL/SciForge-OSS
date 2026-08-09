@@ -26,8 +26,8 @@
 
 **README 正式化（中英）**
 - **致谢重写**：正式行文 + 规范署名——Luo H. W.（GewisLab 负责人，项目发起/核心思路/架构设计）、Yang J. T.（主要开发者）；Yang J. T.、Lu Y. H.、Li L. S.、Jia W. H.、Qiu Y. M.、Zhang W. B. 提供计算资源（API token）支持；中英文同步
-- **v5.3 版本标注 bug 修复**：README 把内部治理代际 v5.3 当发布版本展示（当前发布版本是 1.3.2）——"Quality gates (v5.3)"/"质量门（v5.3）" 去掉版本号，正文注明 v5.3/v6.0 为内部代际标识、发布版本以徽章为准；"260+ pytest 用例"更新为 270+
-- **FAQ 重写**：原常见问题松散鸡肋，重写为正式 README 风格（领域支持 / 问题来源 / 单模型自评审 / 调用与 RUNSTATE 续航 / 输出格式 / 贡献指引），中英对齐
+- **内部治理代际全部清出 README**：README 禁止出现内部代际标识（v2.x/v3.x/v5.3/v6.0 等）——"Quality gates (v5.3)"/"质量门（v5.3）" 等标题与树注释、正文括注一律删除，发布版本以徽章为准；"260+ pytest 用例"更新为 270+；安装注记陈旧的 "v1.3.0" 标签改为当前版本 v1.3.2
+- **FAQ 整段删除**：常见问题内容鸡肋且与正文重复（安装/快速开始/CONTRIBUTING 已覆盖），两个 README 的 FAQ 章节与目录条目直接移除
 - **中文验证路径对齐**："三路可选"→"四路可选"（补 qualitative/综述路），删除"OSS 无实验环境"陈旧表述（v2.0 起即有 toy+full 实验门），路由依据改为 Phase 6 verification-routing 表述
 - 质量门表格 verdict 路径钉死为 `.sciforge/verdicts/`
 
