@@ -333,6 +333,15 @@ Before declaring the draft ready, perform a self-review:
 - **This skill does NOT compile.** Producing the PDF is `/paper-compile`'s job. This skill only produces the LaTeX source.
 - **No discipline-specific writing guide.** Do not reintroduce physics SI-units / economics regression-table / cs-ml ablation-table specific guides. The universal guide in [`discipline-writing.md`](../../shared-references/discipline-writing.md) applies to every problem; the agent's runtime reasoning handles domain-specific conventions.
 
+## Abstract/Conclusion Claim Traceability (v1.4.0 — anti-contradiction rule)
+
+WP3 eval evidence (adversarial judge F1): a paper whose fine reference shows the comfort target UNREACHABLE still claimed in abstract/conclusion that the policy "holds the deadband" — a within-paper contradiction that any real reviewer rejects on sight.
+
+Hard rules:
+1. Every sentence in the abstract and conclusion that states a result MUST be traceable to a claim in `.sciforge/audits/CLAIMS_FROM_RESULTS.md` that PASSED at the fidelity quoted. Before finalizing, cross-check abstract/conclusion sentence-by-sentence against the claim matrix; any untraceable or contradicted sentence is rewritten or cut.
+2. A claim whose pre-registration FAILED (or which holds only in a subset regime) is presented as a LIMIT/REGIME result, never as an achievement; the abstract must state the limitation first and the qualified result second.
+3. Author block: never fabricate names/affiliations — use explicit submission placeholders (`\author{[Author list to be completed at submission]}` with a comment), clearly marked; placeholders are the ONLY legitimate human-completion markers.
+
 ## Output Shape
 
 The final output is:

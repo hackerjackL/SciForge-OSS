@@ -85,6 +85,8 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 
 **Background** (arXiv:2607.27191): an AI agent got negative results on small-scale synthetic data, then packaged a severely underpowered experiment as a "discovery" — its own self-review scored it a weak reject, yet it proceeded as usual. "It knew its writing was bad, but not how to make it better." Our fidelity ladder governs evidence *type*; this section adds evidence **weight** — the common death of an experiment-based paper is not the absence of numbers, but numbers that weigh nothing.
 
+**Failed pre-registration discipline (v1.4.0)**: a primary claim whose pre-registered expectation FAILs at full fidelity is NOT re-scoped into a passing claim — it is re-typed as a `LIMIT` or `NEGATIVE` claim (honest limit/regime result), and any replacement claim must be pre-registered AGAINST THE SAME evidence standard (no post-hoc single-point calibration matches: a calibration/tuning parameter match counts as validation only with a sensitivity sweep showing the match is not knife-edge). The Claims-Evidence Matrix records the original pre-registered claim, its failure, and the re-typed claim side by side.
+
 **Mandatory checks** (under `experiment-first` / `hybrid` routing; run per PRIMARY claim; results written to the `evidence_sufficiency` field in `CLAIMS_FROM_RESULTS.md`):
 
 | Check | Floor | Fail verdict |
