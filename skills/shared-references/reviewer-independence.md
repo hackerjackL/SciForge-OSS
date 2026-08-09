@@ -7,7 +7,7 @@
 
 1. **Re-read, don't recall** — after each role switch, the agent must re-read the artifacts from files; it must not rely on in-memory recall
 2. **Structured checklists** — reviews use predefined checklists, not a free-form "just review it"
-3. **Full preservation of the review trail** — review outputs are preserved in full in `review-stage/`; deletion or alteration is prohibited
+3. **Full preservation of the review trail** — review outputs are preserved in full in `.sciforge/audits/`; deletion or alteration is prohibited
 4. **Role isolation** — the reviewer role cannot access the researcher role's reasoning process; it can only see the final artifact files
 
 ## What the Reviewer MAY Access
@@ -27,7 +27,7 @@
 
 - Role switching is managed by `/auto-review-loop`
 - Checklists are defined by each skill (the 20-category question system of `/logic-verification`)
-- The review trail is saved in the `review-stage/` directory
+- The review trail is saved in the `.sciforge/audits/` directory
 
 ## See Also
 

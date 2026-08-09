@@ -1,7 +1,7 @@
 ---
 name: domain-learner
-version: 1.2.0
-description: "Learn a discipline's signature (evidence_type, methodology, writing style, failure modes) from literature — Phase 1b, sole writer of domain-signature.json. Invoke when the pipeline needs domain adaptation for a new problem."
+version: 1.3.0
+description: "Learn a discipline's signature (evidence_type, methodology, writing style, failure modes, and v6.0 evidence_norm — what counts as sufficient evidence here) from literature — Phase 1b, sole writer of domain-signature.json. Invoke when the pipeline needs domain adaptation for a new problem."
 type: meta-skill
 role: domain-characteristic-learner
 ---
@@ -16,7 +16,7 @@ role: domain-characteristic-learner
 
 - **Purpose**: Auto-learn domain characteristics from literature, replacing hardcoded signatures
 - **Input**: Problem description + seed literature
-- **Output**: refine-logs/domain-signature.json (overrides the rule signature; consumed uniformly downstream)
+- **Output**: .sciforge/refine-logs/domain-signature.json (overrides the rule signature; consumed uniformly downstream)
 - **Key**: Learns from scratch every run, no predefined rules; output path matches /domain-signature to guarantee seamless downstream consumption
 
 ## How It Works
@@ -119,9 +119,19 @@ If the user provided seed papers or the problem references known works:
     "citation_format": "author_year",
     "section_structure": "introduction → model → measurement → analysis → robustness → conclusion",
     "learning_basis": "measurement-physics author guidelines + 50 paper survey"
+  },
+  "evidence_norm_profile": {
+    "sample_size_norm": "published measurement studies typically report N >= 100 runs / >= 3 seeds; sub-50-sample results appear only as pilot notes",
+    "control_design_norm": "baseline + sham/placeholder control is standard; single-condition claims are not published",
+    "effect_reporting_norm": "effect sizes with confidence intervals; p-values alone are insufficient; uncertainty quantification expected",
+    "negative_result_norm": "negative results publishable only with power analysis + registered protocol; otherwise filed as limitations",
+    "exemplar_venues": ["Physical Review E", "Review of Scientific Instruments"],
+    "learning_basis": "evidence standards observed across the 50-paper survey (what gets published here)"
   }
 }
 ```
+
+**Evidence-norm learning (v6.0 — cures CRUX failure mode #1, "doesn't know what a good paper looks like")**: the learner does not only extract *what methods are used* but *what counts as sufficient evidence* in this discipline — typical sample sizes/scales, required control designs, effect-reporting conventions (CI vs p-values vs qualitative demonstration), and how negative results are treated. Source: the same literature survey, read for standards instead of results (exemplar venues' accepted papers set the bar). When the survey is too thin to support a norm, the field is set to `"unknown — defaulting to conservative"` and consumers fall back to their built-in conservative defaults (never invent a norm). Consumers: `/result-to-claim` (evidence_sufficiency calibration), `/experiment-execution` (matrix sizing / seed counts), `/publishability-score` (evidence-strength dimension weighting) — wiring in `domain-signature-consumer.md`.
 
 ### Step 4: Handle Learning Failure
 
@@ -156,8 +166,8 @@ for better domain adaptation.
 
 ## Output Shape
 
-- `refine-logs/domain-signature.json` — learned domain profile (overrides /domain-signature's low-confidence output; consumed uniformly by all downstream skills; schema compatible with /domain-signature)
-- `refine-logs/domain-learning-log.md` — detailed learning log (searches, analyses, synthesis)
+- `.sciforge/refine-logs/domain-signature.json` — learned domain profile (overrides /domain-signature's low-confidence output; consumed uniformly by all downstream skills; schema compatible with /domain-signature)
+- `.sciforge/refine-logs/domain-learning-log.md` — detailed learning log (searches, analyses, synthesis)
 
 ## Boundaries
 

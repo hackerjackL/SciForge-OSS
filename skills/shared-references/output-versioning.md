@@ -19,12 +19,12 @@ Every output file MUST be written in two steps:
 ```
 Step 1: Write to timestamped path (immutable)
   path: <stage_dir>/<base_name>_<YYYYMMDDTHHMMSS>Z.<ext>
-  example: refine-logs/domain-signature_20260721T100000Z.json
+  example: .sciforge/refine-logs/domain-signature_20260721T100000Z.json
   this file is NEVER modified after write — it is the audit record of what was produced at that time
 
 Step 2: Copy to fixed-name path (latest)
   path: <stage_dir>/<base_name>.<ext>
-  example: refine-logs/domain-signature.json
+  example: .sciforge/refine-logs/domain-signature.json
   this file is the working copy downstream skills read; it is overwritten on each new run
 ```
 
@@ -37,10 +37,10 @@ Artifacts live in their **stage directory**, not the project root:
 | Stage | Directory | Examples |
 |-------|-----------|----------|
 | idea | `idea-stage/` | IDEA_DAG.md, IDEA_DAG_VISUAL.md |
-| refine | `refine-logs/` | domain-signature.json, FALSIFICATION.md |
-| review | `review-stage/` | PAPER_CLAIM_AUDIT.json |
+| refine | `.sciforge/refine-logs/` | domain-signature.json, FALSIFICATION.md |
+| review | `.sciforge/audits/` | PAPER_CLAIM_AUDIT.json |
 | paper | `paper/` | main.tex, references.bib |
-| audit | `audit_report/` | CITATION_AUDIT.json, PROOF_AUDIT.json |
+| audit | `.sciforge/audits/` | CITATION_AUDIT.json, PROOF_AUDIT.json |
 | results | `results/` | CLAIMS_FROM_RESULTS.md |
 | data_analysis | `data_analysis/` | ANALYSIS_REPORT.md |
 | replication | `replication/` | REPLICATION_PACKAGE.md |
@@ -74,7 +74,7 @@ YYYYMMDDTHHMMSSZ
 
 ## See Also
 
-- [`output-manifest.md`](output-manifest.md) — MANIFEST.md append protocol (companion: every dual-written file is also logged to MANIFEST.md)
+- [`output-manifest.md`](output-manifest.md) — .sciforge/MANIFEST.md append protocol (companion: every dual-written file is also logged to .sciforge/MANIFEST.md)
 - [`output-language.md`](output-language.md) — output language protocol (what language the content is in)
 - [`output-protocol.md`](output-protocol.md) — output protocol aggregation
 - [`artifact-registry.md`](artifact-registry.md) — which artifacts are load-bearing (producers/consumers)

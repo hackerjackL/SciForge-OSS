@@ -1,6 +1,6 @@
 ---
 name: auto-review-loop
-version: 1.2.0
+version: 1.3.0
 description: "Iterative self-review (review→fix→re-review) with role-switch + v3.2 Phase B.2 domain-expert blind-spot review (wired into explicit ordered chain A→B.1→B.2→C) + kill-argument anti-self-deception. v3.4 STOP CONDITION uses effective_score=min(Phase C raw, B.2 cap) — a fatal blind-spot caps at 5, blocks false 'ready'. Writes BLINDSPOT_CHECK.json. Phase 14. Invoke to improve the draft until score≥6 or MAX_ROUNDS."
 type: reference-skill
 role: autonomous-review-loop-orchestrator
@@ -37,19 +37,19 @@ Autonomously iterate: review → implement fixes → re-review, until the struct
 
 ## Required Workspace
 
-Create or maintain a workspace named `review-stage/` for all review outputs. Create the directory if it does not exist.
+Create or maintain a workspace named `.sciforge/audits/` for all review outputs. Create the directory if it does not exist.
 
 Key artifacts produced:
-- `review-stage/AUTO_REVIEW.md` — cumulative review log
-- `review-stage/REVIEW_STATE.json` — checkpoint state for recovery
-- `review-stage/REVIEWER_MEMORY.md` — reviewer's persistent memory (hard / nightmare only)
+- `.sciforge/audits/AUTO_REVIEW.md` — cumulative review log
+- `.sciforge/audits/REVIEW_STATE.json` — checkpoint state for recovery
+- `.sciforge/audits/REVIEWER_MEMORY.md` — reviewer's persistent memory (hard / nightmare only)
 - `CLAIMS_FROM_RESULTS.md` — generated at termination via `/result-to-claim` (if available)
 
 Key artifacts consumed (read from upstream):
 - `derivations/{problem_id}/derivation_output.md` — derivation results summary produced by `/theory-derivation` (primary input)
 - `CLAIMS_FROM_RESULTS.md` — validated claims from `/result-to-claim`
 - `findings.md` — prior findings (compact mode)
-- `refine-logs/FINAL_PROPOSAL.md` — pre-registered primary outcomes (for fidelity gatekeeping)
+- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — pre-registered primary outcomes (for fidelity gatekeeping)
 
 ## Configuration
 
@@ -66,13 +66,13 @@ These knobs shape loop behavior. Treat them as defaults; the user may override a
 - **Compact** (default: off) — when on, read compact files (`findings.md`) instead of parsing full logs on session recovery, and append key findings to `findings.md` after each round.
 - **Fidelity gatekeeping** (default: on) — enforce the 3-fidelity ladder requirements before allowing positive assessment. Blocks overclaiming on qualitative-only results. See [`/result-to-claim`](../result-to-claim/SKILL.md) for the ladder.
 - **Fidelity threshold** — `numerical` (default). A primary claim must reach at least numerical fidelity for a positive assessment. Configurable to `symbolic` (stricter) or `qualitative` (lenient).
-- **HTML render** (default: on) — auto-render `review-stage/AUTO_REVIEW.md` to HTML on loop termination. Non-blocking: if rendering fails, log and continue.
+- **HTML render** (default: on) — auto-render `.sciforge/audits/AUTO_REVIEW.md` to HTML on loop termination. Non-blocking: if rendering fails, log and continue.
 
 **Nightmare + manual reviewer incompatibility**: If difficulty is `nightmare`, the agent must have access to the derivation scripts and raw numerical outputs. If only summary text is available, STOP with: "difficulty: nightmare requires the agent to independently re-derive key claims from raw artifacts. Use difficulty: hard, or provide access to derivation scripts."
 
 ## State Persistence (Compact Recovery)
 
-Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `review-stage/REVIEW_STATE.json` after each round.
+Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `.sciforge/audits/REVIEW_STATE.json` after each round.
 
 State fields:
 - `round` — current round number
@@ -89,7 +89,7 @@ State fields:
 **On completion** (positive assessment or max rounds), set `status: completed` so future invocations don't accidentally resume a finished loop.
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `verdicts/` (filenames: see the artifact directory layout in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `.sciforge/verdicts/` (filenames: see the artifact directory layout in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
 
 > Follow these shared protocols for all output files:
@@ -99,21 +99,21 @@ State fields:
 
 ### Initialization
 
-1. **Check for `review-stage/REVIEW_STATE.json`** (fall back to `./REVIEW_STATE.json` for legacy projects):
+1. **Check for `.sciforge/audits/REVIEW_STATE.json`** (fall back to `./REVIEW_STATE.json` for legacy projects):
    - If neither path exists: **fresh start**.
    - If it exists AND `status` is `completed`: **fresh start** (previous loop finished normally).
    - If it exists AND `status` is `in_progress` AND `timestamp` is older than 24 hours: **fresh start** (stale state from a killed / abandoned run — delete the file and start over).
    - If it exists AND `status` is `in_progress` AND `timestamp` is within 24 hours: **resume**.
      - Read the state file to recover `round`, `threadId`, `last_score`, `pending_derivations`.
-     - Read `review-stage/AUTO_REVIEW.md` to restore full context of prior rounds.
+     - Read `.sciforge/audits/AUTO_REVIEW.md` to restore full context of prior rounds.
      - If `pending_derivations` is non-empty, check if they have completed.
      - Resume from the next round (round = saved round + 1).
      - Log: "Recovered from context compaction. Resuming at Round N."
-2. Read project narrative documents, memory files, and any prior review documents. **When `COMPACT = true` and compact files exist**: read `findings.md` instead of full `review-stage/AUTO_REVIEW.md` and raw logs — saves context window.
+2. Read project narrative documents, memory files, and any prior review documents. **When `COMPACT = true` and compact files exist**: read `findings.md` instead of full `.sciforge/audits/AUTO_REVIEW.md` and raw logs — saves context window.
 3. Read recent derivation results (check `derivations/{problem_id}/`).
 4. Identify current weaknesses and open TODOs from prior reviews.
 5. Initialize round counter = 1 (unless recovered from state file).
-6. Create / update `review-stage/AUTO_REVIEW.md` with header and timestamp.
+6. Create / update `.sciforge/audits/AUTO_REVIEW.md` with header and timestamp.
 
 ### Loop (repeat up to MAX_ROUNDS)
 
@@ -126,7 +126,7 @@ State fields:
 5. **Phase C — Implement Fixes** (merge Phase A weaknesses + B.2 unresolved blind-spots into one fix list)
 6. **Phase D — Wait for background derivations** (if any dispatched)
 
-> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Phase B.2 was a **buried subsection** between B.1 and B.5 — the agent read the numbered Phase A→B.1→B.5→C chain and **silently skipped B.2** because it was not in the explicit execution list. Two real test runs (Q-HARM-001 theory, Q-SGD-BS-GAP computational) confirmed this: both produced `review-stage/` with `AUTO_REVIEW.md` + `REVIEW_LEDGER.json` but **NO `BLINDSPOT_CHECK.json`** — Phase B.2 never ran, yet `PIPELINE_STATUS.md` claimed "all 8 blind-spot items passed" with zero backing artifact. This is the same orphan-artifact bug class as the v3.2 frontier gap. The fix is structural: B.2 is now step 3 of the explicit ordered loop, not a buried subsection. The `BLINDSPOT_CHECK.json` file is the load-bearing evidence — a round that completes without writing it is invalid regardless of the score it claims.
+> **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Phase B.2 was a **buried subsection** between B.1 and B.5 — the agent read the numbered Phase A→B.1→B.5→C chain and **silently skipped B.2** because it was not in the explicit execution list. Two real test runs (Q-HARM-001 theory, Q-SGD-BS-GAP computational) confirmed this: both produced `.sciforge/audits/` with `AUTO_REVIEW.md` + `REVIEW_LEDGER.json` but **NO `BLINDSPOT_CHECK.json`** — Phase B.2 never ran, yet `.sciforge/PIPELINE_STATUS.md` claimed "all 8 blind-spot items passed" with zero backing artifact. This is the same orphan-artifact bug class as the v3.2 frontier gap. The fix is structural: B.2 is now step 3 of the explicit ordered loop, not a buried subsection. The `BLINDSPOT_CHECK.json` file is the load-bearing evidence — a round that completes without writing it is invalid regardless of the score it claims.
 
 #### Phase A: Structured Self-Review
 
@@ -239,7 +239,7 @@ Then extract structured fields:
 
 **Apply the 3-fidelity ladder** to primary outcomes (see [`/result-to-claim`](../result-to-claim/SKILL.md) for the ladder):
 
-1. **Read `refine-logs/FINAL_PROPOSAL.md`** to identify which outcomes are **pre-specified primary outcomes**. Outcomes not pre-specified are automatically classified as "secondary".
+1. **Read `.sciforge/refine-logs/FINAL_PROPOSAL.md`** to identify which outcomes are **pre-specified primary outcomes**. Outcomes not pre-specified are automatically classified as "secondary".
 
 2. **Parse derivation/verification results** from `derivations/{problem_id}/` directory. For each outcome, determine:
    - Is it a **primary outcome** (pre-specified)? Or a **secondary outcome** (mechanism test, robustness check)?
@@ -272,7 +272,7 @@ Then extract structured fields:
 **Runs on EVERY round, all difficulties (medium/hard/nightmare) — it is NOT gated behind difficulty like Phase B.5/B.6.** This is the single biggest content-quality lever; it cannot be opt-in.
 
 **Inputs**:
-- `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner`) — read `evidence_type` + `methodology_profile`
+- `.sciforge/refine-logs/domain-signature.json` (from Phase 1b `/domain-learner`) — read `evidence_type` + `methodology_profile`
 - [`domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) — the canonical failure-mode catalog, keyed by `evidence_type`
 - The research artifacts under review this round (`derivations/`, `CLAIMS_FROM_RESULTS.md`, `paper/sections/*.tex`)
 
@@ -289,7 +289,7 @@ Then extract structured fields:
    - `checked_clear` — the artifacts explicitly address this failure mode (e.g. a DWH test for endogeneity is present and passes) → no action.
    - `not_applicable` — this failure mode does not apply to this problem (e.g. `no_placebo` for a pure-theory paper) → record the reason in one clause.
    - `unresolved` — the failure mode applies but the artifacts do NOT address it → **add to this round's fix list as a MAJOR (or CRITICAL if the failure-mode catalog marks it `fatal`)**, independent of the generic Phase C weakness list.
-3. **Write `review-stage/BLINDSPOT_CHECK.json`** (one per round, appended):
+3. **Write `.sciforge/audits/BLINDSPOT_CHECK.json`** (one per round, appended):
    ```json
    {"round":N,"evidence_type":"<x>","failure_modes_checked":[
      {"mode":"endogeneity","verdict":"checked_clear","evidence":"methods/METHOD_REGISTRY.md:42 DWH p=0.31"},
@@ -371,7 +371,7 @@ Then update the score if any weaknesses were withdrawn.
 - OVERRULED: keep as-is.
 - PARTIALLY SUSTAINED: revise scope.
 
-Append the full debate transcript to `review-stage/AUTO_REVIEW.md` under the round's entry.
+Append the full debate transcript to `.sciforge/audits/AUTO_REVIEW.md` under the round's entry.
 
 #### Human Checkpoint (if enabled)
 
@@ -429,7 +429,7 @@ If derivations/checks were launched:
 
 #### Phase E: Document Round
 
-Append to `review-stage/AUTO_REVIEW.md`:
+Append to `.sciforge/audits/AUTO_REVIEW.md`:
 
 ```markdown
 ## Round N (timestamp)
@@ -475,7 +475,7 @@ This is the authoritative record. Do NOT truncate or paraphrase.]
 - Difficulty: [medium/hard/nightmare]
 ```
 
-**Write `review-stage/REVIEW_STATE.json`** with current round, score, verdict, and any pending derivations.
+**Write `.sciforge/audits/REVIEW_STATE.json`** with current round, score, verdict, and any pending derivations.
 
 **Append to `findings.md`** (when `COMPACT = true`): one-line entry per key finding this round:
 ```markdown
@@ -486,7 +486,7 @@ Increment round counter → go to Phase E.5.
 
 #### Phase E.5: Write Review Ledger
 
-After documenting each round, append to `review-stage/REVIEW_LEDGER.json`. This is the authoritative machine-readable record for downstream skills (`/citation-audit`, `/paper-writing` Phase 0.5, external verifier).
+After documenting each round, append to `.sciforge/audits/REVIEW_LEDGER.json`. This is the authoritative machine-readable record for downstream skills (`/citation-audit`, `/paper-writing` Phase 0.5, external verifier).
 
 **Format** (JSONL, one object per line):
 ```json
@@ -519,11 +519,11 @@ At termination, append one final entry with `phase: "finalized"` and `final_scor
 ### Termination
 
 When loop ends (positive assessment or max rounds):
-1. Update `review-stage/REVIEW_STATE.json` with `status: completed`.
-2. Write final summary to `review-stage/AUTO_REVIEW.md`.
+1. Update `.sciforge/audits/REVIEW_STATE.json` with `status: completed`.
+2. Write final summary to `.sciforge/audits/AUTO_REVIEW.md`.
 3. Update project notes with conclusions.
-4. **Write method / derivation description** to `review-stage/AUTO_REVIEW.md` under a `## Method Description` section — a concise 1-2 paragraph description of the final derivation, its structure, and the verification chain. This serves as input for `/unified-plotting` in the figure generation phase.
-5. **Generate claims from results** — invoke `/result-to-claim` to convert derivation results from `review-stage/AUTO_REVIEW.md` into structured paper claims. Output: `CLAIMS_FROM_RESULTS.md`. This bridges the review phase → paper-writing phase so `/paper-writing` can directly use validated claims. If `/result-to-claim` is not available, skip silently.
+4. **Write method / derivation description** to `.sciforge/audits/AUTO_REVIEW.md` under a `## Method Description` section — a concise 1-2 paragraph description of the final derivation, its structure, and the verification chain. This serves as input for `/unified-plotting` in the figure generation phase.
+5. **Generate claims from results** — invoke `/result-to-claim` to convert derivation results from `.sciforge/audits/AUTO_REVIEW.md` into structured paper claims. Output: `CLAIMS_FROM_RESULTS.md`. This bridges the review phase → paper-writing phase so `/paper-writing` can directly use validated claims. If `/result-to-claim` is not available, skip silently.
 6. If stopped at max rounds without positive assessment:
    - List remaining blockers.
    - Estimate effort needed for each.
@@ -537,7 +537,7 @@ When loop ends (positive assessment or max rounds):
 - Promise to fix without implementing. Implement fixes BEFORE re-reviewing.
 - Fabricate BibTeX or citations. Use the DBLP → CrossRef → `[VERIFY]` chain. Do NOT generate BibTeX from memory.
 - Give up on a self-review concern after one attempt. **Exhaust before surrendering** — before marking any concern as "cannot address": (1) try at least 2 different solution paths, (2) for derivation issues, attempt a weaker version or an alternative argument, (3) for numerical issues, adjust parameters or try a different sanity check, (4) only then concede narrowly and bound the damage.
-- Silently skip writing `review-stage/REVIEW_LEDGER.json` at termination — the ledger is mandatory regardless of outcome.
+- Silently skip writing `.sciforge/audits/REVIEW_LEDGER.json` at termination — the ledger is mandatory regardless of outcome.
 - Override a fidelity gate `BLOCK` with a positive top-level verdict — the gate is a hard override.
 
 **Always**:
@@ -546,11 +546,11 @@ When loop ends (positive assessment or max rounds):
 - If a derivation takes > 30 minutes, launch it and continue with other fixes while waiting.
 - Document EVERYTHING — the review log should be self-contained.
 - Update project notes after each round, not just at the end.
-- Append to `review-stage/REVIEW_LEDGER.json` at the end of every round (Phase E.5) and finalize at termination — the ledger is the authoritative machine-readable record for downstream skills.
+- Append to `.sciforge/audits/REVIEW_LEDGER.json` at the end of every round (Phase E.5) and finalize at termination — the ledger is the authoritative machine-readable record for downstream skills.
 
 ## Output Shape
 
-The final `review-stage/AUTO_REVIEW.md` contains:
+The final `.sciforge/audits/AUTO_REVIEW.md` contains:
 1. **Header** — direction, date, max rounds, difficulty
 2. **Round-by-round entries** — for each round: assessment summary, reviewer raw response (verbatim in `<details>`), debate transcript (if hard / nightmare), actions taken, results, status
 3. **Final summary** — final score, verdict, remaining blockers (if any)

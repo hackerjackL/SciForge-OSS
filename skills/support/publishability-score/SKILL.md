@@ -3,9 +3,9 @@ name: publishability-score
 description: "Final publishability scoring across dim1-first-axis + multi-dim. Phase 15.5. Invoke after citation-audit for the go/no-go submission verdict."
 type: support-skill
 role: paper-publishability-assessor
-version: 1.2.0
+version: 1.3.0
 ---
-> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `verdicts/` (filenames: see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `.sciforge/verdicts/` (filenames: see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
 
 # Publishability Score (SciForge-OSS — Final Paper Quality Assessment)
@@ -17,7 +17,7 @@ version: 1.2.0
 ## Quick Reference
 
 - **Purpose**: give the final paper a structured publishability score
-- **Input**: `paper/main.pdf` + `paper/main.tex` + `experiments/` + `audit_report/` + `review/` + `CLAIMS_FROM_RESULTS.md` + `PIPELINE_STATUS.json`
+- **Input**: `paper/main.pdf` + `paper/main.tex` + `experiments/` + `.sciforge/audits/` + `review/` + `CLAIMS_FROM_RESULTS.md` + `.sciforge/PIPELINE_STATUS.json`
 - **Output**: `PUBLISHABILITY_SCORE.json` + `PUBLISHABILITY_SCORE.md` (human-readable)
 - **Key**: 6-dimension scoring; **main-experiment-logic-in-place** is the primary axis; distinguish "missing supplementary experiments" vs "main logic not in place (no mean)"
 
@@ -55,7 +55,9 @@ Non-negotiable goals:
 | 5. Novelty & Contribution | 0.15 | 1.0 | New contribution relative to existing literature? novelty-check PASS? Duplicate work avoided? | Duplicates existing work / novelty-check FAIL |
 | 6. Reproducibility | 0.15 | 1.0 | Code/data/seed/hardware retained? Experiments re-runnable? Figures have render scripts? | No render script / no seed / cannot re-run |
 
-**Weight notes**: dimension 1 is the primary axis (not counted in the 0.15 average; it gates instead); dimensions 2-6 are 0.15 each, summing to 0.75; the remaining 0.25 is modulated by dimension 1. Formula:
+**Weight notes**: dimension 1 is the primary axis (not counted in the 0.15 average; it gates instead); dimensions 2-6 are 0.15 each, summing to 0.75; the remaining 0.25 is modulated by dimension 1.
+
+**v6.0 evidence-norm calibration**: the evidence-strength dimension is scored against the discipline's `evidence_norm_profile` (`.sciforge/refine-logs/domain-signature.json` — sample_size_norm / control_design_norm / effect_reporting_norm / negative_result_norm; wiring per `domain-signature-consumer.md`): claims meeting the exemplar-venue bar score full, each unmet norm deducts per the rubric, and `negative_result_norm` decides whether a negative-result framing is publishable as-is or must carry a power analysis. Unknown norm → conservative default bar + `evidence_norm_missing` note in the score report. Formula:
 ```
 total = 0.25 * dim1 + 0.15*(dim2+dim3+dim4+dim5+dim6)   # if dim1=0 then total ≤ 0.25*0 + 0.75 = 0.75, but see the hard cap below
 hard_cap_if_main_logic_fail: if dim1 == 0 → total capped at 0.4 (NOT_PUBLISHABLE_NO_MEAN), regardless of dim2-6
@@ -81,11 +83,11 @@ Read:
 - `paper/COMPILE_REPORT.json` (compile status, zero warnings?)
 - `experiments/toy/RESULT.json` + `experiments/full/STATUS.json` + `experiments/full/EXPERIMENT_RESULTS.json` (experiment results)
 - `CLAIMS_FROM_RESULTS.md` (claim gating, repo root)
-- `audit_report/LOGIC_VERIFICATION.json` + `audit_report/LEAKAGE_AUDIT.json` (logic/leakage audit)
-- `review-stage/REVIEW_REPORT.md` + `review-stage/KILL_ARGUMENT.md` (Phase 14 review)
+- `.sciforge/audits/LOGIC_VERIFICATION.json` + `.sciforge/audits/LEAKAGE_AUDIT.json` (logic/leakage audit)
+- `.sciforge/audits/REVIEW_REPORT.md` + `.sciforge/audits/KILL_ARGUMENT.md` (Phase 14 review)
 - `literature/FILTER_CHAIN_AUDIT.json` (literature chain)
-- `refine-logs/FINAL_PROPOSAL.md` (core claim freeze)
-- `PIPELINE_STATUS.json` (pipeline status)
+- `.sciforge/refine-logs/FINAL_PROPOSAL.md` (core claim freeze)
+- `.sciforge/PIPELINE_STATUS.json` (pipeline status)
 
 ### Step 2: Score Dimension 1 (Main-Experiment-Logic) — GATING
 
@@ -146,7 +148,7 @@ Write `PUBLISHABILITY_SCORE.json` + `PUBLISHABILITY_SCORE.md` (human-readable). 
     "theoretical_rigor": {"score": 0.9, "rationale": "...", "evidence": ["derivations/.../verification_report.md"]},
     "empirical_completeness": {"score": 0.4, "rationale": "main experiments✓ ablation✗ robustness✗ baselines✗", "evidence": ["experiments/"]},
     "writing_quality": {"score": 0.9, "rationale": "zero warnings✓ citations✓", "evidence": ["paper/COMPILE_REPORT.json"]},
-    "novelty_contribution": {"score": 0.8, "rationale": "...", "evidence": ["refine-logs/novelty_report.json"]},
+    "novelty_contribution": {"score": 0.8, "rationale": "...", "evidence": [".sciforge/refine-logs/novelty_report.json"]},
     "reproducibility": {"score": 0.9, "rationale": "render.py✓ seed42✓", "evidence": ["figures/"]}
   },
   "main_logic_gating": {"dim1_score": 1.0, "gating_triggered": false, "cap_applied": null},

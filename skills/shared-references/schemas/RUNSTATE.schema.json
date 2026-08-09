@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/RUNSTATE.schema.json",
+  "title": "RUNSTATE.json - long-horizon resume checkpoint (v6.0)",
+  "description": "Lives at {problem_id}/.sciforge/RUNSTATE.json (NOT inside .sciforge/verdicts/ — it is runtime state, not a judgment). Rewritten by the orchestrator at every phase boundary and at forced human checkpoints. The resume contract in output-protocol.md §Long-Horizon Resume Contract consumes it: a new orchestrator session finding status != completed verifies the verdict trail and resumes from next_action. Validated by the resume protocol (and by tests/test_e2e_smoke.py), not by validate_verdicts.py.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "problem_id",
+    "current_phase",
+    "status",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "RUNSTATE schema version, e.g. 1.0."
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier of this pipeline run (same run_id as RUN_BUDGET.json)."
+    },
+    "problem_id": {
+      "type": "string",
+      "description": "The frozen Q-id / problem slug of the workspace this state belongs to."
+    },
+    "current_phase": {
+      "type": "string",
+      "description": "Phase identifier the run is currently at or has just completed (string because of sub-phases: '0', '1b', '2.5', '6b', '15.5', '16')."
+    },
+    "last_completed_boundary": {
+      "type": "string",
+      "description": "Phase identifier of the last boundary that passed all checks (verdict validation + budget booking). Resume restarts AFTER this boundary."
+    },
+    "next_action": {
+      "type": "string",
+      "description": "Human-readable next step for the resuming session (e.g. 'dispatch Phase 6c full experiment', 'await human KILL confirmation', 'enter Phase 12 paper-writing')."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["running", "paused_checkpoint", "paused_blocked", "completed", "killed"],
+      "description": "running = mid-phase; paused_checkpoint = awaiting a human approval; paused_blocked = BLOCKED verdict, human decision needed; completed = terminal success; killed = terminated by KILL with no restart."
+    },
+    "pending_human_approvals": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Checkpoint identifiers the run is blocked on (e.g. 'phase5-method-lock', 'kill-checkpoint-L9'); empty unless status == paused_checkpoint."
+    },
+    "budget_snapshot": {
+      "type": "object",
+      "description": "Mirror of the decisive RUN_BUDGET.json fields at checkpoint time, so a resuming session can sanity-check the ledger without re-deriving it.",
+      "properties": {
+        "wall_clock_seconds": { "type": "number", "minimum": 0 },
+        "api_cost_usd": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "updated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$",
+      "description": "Checkpoint write time (UTC ISO-8601)."
+    }
+  },
+  "additionalProperties": true
+}

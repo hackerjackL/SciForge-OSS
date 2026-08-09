@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sciforge/schemas/VERIFICATION_ROUTING.schema.json",
   "title": "VERIFICATION_ROUTING.json - Phase 6 verification routing decision",
-  "description": "Written at Phase 6 entry per shared-references/verification-routing.md. Fixed 3-field contract: route / evidence_type / reason. Downstream skills read it, never modify it.",
+  "description": "Written at Phase 6 entry per shared-references/verification-routing.md. Core 3-field contract: route / evidence_type / reason. v6.0 adds na_verdicts: the registered verdict filenames this route + declared skips make Not-Applicable (validate_verdicts.py reports them N/A instead of pending; default sets per route in verification-routing.md section 5). Downstream skills read it, never modify it.",
   "type": "object",
   "required": ["route", "evidence_type", "reason"],
   "properties": {
@@ -13,11 +13,16 @@
     },
     "evidence_type": {
       "type": "string",
-      "description": "Evidence type from refine-logs/domain-signature.json (e.g. correlational, causal_inference, simulational, empirical, experimental, derivational). Left free-form because domain-signature may carry secondary/union types (e.g. theory+experiment)."
+      "description": "Evidence type from .sciforge/refine-logs/domain-signature.json (e.g. correlational, causal_inference, simulational, empirical, experimental, derivational). Left free-form because domain-signature may carry secondary/union types (e.g. theory+experiment)."
     },
     "reason": {
       "type": "string",
       "description": "Why this route was chosen (routing decision is one-shot at Phase 6 entry)."
+    },
+    "na_verdicts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "v6.0: registered verdict filenames (per output-protocol.md .sciforge/verdicts/ table) that this run will legitimately never produce. Absent listed files validate as N/A, not pending. Orchestrator writes the route default set (verification-routing.md section 5) at Phase 6 entry and appends later declared skips (e.g. FIGURE_AUDITS.json on a Phase 11 figure skip)."
     }
   },
   "additionalProperties": true

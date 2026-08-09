@@ -1,9 +1,11 @@
 # Verdict Schemas (v5.3)
 
 Machine-enforceable field contracts for the machine-readable verdict artifacts that
-live flat in each research workspace's `verdicts/` directory (directory layout
-authoritatively defined in [`../output-protocol.md`](../output-protocol.md) §Artifact Directory Tree;
-artifact contracts registered in [`../artifact-registry.md`](../artifact-registry.md)).
+live flat in each research workspace's `.sciforge/verdicts/` directory (v6.0 home;
+pre-v6.0 run directories use `verdicts/` — same layout, reads fall back; directory
+layout authoritatively defined in [`../output-protocol.md`](../output-protocol.md)
+§Artifact Directory Tree; artifact contracts registered in
+[`../artifact-registry.md`](../artifact-registry.md)).
 
 Before this directory existed, every field promise in the skill docs was prose-only:
 agents could misspell or omit fields silently. These schemas + the validator make the
@@ -13,7 +15,7 @@ promises checkable.
 
 - One schema per verdict artifact: `skills/shared-references/schemas/<NAME>.schema.json`,
   where `<NAME>` is exactly the verdict filename without `.json`
-  (e.g. `verdicts/REVIEW_STATE.json` → `schemas/REVIEW_STATE.schema.json`).
+  (e.g. `.sciforge/verdicts/REVIEW_STATE.json` → `schemas/REVIEW_STATE.schema.json`).
 - All schemas are JSON Schema **draft 2020-12**, but restricted to the subset the
   stdlib validator understands (see below) — do not use `$ref`, `oneOf`, `const`, etc.
 - The two hash artifacts are **not JSON** and have no schema file:
@@ -37,7 +39,11 @@ python3 scripts/validate_verdicts.py <workspace_verdicts_dir> [--strict]
 - Unknown `*.json` files → **WARN** (unregistered verdict — either register it here or
   remove it). In `--strict` mode WARNs also fail the run (BLOCKED semantics).
 - Registered-but-missing files are listed as **pending**, never as errors — verdicts
-  appear progressively as the pipeline advances.
+  appear progressively as the pipeline advances. Exception (v6.0 routing-aware
+  expectation): missing files listed in `VERIFICATION_ROUTING.json` `na_verdicts`
+  are reported **N/A** (the chosen route legitimately never produces them — e.g. a
+  theory-only/humanities run has no experiment verdicts). Declared-N/A files that
+  ARE present → WARN (routing/production inconsistency).
 - Cross-field invariants enforced beyond the schemas:
   1. Audit-family verdict vocabulary — `PROOF_AUDIT`, `LOGIC_VERIFICATION`,
      `LEAKAGE_AUDIT`, `CITATION_AUDIT`, `KILL_ARGUMENT`, `PAPER_CLAIM_AUDIT`,
@@ -71,7 +77,7 @@ error rather than silently ignored, so schemas never over-promise.
 
 ## How to add a new verdict schema
 
-1. Add the fixed filename to the `verdicts/` tree in
+1. Add the fixed filename to the `.sciforge/verdicts/` tree in
    [`../output-protocol.md`](../output-protocol.md) first (that file is the single
    authority for directory layout), then a row in
    [`../artifact-registry.md`](../artifact-registry.md).
@@ -82,6 +88,14 @@ error rather than silently ignored, so schemas never over-promise.
    verdict (6-state vocabulary / `audited_input_hashes`).
 4. Check it: `python3 -m json.tool skills/shared-references/schemas/<NAME>.schema.json`
    and run the validator against a fixture workspace.
+
+## Non-verdict schemas in this directory
+
+`RUNSTATE.schema.json` defines the long-horizon resume checkpoint
+(`{problem_id}/.sciforge/RUNSTATE.json`). It lives here for discoverability but is
+NOT a verdict artifact and NOT validated by `validate_verdicts.py` (which scans only the
+verdicts directory); the orchestrator's resume protocol (output-protocol.md
+§Long-Horizon Resume Contract) and `tests/test_e2e_smoke.py` check it instead.
 
 ## Known gaps (docs vague or conflicting — schemas stay permissive here)
 
@@ -116,9 +130,10 @@ error rather than silently ignored, so schemas never over-promise.
 8. **PAPER_CLAIM_AUDIT has no explicit example anywhere.** Only the audit verdict,
    `audited_input_hashes`, and the `aigc_scan` field (writing-principles.md §0.5) are
    promised; `aigc_scan`'s internal shape is unconstrained.
-9. **VERIFICATION_ROUTING path.** verification-routing.md still says
-   `refine-logs/VERIFICATION_ROUTING.json`; the v5.2 canonical location is
-   `verdicts/` (output-protocol.md wins, per the single-authority rule).
+9. **VERIFICATION_ROUTING path — closed in v6.0.** verification-routing.md used to
+   say `.sciforge/refine-logs/VERIFICATION_ROUTING.json`; the canonical location was `.sciforge/verdicts/`
+   since v5.2 and is `.sciforge/verdicts/` since v6.0 — verification-routing.md now
+   points at the current canonical path (single-authority rule).
 10. **PROBLEM_HASH / REGISTRY_HASH are .txt**, so they are regex-checked in the
     validator rather than schema-checked (see top of this file).
 11. **RUN_BUDGET.json** is newly introduced alongside v5.3 (task P1-7); its schema is

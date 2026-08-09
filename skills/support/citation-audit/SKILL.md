@@ -1,6 +1,6 @@
 ---
 name: citation-audit
-version: 1.2.0
+version: 1.3.0
 description: "Final 3-layer citation verification (existence + metadata + context) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
 type: reference-skill
 role: bibliographic-integrity-auditor
@@ -303,7 +303,7 @@ The `--uncited` flag does **not** appear in this table: uncited entries are advi
 **Metadata precedence**: metadata-drift warnings are FIX-level (WARN), not FAIL — they reflect metadata drift, not hallucination or wrong-context. The reviewer's per-entry `note` field MUST include the corrected metadata so the user can apply the FIX directly.
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `.sciforge/verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:

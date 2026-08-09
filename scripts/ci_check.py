@@ -280,7 +280,7 @@ def check_test_suite(root: Path) -> tuple[bool, list[str]]:
                         "`pip install pytest`; the suite is mandatory)")
 
     validator = root / "scripts/validate_verdicts.py"
-    fixture = root / "fixtures/e2e_minimal/mock_verdicts"
+    fixture = root / "fixtures/e2e_minimal/.sciforge/verdicts"
     if validator.is_file() and fixture.is_dir():
         ok &= run_step("validate_verdicts e2e fixture",
                        [sys.executable, str(validator), str(fixture)])
@@ -288,7 +288,7 @@ def check_test_suite(root: Path) -> tuple[bool, list[str]]:
         ok = False
         messages.append("validate_verdicts e2e fixture: FAIL "
                         "(scripts/validate_verdicts.py or "
-                        "fixtures/e2e_minimal/mock_verdicts missing)")
+                        "fixtures/e2e_minimal/.sciforge/verdicts missing)")
 
     scanner = root / "scripts/security_scan.py"
     if scanner.is_file():

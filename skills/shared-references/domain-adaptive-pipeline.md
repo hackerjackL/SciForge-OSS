@@ -1,14 +1,14 @@
 # Domain Adaptive Pipeline (SciForge-OSS — evidence_type-driven Phase intensity)
 
-> **Status (v2.8 — mid-term M1, v1.0.0 — cross-link to M3)**: Defines how the orchestrator dynamically adjusts **Phase 5 (method-registry) / Phase 6 (theory-derivation) / Phase 11 (unified-plotting)** **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED) based on the `evidence_type` + `reasoning_paradigm` written to `refine-logs/domain-signature.json` by `/domain-learner` (Phase 1b). This file adapts **intensity**; the orthogonal companion [`pipeline-adaptive-degradation.md`](pipeline-adaptive-degradation.md) (M3) adapts **mode** (MUST/CONDITIONAL/OPTIONAL/SKIP). The two files are independent — read either depending on which axis the orchestrator is configuring.
+> **Status (v2.8 — mid-term M1, v1.0.0 — cross-link to M3)**: Defines how the orchestrator dynamically adjusts **Phase 5 (method-registry) / Phase 6 (theory-derivation) / Phase 11 (unified-plotting)** **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED) based on the `evidence_type` + `reasoning_paradigm` written to `.sciforge/refine-logs/domain-signature.json` by `/domain-learner` (Phase 1b). This file adapts **intensity**; the orthogonal companion [`pipeline-adaptive-degradation.md`](pipeline-adaptive-degradation.md) (M3) adapts **mode** (MUST/CONDITIONAL/OPTIONAL/SKIP). The two files are independent — read either depending on which axis the orchestrator is configuring.
 >
 > **Core principle**: One universal 21-phase pipeline shape; **intensity** adapts per signature. The pipeline structure (phase order, fallback contract, 3-round cap) is invariant — only the per-phase emphasis, budget, and gate strictness adapt. This avoids both the "hardcoded discipline branch" anti-pattern (main SciForge's 4 parallel pipelines) and the "uniform strength" anti-pattern (v2.7's all-MUST).
 
 ## Quick Reference
 
 - **Purpose**: Phase 5/6/11 intensity is dynamically adjusted by evidence_type/paradigm, achieving true universality rather than hardcoded branches
-- **Input**: refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`) from Phase 1b
-- **Output**: per-phase `intensity_override` block written to PIPELINE_STATUS.md before Phase 5 starts
+- **Input**: .sciforge/refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`) from Phase 1b
+- **Output**: per-phase `intensity_override` block written to .sciforge/PIPELINE_STATUS.md before Phase 5 starts
 - **Key**: Structure is invariant (21-phase order locked, 3-round fallback, all contracts preserved); only intensity/emphasis/budget/gate strictness adapt
 
 ## Adaptive Override Table (locked)
@@ -59,18 +59,18 @@ The orchestrator reads `signature.evidence_type` + `signature.reasoning_paradigm
 The orchestrator executes the following BEFORE Phase 5 launches (after Phase 1b completes and writes `domain-signature.json`):
 
 ```
-Step 1: Read refine-logs/domain-signature.json
+Step 1: Read .sciforge/refine-logs/domain-signature.json
 Step 2: Extract signature.evidence_type + signature.reasoning_paradigm
         (If file absent → Phase 1b failed; apply default = STANDARD for all three phases; flag reduced TDAL A dimension)
 Step 3: Look up the override row in each table above (Phase 5 / Phase 6 / Phase 11)
 Step 4: If signature has mixed evidence_types (e.g., computational_biology = derivational + experimental):
         → apply the MOST INTENSE override across the mix (intensified wins over standard wins over reduced)
         → this ensures mixed-domain problems do not under-verify either side
-Step 5: Emit refine-logs/pipeline-intensity-override.json (machine-readable, before Phase 5)
+Step 5: Emit .sciforge/refine-logs/pipeline-intensity-override.json (machine-readable, before Phase 5)
         {
           "intensity_override": {
             "applied_at": "2026-07-21T10:00:00Z",
-            "source_signature": "refine-logs/domain-signature.json",
+            "source_signature": ".sciforge/refine-logs/domain-signature.json",
             "evidence_type": "experimental",
             "reasoning_paradigm": "empirical",
             "phase_5": {"intensity": "INTENSIFIED", "emphasis": "...", "budget": "..."},
@@ -81,7 +81,7 @@ Step 5: Emit refine-logs/pipeline-intensity-override.json (machine-readable, bef
 Step 6: Forward the override block to each adapted skill via the phase invocation prompt
         (the orchestrator's delegation prompt to /method-registry /theory-derivation /unified-plotting
          MUST include the intensity_override JSON so the skill adapts accordingly)
-Step 7: Log the override in PIPELINE_STATUS.md (transparency — the intensity choice is auditable)
+Step 7: Log the override in .sciforge/PIPELINE_STATUS.md (transparency — the intensity choice is auditable)
 ```
 
 ## Override Schema (machine-readable)
@@ -91,7 +91,7 @@ Step 7: Log the override in PIPELINE_STATUS.md (transparency — the intensity c
   "intensity_override": {
     "schema_version": "1.0",
     "applied_at": "ISO-8601 timestamp",
-    "source_signature": "refine-logs/domain-signature.json",
+    "source_signature": ".sciforge/refine-logs/domain-signature.json",
     "evidence_type": "string (from signature)",
     "reasoning_paradigm": "string (from signature)",
     "mixed_evidence_types": ["list if signature has >1 evidence_type, null otherwise"],

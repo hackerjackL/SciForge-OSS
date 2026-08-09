@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
@@ -105,6 +105,7 @@ Read `FINAL_PROPOSAL.md` and `domain-signature.json` to determine:
 2. **What is the minimal test?** — the smallest experiment that can validate or kill the core claim
 3. **What scale is "toy"?** — typically 1-10% of full (subset of data, fewer epochs, coarser mesh, smaller sample)
 4. **What is the full experiment?** — complete-scale validation
+5. **What does the discipline count as enough? (v6.0)** — read `evidence_norm_profile.sample_size_norm` from `domain-signature.json`: seed counts / run counts / scale of the FULL matrix must reach the discipline's published norm (toy may run smaller — it is a direction verdict, not paper evidence). A shortfall must be justified item-by-item in BUDGET_FLOOR's `completion_justification`; unknown norm → default ≥3 seeds / ≥2 scales / baseline+ablation (method-registry §3.5 minimums)
 
 ### Step 0p: Network Proxy Auto-Mount (MANDATORY before any dataset/model download)
 
@@ -326,7 +327,7 @@ If toy gate passed, design the full-scale experiment:
 3. **Add checkpointing** — save intermediate results every `checkpoint_interval` seconds
 4. **Add monitoring** — periodic status updates to `experiments/full/STATUS.json`
 5. **Expose a 1-step cap flag** (`--max-steps`/`--max-epochs`/`--steps`) — Step 5.0's smoke gate REQUIRES slicing the full script to 1 step; a full script with no step-cap flag is itself a design defect. Add the flag here, retroactively enforced at Step 5.0.
-6. **Execute per the pre-registered evaluation protocol (v5.2 — fair evaluation)**: read `verdicts/EVALUATION_PROTOCOL.json` (method-registry §3.6 pre-registration) and obey the four-part contract throughout — metrics must not be added/removed, baseline conditions aligned item by item (same split / same preprocessing / same compute budget / same tuning effort), all baselines re-run in this environment (citing others' numbers is forbidden), report across all seeds and the full grid. Any deviation → mark `protocol_violation: <which clause>` in RESULT.json, and that result set must not serve as comparison evidence (`/result-to-claim` will block it). **Post-hoc "optimizing" the evaluation is forbidden** — wanting to change metrics/baseline conditions after seeing results = changing the method = loop back to Phase 5 and redo hash-lock
+6. **Execute per the pre-registered evaluation protocol (v5.2 — fair evaluation)**: read `.sciforge/verdicts/EVALUATION_PROTOCOL.json` (method-registry §3.6 pre-registration) and obey the four-part contract throughout — metrics must not be added/removed, baseline conditions aligned item by item (same split / same preprocessing / same compute budget / same tuning effort), all baselines re-run in this environment (citing others' numbers is forbidden), report across all seeds and the full grid. Any deviation → mark `protocol_violation: <which clause>` in RESULT.json, and that result set must not serve as comparison evidence (`/result-to-claim` will block it). **Post-hoc "optimizing" the evaluation is forbidden** — wanting to change metrics/baseline conditions after seeing results = changing the method = loop back to Phase 5 and redo hash-lock
 
 ### Step 5: Dispatch Full Experiment to Background
 
@@ -513,7 +514,7 @@ After dispatching the full experiment to background, the skill returns control t
 2. **"I'm done writing" requires justification**: declaring completion (at any stage) must attach `completion_justification`: list of attempted routes + status of each route (success / rejected + evidence) + list of remaining untried routes (must be empty, or explain item by item why not tried)
 3. This field is read and re-verified by `/auto-review-loop` at each round's Phase A — if completion_justification's "untried routes" is non-empty while the agent has stopped exploring → the review concern is forced to the `experiment_redesign` class (triggering the anti-reduction protocol's substantive response)
 
-**Persistence (v5.3)**: the budget-floor evaluation is ALSO written to `verdicts/BUDGET_FLOOR.json` (machine-readable verdict per [`schemas/BUDGET_FLOOR.schema.json`](../../shared-references/schemas/BUDGET_FLOOR.schema.json): `verdict` PASS/IN_PROGRESS/BLOCKED + `budget_floor.satisfied` + the five checks + `completion_justification` when declaring done). The Return payload carries the same content; the orchestrator's Phase 6c gate reads the verdict file (payload as fallback). Never silent-skip: an unevaluated floor is written as `IN_PROGRESS`, not omitted.
+**Persistence (v5.3)**: the budget-floor evaluation is ALSO written to `.sciforge/verdicts/BUDGET_FLOOR.json` (machine-readable verdict per [`schemas/BUDGET_FLOOR.schema.json`](../../shared-references/schemas/BUDGET_FLOOR.schema.json): `verdict` PASS/IN_PROGRESS/BLOCKED + `budget_floor.satisfied` + the five checks + `completion_justification` when declaring done). The Return payload carries the same content; the orchestrator's Phase 6c gate reads the verdict file (payload as fallback). Never silent-skip: an unevaluated floor is written as `IN_PROGRESS`, not omitted.
 
 **Return payload:**
 
@@ -591,7 +592,7 @@ The skill auto-selects experiment templates based on `evidence_type`:
 - **STATUS.json polling feeds Phase 10.** Both `toy_bg` and full background jobs write `STATUS.json`. The orchestrator does NOT poll; it reads `STATUS.json` once at Phase 10 (`/result-to-claim`). If a background job is still `running`, use whatever completed results exist (foreground toy, or partial) + note "experiment pending". This is the single integration seam between background experiments and the claim gate.
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `verdicts/` (for filenames see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
+> **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `.sciforge/verdicts/` (for filenames see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
 
 > Follow the shared output protocol for all output files (versioned writes, MANIFEST logging, output language):

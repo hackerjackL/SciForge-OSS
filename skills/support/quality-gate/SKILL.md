@@ -1,6 +1,6 @@
 ---
 name: quality-gate
-version: 1.2.0
+version: 1.3.0
 description: "Final pre-writing gate checking all upstream audits passed before paper-writing finalizes. Phase 12 boundary. Invoke to enforce the quality floor before the manuscript is sealed."
 type: reference-skill
 role: pre-writing-quality-gate
@@ -11,7 +11,7 @@ role: pre-writing-quality-gate
 ## Quick Reference
 
 - **Purpose**: Pre-writing quality gate — stagnation check + quality floor + anti-self-deception check
-- **Input**: All research artifacts (derivations/ + audit_report/ + CLAIMS_FROM_RESULTS.md)
+- **Input**: All research artifacts (derivations/ + .sciforge/audits/ + CLAIMS_FROM_RESULTS.md)
 - **Output**: QUALITY_FLOOR_REPORT.md + SELF_DECEPTION_REPORT.md
 - **Key**: Hard gate (FAIL blocks paper writing); deterministic checks (Type D) + semantic checks (Type S)
 
@@ -49,7 +49,7 @@ These checks have clear yes/no answers based on file content, field existence, o
 | Pattern | Example | Rule |
 |---------|---------|------|
 | Field existence | "Does `METHOD_REGISTRY.md` Section 3 have a `method` entry?" | Parse file, check field presence |
-| File presence | "Does `audit_report/LEAKAGE_AUDIT.json` exist with `verdict: PASS`?" | Check file existence + parse JSON |
+| File presence | "Does `.sciforge/audits/LEAKAGE_AUDIT.json` exist with `verdict: PASS`?" | Check file existence + parse JSON |
 | Count comparison | "Are there ≥ 2 primary outcomes with fidelity ≥ numerical?" | Count from CLAIMS_FROM_RESULTS.md |
 | Hash match | "Does `REGISTRY_HASH.txt` match Section 3?" | Compute SHA256, compare |
 
@@ -161,11 +161,11 @@ OSS has **no discipline overlay**. The universal QF-G* checks below apply to eve
 | ID | Criterion | Type | Check | PASS condition |
 |----|-----------|------|-------|----------------|
 | QF-G1 | Derivation chain exists | D | `derivations/{problem_id}/derivation_output.md` exists and is non-empty | File exists + non-empty |
-| QF-G2 | Logic audit PASS | D | `audit_report/LOGIC_VERIFICATION.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
-| QF-G3 | Leakage audit PASS | D | `audit_report/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
+| QF-G2 | Logic audit PASS | D | `.sciforge/audits/LOGIC_VERIFICATION.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
+| QF-G3 | Leakage audit PASS | D | `.sciforge/audits/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G4 | Result-to-claim verdict | D | `CLAIMS_FROM_RESULTS.md` exists with `claim_supported: yes` or `partial` | claim_supported ∈ {yes, partial}; NOT `no` |
 | QF-G5 | Primary outcome fidelity | D | **CONSUME** `/result-to-claim` fidelity verdicts (per-entry records of primary outcomes ≥ numerical in `CLAIMS_FROM_RESULTS.md`); do NOT recompute the ladder | ≥ 1 primary at numerical+ (per result-to-claim verdicts) |
-| QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` INV-G1 verdict (frozen Q-id in `refine-logs/FINAL_PROPOSAL.md`); do NOT re-check | INV-G1 verdict = PASS |
+| QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` INV-G1 verdict (frozen Q-id in `.sciforge/refine-logs/FINAL_PROPOSAL.md`); do NOT re-check | INV-G1 verdict = PASS |
 | QF-G7 | Method registry hash locked | D | **CONSUME** `/method-registry` hash-lock verification (`methods/REGISTRY_HASH.txt` matching `METHOD_REGISTRY.md` Section 3); do NOT recompute | method-registry hash verification = PASS |
 | QF-G8 | Interpretation consistency | S | The derivation's interpretation is consistent with the declared assumptions | LLM judgment grounded in specific assumption citations |
 | QF-G9 | Scope calibration | S | Claim scope matches derivation regime (no overgeneralization) | LLM judgment comparing claim language vs. derivation regime |
@@ -189,8 +189,8 @@ Produce `quality_gate/QUALITY_FLOOR_REPORT.md`:
 | ID | Criterion | Verdict | Evidence |
 |----|-----------|---------|----------|
 | QF-G1 | Derivation chain exists | PASS | results/sympy/derivation_01.log (2.3KB) |
-| QF-G2 | Logic audit PASS | PASS | audit_report/LOGIC_VERIFICATION.json verdict=PASS |
-| QF-G3 | Leakage audit PASS | WARN | audit_report/LEAKAGE_AUDIT.json verdict=WARN (Type I WEAK on outcome O2) |
+| QF-G2 | Logic audit PASS | PASS | .sciforge/audits/LOGIC_VERIFICATION.json verdict=PASS |
+| QF-G3 | Leakage audit PASS | WARN | .sciforge/audits/LEAKAGE_AUDIT.json verdict=WARN (Type I WEAK on outcome O2) |
 | QF-G4 | Result-to-claim verdict | PASS | CLAIMS_FROM_RESULTS.md claim_supported=partial |
 | QF-G5 | Primary outcome fidelity | PASS | 2/3 primary outcomes at numerical+ fidelity |
 | QF-G6 | Problem anchor frozen | PASS | Q-id SCIMATH-042 in FINAL_PROPOSAL + derivation_01.log |
@@ -324,7 +324,7 @@ quality_gate/FINAL_VERDICT.md:
 
 All quality-gate output files must follow the standard output protocols:
 - **Versioning**: Follow `../shared-references/output-versioning.md` for timestamped copies of quality gate reports.
-- **Manifest**: Log quality gate outputs to `MANIFEST.md` per `../shared-references/output-manifest.md`.
+- **Manifest**: Log quality gate outputs to `.sciforge/MANIFEST.md` per `../shared-references/output-manifest.md`.
 - **Language**: Follow `../shared-references/output-language.md` for output language conventions.
 
 ## Boundaries

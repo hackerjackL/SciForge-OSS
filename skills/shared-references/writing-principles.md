@@ -55,7 +55,7 @@ Paper prose style **must adapt to the discipline** — same template skeleton, d
 - **Medicine / biology**: mechanism narratives must carry statistical evidence; ethics/data-availability statements in place are the compliance markers of a "human author" in this field
 - **Economics / econometrics**: the parallel-trends/exogeneity argument for the identification strategy is the core of human voice in this field — skipping identification arguments and reporting coefficients directly = AI voice
 
-**Self-check hooks** (additions to the `/paper-writing` Step 5 self-check list; results written into the `aigc_scan` field of `verdicts/PAPER_CLAIM_AUDIT.json`):
+**Self-check hooks** (additions to the `/paper-writing` Step 5 self-check list; results written into the `aigc_scan` field of `.sciforge/verdicts/PAPER_CLAIM_AUDIT.json`):
 1. Blacklist scan: count phrases of each AI-voice class from the table above across the whole text; any class ≥3 occurrences → WARN; any class ≥6 occurrences → FAIL (`reason_code: aigc_phrasing`), then replace item by item and rescan
 2. Sentence-length variance spot check: sample 10 consecutive sentences per section and compute the sentence-length standard deviation; sections with std < 5 words → WARN (`sentence_monotony`)
 3. Report-style spot check: run the discrimination test on one sampled paragraph per section; report-style paragraph → WARN (`report_style`); Introduction or Discussion entirely in report style → FAIL

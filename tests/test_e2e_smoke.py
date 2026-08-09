@@ -36,9 +36,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_DIR = REPO_ROOT / "fixtures" / "e2e_minimal"
-MOCK_VERDICTS = FIXTURE_DIR / "mock_verdicts"
+SCIFORGE_DIR = FIXTURE_DIR / ".sciforge"
+MOCK_VERDICTS = SCIFORGE_DIR / "verdicts"
+RUNSTATE = SCIFORGE_DIR / "RUNSTATE.json"
 TOY_SCRIPT = FIXTURE_DIR / "toy_experiment" / "run_toy.py"
 VALIDATOR = REPO_ROOT / "scripts" / "validate_verdicts.py"
+SCHEMA_DIR = REPO_ROOT / "skills" / "shared-references" / "schemas"
 OUTPUT_PROTOCOL = REPO_ROOT / "skills" / "shared-references" / "output-protocol.md"
 PIPELINE_SKILL = REPO_ROOT / "skills" / "orchestrator" / "auto-pipeline" / "SKILL.md"
 
@@ -47,23 +50,20 @@ PIPELINE_SKILL = REPO_ROOT / "skills" / "orchestrator" / "auto-pipeline" / "SKIL
 # deliberately when the DAG genuinely changes.
 EXPECTED_PHASE_COUNT = 21
 
-# Stage directories under {problem_id}/. Authority: the tree block in
-# skills/shared-references/output-protocol.md (section "Artifact Directory Tree", v5.2).
-# test_output_protocol_tree_matches_hardcoded_dirs keeps both in sync.
+# Top-level directories under {problem_id}/ (v6.0 two-tier split). Authority:
+# the tree block in skills/shared-references/output-protocol.md (section
+# "Artifact Directory Tree", v6.0). Hidden state layer (.sciforge) + delivery
+# layer. test_output_protocol_tree_matches_hardcoded_dirs keeps both in sync.
 EXPECTED_STAGE_DIRS = frozenset({
-    "refine-logs",
+    ".sciforge",
     "literature",
     "methods",
     "derivations",
     "code",
-    "verdicts",
-    "logs",
-    "audit_report",
-    "figures",
     "experiments",
+    "logs",
+    "figures",
     "paper",
-    "review-stage",
-    "citation_audit",
     "output",
 })
 
@@ -153,7 +153,7 @@ def test_fixture_verdict_set_is_complete():
 def test_mock_verdicts_pass_validator(tmp_path):
     """scripts/validate_verdicts.py must exit 0 with zero FAIL / WARN on
     the copied verdict set (schema contracts pinned by the fixture)."""
-    verdicts_dir = tmp_path / "Q001" / "verdicts"
+    verdicts_dir = tmp_path / "Q001" / ".sciforge" / "verdicts"
     shutil.copytree(MOCK_VERDICTS, verdicts_dir)
 
     proc = subprocess.run(
@@ -164,13 +164,14 @@ def test_mock_verdicts_pass_validator(tmp_path):
         f"validate_verdicts.py exited {proc.returncode}\n{proc.stdout}"
     )
     summary = re.search(
-        r"Summary: (\d+) pass, (\d+) fail, (\d+) warn, (\d+) pending",
+        r"Summary: (\d+) pass, (\d+) fail, (\d+) warn, (\d+) pending, (\d+) na",
         proc.stdout,
     )
     assert summary, f"no Summary line in validator output:\n{proc.stdout}"
-    n_pass, n_fail, n_warn, _n_pending = map(int, summary.groups())
+    n_pass, n_fail, n_warn, _n_pending, n_na = map(int, summary.groups())
     assert n_fail == 0, f"validator reported FAILs:\n{proc.stdout}"
     assert n_warn == 0, f"validator reported WARNs:\n{proc.stdout}"
+    assert n_na == 0, f"hybrid fixture expects no N/A verdicts:\n{proc.stdout}"
     assert n_pass == len(EXPECTED_VERDICT_FILES), (
         f"expected {len(EXPECTED_VERDICT_FILES)} validated artifacts, "
         f"got {n_pass}:\n{proc.stdout}"
@@ -198,6 +199,84 @@ def test_registry_hash_matches_registry_snippet():
     assert recorded.strip() == sha256_of(snippet)
     assert re.fullmatch(r"[0-9a-f]{64}\n?", recorded), (
         "REGISTRY_HASH.txt must be single-line lowercase sha256 hex"
+    )
+
+
+# ---------------------------------------------------------------------------
+# (b2) RUNSTATE checkpoint + routing-aware N/A (v6.0)
+# ---------------------------------------------------------------------------
+
+def test_runstate_checkpoint_matches_schema():
+    """The fixture's long-horizon checkpoint validates against
+    RUNSTATE.schema.json (v6.0 resume contract; checked here, not by
+    validate_verdicts.py — see schemas/README.md non-verdict schemas)."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("vv_for_runstate", VALIDATOR)
+    vv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(vv)
+
+    schema = json.loads((SCHEMA_DIR / "RUNSTATE.schema.json").read_text(encoding="utf-8"))
+    assert vv.lint_schema(schema) == [], "RUNSTATE schema uses unsupported keywords"
+    runstate = json.loads(RUNSTATE.read_text(encoding="utf-8"))
+    errors = vv.validate_against(runstate, schema)
+    assert errors == [], f"fixture RUNSTATE.json violates its schema: {errors}"
+    assert runstate["status"] in (
+        "running", "paused_checkpoint", "paused_blocked", "completed", "killed"
+    )
+
+
+def test_theory_only_routing_reports_na_not_pending(tmp_path):
+    """v6.0 routing-aware expectation: a theory-only run declares the four
+    experiment-gated verdicts N/A (verification-routing.md §5); the validator
+    reports them N/A, not pending, and exits 0."""
+    verdicts_dir = tmp_path / "Q002" / ".sciforge" / "verdicts"
+    shutil.copytree(MOCK_VERDICTS, verdicts_dir)
+
+    na_set = ["EXPERIMENT_MATRIX.json", "EVALUATION_PROTOCOL.json",
+              "BUDGET_FLOOR.json", "REGISTRY_HASH.txt"]
+    for name in na_set:
+        (verdicts_dir / name).unlink()
+    routing = json.loads((verdicts_dir / "VERIFICATION_ROUTING.json").read_text(encoding="utf-8"))
+    routing["route"] = "theory-only"
+    routing["na_verdicts"] = na_set
+    (verdicts_dir / "VERIFICATION_ROUTING.json").write_text(
+        json.dumps(routing, indent=2) + "\n", encoding="utf-8")
+
+    proc = subprocess.run(
+        [sys.executable, str(VALIDATOR), str(verdicts_dir)],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert proc.returncode == 0, f"validator exited {proc.returncode}\n{proc.stdout}"
+    summary = re.search(
+        r"Summary: (\d+) pass, (\d+) fail, (\d+) warn, (\d+) pending, (\d+) na",
+        proc.stdout,
+    )
+    assert summary, f"no Summary line:\n{proc.stdout}"
+    n_pass, n_fail, n_warn, n_pending, n_na = map(int, summary.groups())
+    assert n_fail == 0 and n_warn == 0, proc.stdout
+    assert n_na == 4, f"expected 4 N/A verdicts, got {n_na}:\n{proc.stdout}"
+    assert n_pending == 0, f"declared-N/A verdicts leaked into pending:\n{proc.stdout}"
+    assert n_pass == len(EXPECTED_VERDICT_FILES) - 4
+
+
+def test_na_declared_but_present_warns(tmp_path):
+    """Routing/production inconsistency: a file declared N/A that IS produced
+    must WARN (default mode: exit 0 with the warning recorded)."""
+    verdicts_dir = tmp_path / "Q003" / ".sciforge" / "verdicts"
+    shutil.copytree(MOCK_VERDICTS, verdicts_dir)
+    routing = json.loads((verdicts_dir / "VERIFICATION_ROUTING.json").read_text(encoding="utf-8"))
+    routing["na_verdicts"] = ["EXPERIMENT_MATRIX.json"]
+    (verdicts_dir / "VERIFICATION_ROUTING.json").write_text(
+        json.dumps(routing, indent=2) + "\n", encoding="utf-8")
+
+    proc = subprocess.run(
+        [sys.executable, str(VALIDATOR), str(verdicts_dir)],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert proc.returncode == 0, proc.stdout
+    assert re.search(r"EXPERIMENT_MATRIX\.json\s+WARN", proc.stdout), (
+        f"declared-N/A-but-present file did not WARN:\n{proc.stdout}"
     )
 
 

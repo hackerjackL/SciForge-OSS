@@ -1,6 +1,6 @@
 ---
 name: kill-argument
-version: 1.2.0
+version: 1.3.0
 description: "Adversarial attack-defense self-review: write the single strongest 200-word rejection, then defend point-by-point and surface load-bearing unresolved issues. Phase 14 sub-step. Invoke after stable score, before submission/rebuttal."
 type: reference-skill
 role: adversarial-attack-defense-reviewer
@@ -293,12 +293,12 @@ To the user:
 
 When `/kill-argument` is invoked as part of a KILL loop-back (a "kill the idea" decision routed from the orchestrator, e.g. auto-pipeline loop-back rows L5/L7/L9/L11/L13), the artifact sequence is load-bearing:
 
-1. Write `verdicts/KILL_ARGUMENT.json` (machine-readable) and `paper/KILL_ARGUMENT.md` (narrative).
-2. **Stop.** The orchestrator MUST pause and present the kill case to the human — strongest rejection paragraph, `still_unresolved` list, and which loop-back fired — before any idea regeneration starts (Phase 2 re-entry). Idea regeneration without this confirmation is a contract violation unless the run carries `human_skip=true` or `kill_checkpoint=false` (see [`auto-pipeline/SKILL.md`](../../orchestrator/auto-pipeline/SKILL.md) Boundaries). The confirmation is recorded in `APPROVAL_LOG.txt`.
+1. Write `.sciforge/verdicts/KILL_ARGUMENT.json` (machine-readable) and `paper/KILL_ARGUMENT.md` (narrative).
+2. **Stop.** The orchestrator MUST pause and present the kill case to the human — strongest rejection paragraph, `still_unresolved` list, and which loop-back fired — before any idea regeneration starts (Phase 2 re-entry). Idea regeneration without this confirmation is a contract violation unless the run carries `human_skip=true` or `kill_checkpoint=false` (see [`auto-pipeline/SKILL.md`](../../orchestrator/auto-pipeline/SKILL.md) Boundaries). The confirmation is recorded in `.sciforge/APPROVAL_LOG.txt`.
 3. Rationale: KILL silently reshapes the entire run; an autonomous pipeline could cycle through several ideas overnight without the human noticing. The checkpoint is ON by default.
 
 ## Output Protocols
-> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
+> **v5.2 verdict artifact location**: All machine-readable verdict/hash/audit JSON produced by this skill is written to `.sciforge/verdicts/` (filenames per the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in the original stage directory).
 
 
 > Follow these shared protocols for all output files:
@@ -333,7 +333,7 @@ When `/kill-argument` is invoked as part of a KILL loop-back (a "kill the idea" 
 ## Output Shape
 
 - `paper/KILL_ARGUMENT.md` — human-readable report (narrative stays in the stage dir)
-- `verdicts/KILL_ARGUMENT.json` — machine-readable ledger (v5.2 unified verdicts/ path; pre-v5.2 location `paper/KILL_ARGUMENT.json` read as fallback only)
+- `.sciforge/verdicts/KILL_ARGUMENT.json` — machine-readable ledger (v5.2 unified .sciforge/verdicts/ path; pre-v5.2 location `paper/KILL_ARGUMENT.json` read as fallback only)
 - `.sciforge/traces/kill-argument/<date>_runNN/` — role-switch traces (Attack memo + Adjudication memo)
 - Optional: applied fixes if user explicitly requests; default is **detect-only, do not auto-modify**
 - `KILL_ARGUMENT.html` (when `RENDER_HTML = true`, default) — single-file HTML view rendered inline by the agent. Full review gate applies. The `.review.json` sidecar carries the render-fidelity verdict. **Non-blocking**: if rendering fails, log the failure and treat the skill as complete — the HTML view is a convenience, not a prerequisite for the kill-argument verdict.
