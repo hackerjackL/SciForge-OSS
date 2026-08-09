@@ -8,7 +8,7 @@
 
 - **Purpose**: upgrade from "evaluating confidence" to "improving confidence" — three mechanisms proactively raise TDAL
 - **Input**: CLAIMS_FROM_RESULTS.md (TDAL verdict + weakest_dimension) from Phase 10
-- **Output**: .sciforge/refine-logs/confidence-uplift-plan.json (uplift actions + expected lift + budget)
+- **Output**: refine-logs/confidence-uplift-plan.json (uplift actions + expected lift + budget)
 - **Invocation**: verdict ≤ WEK → MUST invoke; verdict MODERATE + weakest_dimension identifiable → SHOULD invoke; verdict STRONG → skip
 - **Key**: the cap is a bounded uplift loop (≤ 3 rounds per mechanism); UNSUPPORTED cannot be force-dragged to STRONG — once UNSUPPORTED triggers BLOCK, uplift goes through the human-approval channel
 
@@ -245,7 +245,7 @@ Human checkpoint: human may waive further (the 3-round cap is hard; only human c
 
 ## Output Schema
 
-`.sciforge/refine-logs/confidence-uplift-plan.json` (emitted before Round 1, updated each round):
+`refine-logs/confidence-uplift-plan.json` (emitted before Round 1, updated each round):
 
 ```json
 {

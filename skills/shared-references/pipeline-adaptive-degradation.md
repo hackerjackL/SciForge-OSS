@@ -1,14 +1,14 @@
 # Pipeline Adaptive Degradation (SciForge-OSS — signature-driven auto-degrade)
 
-> **Status (v2.8 — mid-term M3, v1.0.0 — cross-link to M1)**: Defines how the orchestrator **automatically** downgrades phase mode (MUST→CONDITIONAL→OPTIONAL→SKIP) based on the `evidence_type` + `reasoning_paradigm` + `theory_only` flag in `.sciforge/refine-logs/domain-signature.json` (Phase 1b). Replaces v2.7's **hardcoded** Phase Mode Table (20 rows of manually-assigned MUST/OPTIONAL/CONDITIONAL) with a **signature-driven** degradation matrix. The orchestrator now reads the signature at pipeline start and computes the per-phase mode table at runtime — no human pre-assignment. This file adapts **mode**; the orthogonal companion [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) (M1) adapts **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED). The two files are independent — read either depending on which axis the orchestrator is configuring.
+> **Status (v2.8 — mid-term M3, v1.0.0 — cross-link to M1)**: Defines how the orchestrator **automatically** downgrades phase mode (MUST→CONDITIONAL→OPTIONAL→SKIP) based on the `evidence_type` + `reasoning_paradigm` + `theory_only` flag in `refine-logs/domain-signature.json` (Phase 1b). Replaces v2.7's **hardcoded** Phase Mode Table (20 rows of manually-assigned MUST/OPTIONAL/CONDITIONAL) with a **signature-driven** degradation matrix. The orchestrator now reads the signature at pipeline start and computes the per-phase mode table at runtime — no human pre-assignment. This file adapts **mode**; the orthogonal companion [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) (M1) adapts **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED). The two files are independent — read either depending on which axis the orchestrator is configuring.
 >
 > **Core principle**: The pipeline structure (21-phase order, fallback contract, 3-round cap) is invariant; only the **mode per phase** adapts. v2.7 asked the human to pre-mark which phases are OPTIONAL; v2.8 asks the signature. This is the third leg of the v2.8 adaptive trio: [`domain-adaptive-pipeline.md`](domain-adaptive-pipeline.md) adapts **intensity**, this file adapts **mode**, [`confidence-uplift.md`](confidence-uplift.md) adapts **verdict ceiling**.
 
 ## Quick Reference
 
 - **Purpose**: phase modes (MUST/CONDITIONAL/OPTIONAL/SKIP) are computed automatically from the signature, replacing the fixed v2.7 Phase Mode Table
-- **Input**: .sciforge/refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`, `theory_only`) from Phase 1b
-- **Output**: .sciforge/refine-logs/pipeline-mode-override.json (runtime-computed 20-row mode table, replaces v2.7 static table)
+- **Input**: refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`, `theory_only`) from Phase 1b
+- **Output**: refine-logs/pipeline-mode-override.json (runtime-computed 20-row mode table, replaces v2.7 static table)
 - **Invocation**: orchestrator reads signature at Phase 0 (after INV-G1 freeze) and emits the override BEFORE Phase 1
 - **Key**: degradation must never touch INV-G1 / the human-approval gate / the 3-round fallback cap — these are invariants, not modes
 
@@ -80,14 +80,14 @@ Apply the **most stringent** mode across the mix for each phase:
 
 ## Override Schema (machine-readable)
 
-`.sciforge/refine-logs/pipeline-mode-override.json` (emitted at Phase 0 after INV-G1 freeze, BEFORE Phase 1):
+`refine-logs/pipeline-mode-override.json` (emitted at Phase 0 after INV-G1 freeze, BEFORE Phase 1):
 
 ```json
 {
   "mode_override": {
     "schema_version": "1.0",
     "computed_at": "ISO-8601",
-    "source_signature": ".sciforge/refine-logs/domain-signature.json",
+    "source_signature": "refine-logs/domain-signature.json",
     "evidence_type": "experimental",
     "reasoning_paradigm": "empirical",
     "theory_only": false,

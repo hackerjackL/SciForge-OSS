@@ -59,9 +59,9 @@ The paper directory (default `paper/`):
 - `paper/math_commands.tex` — shared notation (copied from the unified template)
 
 **Inputs consumed** (read from upstream skills):
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — the frozen Q-id + selected idea (from `/idea-discovery`)
-- `.sciforge/refine-logs/FRONTIER_GAP.md` — **v3.2** frontier baseline + delta claim + why-not-before (from `/novelty-check`) — feeds the Introduction's contribution-positioning paragraphs directly; if absent, Introduction must flag `[needs-frontier-positioning]` rather than fabricate one
-- `.sciforge/refine-logs/FRONTIER_MAP.json` — **v3.2** frontier node graph (from `/novelty-check`) — lets the Introduction cite the specific SOTA nodes the idea advances beyond
+- `refine-logs/FINAL_PROPOSAL.md` — the frozen Q-id + selected idea (from `/idea-discovery`)
+- `refine-logs/FRONTIER_GAP.md` — **v3.2** frontier baseline + delta claim + why-not-before (from `/novelty-check`) — feeds the Introduction's contribution-positioning paragraphs directly; if absent, Introduction must flag `[needs-frontier-positioning]` rather than fabricate one
+- `refine-logs/FRONTIER_MAP.json` — **v3.2** frontier node graph (from `/novelty-check`) — lets the Introduction cite the specific SOTA nodes the idea advances beyond
 - `literature/landscape_report.md` — literature survey (from `/universal-retrieval`)
 - `literature/references.bib` — verified citations (from `/universal-retrieval`)
 - `derivations/{problem_id}/derivation_output.md` — derivation results (from `/theory-derivation`)
@@ -87,7 +87,7 @@ The paper directory (default `paper/`):
 
 ### Step 0: Load Domain Signature & Configure Style
 
-Read `.sciforge/refine-logs/domain-signature.json` (from Phase 1b `/domain-learner` — the SOLE writer; Phase 1a `/domain-signature` only writes the optional `domain-signature-hint.json` prior, see [auto-pipeline §Domain Signature Propagation](../../orchestrator/auto-pipeline/SKILL.md)) to auto-configure writing style:
+Read `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner` — the SOLE writer; Phase 1a `/domain-signature` only writes the optional `domain-signature-hint.json` prior, see [auto-pipeline §Domain Signature Propagation](../../orchestrator/auto-pipeline/SKILL.md)) to auto-configure writing style:
 
 ```json
 {
@@ -179,7 +179,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 - **Negative-result discipline (v5.0)**: the contributions list includes only results that positively support the main thesis (claims with `polarity: positive|boundary`); any `polarity: negative` entry from `CLAIMS_FROM_RESULTS.md` appearing in contributions/Abstract/body conclusion → self-review FAIL (`reason_code: negative_result_as_contribution`). Local negative results go only into Limitations/Discussion as boundary conditions; a primary-experiment-level negative should already have triggered KILL-or-PIVOT upstream and must not flow into the writing stage — if it did, return to `/experiment-execution`, do not write
 - End with the paper structure roadmap
 
-> **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `.sciforge/refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the 3-layer citation discipline forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".
+> **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the 3-layer citation discipline forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".
 
 **Related Work:**
 - Group by theme, not by paper
@@ -195,7 +195,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 **Theory / Derivation:**
 - Present the derivation results in neutral academic prose
 - Key equations with explanatory text
-- **Reproducibility is expressed as a neutral statement** ("All symbolic checks were performed with SymPy 1.13 and verified to 60 conditions"; "numerical sampling used a fixed random seed"), NOT as internal pipeline paths. The actual scripts/inputs are deposited in a supplementary archive (see Step 5 Reproducibility Statement) — they are NEVER referenced via `\path{derivations/...}` or `\texttt{experiments/...}` in the manuscript body. Internal artifact paths (`derivations/{problem_id}/`, `experiments/toy/`, `experiments/full/`, `methods/`, `.sciforge/refine-logs/`, `.sciforge/audits/`, `.sciforge/verdicts/`, `.sciforge/logs/`, `literature/`) are engineering scaffolding, not academic content.
+- **Reproducibility is expressed as a neutral statement** ("All symbolic checks were performed with SymPy 1.13 and verified to 60 conditions"; "numerical sampling used a fixed random seed"), NOT as internal pipeline paths. The actual scripts/inputs are deposited in a supplementary archive (see Step 5 Reproducibility Statement) — they are NEVER referenced via `\path{derivations/...}` or `\texttt{experiments/...}` in the manuscript body. Internal artifact paths (`derivations/{problem_id}/`, `experiments/toy/`, `experiments/full/`, `methods/`, `refine-logs/`, `.sciforge/audits/`, `.sciforge/verdicts/`, `.sciforge/logs/`, `literature/`) are engineering scaffolding, not academic content.
 - Include only intermediate results that aid understanding
 
 **Results:**
@@ -240,7 +240,7 @@ After writing, verify:
 
 | Class | Forbidden pattern (regex) | Required rewrite |
 |-------|---------------------------|------------------|
-| **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `.sciforge/refine-logs/`, `.sciforge/audits/`, `.sciforge/verdicts/`, `.sciforge/logs/`, `literature/`, `code/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
+| **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `refine-logs/`, `.sciforge/audits/`, `.sciforge/verdicts/`, `.sciforge/logs/`, `literature/`, `code/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
 | **B. Phase / pipeline jargon** | `Phase [0-9]`, `toy stage`, `toy_gate`, `background dispatch`, `nohup`, `tmux`, `systemd`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: ?(lite\|balanced\|max\|beast)`, `role.?switch`, `senior.?reviewer`, `adversarial.?falsification` | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
 | **C. Audit-skill verdicts** | `Type I (LEAKY\|CLEAN\|WEAK)`, `Type IV (ESCAPE\|CLOSED\|N/A)`, `INV-G[0-9]`, `0 FATAL\|0 CRITICAL\|0 MAJOR.*MINOR`, `6 dimensions.*20.category`, `fidelity.*symbolic\|numerical\|qualitative`, `assurance.?contract` | Rewrite as neutral verification language ("All symbolic and numerical checks pass"; no taxonomy counts, no verdict enums) |
 | **D. Pipeline identifiers** | `Q-[A-Z]+-[A-Z0-9]+`, `INV-G[0-9]`, `problem.?anchor`, `Q-id`, `domain.?signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
@@ -281,7 +281,7 @@ Write the complete paper:
 **Write two short sections, placed AFTER the Conclusion, BEFORE the References (or in the Appendix front matter)**:
 
 #### Reproducibility Statement (`\section*{Reproducibility}`)
-A neutral, self-contained paragraph stating what is needed to reproduce the results. **Forbidden content** (v3.3 scrub gate class A/F): internal pipeline paths (`derivations/`, `experiments/`, `.sciforge/refine-logs/`), artifact filenames (`RESULT.json`, `METHOD_REGISTRY.md`), pipeline phase numbers, audit verdicts. **Required content**:
+A neutral, self-contained paragraph stating what is needed to reproduce the results. **Forbidden content** (v3.3 scrub gate class A/F): internal pipeline paths (`derivations/`, `experiments/`, `refine-logs/`), artifact filenames (`RESULT.json`, `METHOD_REGISTRY.md`), pipeline phase numbers, audit verdicts. **Required content**:
 - The software stack (versions): "All symbolic computations used SymPy 1.13.1 and mpmath 1.3.0; numerical experiments used NumPy 2.1.3 and scikit-learn 1.5."
 - The random seed: "All stochastic procedures use a fixed random seed (42)."
 - The verification count (neutral): "All 60 symbolic conditions and 39 numerical checks pass."

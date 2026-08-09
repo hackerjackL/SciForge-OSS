@@ -41,7 +41,7 @@ Orchestrate a complete 21-phase DAG research loop. The non-negotiable goals:
 4. **Every conclusion is logic-verified** — no unsupported assertion survives to the final paper
 5. **The pipeline is self-correcting** — if any phase fails or produces WARN/FAIL, auto-fallback to the relevant prior phase (bounded 3 rounds)
 6. **INV-G1 PROBLEM_ANCHOR_FREEZE** — the Q-id supplied by the human is frozen at Phase 0 and referenced in every downstream phase (see [`../invariant-check/SKILL.md`](../../support/invariant-check/SKILL.md))
-7. **Domain signature propagation** — the domain signature is produced ONLY by Phase 1b (`/domain-learner`) and written to `.sciforge/refine-logs/domain-signature.json`, consumed by all downstream phases. See [`../shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
+7. **Domain signature propagation** — the domain signature is produced ONLY by Phase 1b (`/domain-learner`) and written to `refine-logs/domain-signature.json`, consumed by all downstream phases. See [`../shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
 8. **Domain learner is the source of truth** (v2.8) — Phase 1a (`/domain-signature`) is downgraded to OPTIONAL fast-path hint writing `domain-signature-hint.json`, consumed only by the learner as a prior. Phase 1b (`/domain-learner`) is MUST and the sole writer of `domain-signature.json`. This eliminates the rule-hardcoded signature failure mode.
 
 ## Domain Signature Propagation
@@ -50,15 +50,15 @@ The domain signature is the **central wiring mechanism** that makes domain adapt
 
 ```
 Phase 1a: /domain-signature (OPTIONAL fast-path, rule-based hint)
-     │  → writes .sciforge/refine-logs/domain-signature-hint.json (temporary hint, confidence may be < 0.7)
+     │  → writes refine-logs/domain-signature-hint.json (temporary hint, confidence may be < 0.7)
      │  → used only as a prior / cold-start seed for the learner; not consumed directly downstream
      ↓
 Phase 1b: /domain-learner (MUST, literature-based learning)  ← single source of truth
      │  → learns domain characteristics from scratch from literature + seed papers
      │  → reads hint.json as a prior (if present) + corrects via autonomous literature retrieval
-     │  → overwrites .sciforge/refine-logs/domain-signature.json (sole downstream consumption source)
+     │  → overwrites refine-logs/domain-signature.json (sole downstream consumption source)
      ↓
-.sciforge/refine-logs/domain-signature.json (written ONLY by Phase 1b)
+refine-logs/domain-signature.json (written ONLY by Phase 1b)
      ↓
 Phase 2:  /idea-discovery        → reads signature → adjusts perspective weights
 Phase 2.5: /adversarial-falsification → reads signature → loads domain failure modes + calibrates EG sub-dimension N/A judgments
@@ -111,7 +111,7 @@ The single-agent full-pipeline configuration must obey the cross-cutting discipl
 
 Non-negotiable for OSS runs (esp. multi-round / context-constrained):
 
-1. **Bundle-out**: any ≥ 10-line prompt/instruction a phase produces is written to a bundle file (`.sciforge/refine-logs/<phase>.bundle.md`); the next phase is handed the **path**, not the blurb.
+1. **Bundle-out**: any ≥ 10-line prompt/instruction a phase produces is written to a bundle file (`refine-logs/<phase>.bundle.md`); the next phase is handed the **path**, not the blurb.
 2. **Compact-forward**: before Phase 8 (logic) and Phase 12 (paper-writing), write a 20-40 line compact summary of the prior phase's decisive artifacts; base the downstream phase on that summary.
 3. **Sufficiency stopping**: analysis sub-loops stop only when (mandatory fields assigned) ∧ (verdict stable 2 rounds) ∧ (marginal return ≤ 0). Persist `stopping_rule.satisfied` in every analysis output. Boundary: never "keep digging" as a habit; name the specific open question + the evidence that resolves it.
 4. **Evidence-forcing**: every finding ships with `raw_stat`+`confidence`+`method`; data-features ≠ errors (never clean a real feature to prettify); analysis layer reports, never judges.
@@ -130,14 +130,14 @@ Phase  1: problem understanding & decomposition (built-in reasoning) [MUST]
      │                                             │
 Phase  1a: /domain-signature domain feature extraction [OPTIONAL] ← v2.8 demoted to fast-path hint
      │  analyze problem text → extract domain hint (rule-based)    │
-     │  writes .sciforge/refine-logs/domain-signature-hint.json  │
+     │  writes refine-logs/domain-signature-hint.json  │
      │  (not consumed directly downstream; only a prior for Phase 1b)    │
      │                                             │
 Phase  1b: /domain-learner domain learning [MUST] ← v2.8 promoted to single source of truth
      │  learn domain characteristics from scratch from literature + seed papers           │
      │  (literature search + seed paper analysis)   │
      │  read hint.json as prior + correct via autonomous retrieval      │
-     │  writes .sciforge/refine-logs/domain-signature.json      │
+     │  writes refine-logs/domain-signature.json      │
      │  (sole downstream consumption source; learner confidence threshold 0.7)│
      │                                             │
 Phase  2: /idea-discovery [DAG branch] [MUST] — 4-perspective GAP-ANCHORED ideas (v6.0 gap chain)
@@ -236,8 +236,10 @@ Phase 15: /citation-audit — final 3-layer citation verification               
 Phase 15.5: /publishability-score — publishability score (dim1 first-axis gate)     ← new v2.2
      │         produces PUBLISHABILITY_SCORE.json/md
      │
-Phase 16: final assembly + artifact archival
+Phase 16: final assembly + artifact archival + RUN_PREPRINT archive write
 ```
+
+**Run Preprint Archive (v1.4.0 — cross-run cumulative memory, adapted from the AgentRxiv mechanism)**: at Phase 16 the orchestrator MUST write `output/RUN_PREPRINT.md` — a structured one-page digest of the finished run: problem + anchored gap-ids, selected idea, fired kill arguments, verdict trail summary (from PIPELINE_VERDICT_SUMMARY), discovered-but-unexplored gaps, budget consumption (from RUN_BUDGET), and explicit failure notes. Purpose: later runs' ideation phase queries the surrounding run-archive directory (siblings of this workspace) alongside the literature, so new ideas anchor on the system's OWN prior partial results and failures, not only external gaps — turning independent runs into a compounding research program. The preprint is a deliverable-adjacent archive document: human-readable Markdown, no machine schema, never gates the pipeline (missing = WARN `run_preprint_missing`, never BLOCKED).
 
 **Fallback contract**: each phase failure falls back to the nearest prior phase (max 3 rounds). 3 failed rounds escalate to BLOCKED + `reason_code` (reuses the main repo's `paper-compile` E16 anti-deadloop ladder). **Never silently retry into round 4** — the 3-round cap is a hard constraint.
 
@@ -363,7 +365,7 @@ On successful completion, the orchestrator produces the following structure unde
 │                                    STATUS.json mirror, checkpoints/)
 ├── figures/                      ← PDF+SVG deliverables + per-figure audit detail
 ├── paper/                        ← main.tex / sections/ / main.pdf / compile.log
-└── output/                       ← submission bundle (final archive)
+└── output/                       ← submission bundle (final archive) + RUN_PREPRINT.md (v1.4.0 cross-run digest)
 ```
 
 Directories materialize lazily on first canonical write (no pre-created skeletons); which

@@ -19,12 +19,12 @@ Every output file MUST be written in two steps:
 ```
 Step 1: Write to timestamped path (immutable)
   path: <stage_dir>/<base_name>_<YYYYMMDDTHHMMSS>Z.<ext>
-  example: .sciforge/refine-logs/domain-signature_20260721T100000Z.json
+  example: refine-logs/domain-signature_20260721T100000Z.json
   this file is NEVER modified after write — it is the audit record of what was produced at that time
 
 Step 2: Copy to fixed-name path (latest)
   path: <stage_dir>/<base_name>.<ext>
-  example: .sciforge/refine-logs/domain-signature.json
+  example: refine-logs/domain-signature.json
   this file is the working copy downstream skills read; it is overwritten on each new run
 ```
 
@@ -36,8 +36,8 @@ Artifacts live in their **stage directory**, not the project root:
 
 | Stage | Directory | Examples |
 |-------|-----------|----------|
-| idea | `.sciforge/refine-logs/` | IDEA_DAG.json, IDEA_DAG_VISUAL.md |
-| refine | `.sciforge/refine-logs/` | domain-signature.json, FALSIFICATION.md |
+| idea | `refine-logs/` | IDEA_DAG.json, IDEA_DAG_VISUAL.md |
+| refine | `refine-logs/` | domain-signature.json, FALSIFICATION.md |
 | review | `.sciforge/verdicts/` (machine) + `.sciforge/audits/` (narrative) | PAPER_CLAIM_AUDIT.json, AUTO_REVIEW.md |
 | paper | `paper/` | main.tex, references.bib |
 | audit (machine verdicts) | `.sciforge/verdicts/` | CITATION_AUDIT.json, PROOF_AUDIT.json |

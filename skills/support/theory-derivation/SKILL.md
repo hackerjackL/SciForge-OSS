@@ -11,7 +11,7 @@ role: theory-builder-and-symbolic-verifier
 ## Quick Reference
 
 - **Purpose**: SymPy symbolic derivation + step-by-step machine verification; theory-only mode uses engine=manual
-- **Input**: .sciforge/refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
+- **Input**: refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
 - **Output**: code/derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
 - **Key**: SymPy verification at every step; 3 modes (derive/verify/simplify); theory-only steps marked [not machine-verified]
 
@@ -64,7 +64,7 @@ Extract and normalize:
 - Any user-provided formula chain, sketch, messy notes, or current draft
 - Nearby local theory files if the request points to them
 - Desired output style if specified: internal alignment note, paper-style theory draft, or blocker report
-- **The frozen Q-id** (from `.sciforge/refine-logs/FINAL_PROPOSAL.md`, verified by INV-G1) — every derivation must reference this Q-id
+- **The frozen Q-id** (from `refine-logs/FINAL_PROPOSAL.md`, verified by INV-G1) — every derivation must reference this Q-id
 
 If the target, object, notation, or assumptions are ambiguous, state the exact interpretation being used before deriving anything.
 
@@ -79,7 +79,7 @@ Determine the target derivation file with this priority:
 
 Read the relevant local context: the chosen target derivation file (if it already exists), and any local theory notes, formula drafts, appendix notes, or files explicitly mentioned by the user. Extract: target formula / theory goal, current formula chain, assumptions, notation, known blockers, desired output mode.
 
-Also read `.sciforge/refine-logs/FINAL_PROPOSAL.md` to recover the frozen Q-id and the selected idea's framing + assumptions (from `/idea-discovery`). The derivation must be consistent with the selected idea.
+Also read `refine-logs/FINAL_PROPOSAL.md` to recover the frozen Q-id and the selected idea's framing + assumptions (from `/idea-discovery`). The derivation must be consistent with the selected idea.
 
 ### Step 2: Freeze the Target
 
@@ -206,7 +206,7 @@ Write the target derivation file using this structure:
 ```md
 # Derivation Package
 
-**Q-id**: [frozen — from .sciforge/refine-logs/FINAL_PROPOSAL.md]
+**Q-id**: [frozen — from refine-logs/FINAL_PROPOSAL.md]
 **Generated**: [date]
 **Status**: COHERENT AS STATED / COHERENT AFTER REFRAMING / NOT YET COHERENT
 

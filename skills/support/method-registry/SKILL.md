@@ -11,7 +11,7 @@ role: method-registry-builder
 ## Quick Reference
 
 - **Purpose**: method pre-registration + hash lock + forced human approval, preventing post-hoc method selection
-- **Input**: .sciforge/refine-logs/FINAL_PROPOSAL.md
+- **Input**: refine-logs/FINAL_PROPOSAL.md
 - **Output**: METHOD_REGISTRY.md + REGISTRY_HASH.txt + .sciforge/APPROVAL_LOG.txt
 - **Key**: 8-section schema; Section 3 (Method Selection) locked; assumption quality scoring (new); forced human approval
 
@@ -231,8 +231,8 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 ### Step 1: Locate Existing Artifacts
 
 Derive sections from existing artifacts:
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` Problem Anchor + Q-id → Section 1
-- `.sciforge/refine-logs/IDEA_DAG.json` + `.sciforge/refine-logs/FINAL_PROPOSAL.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
+- `refine-logs/FINAL_PROPOSAL.md` Problem Anchor + Q-id → Section 1
+- `refine-logs/IDEA_DAG.json` + `refine-logs/FINAL_PROPOSAL.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
 
 If none exist, this is the **first** pre-writing step. Initialize an empty registry with the schema above and ask the user to fill in Sections 2-4, or — if there is enough context — propose a draft for user approval.
 

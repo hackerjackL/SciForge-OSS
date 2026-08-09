@@ -24,7 +24,7 @@ For each prerequisite of this phase:
 
 ```
 If the phase consumes domain signature:
-  Check if .sciforge/refine-logs/domain-signature.json exists
+  Check if refine-logs/domain-signature.json exists
   If EXISTS → PASS (signature is available)
   If NOT EXISTS → log WARN, use defaults, continue
 ```
@@ -41,7 +41,7 @@ Check the phase's mode:
 ### Step 4: Pre-Flight Log
 
 ```
-Write to .sciforge/refine-logs/pipeline-integrity.md:
+Write to refine-logs/pipeline-integrity.md:
   - Phase number
   - Phase name
   - Prerequisites status (PASS/FAIL/BLOCKED)
@@ -84,12 +84,12 @@ Write to .sciforge/refine-logs/pipeline-integrity.md:
 **Mode**: MUST
 
 ## Prerequisites
-- [PASS] .sciforge/refine-logs/domain-signature.json exists
+- [PASS] refine-logs/domain-signature.json exists
 - [PASS] Q-id is frozen
 - [INFO] Domain signature: evidence_type=causal_inference
 
 ## Domain Signature
-- [FOUND] .sciforge/refine-logs/domain-signature.json
+- [FOUND] refine-logs/domain-signature.json
 - Applied: perspective_weights = {theoretical: 0.3, computational: 0.5, qualitative: 0.2}
 
 ## Decision

@@ -195,7 +195,7 @@ The EG component is **inherited** from the idea stage, not re-computed.
 
 | Artifact | Path | Producer | Consumers | Schema |
 |----------|------|----------|-----------|--------|
-| `ENGINEERING_GROUNDING.md` | .sciforge/refine-logs/ | Phase 5b (adversarial-falsification) | Phase 3→4 human checkpoint, novelty-check, result-to-claim, auto-review-loop | This contract |
+| `ENGINEERING_GROUNDING.md` | refine-logs/ | Phase 5b (adversarial-falsification) | Phase 3→4 human checkpoint, novelty-check, result-to-claim, auto-review-loop | This contract |
 
 ---
 

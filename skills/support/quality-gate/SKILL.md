@@ -165,7 +165,7 @@ OSS has **no discipline overlay**. The universal QF-G* checks below apply to eve
 | QF-G3 | Leakage audit PASS | D | `.sciforge/verdicts/LEAKAGE_AUDIT.json` verdict is PASS or WARN | verdict ∈ {PASS, WARN} |
 | QF-G4 | Result-to-claim verdict | D | `CLAIMS_FROM_RESULTS.md` exists with `claim_supported: yes` or `partial` | claim_supported ∈ {yes, partial}; NOT `no` |
 | QF-G5 | Primary outcome fidelity | D | **CONSUME** `/result-to-claim` fidelity verdicts (per-entry records of primary outcomes ≥ numerical in `CLAIMS_FROM_RESULTS.md`); do NOT recompute the ladder | ≥ 1 primary at numerical+ (per result-to-claim verdicts) |
-| QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` INV-G1 verdict (frozen Q-id in `.sciforge/refine-logs/FINAL_PROPOSAL.md`); do NOT re-check | INV-G1 verdict = PASS |
+| QF-G6 | Problem anchor frozen | D | **CONSUME** `/invariant-check` INV-G1 verdict (frozen Q-id in `refine-logs/FINAL_PROPOSAL.md`); do NOT re-check | INV-G1 verdict = PASS |
 | QF-G7 | Method registry hash locked | D | **CONSUME** `/method-registry` hash-lock verification (`methods/REGISTRY_HASH.txt` matching `METHOD_REGISTRY.md` Section 3); do NOT recompute | method-registry hash verification = PASS |
 | QF-G8 | Interpretation consistency | S | The derivation's interpretation is consistent with the declared assumptions | LLM judgment grounded in specific assumption citations |
 | QF-G9 | Scope calibration | S | Claim scope matches derivation regime (no overgeneralization) | LLM judgment comparing claim language vs. derivation regime |

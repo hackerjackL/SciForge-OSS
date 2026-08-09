@@ -122,7 +122,7 @@ If verdict = GROUNDED or MOSTLY_GROUNDED:
 
 ## The "Fantasy Log"
 
-Every time a claim is flagged as fantasy, write to `.sciforge/refine-logs/fantasy-log.md`:
+Every time a claim is flagged as fantasy, write to `refine-logs/fantasy-log.md`:
 
 ```markdown
 ## Fantasy Entry — 2026-07-21 10:00:00

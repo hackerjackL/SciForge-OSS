@@ -16,7 +16,7 @@ role: domain-characteristic-extractor
 
 - **Purpose**: Auto-extract a domain hint (rule-based) → prior for the learner only
 - **Input**: Problem description + seed literature + user prompt
-- **Output**: .sciforge/refine-logs/domain-signature-hint.json (hint file, not consumed directly downstream)
+- **Output**: refine-logs/domain-signature-hint.json (hint file, not consumed directly downstream)
 - **Key**: v2.8 downgraded to OPTIONAL fast path; downstream skills never read the hint, only the learner-written domain-signature.json. v6.0: the hint MAY carry a coarse `evidence_norm_profile`, but it is advisory prior only — the learner re-derives evidence norms from literature and always wins
 
 ## Use When
@@ -131,7 +131,7 @@ Read the problem statement and extract domain signals:
 
 ### Step 4: Consume Signature
 
-The **hint** is written to `.sciforge/refine-logs/domain-signature-hint.json` and consumed ONLY by `/domain-learner` (Phase 1b) as a prior. It is **NOT** consumed directly by downstream skills — the learner is the sole source of truth that writes `.sciforge/refine-logs/domain-signature.json`. (v2.8 alignment: this skill is an OPTIONAL fast-path hint, never the final signature.)
+The **hint** is written to `refine-logs/domain-signature-hint.json` and consumed ONLY by `/domain-learner` (Phase 1b) as a prior. It is **NOT** consumed directly by downstream skills — the learner is the sole source of truth that writes `refine-logs/domain-signature.json`. (v2.8 alignment: this skill is an OPTIONAL fast-path hint, never the final signature.)
 
 | Downstream Skill | How It Uses the Learner Signature |
 |-----------------|-----------------------------------|
@@ -153,8 +153,8 @@ The **hint** is written to `.sciforge/refine-logs/domain-signature-hint.json` an
 
 ## Output Shape
 
-- `.sciforge/refine-logs/domain-signature.json` — the domain signature JSON
-- `.sciforge/refine-logs/domain-signature-report.md` — human-readable explanation of the signature
+- `refine-logs/domain-signature.json` — the domain signature JSON
+- `refine-logs/domain-signature-report.md` — human-readable explanation of the signature
 
 ## See Also
 

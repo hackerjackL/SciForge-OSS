@@ -18,12 +18,12 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 ```markdown
 | Timestamp | Skill | File | Stage | Description |
 |-----------|-------|------|-------|-------------|
-| 2026-07-20 14:30 | /idea-discovery | .sciforge/refine-logs/IDEA_CANDIDATES.md | idea-discovery | 12 ideas generated |
+| 2026-07-20 14:30 | /idea-discovery | refine-logs/IDEA_CANDIDATES.md | idea-discovery | 12 ideas generated |
 ```
 
 ## Artifact Directory Tree (v6.0 — two-tier split: `.sciforge/` hidden state layer + delivery layer)
 
-**v6.0 design drivers**: (1) long-horizon runs (days, not minutes — cf. CRUX shadow evaluation, arXiv:2607.27191) need durable machine state with an explicit resume contract; (2) a human opening a finished workspace should see ONLY the scientific deliverables — everything that serves the pipeline itself (verdicts, decision-process logs, audit narratives, manifest) lives in ONE hidden directory; (3) `logs/` keeps its plain meaning: experiment/training logs; (4) domains differ — a humanities run must not be cluttered with empty experiment/figure directories.
+**Design drivers (v6.0, boundary refined in v1.4.0 after end-to-end eval feedback)**: (1) long-horizon runs (days, not minutes — cf. CRUX shadow evaluation, arXiv:2607.27191) need durable machine state with an explicit resume contract; (2) `.sciforge/` hides ONLY pipeline machinery and judgment state (verdicts, pipeline logs, audit narratives, manifest, checkpoint) — the RESEARCH TRAIL itself (problem analysis, ideas, gap anchoring, frontier map, final proposal, derivations, experiments, figures, paper) stays VISIBLE and is written into the open from the moment it is created, never hidden and transplanted later; (3) `logs/` keeps its plain meaning: experiment/training logs; (4) domains differ — a humanities run must not be cluttered with empty experiment/figure directories.
 
 ```
 {problem_id}/
@@ -59,7 +59,7 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   ├── logs/           ←   [pipeline state stream] (v6.0: pipeline logs only; experiment/training logs live in visible logs/)
 │   │   ├── pipeline.log    ← auto-pipeline status stream (the single authoritative status record)
 │   │   └── phase_<n>.log   ← per-phase run logs (written by each skill, no longer scattered)
-│   ├── .sciforge/refine-logs/    ←   decision-process artifacts (idea-discovery + novelty-check + domain learning)
+│   ├── refine-logs/    ←   decision-process artifacts (idea-discovery + novelty-check + domain learning)
 │   │   ├── IDEA_REPORT.md / IDEA_CANDIDATES.md / IDEA_DAG.json / MCTS_LOG.md
 │   │   ├── GAP_ANCHOR_LOG.md  ← gap-anchoring decision per idea (v6.0 gap chain)
 │   │   ├── FRONTIER_MAP.json  ← frontier node graph (novelty-check)
@@ -73,6 +73,13 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   ├── AUTO_REVIEW.md         ← cross-model review narrative (auto-review-loop)
 │   │   └── CITATION_AUDIT.md      ← 3-layer citation audit narrative (citation-audit)
 │   └── tmp/            ←   scratch space (rendering intermediates, debug scripts, download caches); whole directory deleted at wrap-up
+├── refine-logs/        ← [VISIBLE — the research trail] decision artifacts (v1.4.0 boundary: research content is written into the open from the moment it is created, never hidden and transplanted later)
+│   ├── PROBLEM_ANALYSIS.md / phase bundles, domain-signature.json (+ hint)
+│   ├── IDEA_REPORT.md / IDEA_CANDIDATES.md / IDEA_DAG.json / MCTS_LOG.md
+│   ├── GAP_ANCHOR_LOG.md  ← gap-anchoring decisions per idea (v6.0 gap chain)
+│   ├── FALSIFICATION_REPORT.md / FRONTIER_MAP.json / FRONTIER_GAP.md / novelty_report.json
+│   ├── FINAL_PROPOSAL.md  ← frozen selected idea
+│   └── abandoned/<idea_id>/ ← KILL/PIVOT archives of rejected branches
 ├── literature/         ← universal-retrieval artifacts (visible: the verified knowledge base is itself a deliverable)
 │   ├── references.bib / landscape_report.md / verified_papers.json / VERIFICATION_LOG.md
 │   ├── GAP_REPORT.md   ←   literature gap-mining report, broad-wave output (v6.0 gap chain; every gap carries a gap-id + cited evidence)
@@ -107,10 +114,10 @@ The tree above is a **registry of canonical locations, not a pre-created skeleto
 ### Two-Tier Split Principles (v6.0)
 
 1. **Delivery layer (visible)**: everything a reviewer/submitter needs — literature, methods, derivations, code, experiments, figures, paper, output, plus experiment logs. Post-paper engagement (submission, rebuttal correspondence) is human territory; the pipeline's job ends at a complete `output/` bundle.
-2. **`.sciforge/` (hidden)**: pipeline state, verification verdicts, decision-process trail, manifest, resume checkpoint. Hidden so a delivered workspace reads like a clean GitHub project; durable so a days-long run can resume after any interruption.
+2. **`.sciforge/` (hidden)**: pipeline machinery ONLY — verdicts, pipeline logs, audit narratives, manifest, approvals, resume checkpoint, scratch. Hidden so a delivered workspace reads like a clean GitHub project; durable so a days-long run can resume after any interruption. **Boundary rule (v1.4.0)**: research content (ideas, gap anchors, frontier maps, proposals, analyses) NEVER lives in `.sciforge/` — it is written visible from the moment of creation.
 3. **.sciforge/verdicts/ contract unchanged from v5.2** — flat, fixed names, one scan reveals the whole pipeline's judgment state. Only its home moved (`.sciforge/verdicts/` → `.sciforge/verdicts/`).
 4. **Single status file**: PIPELINE_STATUS events exist only in `.sciforge/logs/pipeline.log`; no stage may create its own PIPELINE_STATUS copy; at summarization time the orchestrator reads the entire `.sciforge/verdicts/` directory to generate the pipeline verdict overview (`.sciforge/verdicts/PIPELINE_VERDICT_SUMMARY.md`, rewritten at every phase boundary).
-5. **Migration compatibility (reads fall back, writes never do)**: reads try the v6.0 path first, then the legacy path — `.sciforge/verdicts/` ← `verdicts/`; `.sciforge/logs/` ← `logs/` (pipeline state files); `.sciforge/refine-logs/` ← `refine-logs/`; `.sciforge/audits/` ← `audit_report/` + `review-stage/` + `citation_audit/`; `.sciforge/MANIFEST.md` ← root `MANIFEST.md`. Writes always go to the v6.0 path. A resumed run that finds only legacy paths migrates them into `.sciforge/` at the next boundary (logged as a cleanup event).
+5. **Migration compatibility (reads fall back, writes never do)**: reads try the v6.0 path first, then the legacy path — `.sciforge/verdicts/` ← `verdicts/`; `.sciforge/logs/` ← `logs/` (pipeline state files); `.sciforge/audits/` ← `audit_report/` + `review-stage/` + `citation_audit/`; `.sciforge/MANIFEST.md` ← root `MANIFEST.md`. (`refine-logs/` is visible again since v1.4.0; pre-v1.4.0 runs that wrote it under `refine-logs/` migrate it out at the next boundary.) Writes always go to the v6.0 path. A resumed run that finds only legacy paths migrates them into `.sciforge/` at the next boundary (logged as a cleanup event).
 
 ## Long-Horizon Resume Contract (v6.0 — RUNSTATE.json)
 
@@ -153,7 +160,7 @@ On reads, the stage-scoped path is tried first; if not found, fall back to the r
 
 **Orphan-artifact governance**:
 1. **Orphan = an artifact with no upstream reference**: every stage artifact must be referenced by at least one downstream contract (the MANIFEST's `consumer` field); a MANIFEST entry written with an empty consumer → WARN `orphan_artifact`
-2. **Artifacts of rejected branches**: after a KILL/PIVOT, the artifacts of the rejected idea are **not deleted** (audit tracing needs them) but moved en masse into the `.sciforge/refine-logs/abandoned/<idea_id>/` archive — the active workspace keeps only the current idea's artifacts; history stays inspectable but out of the way
+2. **Artifacts of rejected branches**: after a KILL/PIVOT, the artifacts of the rejected idea are **not deleted** (audit tracing needs them) but moved en masse into the `refine-logs/abandoned/<idea_id>/` archive — the active workspace keeps only the current idea's artifacts; history stays inspectable but out of the way
 3. **Zero tolerance for duplicate artifacts**: the same content present at two paths (e.g., code in both `code/` and `paper/`) → audit FAIL `duplicate_artifact`; symlinks are the only legitimate "same artifact visible in multiple places" mechanism
 
 **Wrap-up cleanup protocol (executed at every phase boundary + at the pipeline end state)**:

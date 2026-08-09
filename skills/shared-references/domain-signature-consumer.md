@@ -2,18 +2,18 @@
 
 > **Status (v2.3 — wiring layer, v2.8 — learner-first downgrade of Phase 1a)**: Defines how every downstream skill consumes the domain signature produced by `/domain-learner` (Phase 1b). This is the **wiring layer** that makes domain adaptation automatic. `/domain-signature` (Phase 1a) is downgraded to an OPTIONAL hint file consumed only by the learner as a prior — downstream skills never read it.
 >
-> **Core principle**: Every skill reads `.sciforge/refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. No skill hard-codes domain-specific logic.
+> **Core principle**: Every skill reads `refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. No skill hard-codes domain-specific logic.
 
 ## Quick Reference
 
 - **Purpose**: Defines how every downstream skill automatically consumes the domain signature
-- **Input**: .sciforge/refine-logs/domain-signature.json (from /domain-learner — the single source of truth)
+- **Input**: refine-logs/domain-signature.json (from /domain-learner — the single source of truth)
 - **Output**: Per-skill adaptive behavior (no manual configuration required)
 - **Key**: Every skill reads the signature at startup and adapts automatically; the hint file is never read
 
 ## Signature Location
 
-The domain signature is written to `.sciforge/refine-logs/domain-signature.json` by Phase 1b (`/domain-learner`) — the sole writer. Every downstream skill reads this file at startup. Phase 1a (`/domain-signature`) writes a separate `.sciforge/refine-logs/domain-signature-hint.json` consumed ONLY by the learner as a prior; downstream skills MUST NOT read the hint.
+The domain signature is written to `refine-logs/domain-signature.json` by Phase 1b (`/domain-learner`) — the sole writer. Every downstream skill reads this file at startup. Phase 1a (`/domain-signature`) writes a separate `refine-logs/domain-signature-hint.json` consumed ONLY by the learner as a prior; downstream skills MUST NOT read the hint.
 
 ## Consumption Rules by Skill
 
@@ -184,7 +184,7 @@ The domain signature is written to `.sciforge/refine-logs/domain-signature.json`
 Every skill MUST execute the following at startup:
 
 ```
-Step 1: Check for .sciforge/refine-logs/domain-signature.json
+Step 1: Check for refine-logs/domain-signature.json
 Step 2: If exists, read the signature
 Step 3: Look up the consumption rules for this skill in this protocol
 Step 4: Apply the rules (adjust weights, load failure modes, select style)
@@ -193,7 +193,7 @@ Step 5: If no signature exists, use default behavior (no domain adaptation)
 
 ## Fallback
 
-If `.sciforge/refine-logs/domain-signature.json` does not exist:
+If `refine-logs/domain-signature.json` does not exist:
 
 - All skills use their default behavior (no domain-specific adaptation)
 - This is equivalent to `domain: general` in the legacy approach

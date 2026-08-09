@@ -49,7 +49,7 @@ Key artifacts consumed (read from upstream):
 - `derivations/{problem_id}/derivation_output.md` — derivation results summary produced by `/theory-derivation` (primary input)
 - `CLAIMS_FROM_RESULTS.md` — validated claims from `/result-to-claim`
 - `findings.md` — prior findings (compact mode)
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — pre-registered primary outcomes (for fidelity gatekeeping)
+- `refine-logs/FINAL_PROPOSAL.md` — pre-registered primary outcomes (for fidelity gatekeeping)
 
 ## Configuration
 
@@ -239,7 +239,7 @@ Then extract structured fields:
 
 **Apply the 3-fidelity ladder** to primary outcomes (see [`/result-to-claim`](../result-to-claim/SKILL.md) for the ladder):
 
-1. **Read `.sciforge/refine-logs/FINAL_PROPOSAL.md`** to identify which outcomes are **pre-specified primary outcomes**. Outcomes not pre-specified are automatically classified as "secondary".
+1. **Read `refine-logs/FINAL_PROPOSAL.md`** to identify which outcomes are **pre-specified primary outcomes**. Outcomes not pre-specified are automatically classified as "secondary".
 
 2. **Parse derivation/verification results** from `derivations/{problem_id}/` directory. For each outcome, determine:
    - Is it a **primary outcome** (pre-specified)? Or a **secondary outcome** (mechanism test, robustness check)?
@@ -272,7 +272,7 @@ Then extract structured fields:
 **Runs on EVERY round, all difficulties (medium/hard/nightmare) — it is NOT gated behind difficulty like Phase B.5/B.6.** This is the single biggest content-quality lever; it cannot be opt-in.
 
 **Inputs**:
-- `.sciforge/refine-logs/domain-signature.json` (from Phase 1b `/domain-learner`) — read `evidence_type` + `methodology_profile`
+- `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner`) — read `evidence_type` + `methodology_profile`
 - [`domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) — the canonical failure-mode catalog, keyed by `evidence_type`
 - The research artifacts under review this round (`derivations/`, `CLAIMS_FROM_RESULTS.md`, `paper/sections/*.tex`)
 

@@ -176,7 +176,7 @@ From the request, extract:
 4. **Title** — figure title (optional)
 5. **Legend** — series labels and grouping
 6. **Annotations** — specific points, regions, or formulas to emphasize
-7. **Q-id** — the frozen problem Q-id (from `.sciforge/refine-logs/FINAL_PROPOSAL.md`) — reference in the figure's preserved spec
+7. **Q-id** — the frozen problem Q-id (from `refine-logs/FINAL_PROPOSAL.md`) — reference in the figure's preserved spec
 
 Validate data shape matches chart type:
 - Line plot → 2D coordinate array (x, y)

@@ -44,16 +44,17 @@ The non-negotiable goal: **never commit to a single idea before MCTS iteration c
 ## Required Workspace
 
 Create or maintain:
-- `.sciforge/refine-logs/IDEA_CANDIDATES.md` — the ranked list of idea candidates (primary output)
-- `.sciforge/refine-logs/IDEA_DAG.json` — the DAG structure (nodes = ideas, edges = dependencies)
-- `.sciforge/refine-logs/MCTS_LOG.md` — MCTS iteration log (rounds, promotions, rejections)
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — the selected idea after MCTS convergence (frozen for downstream skills)
+- `refine-logs/IDEA_CANDIDATES.md` — the ranked list of idea candidates (primary output)
+- `refine-logs/IDEA_DAG.json` — the DAG structure (nodes = ideas, edges = dependencies)
+- `refine-logs/MCTS_LOG.md` — MCTS iteration log (rounds, promotions, rejections)
+- `refine-logs/FINAL_PROPOSAL.md` — the selected idea after MCTS convergence (frozen for downstream skills)
 
 Key artifacts consumed:
 - The frozen Q-id + problem statement (supplied by the human user's prompt)
-- `.sciforge/refine-logs/domain-signature.json` — from Phase 1b `/domain-learner` (the SOLE writer; used for perspective weight adjustment)
+- `refine-logs/domain-signature.json` — from Phase 1b `/domain-learner` (the SOLE writer; used for perspective weight adjustment)
 - `literature/references.bib` — from `/universal-retrieval` (for novelty pre-screen)
 - `literature/GAP_REPORT.md` — from `/universal-retrieval` broad wave (v6.0 gap chain; MANDATORY for final scoring: every promoted idea must anchor to a gap-id)
+- Sibling workspaces' `output/RUN_PREPRINT.md` archives (v1.4.0, when present in the parent run directory) — prior runs' discovered gaps / fired kill arguments / failure notes; an idea may anchor on a preprint gap-id (`PREPRINT:<run-id>#<gap>`) exactly like a literature gap-id — the system's own history is first-class anchoring evidence
 - `data/` — from `idea-discovery` 6-axis pre-screening's data-readiness axis (built-in)
 
 ## Configuration
@@ -62,7 +63,7 @@ Key artifacts consumed:
 - **Min root nodes** — 8 (default). The DAG starts with 8-12 root idea nodes; MCTS prunes to the best 3-5.
 - **Perspectives** — 4 universal: `theoretical` (symbolic derivation), `computational` (numerical sanity check), `qualitative` (mechanism reasoning), `empirical` (causal-identification / data-driven estimation). The 4th `empirical` covers econometrics (DiD/IV/RDD), regression studies, and any problem whose core contribution IS an identification strategy or an estimator recovering a known parameter — it is NOT a symbolic derivation nor a numerical confirmation of a theorem. The `empirical` perspective emits `verification_type=computational` (it runs code/data) but its idea framing is "recover [causal parameter] via [identification strategy] under [assumption]" — distinct from `computational`'s "confirm [prediction] numerically."
 - **Promotion threshold** — score ≥ 0.6 on the 6-axis idea-fit (see below).
-- **Domain-adaptive perspectives** — If `.sciforge/refine-logs/domain-signature.json` exists, use the perspective weights from the signature instead of the default equal weights. See [`shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
+- **Domain-adaptive perspectives** — If `refine-logs/domain-signature.json` exists, use the perspective weights from the signature instead of the default equal weights. See [`shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
 
 ## The 6-Axis Idea-Fit Pre-Screen (Universal)
 
@@ -84,7 +85,7 @@ Every idea candidate is pre-screened against **6 axes** before MCTS promotion:
 Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mcts-search-protocol.md) for the full contract. Summary:
 
 1. **Round 1 (Expansion)**: Generate 8-12 root idea nodes across the 4 perspectives (theoretical / computational / qualitative / empirical).
-2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). **B1 literature dependency (v2.3, extended v6.0)**: the novelty axis depends on Phase 4's `literature/references.bib`, and — v6.0 gap chain — ALL final scoring additionally depends on `literature/GAP_REPORT.md` (broad wave): if either file is not yet ready, first mark `novelty=pending-literature` and suspend final verdicts, then re-score once the literature arrives. **Never issue a final BLOCKED/PASS verdict without references, and never promote an idea without a gap anchor** (generation-stage intuition may pre-screen feasibility/relevance — Round 1 brainstorming may run in parallel with the broad wave — but every final verdict waits for the literature). **Gap anchoring (v6.0)**: assign each surviving node a `gap_anchor` — the gap-id from GAP_REPORT.md whose statement the idea addresses (or the literal `exploratory` + one-line justification; exploratory slots are capped at 2 per round so serendipity survives without drowning the chain). A node with neither a gap-id nor a justified exploratory slot gets its relevance axis capped at 0.5 (cannot reach the 0.6 promotion threshold) — ideas untethered from any known gap are exactly the ones that become "thin results packaged as findings" (CRUX failure mode #1). Every anchoring decision (including re-anchoring after a targeted wave shows the gap was misread) is appended to `.sciforge/refine-logs/GAP_ANCHOR_LOG.md`. Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
+2. **Round 2 (Selection + Simulation)**: Score each node on the 6-axis idea-fit (5 original + Engineering Grounding). **B1 literature dependency (v2.3, extended v6.0)**: the novelty axis depends on Phase 4's `literature/references.bib`, and — v6.0 gap chain — ALL final scoring additionally depends on `literature/GAP_REPORT.md` (broad wave): if either file is not yet ready, first mark `novelty=pending-literature` and suspend final verdicts, then re-score once the literature arrives. **Never issue a final BLOCKED/PASS verdict without references, and never promote an idea without a gap anchor** (generation-stage intuition may pre-screen feasibility/relevance — Round 1 brainstorming may run in parallel with the broad wave — but every final verdict waits for the literature). **Gap anchoring (v6.0)**: assign each surviving node a `gap_anchor` — the gap-id from GAP_REPORT.md whose statement the idea addresses (or the literal `exploratory` + one-line justification; exploratory slots are capped at 2 per round so serendipity survives without drowning the chain). A node with neither a gap-id nor a justified exploratory slot gets its relevance axis capped at 0.5 (cannot reach the 0.6 promotion threshold) — ideas untethered from any known gap are exactly the ones that become "thin results packaged as findings" (CRUX failure mode #1). Every anchoring decision (including re-anchoring after a targeted wave shows the gap was misread) is appended to `refine-logs/GAP_ANCHOR_LOG.md`. Select top 4-6 for simulation (light-weight derivation sketch — does SymPy plausibly close the loop?). Clear FAIL (< 0.4) are not re-scored; clear PASS (≥ 0.6) get a lightweight re-score (not full re-run) to confirm stability.
 3. **Round 3 (Backpropagation)**: Promote ideas with simulation score ≥ 0.6. Reject ideas with simulation score < 0.4. For borderline (0.4-0.6), generate 2-3 child nodes (refined variants) and re-score.
 4. **Round 4 (Final selection)**: From promoted ideas, select the top 1-3 for `FINAL_PROPOSAL.md`. The human user picks the final one (forced checkpoint).
 
@@ -101,7 +102,7 @@ Follow [`shared-references/mcts-search-protocol.md`](../../shared-references/mct
 
 **Prevent regenerating ideas already eliminated/falsified.** Persistence + dual detox (0 LLM cost, mechanical verdicts):
 
-1. **Persistence**: whenever an idea is `FALSIFIED` (eliminated in Phase 2.5), fails the toy gate (`FAIL`), is killed in a BA back-track, or is eliminated by novelty-check, append `{id, description, reason}` to `.sciforge/refine-logs/failed_ideas.json` (idempotent, deduplicated by id).
+1. **Persistence**: whenever an idea is `FALSIFIED` (eliminated in Phase 2.5), fails the toy gate (`FAIL`), is killed in a BA back-track, or is eliminated by novelty-check, append `{id, description, reason}` to `refine-logs/failed_ideas.json` (idempotent, deduplicated by id).
 2. **Hard check (0 LLM cost)**: before generating each root node in MCTS Round 1, run a **TF-IDF cosine similarity** check of the new idea description against the `failed_ideas.json` corpus; similarity **> 0.78 → discard outright** (does not enter MCTS). `REJECT` → the candidate is not added to the DAG; the reason is written to `MCTS_LOG.md` (reason_code `duplicate_failed_idea`).
 3. **Soft prompt injection**: before MCTS Round 1 generation, inject the N historically most similar killed ideas + their failure reasons into the generation prompt (prevents "same idea, new wording"). The injected text starts with `[failed-ideas prompt injection]` and is handed to the agent together with the generation instruction.
 
@@ -185,7 +186,7 @@ BA is the back-track for "the idea itself is wrong"; phase fallback is the back-
 
 The Q-id + problem statement come from the human user's prompt. OSS solves ONE user-supplied question per invocation — it does **not** iterate over a problem bank.
 
-Record the Q-id in `.sciforge/refine-logs/FINAL_PROPOSAL.md` Problem Anchor (frozen by INV-G1 for downstream skills).
+Record the Q-id in `refine-logs/FINAL_PROPOSAL.md` Problem Anchor (frozen by INV-G1 for downstream skills).
 
 ### Step 1: Literature-Aware Ideation
 
@@ -274,12 +275,12 @@ The human picks the final idea. Record in `FINAL_PROPOSAL.md`:
 ## Output Shape
 
 The final output is:
-1. `.sciforge/refine-logs/IDEA_CANDIDATES.md` — ranked list of 8-12 idea candidates with 6-axis scores
-2. `.sciforge/refine-logs/IDEA_DAG.json` — DAG structure (nodes + edges)
-3. `.sciforge/refine-logs/IDEA_DAG_VISUAL.md` — DAG visualization in Mermaid format (for human-readable graph)
-4. `.sciforge/refine-logs/MCTS_LOG.md` — round-by-round MCTS iteration log
-5. `.sciforge/refine-logs/FINAL_PROPOSAL.md` — selected idea (frozen for downstream) with Problem Anchor + MCTS convergence evidence
-6. `.sciforge/refine-logs/GAP_ANCHOR_LOG.md` — v6.0 gap chain: per-idea anchoring decisions (idea-id → gap-id, exploratory justifications, re-anchoring events); consumed by /novelty-check and /auto-review-loop
+1. `refine-logs/IDEA_CANDIDATES.md` — ranked list of 8-12 idea candidates with 6-axis scores
+2. `refine-logs/IDEA_DAG.json` — DAG structure (nodes + edges)
+3. `refine-logs/IDEA_DAG_VISUAL.md` — DAG visualization in Mermaid format (for human-readable graph)
+4. `refine-logs/MCTS_LOG.md` — round-by-round MCTS iteration log
+5. `refine-logs/FINAL_PROPOSAL.md` — selected idea (frozen for downstream) with Problem Anchor + MCTS convergence evidence
+6. `refine-logs/GAP_ANCHOR_LOG.md` — v6.0 gap chain: per-idea anchoring decisions (idea-id → gap-id, exploratory justifications, re-anchoring events); consumed by /novelty-check and /auto-review-loop
 
 ## See Also
 

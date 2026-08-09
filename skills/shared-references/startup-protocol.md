@@ -11,7 +11,7 @@ Every skill MUST execute the following 5 steps in order at startup:
 ### Step 1: Check Domain Signature
 
 ```
-Action: Check if .sciforge/refine-logs/domain-signature.json exists
+Action: Check if refine-logs/domain-signature.json exists
 If EXISTS → proceed to Step 2
 If NOT EXISTS → log WARNING: "No domain signature found. Using default behavior."
            → proceed to Step 5 (use defaults)
@@ -20,7 +20,7 @@ If NOT EXISTS → log WARNING: "No domain signature found. Using default behavio
 ### Step 2: Read Domain Signature
 
 ```
-Action: Read .sciforge/refine-logs/domain-signature.json
+Action: Read refine-logs/domain-signature.json
 Output: domain_signature object
 Fields to extract:
   - domain_profile.evidence_type
@@ -137,7 +137,7 @@ def startup():
 
 After each skill completes its startup, the orchestrator verifies:
 
-1. The skill's startup log is written to `.sciforge/refine-logs/startup-log.md`
+1. The skill's startup log is written to `refine-logs/startup-log.md`
 2. The log contains the domain adaptation entry (if signature existed)
 3. If the log shows "WARNING: No domain signature", the orchestrator continues (graceful degradation)
 
