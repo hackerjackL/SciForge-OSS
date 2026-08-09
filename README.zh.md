@@ -2,7 +2,7 @@
 
 > **[中文](README.zh.md)** | **[English](README.md)**
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.3.2-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -468,7 +468,7 @@ SciForge-OSS 的完成离不开以下贡献，谨此致以诚挚谢意：
 
 ## 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE)。
+本项目采用 [PolyForm Noncommercial License 1.0.0](LICENSE)。个人及非商用用途（科研、学习、教育、公益等）免费；商用用途需向 GewisLab 购买商业授权。
 
 ## Star 增长趋势
 

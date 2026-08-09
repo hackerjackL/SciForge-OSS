@@ -5,7 +5,7 @@ role: ai-scientist-framework
 version: 1.3.2
 description: "SciForge-OSS — pure-Skill-driven domain-agnostic automated research framework: any scientific idea → one submission-ready SCI paper. 21-phase DAG single-question loop (idea-discovery → theory-derivation → experiments → logic/leakage audits → paper-writing → compile → cross-model review → citation-audit). v3.4 adds: human_skip=true production-grade checkpoint skipping, per-section figure budget + composite grouping (Composite/Group), LaTeX pipeline leakage scrub gate (8-class regex), Reproducibility + Data Availability statements, domain-expert blind-spot review (BLINDSPOT_CHECK.json), full-code smoke gate (.SMOKE.json), proxy auto-mount + async dataset download. v5.3 adds: verdict schema enforcement (verdicts/ + JSON Schemas + validator), global run-budget ledger (RUN_BUDGET.json), experiment security gate before dispatch, human checkpoint on KILL decisions, true-vector composite figures, /rebuttal skill. v6.0 (1.3.0) adds: literature-first gap chain (broad-wave GAP_REPORT.md + gap-anchored ideation + targeted retrieval waves), evidence_norm domain learning, .sciforge/ two-tier workspace (hidden state layer + delivery layer) with lazy materialization, RUNSTATE long-horizon resume contract, routing-aware N/A verdicts for theory-only/humanities runs, budget-underuse guard. 25 sub-skills; the orchestrator chains them via use_skill. Invoke /sciforge-oss or /auto-pipeline to run the full pipeline."
 entry: skills/orchestrator/auto-pipeline/SKILL.md
-license: MIT
+license: PolyForm-Noncommercial-1.0.0
 tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 ---
 

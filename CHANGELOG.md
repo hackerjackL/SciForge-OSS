@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### 许可证变更：MIT → PolyForm Noncommercial 1.0.0
+
+- LICENSE 由 MIT 更换为 [PolyForm Noncommercial License 1.0.0](LICENSE)，版权声明改为 GewisLab
+- 个人及非商用用途免费（科研、学习、教育、公益、政府机构等）；商用用途不在协议授权范围内，需另行购买商业授权
+- 说明：本协议属于 source-available 许可，不再是 OSI 定义的开源协议
+- 同步更新 package.json / CITATION.cff / SKILL.md 的 license 字段，以及 README（中英）的徽章与许可章节
+- 注：历史 CHANGELOG 条目中记录的 "MIT" 为该版本发布时的真实状态，保持不变
+
 ## [1.3.2] - 2026-08-09
 
 ### fix-bug 第二轮：判定文件位置/形状契约的系统性对账（4 个提交，274 tests）
