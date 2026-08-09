@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.3.1] - 2026-08-09
+
+### v6.0 迁移后的 fix-bug 轮（15 处修复 + 6 个回归测试）
+
+**功能性 bug（会让门控/工具在 v6.0 工作区上失效）**
+- **外部 verifier 找不到 v6.0 verdict 路径**：`verify_review_ledger.sh` / `verify_paper_audits.sh` 只解析 v5.2（`verdicts/`）与 pre-v5.2（`review-stage/`、`paper/`）位置——v6.0 工作区（`.sciforge/verdicts/`）上必然报 "not found"，assurance 门控静默降级。解析顺序修为 `.sciforge/verdicts/` → `verdicts/` → legacy stage dirs（含 ledger 定位、check_audit、KILL_ARGUMENT 探测、错误信息与头注释）；新增 `tests/test_verifier_paths.py` 6 例锁住顺序（含 v6 优先于 legacy、全缺失 FAIL）
+- **paper-writing 泄漏扫描清单重复 + 漏扫**：scrub 门控的内部路径清单里 `.sciforge/audits/` 重复两次（audit_report/ 与 review-stage/ 迁移塌缩），且漏了 `.sciforge/verdicts/`、`.sciforge/logs/`、`code/`——管线路径泄入正文可绕过扫描。去重 + 补齐
+
+**契约一致性（13 处陈旧表述）**
+- idea-discovery Round-1 "3 perspectives" → 4（theoretical/computational/qualitative/empirical）
+- 7 处陈旧 `.sciforge/PIPELINE_STATUS.json` → v6.0 契约（事件入 `.sciforge/logs/pipeline.log`，标志入 `.sciforge/PIPELINE_STATUS.md` 执行报告）；publishability-score 的 Input/Output 路径同步钉死
+- domain-adaptive-pipeline "20 phases" → 21
+- `quality_gate/` 四个报告登记在一个任何树里都不存在的目录 → `.sciforge/audits/`（registry×4 + quality-gate SKILL + output-protocol 清单）
+- `idea-stage/` 遗留路径 → `.sciforge/refine-logs/`（idea-dag-schema×4 + output-versioning 阶段表）
+- mcts-search-protocol / idea-dag-schema 声称 OSS 明令禁止的 "legacy pilot fallback" → 改为拓宽视角重跑 fallback；effort-contract "idea-discovery pilots" 行（OSS 无 pilot）→ MCTS rounds
+- artifact-registry 中 IDEA_REPORT/IDEA_DAG 的迁移注解误称经过 v5.2 `verdicts/` → 修正为 refine-logs 链
+- 5 处 "5-axis" idea-fit → 6-axis（EG 轴 v3.0 已加入）
+- startup-protocol 启动提取字段清单补 `evidence_norm_profile`
+- output-protocol audits 行迁移塌缩三倍重复 → 修正为 legacy 三目录名
+
+**验证**：270 tests 全 PASS（新增 verifier 路径回归 6 例）；`ci_check.py` 四项 OVERALL PASS；validator e2e 20/20；security_scan 23/23；verifier 三场景实测（v6.0 / legacy / 缺失）。
+
+
 ## [1.3.0] - 2026-08-09
 
 ### 判断力深化：文献先行 gap 链 + 证据门槛学习 + `.sciforge/` 双层工作区（v6.0）
