@@ -547,7 +547,7 @@ At termination, append one final `details.rounds[]` entry with `phase: "finalize
 ### Termination
 
 When loop ends (positive assessment or max rounds):
-1. Update `.sciforge/verdicts/REVIEW_STATE.json` with `status: completed`.
+1. Update `.sciforge/verdicts/REVIEW_STATE.json` with `status: completed` — and keep the `response_class` array populated for EVERY concern of the final round (`response_class` is a REQUIRED schema field and the v5.1 anti-shrinkage audit hook; a REVIEW_STATE without it fails validation and blocks the boundary).
 2. Write final summary to `.sciforge/audits/AUTO_REVIEW.md`.
 3. Update project notes with conclusions.
 4. **Write method / derivation description** to `.sciforge/audits/AUTO_REVIEW.md` under a `## Method Description` section — a concise 1-2 paragraph description of the final derivation, its structure, and the verification chain. This serves as input for `/unified-plotting` in the figure generation phase.
