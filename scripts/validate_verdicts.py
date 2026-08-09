@@ -136,6 +136,7 @@ REGISTRY = {
     "PUBLISHABILITY_SCORE.json": {"schema": "PUBLISHABILITY_SCORE.schema.json"},
     "RUN_BUDGET.json": {"schema": "RUN_BUDGET.schema.json"},
     "FIGURE_AUDITS.json": {"schema": "FIGURE_AUDITS.schema.json"},
+    "EVALUATION_REVIEW.json": {"schema": "EVALUATION_REVIEW.schema.json"},
 }
 
 # Hash artifacts: single-line lowercase sha256 hex (no schema file).

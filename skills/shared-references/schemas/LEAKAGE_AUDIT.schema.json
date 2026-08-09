@@ -18,7 +18,14 @@
   "properties": {
     "verdict": {
       "type": "string",
-      "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"],
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "NOT_APPLICABLE",
+        "BLOCKED",
+        "ERROR"
+      ],
       "description": "PASS = no CRITICAL Type I + no Type IV ESCAPE; FAIL = Type I LEAKY on a primary outcome OR Type IV ESCAPE; BLOCKED = missing METHOD_REGISTRY.md / binding not identifiable."
     },
     "discipline_context": {
@@ -27,7 +34,10 @@
     },
     "type_i": {
       "type": "object",
-      "required": ["n_leaky", "n_total"],
+      "required": [
+        "n_leaky",
+        "n_total"
+      ],
       "properties": {
         "n_leaky": {
           "type": "integer",
@@ -46,17 +56,24 @@
     },
     "type_ii": {
       "type": "string",
-      "enum": ["NOT_APPLICABLE"],
+      "enum": [
+        "NOT_APPLICABLE"
+      ],
       "description": "OSS has no discipline overlay: Type II is always NOT_APPLICABLE."
     },
     "type_iii": {
       "type": "string",
-      "enum": ["NOT_APPLICABLE"],
+      "enum": [
+        "NOT_APPLICABLE"
+      ],
       "description": "OSS has no discipline overlay: Type III is always NOT_APPLICABLE."
     },
     "type_iv": {
       "type": "object",
-      "required": ["n_escape", "n_total"],
+      "required": [
+        "n_escape",
+        "n_total"
+      ],
       "properties": {
         "n_escape": {
           "type": "integer",
@@ -76,7 +93,12 @@
     "callback": {
       "type": "object",
       "description": "Present only when a Type I LEAKY on a primary outcome fires the bounded callback to /method-registry.",
-      "required": ["target", "reason", "iteration", "max_iterations"],
+      "required": [
+        "target",
+        "reason",
+        "iteration",
+        "max_iterations"
+      ],
       "properties": {
         "target": {
           "type": "string"
@@ -86,7 +108,8 @@
         },
         "iteration": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0,
+          "description": "Callback round number (1-indexed). 0 = no callback round needed/executed (clean audit); the block may also be omitted entirely in that case."
         },
         "max_iterations": {
           "type": "integer",

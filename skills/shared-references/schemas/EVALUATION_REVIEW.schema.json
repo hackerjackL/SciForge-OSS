@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/EVALUATION_REVIEW.schema.json",
+  "title": "EVALUATION_REVIEW.json - adversarial EI-line judge verdict (v1.4.0 eval harness)",
+  "description": "Written by scripts/eval/sciforge_eval.py judge: an adversarial reviewer (try-hard-to-REJECT) scores the finished paper against the EI-conference / general-journal line. Accept line: overall >= 6 AND fatal_flaws empty; human has the final word.",
+  "type": "object",
+  "required": [
+    "dimensions",
+    "justifications",
+    "fatal_flaws",
+    "required_revisions",
+    "overall",
+    "verdict"
+  ],
+  "properties": {
+    "dimensions": {
+      "type": "object",
+      "description": "Six 0-10 dimension scores (novelty_and_positioning, methodological_soundness, experimental_rigor, claim_evidence_alignment, writing_and_structure, reproducibility).",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 10
+      }
+    },
+    "justifications": {
+      "type": "object",
+      "description": "Per-dimension justification text.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "fatal_flaws": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Any item here means REJECT."
+    },
+    "required_revisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "overall": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "ACCEPT",
+        "REVISE",
+        "REJECT"
+      ]
+    }
+  },
+  "additionalProperties": true
+}
