@@ -24,7 +24,14 @@
 - schemas/README known gaps 关闭 7 个（#1/#2/#3/#5/#6/#7/#11，#6 字段名由 fixture 钉死并记录）；剩 4 个均为设计内良性项
 - 回归测试 +10（264→274）：review 词汇/finalized 条目通过、未知轮次词汇拒绝、误入 .md WARN/strict 拦截、PIPELINE_VERDICT_SUMMARY.md 豁免
 
-**验证**：274 tests 全 PASS；ci_check 四项 OVERALL PASS；verifier 对 canonical fixture 实测 PASS；security_scan 23/23；零 CJK 维持。
+**README 正式化（中英）**
+- **致谢重写**：正式行文 + 规范署名——Luo H. W.（GewisLab 负责人，项目发起/核心思路/架构设计）、Yang J. T.（主要开发者）；Yang J. T.、Lu Y. H.、Li L. S.、Jia W. H.、Qiu Y. M.、Zhang W. B. 提供计算资源（API token）支持；中英文同步
+- **v5.3 版本标注 bug 修复**：README 把内部治理代际 v5.3 当发布版本展示（当前发布版本是 1.3.2）——"Quality gates (v5.3)"/"质量门（v5.3）" 去掉版本号，正文注明 v5.3/v6.0 为内部代际标识、发布版本以徽章为准；"260+ pytest 用例"更新为 270+
+- **FAQ 重写**：原常见问题松散鸡肋，重写为正式 README 风格（领域支持 / 问题来源 / 单模型自评审 / 调用与 RUNSTATE 续航 / 输出格式 / 贡献指引），中英对齐
+- **中文验证路径对齐**："三路可选"→"四路可选"（补 qualitative/综述路），删除"OSS 无实验环境"陈旧表述（v2.0 起即有 toy+full 实验门），路由依据改为 Phase 6 verification-routing 表述
+- 质量门表格 verdict 路径钉死为 `.sciforge/verdicts/`
+
+**验证**：274 tests 全 PASS；ci_check 四项 OVERALL PASS；verifier 对 canonical fixture 实测 PASS；security_scan 23/23；零 CJK 维持（README.zh 为有意中文）。
 
 
 ## [1.3.1] - 2026-08-09

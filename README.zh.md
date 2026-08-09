@@ -24,9 +24,9 @@
 - [架构：DAG 驱动的科研闭环](#架构dag-驱动的科研闭环)
 - [快速开始](#快速开始)
 - [项目结构](#项目结构)
-- [质量门（v5.3）](#质量门v53)
+- [质量门](#质量门)
 - [全领域支持](#全领域支持)
-- [验证路径：三路可选](#验证路径三路可选)
+- [验证路径：四路可选](#验证路径四路可选)
 - [多领域示例](#多领域示例)
 - [核心设计原则](#核心设计原则)
 - [绘图工具链](#绘图工具链)
@@ -342,20 +342,20 @@ SciForge-OSS/
 │   ├── security_scan.py                   ← v5.3：agent 实验脚本派发前静态安全扫描
 │   ├── ci_check.py                        ← v5.3：CI 单一入口（断链/版本/plotting/测试）
 │   └── verifiers/                         ← 外部产物校验器（评审台账、论文审计）
-├── tests/                                 ← v5.3：260+ pytest 用例（色板/审计/校验器/e2e 冒烟）
+├── tests/                                 ← 270+ pytest 用例（色板/审计/校验器/e2e 冒烟/verifier）
 ├── fixtures/e2e_minimal/                  ← v5.3：最小端到端 fixture（toy 实验 + 完整 verdict 链）
 ├── .workflow/ci.yml                       ← AtomGit Actions CI（与 ci_check.py 同一门控）
 └── [删除: templates/ 占位目录、discipline-templates/、experiment-*、plugin-router、wiki-helper、problems/ 题库]
 ```
 
-## 质量门（v5.3）
+## 质量门
 
-管线由机器可检查的门控守护，而不是纸面承诺：
+管线由机器可校验的门控守护，而不是文字承诺。（治理代际：v5.3 加固——schema 强制、预算总账、安全门、KILL 检查点；v6.0——`.sciforge/` 双层工作区与长续航恢复。这些是内部代际标识；发布版本以上方徽章为准。）
 
 | 门控 | 执行者 |
 |------|--------|
-| **Verdict Schema 强制** | 运行工作区 `verdicts/` 里每个机读 verdict 必须通过 `shared-references/schemas/*.schema.json` 校验——`scripts/validate_verdicts.py` 在每个 phase boundary 与收尾运行（拼错/漏字段会被拦截） |
-| **运行预算总账** | `verdicts/RUN_BUDGET.json` 按 effort 档位约束墙钟 / API 成本 / PIVOT / BA 轮次；orchestrator 每个 boundary 记账，超限 BLOCKED 上报人类 |
+| **Verdict Schema 强制** | 运行工作区 `.sciforge/verdicts/` 里每个机读 verdict 必须通过 `shared-references/schemas/*.schema.json` 校验——`scripts/validate_verdicts.py` 在每个 phase boundary 与收尾运行（拼错/漏字段会被拦截） |
+| **运行预算总账** | `.sciforge/verdicts/RUN_BUDGET.json` 按 effort 档位约束墙钟 / API 成本 / PIVOT / BA 轮次；orchestrator 每个 boundary 记账，超限 BLOCKED 上报人类 |
 | **KILL 人类检查点** | 杀掉 idea 前默认暂停等人类确认（`human_skip=true` 或 `kill_checkpoint=false` 才全自动） |
 | **实验安全门** | agent 自写的全量实验脚本派发前先过 `scripts/security_scan.py`（凭证访问 / env 外泄 / 破坏性操作 / 未授权外发 → BLOCKED） |
 | **图契约** | 统一渲染器 + 内嵌 A1–A10 Nature 级审计；组图交付真矢量 LaTeX 装配（`composite.tex`），栅格预览被审计降级标注 |
@@ -378,17 +378,18 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 
 **核心机制**：框架不预设学科知识，所有领域特定的方法论、符号体系、验证标准均由 agent 运行时推理处理。详见 [`discipline-context.md`](skills/shared-references/discipline-context.md)。
 
-## 验证路径：三路可选
+## 验证路径：四路可选
 
-不是所有科学领域都能写代码做实验。SciForge-OSS 支持三种验证路径：
+每个问题的 `verification_type`（规范取值：`theory-only` | `computational` | `theory+experiment` | `qualitative`）决定验证路由与论文模式：
 
-| 路径 | 适用场景 | 验证手段 | 输出 |
-|------|---------|---------|------|
-| **理论-only** | 数学猜想、经济学模型、教育学理论 | 概念推演 + 逻辑一致性 + 文献支撑 | 严格证明或理论论证 |
-| **计算** | 物理模拟、数值分析、CS 算法 | SymPy 符号推导 + Python 数值 sanity check | 符号推导 + 数值验证 |
-| **理论+实验** | 有实验条件（但 OSS 无实验环境） | 理论推导 + 实验设计建议 | 理论框架 + 可验证预测 |
+| verification_type | Phase 6b/6c（toy/full 实验门） | 论文模式 | 示例 |
+|-------------------|-------------------------------|---------|------|
+| `theory-only` | SKIP | 理论论文 | 纯数学证明、概念论证 |
+| `computational` | MUST | 计算论文 | ML 消融、数值扫描 |
+| `theory+experiment` | MUST | 混合论文 | 物理推导 + 数值验证 |
+| `qualitative` | SKIP | 综述论文 | 文献分类/综合 |
 
-判断依据：Phase 2（idea-discovery）自动识别问题性质，选择验证路径。
+判断依据：Phase 6 入口的 verification-routing 依据 domain signature 的 `evidence_type` 与问题可计算性信号做一次性路由决策（experiment-first 为默认，theory-only 为例外）。
 
 ## 核心设计原则
 
@@ -458,31 +459,33 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 
 ## 常见问题 (FAQ)
 
-### Q: SciForge-OSS 支持哪些学科？
-A: 所有学科。物理学、数学、计算机科学、医学、经济学、教育学、材料科学、地球科学、大气科学、天文学、化学、工程、传感器、光电——任何科学领域都可以使用。
+**Q：SciForge-OSS 支持哪些学科？**
+A：框架在设计上领域无关——不预设任何学科知识。已在物理、数学、计算机科学、医学、经济学、材料科学与人文学科完成端到端验证，适用于任何科学领域。
 
-### Q: 研究问题从哪里来？
-A: 由你提供。SciForge-OSS 是全自动科研 skill——人类提供一个研究问题（任意领域，Q-id 可有可无），管线端到端自主跑完。仓库不附带题库。
+**Q：研究问题从哪里来？**
+A：由用户提供。SciForge-OSS 是全自动科研管线而非基准测试：人类提供一个研究问题（Q-id 可有可无），管线端到端自主完成。仓库不附带题库。
 
-### Q: 需要多个 AI 模型才能运行吗？
-A: 不需要。SciForge-OSS 使用**结构化自评审**模式——同一 agent 通过角色切换（研究者→评审者→裁决者）实现对抗性评审，无需跨模型协作。
+**Q：是否需要多个 AI 模型协同？**
+A：不需要。评审采用结构化自评审——同一 agent 通过角色轮换（研究者→评审者→裁决者）实现对抗性评审；跨模型协作是可选项，不是依赖。
 
-### Q: 如何运行一个完整的科学问题研究？
-A: 执行 `/auto-pipeline "Q001: 问题描述" — effort: max`，自动化完成 21 阶段 DAG 循环。
+**Q：如何发起一次完整研究？**
+A：执行 `/auto-pipeline "Q001: 问题描述" — effort: max` 即可跑完整个阶段 DAG。长程运行可通过 `.sciforge/RUNSTATE.json` 续航契约在中断后恢复，见[快速开始](#快速开始)。
 
-### Q: 输出什么格式的论文？
-A: 统一 `elsarticle` LaTeX 格式，可编译为 PDF。理论论文使用"理论论文结构"（Main Results + Proofs），实验论文使用标准结构。
+**Q：输出格式是什么？**
+A：统一 `elsarticle` LaTeX 模板的可投稿论文，编译为零警告 PDF；随附完整验证痕迹（机读 verdict 与审计叙述报告）保存在运行工作区。
 
-### Q: 如何贡献新的 skill？
-A: 参考 [CONTRIBUTING.md](CONTRIBUTING.md)。所有 skill 是纯 Markdown 文件，遵循统一的 frontmatter 格式。
+**Q：如何参与贡献？**
+A：参见 [CONTRIBUTING.md](CONTRIBUTING.md)。skill 为统一 frontmatter 格式的纯 Markdown 文件；任何改动必须保持 `scripts/ci_check.py` 全绿。
 
 ## 致谢
 
-衷心感谢所有让 SciForge-OSS 成为现实的人：
+SciForge-OSS 的完成离不开以下贡献，谨此致以诚挚谢意：
 
-- **GewisLab 负责人 lhw** —— 提供核心思路、筹备各项工作、撰写整体架构等。
-- **yjt** —— 作为主要开发者，推动项目实现落地。
-- **yjt、lyh、lls、jwh、qym 以及所有其他贡献者** —— 感谢他们提供的 token 支持，用于本仓库的自迭代更新、优化与修复。
+- **Luo H. W.**（GewisLab 负责人）——项目发起、核心研究思路与整体架构设计。
+- **Yang J. T.**——主要开发者，负责框架的实现与工程落地。
+- **Yang J. T.、Lu Y. H.、Li L. S.、Jia W. H.、Qiu Y. M.、Zhang W. B.**——慷慨提供计算资源（API token）支持，支撑本仓库持续的自迭代、优化与维护。
+
+同时感谢所有通过 issue 与 pull request 改进 SciForge-OSS 的贡献者。
 
 ## 许可证
 
