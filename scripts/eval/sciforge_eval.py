@@ -224,9 +224,14 @@ def write_runstate(ws: Path, rs: dict) -> None:
 def phase_prompt(ws: Path, phase: dict) -> str:
     skill_list = "\n".join(f"   - {REPO_ROOT / s}" for s in phase["skills"])
     gate_list = "\n".join(f"   - {ws / g}" for g in phase["gate"])
-    return PROMPT_TEMPLATE.format(
+    prompt = PROMPT_TEMPLATE.format(
         repo=REPO_ROOT, ws=ws, phase_id=phase["id"], phase_name=phase["name"],
         skill_list=skill_list, gate_list=gate_list)
+    memo = sciforge(ws) / "tmp" / f"phase_memo_{phase['id'].replace('.', '_')}.md"
+    if memo.is_file():
+        prompt += ("\n\n## Phase memo (binding instructions from the eval "
+                   "orchestrator for THIS attempt)\n" + memo.read_text(encoding="utf-8"))
+    return prompt
 
 
 def judge_prompt(ws: Path) -> str:
@@ -283,8 +288,10 @@ def gate_phase(ws: Path, phase: dict) -> list[str]:
                 final = [r for r in rounds if r.get("phase") == "finalized"]
                 MAX_ROUNDS = 4
                 if final and len(documented) < MAX_ROUNDS:
-                    score = final[-1].get("score")
-                    if isinstance(score, (int, float)) and score < 6:
+                    fin = final[-1]
+                    score = fin.get("score")
+                    escalated = str(fin.get("verdict", "")).lower() == "blocked"
+                    if isinstance(score, (int, float)) and score < 6 and not escalated:
                         problems.append(
                             "review loop finalized not_ready (score "
                             f"{score}) after {len(documented)} round(s) < "
