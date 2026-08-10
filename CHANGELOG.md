@@ -1,8 +1,37 @@
 # Changelog
 
-## [Unreleased]
+## [1.4.0] - 2026-08-10
+
+### 端到端跑测版本：work v6.0 边界修正 + RUNSTATE 续航 + RUN_PREPRINT 归档 + WP3 三轮对抗性评审修复
+
+**边界修正（基于全链路跑测反馈）**
+- `.sciforge/` 边界收窄：隐藏层只保留管线机制 + 判定（RUNSTATE、MANIFEST、verdicts/、管线日志、审计叙述、tmp）；**研究痕迹（IDEA_CANDIDATES / IDEA_DAG / GAP_ANCHOR_LOG / FRONTIER_MAP / FINAL_PROPOSAL / domain-signature 等）从产出那一刻就写在可见层 `refine-logs/`**，不再"最后才移植"——output-protocol.md、artifact-registry.md、project-architecture-contract.md 及全 35 个相关 skill 文件同步修正
+
+**RUNSTATE 续航契约（Long-Horizon Resume）**
+- `.sciforge/RUNSTATE.json`：每个 boundary 与 human checkpoint 重写（current_phase / last_completed_boundary / next_action / status / pending_approvals / budget_snapshot）
+- 启动恢复协议：非 completed 的 RUNSTATE 存在时，校验 verdict 完整性 + 迁移 legacy 路径 + 从 next_action 续跑——天级运行不怕会话死亡
+- schemas/RUNSTATE.schema.json 已注册
+
+**RUN_PREPRINT 跨 run 归档（AgentRxiv 机制借鉴）**
+- Phase 16 新增 `output/RUN_PREPRINT.md` 产出义务：本次 run 的 gap-ids / fired kills / verdict 摘要 / 失败笔记 / 预算消耗
+- idea-discovery 可查询同级工作区的 RUN_PREPRINT.md 归档（`PREPRINT:<run-id>#<gap>` 锚定），系统自身历史成为一等文献证据
+
+**WP3 对抗性评审修复（CRUX 失败模式映射，三轮迭代）**
+- **Round 1**：BLINDSPOT_CHECK schema severity 枚举扩展（+`learned`）；REVIEW_LEDGER finalized 条目须带 score/verdict；verdicts/ 预留规则（只许注册名，phase-internal 归 refine-logs/）；paper-compile 泄漏扫描路径修正；harness stdin DEVNULL 降噪
+- **Round 2**：optional-null 容忍（validator：非必填字段 null 当缺省处理）；REVIEW_STATE `response_class` 必填强调
+- **Round 3**：paper-writing abstract/conclusion 追溯规则（逐句对照 CLAIMS_FROM_RESULTS，失败假设只能按限制性结论处理）；result-to-claim 失败 pre-registration 必须重定为 LIMIT/NEGATIVE（不许把失败的 claim 改头换面当新 claim）；method-registry 校准参数必须带 sensitivity sweep（单点 match 不算验证）；citation-audit 不许带着未修复的 FIX 项关闭
+- **Round 3 补充**：LEAKAGE_AUDIT schema `callback.iteration` 最小值 1→0（无回调的正常审计可迭代 0 次）；注册 EVALUATION_REVIEW.json（对抗性评审 verdict，21 个注册 artifact）
 
 ### 许可证变更：MIT → PolyForm Noncommercial 1.0.0
+- LICENSE 由 MIT 更换为 [PolyForm Noncommercial License 1.0.0](LICENSE)，版权声明改为 GewisLab
+- 个人及非商用用途免费（科研、学习、教育、公益、政府机构等）；商用用途不在协议授权范围内，需另行购买商业授权
+- 同步更新 package.json / CITATION.cff / SKILL.md 的 license 字段，以及 README（中英）的徽章与许可章节
+- 注：历史 CHANGELOG 条目中记录的 "MIT" 为该版本发布时的真实状态，保持不变
+
+### 致谢更新
+- 计算资源（API token）提供者致谢名单新增 Wang C. Y.、Fan L. Q.（中英 README 同步）
+
+：MIT → PolyForm Noncommercial 1.0.0
 
 - LICENSE 由 MIT 更换为 [PolyForm Noncommercial License 1.0.0](LICENSE)，版权声明改为 GewisLab
 - 个人及非商用用途免费（科研、学习、教育、公益、政府机构等）；商用用途不在协议授权范围内，需另行购买商业授权

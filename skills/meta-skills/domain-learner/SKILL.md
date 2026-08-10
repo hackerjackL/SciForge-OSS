@@ -1,6 +1,6 @@
 ---
 name: domain-learner
-version: 1.3.2
+version: 1.4.0
 description: "Learn a discipline's signature (evidence_type, methodology, writing style, failure modes, and v6.0 evidence_norm — what counts as sufficient evidence here) from literature — Phase 1b, sole writer of domain-signature.json. Invoke when the pipeline needs domain adaptation for a new problem."
 type: meta-skill
 role: domain-characteristic-learner
