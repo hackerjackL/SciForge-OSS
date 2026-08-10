@@ -12,7 +12,7 @@
 
 ### 致谢更新
 
-- 计算资源（API token）提供者致谢名单新增 Wang C. Y.（中英 README 同步）
+- 计算资源（API token）提供者致谢名单新增 Wang C. Y.、Fan L. Q.（中英 README 同步）
 
 ## [1.3.2] - 2026-08-09
 
