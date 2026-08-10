@@ -42,7 +42,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 VALIDATOR = REPO_ROOT / "scripts" / "validate_verdicts.py"
-DEFAULT_MODEL = os.environ.get("SCIFORGE_EVAL_MODEL", "deepseek-v4-flash-0731")
+DEFAULT_MODEL = os.environ.get("SCIFORGE_EVAL_MODEL", "mimo-v2.5-pro")
 # Claude Code's settings.json `env` block OVERRIDES process-level env vars, so
 # the fleet model must be pinned in a dedicated config dir (settings.json
 # ANTHROPIC_MODEL=<fleet model>), selected via CLAUDE_CONFIG_DIR. The default
