@@ -58,3 +58,5 @@ tools/
 KILL_ARGUMENT.md
 KILL_ARGUMENT.json
 KILL_ARGUMENT.html
+# eval harness (test scaffolding, not shipped)
+scripts/eval/
