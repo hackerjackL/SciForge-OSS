@@ -13,6 +13,8 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 
 > **A pure-Skill-driven general scientific-intelligence framework**. No `.py` scripts, no bash code blocks, no IDE-specific syntax.
 > Any AI agent that can read Markdown (Claude Code, Cursor, Trae, etc.) can consume these skills.
+>
+> **Scope (v1.4.0, honest)**: the *method* is domain-agnostic; the *capability envelope* is **code-runnable science** — anything executable as code/data/literature on a machine or GPU cluster (numerical/symbolic sim, ML/stats, causal inference, web-search-augmented humanities). Domains whose core evidence needs proprietary/GUI-bound solvers (commercial CFD, COMSOL, optical bench software) or wet-lab hardware are out of scope **unless** reducible to a scriptable pipeline. See README "Scope & capability boundary".
 
 ## Package Structure
 
