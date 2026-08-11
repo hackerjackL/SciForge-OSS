@@ -217,6 +217,7 @@ Write the complete Python render script (`render.py`):
 - **Font sizes meet the print floor AT FINAL EMBEDDED SCALE**: axis labels ≥ 16pt, tick labels ≥ 13pt, legend ≥ 13pt, title ≥ 18pt, annotations ≥ 12pt
 - **Line widths**: primary ≥ 1.8pt, secondary ≥ 1.0pt
 - **Marker size**: ≥ 7pt
+- **Experiment-plot aesthetic (v2.3, mirrors the 640.png reference)**: use the `sciforge_style` helpers — `series_style(i)` for distinct (color,marker) per series; `add_error_band(ax,x,mean,std,color)` to shade ±std/CI whenever ≥2 seeds exist (a single line with no band looks cheap); `legend_top(ax)` for a frameless horizontal legend ABOVE the axes; `set_xscale("log")` when the x variable spans orders of magnitude; keep only subtle horizontal gridlines (the style default) and drop top/right spines. Prefer line+band over a bare 2-bar chart.
 - Legend must not overlap data
 - `theme: academic` uses morandi palette (NEVER tab10/Set2/matplotlib defaults)
 - For continuous scalar fields (heatmap/surface/contour), use viridis/magma/plasma (NEVER jet/rainbow/hsv)
@@ -265,6 +266,25 @@ Hand-write a minimal SVG only when the diagram has ≤ 4 nodes and no auto-layou
 **Morandi enforcement**: all `fill` and `stroke` colors in the SVG MUST be morandi tokens (Layer 1). The agent must NOT use Tailwind/Material/matplotlib-default colors; the unified CLI audits the SVG and rejects off-palette hexes (exit 2).
 
 **Preserved spec**: run the SVG through `render_figure.py source.svg --engine svg` so the source, `intermediate.svg`, and audit report are preserved beside `output.pdf`/`output.svg`.
+
+### Step 3d: Premium Overview / Figure-1 Recipe (v2.3 — the "not cheap" bar)
+
+Method/architecture overview figures must reach the quality of a top-venue
+Figure 1 (reference: numbered-stage, icon-rich, nested-container overview). A
+two-box diagram is a FAIL of the richness bar. Compose with:
+1. **3-4 numbered stages** left→right: circular number badge (morandi fill, black
+   numeral) + bold stage title.
+2. **Semantic color-block containers** per stage; use **nested rounded rectangles**
+   to show hierarchy/ladders (e.g. T0⊂T1…); each block a morandi surface token.
+3. **Icon vocabulary** (table / scatter-cloud / network / document / robot / gauge /
+   clock / target): pull CC0 icons at runtime (bioicons/Tabler/Lucide) and recolor via
+   `sciforge_style.recolor_icon()`, or hand-draw simple glyphs in morandi.
+4. **Metric glyphs panel** (gauge/clock/target rows) for build/query cost & accuracy.
+5. **Dashed callout box** for the headline numbers; **single-trunk flow arrows** with
+   ≤1 crossing (dense → `--layout elk`).
+6. Black text on pure white; all fills morandi; deliver via `--engine svg` (or
+   `diagrams`) so dual output + audit apply. The A7/A8 audits then verify icon/depth
+   richness; a flat boxes-only overview WARNs and must be upgraded.
 
 ### Step 4: Render and Validate
 

@@ -55,6 +55,7 @@ Any paper figure is first classified into one structural role, then the engine a
 4. **Feedback edges detour**: Feedback/update edges run along the outer perimeter of the figure (d2: separate direction declaration; TikZ: `to[out=,in=]` detour); crossing through other components is prohibited.
 5. **Label concision**: Edge labels ≤3 words; if a symbol ($z_v$, $\alpha$) can be used, do not use a sentence.
 6. **Hand-crafted SVG dedicated wiring corridors (Visio level)**: When hand-assembling SVG, cross-swimlane connections must run through **pre-allocated vertical corridors** (column bands such as x=460–520, 940–1000); only vertical wiring is allowed inside a corridor, and horizontal segments join at 90° at the corridor's two ends — i.e. "orthogonal rounded-corner wiring". Diagonal lines are prohibited, and connections crossing through cards are prohibited. After buses merge inside a corridor, they branch out to each target via short horizontal segments on the far side of the corridor, forming comb-like distribution.
+7. **Overview figures use numbered stages + single trunk (v1.4.0)**: architecture/method overviews are composed as 3-4 numbered stage columns with one main left→right trunk arrow (see unified-plotting Step 3d); at most ONE secondary/feedback arrow, routed on the perimeter. "Line chaos" (arrow rain, diagonals crossing panels) is a FAIL of this contract, not a style choice.
 
 ## 4. Text Discipline
 

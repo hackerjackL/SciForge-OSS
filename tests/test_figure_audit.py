@@ -27,7 +27,7 @@ def layer_statuses(rep, layer):
 
 def text_el(x, y, label, fs=20, extra=""):
     return (f'<text x="{x}" y="{y}" font-size="{fs}" '
-            f'fill="#35322E"{extra}>{label}</text>')
+            f'fill="#000000"{extra}>{label}</text>')
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ def test_a3_saturated_off_palette_hex_fails():
 
 def test_a3_morandi_only_svg_passes():
     svg = '<svg><rect fill="#8AA1BC"/><rect fill="#97A98D"/>' \
-          '<rect fill="#FFFFFF"/><rect fill="#35322E"/></svg>'
+          '<rect fill="#FFFFFF"/><rect fill="#000000"/></svg>'
     rep = fa.Report()
     fa.audit_palette_svg(svg, rep)
     assert layer_statuses(rep, "A3") == ["PASS"]
@@ -222,7 +222,7 @@ def test_a10_wiring_crossing_unhaloed_text_warns():
     svg = (SVG_HEAD
            + text_el(100, 100, "AAAAAAAAAA")
            + '<line x1="50" y1="95" x2="400" y2="95" '
-             'stroke="#35322E" stroke-width="2"/>'
+             'stroke="#000000" stroke-width="2"/>'
            + "</svg>")
     rep = fa.Report()
     fa.audit_text_occlusion(svg, rep)
@@ -234,7 +234,7 @@ def test_a10_halo_rect_suppresses_wiring_warn():
            + '<rect x="90" y="75" width="200" height="40" fill="#FFFFFF"/>'
            + text_el(100, 100, "AAAAAAAAAA")
            + '<line x1="50" y1="95" x2="400" y2="95" '
-             'stroke="#35322E" stroke-width="2"/>'
+             'stroke="#000000" stroke-width="2"/>'
            + "</svg>")
     rep = fa.Report()
     fa.audit_text_occlusion(svg, rep)

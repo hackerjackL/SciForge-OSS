@@ -23,6 +23,17 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 
+% Float control (v1.4.0 hardening — balanced placement):
+% [section]{placeins} keeps every float inside the section that references it
+% (no figure drifting pages away); the fraction tuning stops LaTeX from
+% promoting a single tall figure to a float-only page or leaving big blanks.
+\usepackage{float}
+\usepackage[section]{placeins}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.80}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.75}
+
 % cleveref must be loaded AFTER hyperref
 \usepackage[capitalize,noabbrev]{cleveref}
 

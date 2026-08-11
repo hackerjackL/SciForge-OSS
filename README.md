@@ -53,7 +53,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 
 ## Installation
 
-> **v1.3.2**: literature-first gap chain (ideas anchor to mined literature gaps), evidence-norm domain learning, `.sciforge/` two-tier workspace with RUNSTATE long-horizon resume and routing-aware N/A verdicts. Pure Skill package + optional toolchain. The skills themselves are pure Markdown that any Markdown-capable AI agent can consume directly; fully running through (figures / literature / compile / experiments) needs the optional toolchain, see "Toolchain (optional but recommended)" below.
+> **v1.4.0**: literature-first gap chain (ideas anchor to mined literature gaps), evidence-norm domain learning, `.sciforge/` two-tier workspace with RUNSTATE long-horizon resume and routing-aware N/A verdicts. Pure Skill package + optional toolchain. The skills themselves are pure Markdown that any Markdown-capable AI agent can consume directly; fully running through (figures / literature / compile / experiments) needs the optional toolchain, see "Toolchain (optional but recommended)" below.
 
 ### Method 1: Clone the repository (recommended, standard skill integration)
 
@@ -135,7 +135,7 @@ Any AI agent supporting Markdown context or custom skill sets works: provide `AG
 
 ### Toolchain (optional but recommended — needed to fully run through)
 
-The skills themselves are pure Markdown, but fully running through (figure rendering / literature search / LaTeX compile / experiment execution) needs the optional tools below. `sciforge tools-check` reports missing items; `sciforge tools-install` installs them in one shot.
+The skills themselves are pure Markdown, but fully running through (figure rendering / literature search / LaTeX compile / experiment execution) needs the optional tools below. `sciforge tools-check` reports missing items; `sciforge tools-install` installs them in one shot. The Python side is a single file at the repo root: `pip install -r requirements.txt` (core: matplotlib/numpy/Pillow; recommended: SciencePlots). The full cross-platform "arsenal" (d2/texlive/rsvg/… with per-OS commands) is in [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md).
 
 > 📊 **Figure toolchain**: all figures (data plots, architecture/process/mechanism diagrams — every discipline) are produced through ONE unified entry point, `scripts/plotting/render_figure.py` (12 engines: matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag-family / mermaid / pikchr / hand-assembled SVG / composite multi-panel — single pipeline, never parallel tools; PDF+PNG dual output + embedded Nature-level audit). **Cross-platform: Linux / macOS / Windows** (WSL2 recommended on Windows; fonts auto-discovered per platform, no machine-specific paths). Full dependency list, per-OS install commands, mirrors, fonts and not-adopted tools: **[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**. Environment self-check: `python scripts/plotting/render_figure.py --doctor`.
 

@@ -23,6 +23,29 @@ Only 4 items are needed to get data plots + d2 architecture diagrams + audit run
 python scripts/plotting/render_figure.py --doctor   # all green means minimally viable
 ```
 
+## 0.5 Arsenal Overview (v1.4.0 — the single-entry "weapon rack")
+
+All of these are consumed by the ONE entry point `render_figure.py` (never parallel
+pipelines). Tier: **core** = minimal viable; **recommended** = raises the ceiling;
+**optional** = only for the matching engine. OS-specific commands: §1/§2; Python side
+is mirrored in the repo-root `requirements.txt`.
+
+| Weapon | Tier | Purpose |
+|------|------|------|
+| Python matplotlib/numpy/Pillow | core | data-plot pipeline + audit (`requirements.txt`) |
+| d2 | core | architecture/flow/topology diagrams (primary engine) |
+| rsvg-convert (librsvg) | core | SVG → PDF/PNG |
+| poppler-utils (pdftoppm) | core | composite panel rasterization |
+| graphviz | core | graph-layout fallback |
+| texlive (pdflatex+tikz) | core | theory/commutative diagrams + PDF rasterization |
+| SciencePlots | recommended | journal-grade plot geometry (`requirements.txt`) |
+| asymptote / typst | recommended | math/geometry & fast declarative diagrams |
+| diagrams (mingrammer) | recommended | diagram-as-code pro icon sets |
+| blockdiag family | recommended | swimlane / sequence diagrams |
+| mermaid (mmdc) | optional | flowchart/sequence/state diagrams |
+| pikchr / resvg / cairosvg / inkscape / svgo | optional | niche engines & fallbacks |
+| TeX Gyre + Liberation fonts | recommended | LaTeX-consistent typography (auto-discovered) |
+
 ## 1. Core Dependencies (Required)
 
 | Tool | Purpose | Linux (apt) | macOS (brew) | Windows |
