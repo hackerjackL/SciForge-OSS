@@ -15,8 +15,10 @@ Behavior
 - Registered *.json verdict files are validated against <NAME>.schema.json plus
   cross-field post-checks (below).
 - Unknown *.json / *.txt files => WARN (unregistered verdict).
-- Registered-but-missing files are NOT errors; they are listed as "pending"
-  (verdicts appear progressively as the pipeline advances).
+- Registered-but-missing files are NOT errors by default; they are listed as
+  "pending" (verdicts appear progressively as the pipeline advances).  With
+  ``--require-complete`` (wrap-up gate, v1.4.0) pending files that are not
+  declared N/A ARE violations — a run may not complete with audits skipped.
 - Routing-aware expectation (v6.0): if VERIFICATION_ROUTING.json is present and
   declares ``na_verdicts`` (list of registered filenames the chosen route makes
   Not-Applicable, see shared-references/verification-routing.md section 5), the
@@ -486,6 +488,13 @@ def main(argv=None):
         action="store_true",
         help="treat WARN (unregistered artifacts) as violations too (BLOCKED semantics)",
     )
+    parser.add_argument(
+        "--require-complete",
+        action="store_true",
+        help="wrap-up gate (v1.4.0): registered-but-missing verdicts that are NOT "
+             "declared N/A (i.e. still PENDING) are violations. Use at Phase 16 so a "
+             "run cannot declare completion with its audit machinery skipped.",
+    )
     args = parser.parse_args(argv)
 
     verdicts_dir = Path(args.verdicts_dir)
@@ -583,6 +592,14 @@ def main(argv=None):
         return 1
     if args.strict and n_warn > 0:
         print("strict mode: WARN treated as violation => BLOCKED", file=sys.stderr)
+        return 1
+    if args.require_complete and pending:
+        print(
+            "require-complete: %d registered verdict(s) missing and not declared N/A "
+            "(%s) => the audit machinery was skipped; completion refused "
+            "(reason_code: verdicts_incomplete)" % (len(pending), ", ".join(pending)),
+            file=sys.stderr,
+        )
         return 1
     return 0
 

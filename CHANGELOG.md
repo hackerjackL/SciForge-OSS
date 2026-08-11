@@ -2,6 +2,11 @@
 
 ## [1.4.0] - 2026-08-10
 
+### v1.4.0 第五轮：防"绕过渲染器"＋防"审计机器被跳过"两个硬门（低能力模型跑测暴露，295 tests 全绿；版本号不变）
+- **A 图必须经统一渲染器**：`check_figure_embedding.py --require-renderer` — flat 手写 pdf 或 `figures/<id>/` 缺 `figure_audit.json`+`latex_include.tex` → FAIL；paper-compile Step 5.7 / paper-writing 自检 #8 强制带该 flag。堵住"手写 matplotlib 绕过 Nature 审计/莫兰迪/印刷字号"。
+- **B 判定完整性硬门**：`validate_verdicts.py --require-complete` — 注册 verdict 仍 PENDING 且未声明 N/A → exit 1；auto-pipeline wrap-up 与 output-protocol 规定 completion 前必须跑 `--strict --require-complete`，否则 `BLOCKED verdicts_incomplete`。堵住"论文写了但 leakage/logic/citation/claim 审计一个没跑"。
+- 新增 tests/test_round5_gates.py（不动既有用例）。
+
 ### v1.4.0 第四轮：图嵌入硬门（模型无关，防"图生了没插进正文"，290 tests 全绿；版本号不变）
 - 新增 `scripts/check_figure_embedding.py`：机械交叉核对——正文 `\begin{figure}` 数 ≥ 预算，且 `figures/**/*.pdf` 每张都被 `\includegraphics`/`\input` 引用，否则 exit 2。
 - `paper-compile` 新增 Step 5.7 Figure-Embedding Gate：exit 2 → `FAIL, figures_not_embedded`，拒编译"图只在磁盘上"的论文。
