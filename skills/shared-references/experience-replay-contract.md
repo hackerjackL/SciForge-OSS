@@ -71,3 +71,13 @@ new orchestrator. A run with no prior lessons simply proceeds with empty priors.
   opening another run's hidden dir.
 - Lessons are advisory priors, not hard rules: a human or a stronger contrary
   evidence can override, and the override is recorded (`override_reason`).
+
+## 5. Retrieval-augmented lessons + policy update (v1.5.0 — RL-grade, still serial)
+
+- **Vector lessons store**: embed each `LESSONS.json` entry (lesson + context) into a local
+  index (`chromadb`/`faiss`, optional deps) so Phase 2/6b retrieve *similar* past runs'
+  lessons (not just sibling files) as priors. Falls back to sibling-file scan when absent.
+- **Per-run policy update**: after each run, record which fix-types actually moved a verdict
+  (e.g. "adding parallel-trends probe turned WARN→PASS"); weight future probe selection by
+  these outcomes. This is the "gets smarter with use" loop — experience replay + simple
+  credit assignment, no gradient, no parallel system.

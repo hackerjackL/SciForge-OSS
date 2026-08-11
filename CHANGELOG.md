@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0] - 2026-08-12
+
+### v1.5.0：武器库 + 设备判定 + 收敛链路 + 修订模式 + 反漂移/活人感/证伪探针（统一版本，无修版本）
+- **武器库**：根 `requirements.txt` 全量分层（core/统计因果ML/图渲染/文本/文献API/可选升级），floor 索引参考机；**设备判定** `scripts/detect_device.py`（domain-driven：GPU/CPU/NPU/人文无，先判设备再选后端，非 CPU-first），INSTALL §2.6 + experiment-execution Step 0a 联动。
+- **收敛链路**：`scripts/sciforge_audit.py` 单 CLI 汇总机械门（图嵌入+渲染/verdict 完整/模板浮动控制）→ 一个 verdict+exit code，长 prose 链收成工具调用（anti-drift）。
+- **修订模式**：`/auto-pipeline mode=revision`（单入口改已成稿，DIAGNOSIS→定向修→re-audit→recompile，scoped-revision，跳过 idea 阶段、锚定原 idea）。
+- **nohup 默认**：任何实验 >60s 后台+STATUS 轮询，前台仅 ≤60s smoke（防超时）。
+- **反漂移**：默认核心环 idea→exp→audit→write→compile→review + 按相 pointer-load + 机械判定走工具。
+- **活人感反AIGC**：grammar/可读性门（language-tool/textstat）+ 每学科人话范例（paper-writing #13）。
+- **证伪探针**：通用 battery（placebo/替换规格/子样本/敏感性/power/parallel-trends/SHAP-consistency），domain-selected，不写死领域（experiment-execution）。
+- **P2**：LESSONS 向量检索+policy update；文献 verified-ref 缓存；幂等断点（产物 hash 跳过未变分析）。
+- 版本统一 **1.5.0**（26 SKILL.md + package.json + CITATION.cff + README 徽章）；300 tests + ci_check OVERALL PASS。
+
 ## [1.4.0] - 2026-08-10
 
 ### v1.4.0 第七轮：武器库根 requirements + 设备类型判定（domain-driven，非 CPU-first；版本号不变）

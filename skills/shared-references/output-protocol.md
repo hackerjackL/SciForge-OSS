@@ -183,3 +183,11 @@ Respect the project's language setting (`language=chinese` outputs Chinese, Engl
 
 ---
 > **Single source of truth**: output versioning, Manifest records, the artifact directory tree, path fallback, stale-state detection, and language rules are all defined centrally by this file. Each SKILL.md only needs to pointer-load this file (`../../shared-references/output-protocol.md`) instead of inlining duplicated three-line blocks.
+
+## Idempotent resume (v1.5.0 — don't redo finished work)
+
+At each boundary, record a SHA-256 of the phase's key inputs+outputs in
+`.sciforge/RESUME_JOURNAL.md`. On resume, if a phase's input hash is unchanged and its output
+artifact exists and is valid, SKIP re-running it (mark `cached`) instead of re-computing an
+8-year model or re-rendering stable figures. Any input change invalidates that phase and all
+downstream. This bounds cost on long, interruptible runs without sacrificing correctness.

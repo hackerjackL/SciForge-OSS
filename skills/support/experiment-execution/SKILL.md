@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 1.4.0
+version: 1.5.0
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
@@ -169,6 +169,23 @@ def detect_device():
     if hasattr(torch.backends,'mps') and torch.backends.mps.is_available(): return torch.device('mps')
     return torch.device('cpu')
 DEVICE = detect_device()
+```
+
+**Background-by-default (v1.5.0 — never timeout)**: ANY experiment (toy or full) whose
+estimate exceeds ~60s is dispatched with `nohup`/background + `STATUS.json` polling
+(logs tee'd to `logs/experiments/<id>.log`); the foreground is reserved for a ≤60s smoke
+slice only. A long run must never block the session or hit a tool timeout — it is always
+resumable via RUNSTATE + STATUS.json. This is a hard rule, not a suggestion.
+
+**Falsification-probe battery (v1.5.0 — generic, domain-selected)**: robustness is expressed as a
+menu of *abstract* probes, never domain-hardcoded rules; the domain-signature /
+verification-routing picks which apply and they are listed in the experiment matrix:
+placebo / in-time placebo · alternative specification · subsample / split replication ·
+sensitivity to inclusion criteria · power / minimum-detectable-effect · (causal) parallel-trends
++ event-study · (ML) CV + SHAP-vs-coefficient direction consistency + calibration. A primary
+claim whose applicable probes fail is downgraded or routed to Limitations (negative-result
+discipline). This is what lifts a run from general-journal to SCI-tier rigor without breaking
+domain-agnosticism.
 # ALL tensors/models: x = x.to(DEVICE); model = model.to(DEVICE)
 ```
 

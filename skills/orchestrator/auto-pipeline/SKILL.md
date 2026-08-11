@@ -1,6 +1,6 @@
 ---
 name: auto-pipeline
-version: 1.4.0
+version: 1.5.0
 description: "SciForge-OSS autonomous 21-phase research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
@@ -44,6 +44,30 @@ Orchestrate a complete 21-phase DAG research loop. The non-negotiable goals:
 7. **Domain signature propagation** — the domain signature is produced ONLY by Phase 1b (`/domain-learner`) and written to `refine-logs/domain-signature.json`, consumed by all downstream phases. See [`../shared-references/domain-signature-consumer.md`](../../shared-references/domain-signature-consumer.md).
 8. **Domain learner is the source of truth** (v2.8) — Phase 1a (`/domain-signature`) is downgraded to OPTIONAL fast-path hint writing `domain-signature-hint.json`, consumed only by the learner as a prior. Phase 1b (`/domain-learner`) is MUST and the sole writer of `domain-signature.json`. This eliminates the rule-hardcoded signature failure mode.
 
+## Revision / Optimization Mode (v1.5.0 — "improve an already-finished paper")
+
+Not every run starts from scratch: a user often hands over a **completed manuscript**
+(+ optional reviewer comments + data) and wants it *optimized*, not re-derived. This is a
+first-class mode of the SAME single entry point — `/auto-pipeline "..." — mode=revision` —
+**not a second parallel pipeline**. It reuses every support skill; it only changes the DAG
+start and what is frozen:
+
+1. **Inputs**: `input_manuscript` (LaTeX/MD), optional `review_comments`, the run's data.
+2. **Frozen**: the original core idea/contributions (INV-G1 anchors the manuscript's thesis,
+   not a new Q-id); the author-supplied data. Phases 1-3 (idea-discovery/novelty) are SKIPPED.
+3. **DIAGNOSIS phase** (replaces ideation): map each reviewer comment / weakness to a fix
+   item with an owning support skill (stats re-run → experiment-execution; figure redo →
+   unified-plotting; section rewrite → paper-writing; reference check → citation-audit),
+   written to `.sciforge/refine-logs/REVISION_PLAN.md`.
+4. **Targeted execution**: run only the fixes in REVISION_PLAN, using **scoped revision**
+   (change only the pointed-at sections/figures; never rewrite the whole paper).
+5. **Re-audit + recompile**: `sciforge_audit.py` + the full verdict gates, then paper-compile.
+6. Negative/unsupported findings still go to Limitations (negative-result discipline holds).
+
+Balanced mode selection: `mode=full` (default, from-scratch) vs `mode=revision`. Both share
+the single orchestrator, the single renderer, and the same hard gates — one chain, no drift
+from parallel pipelines.
+
 ## Domain Signature Propagation
 
 The domain signature is the **central wiring mechanism** that makes domain adaptation automatic. **The learner (Phase 1b) is the single source of truth** — Phase 1a is an optional fast-path hint that the learner may consume as a prior, never the final signature.
@@ -71,6 +95,22 @@ Phase 12: /paper-writing         → reads signature → selects writing style /
 ```
 
 **Key design (v2.8 — learner-first)**: Phase 1b is **mandatory** and is the only writer of `domain-signature.json`. Phase 1a is **optional** and writes a separate `domain-signature-hint.json` consumed only by the learner as a prior. This eliminates the "rule-hardcoded signature" failure mode: even when 1a's rules match cleanly, the learner still re-derives the signature from literature to catch rule mismatches. Each downstream skill reads `domain-signature.json` independently at startup. If the signature doesn't exist (learner failed), all skills use default behavior — the pipeline continues but flags reduced domain adaptation.
+
+## Condensed Core Loop & Context Budget (v1.5.0 — anti-drift / anti-hallucination)
+
+Even 1M-context runs drift when the whole skill library is injected. Keep the active
+context small and the chain short:
+
+- **Default core loop** (what most runs actually need): `idea → experiment → audit →
+  write → compile → review`. Optional branches (theory-derivation, heavy retrieval waves,
+  rebuttal) attach only when the domain-signature/verification-routing demands them.
+- **Pointer-load per phase**: a phase loads ONLY its own SKILL.md + the references it
+  declares; everything else is a path, never inlined prose (bundle-out/compact-forward per
+  methodology-and-context-contract).
+- **Mechanical verdicts via tool, not prose**: gates run through `scripts/sciforge_audit.py`
+  (one call, hard exit code); the model reads the machine verdict instead of re-deriving rules.
+- **Single writer per artifact** + schema-enforced verdicts + constraint re-injection at every
+  boundary (existing) — the three structural anti-drift layers.
 
 ## Performance Optimizations
 
