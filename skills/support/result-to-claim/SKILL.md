@@ -1,6 +1,6 @@
 ---
 name: result-to-claim
-version: 1.3.2
+version: 1.4.0
 description: "3-fidelity claim gate (symbolic/numerical/qualitative) mapping results to claims, blocking unsupported 'supported'/'proven' language. Phase 10. Invoke to gate which claims the paper may make."
 type: reference-skill
 role: result-to-claim-gate
@@ -47,14 +47,14 @@ Before allowing `/paper-writing` to proceed, verify:
 2. `result-to-claim` has been invoked (check for `CLAIMS_FROM_RESULTS.md`).
 3. If not invoked: **BLOCK paper writing** and require `/result-to-claim` first.
 4. If invoked but verdict is `no` or `partial`: **BLOCK paper writing** until claim is revised.
-5. **Problem anchor integrity**: `.sciforge/refine-logs/FINAL_PROPOSAL.md` exists with the frozen Q-id (verified at Step 0). This is the same check performed by `/invariant-check` INV-G1 at the phase boundary.
+5. **Problem anchor integrity**: `refine-logs/FINAL_PROPOSAL.md` exists with the frozen Q-id (verified at Step 0). This is the same check performed by `/invariant-check` INV-G1 at the phase boundary.
 
 This check is mandatory and cannot be skipped for any OSS output.
 
 ## Required Workspace
 
 - `derivations/{problem_id}/` — derivation/verification output files (SymPy proof logs, numerical sanity check results)
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — intended claims and derivation design (primary source for pre-specified claims)
+- `refine-logs/FINAL_PROPOSAL.md` — intended claims and derivation design (primary source for pre-specified claims)
 - `docs/research_contract.md` — optional project-level research contract (read if present; not produced by any skill)
 - `findings.md` — append postmortem / confirmed claims here
 - `.sciforge/audits/LOGIC_VERIFICATION.md` — analysis report from `/logic-verification` (read if present)
@@ -64,7 +64,7 @@ This check is mandatory and cannot be skipped for any OSS output.
 
 - **External reviewer model** — the cross-model reviewer used for objective claim evaluation. Should be a different model family from the host agent.
 - **Fidelity threshold** — the minimum fidelity level required to support a **primary** claim. Default: `numerical` (a primary claim must have at least numerical sanity-check support; symbolic-only is "partial", qualitative-only is "no"). Configurable to `symbolic` (stricter — requires full proof) or `qualitative` (lenient — qualitative reasoning suffices).
-- **Outcome classification** — outcomes are classified as **primary** (pre-specified in `.sciforge/refine-logs/FINAL_PROPOSAL.md`, directly testable predictions of the theoretical model) or **secondary** (mechanism tests, robustness checks, additional analyses). The fidelity gate operates on primary outcomes only.
+- **Outcome classification** — outcomes are classified as **primary** (pre-specified in `refine-logs/FINAL_PROPOSAL.md`, directly testable predictions of the theoretical model) or **secondary** (mechanism tests, robustness checks, additional analyses). The fidelity gate operates on primary outcomes only.
 
 ## The 3-Fidelity Claim Ladder (OSS Universal)
 
@@ -84,6 +84,8 @@ OSS adapts main SciForge's 5-fidelity filter (text / symbolic / minimal / empiri
 ### Evidence Sufficiency Gate (v5.1 — from CRUX shadow-evaluation failure mode #1)
 
 **Background** (arXiv:2607.27191): an AI agent got negative results on small-scale synthetic data, then packaged a severely underpowered experiment as a "discovery" — its own self-review scored it a weak reject, yet it proceeded as usual. "It knew its writing was bad, but not how to make it better." Our fidelity ladder governs evidence *type*; this section adds evidence **weight** — the common death of an experiment-based paper is not the absence of numbers, but numbers that weigh nothing.
+
+**Failed pre-registration discipline (v1.4.0)**: a primary claim whose pre-registered expectation FAILs at full fidelity is NOT re-scoped into a passing claim — it is re-typed as a `LIMIT` or `NEGATIVE` claim (honest limit/regime result), and any replacement claim must be pre-registered AGAINST THE SAME evidence standard (no post-hoc single-point calibration matches: a calibration/tuning parameter match counts as validation only with a sensitivity sweep showing the match is not knife-edge). The Claims-Evidence Matrix records the original pre-registered claim, its failure, and the re-typed claim side by side.
 
 **Mandatory checks** (under `experiment-first` / `hybrid` routing; run per PRIMARY claim; results written to the `evidence_sufficiency` field in `CLAIMS_FROM_RESULTS.md`):
 
@@ -196,10 +198,10 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 
 Gather derivation/verification evidence from whatever sources are available in the project:
 
-1. **Symbolic derivation logs** (`code/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
+1. **Symbolic derivation logs** (`src/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
 2. **Numerical sanity checks** (`derivations/{problem_id}/verification_report.md`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
 3. **Logic verification audit** (`.sciforge/verdicts/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
-4. **.sciforge/refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
+4. **refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
 5. **docs/research_contract.md**: optional project-level contract (read if present).
 
 Assemble the key information:
@@ -255,7 +257,7 @@ A qualitative "looks right" judgment does not support a "proven" claim.
    - **Main-experiment-level negative** (core hypothesis unsupported) → not a writing problem, a direction problem: route back to `/experiment-execution`'s **KILL-or-PIVOT stop protocol** (toy level) or trigger a method re-examination (full level); the paper pipeline pauses pending new evidence — **continuing to write the paper on a falsified core hypothesis is forbidden**
    - **Local/boundary negative** (a sub-scenario, baseline, or ablation group falls short) → write into **Limitations/Discussion** as a boundary statement ("our method shows no advantage under condition X, indicating the applicability boundary is Y") — this is the correct form of academic honesty
 3. **Ablation/hyperparameter negatives are information, not failure**: an ablation shows a component adds no gain → report honestly that the component's contribution is not significant (valid scientific information in itself), but do not elevate it to a contribution claim such as "we found removal is better" without main-experiment-level evidence
-4. **Audit hook**: every claim in `CLAIMS_FROM_RESULTS.md` carries a `polarity: positive|boundary` field; an entry with `polarity: negative` appearing in the claims list → `/paper-writing` self-check FAIL (`reason_code: negative_result_as_contribution`)
+4. **Audit hook**: every claim in `CLAIMS_FROM_RESULTS.md` carries a `polarity: positive|boundary|negative` field. ONLY `polarity: positive` entries may feed the paper's contributions list / Abstract / conclusion. An entry with `polarity: boundary` or `polarity: negative` appearing in the claims/contributions list → `/paper-writing` self-check FAIL (`reason_code: negative_result_as_contribution`). `boundary` entries are routed to a dedicated `limitations:` field in `CLAIMS_FROM_RESULTS.md` that `/paper-writing` consumes ONLY for the Limitations/Discussion section. A failed hypothesis (pre-registration FAILED at full fidelity) is NEVER re-typed as a contribution — it is a `LIMIT`/`NEGATIVE` entry or a KILL-or-PIVOT trigger, never a `\item` in the contributions list
 
 ### Step 3: Parse and Normalize
 
@@ -277,7 +279,7 @@ Extract structured fields from the external reviewer's response:
 Apply the 3-fidelity gate to **primary** outcomes only:
 
 1. Parse the external reviewer's `fidelity_level` verdict.
-2. **Classify outcomes** (read `.sciforge/refine-logs/FINAL_PROPOSAL.md` to determine pre-specification):
+2. **Classify outcomes** (read `refine-logs/FINAL_PROPOSAL.md` to determine pre-specification):
    - **Primary outcomes**: pre-specified, directly testable predictions of the theoretical model.
    - **Secondary outcomes**: mechanism tests, robustness checks, additional analyses (NOT pre-specified).
 3. **Apply fidelity gate (on PRIMARY outcomes only)**:
@@ -395,8 +397,8 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 - **Risks**: [assumptions that may not hold in OSS sandbox]
 
 ### Engineering Grounding (from Phase 5b, inherited, not recomputed)
-- **Score**: [0-10] (inherited from `.sciforge/refine-logs/ENGINEERING_GROUNDING.md` eg_average)
-- **Report**: See `.sciforge/refine-logs/ENGINEERING_GROUNDING.md` for full 8-dim breakdown + downside protection
+- **Score**: [0-10] (inherited from `refine-logs/ENGINEERING_GROUNDING.md` eg_average)
+- **Report**: See `refine-logs/ENGINEERING_GROUNDING.md` for full 8-dim breakdown + downside protection
 - **Risks**: [engineering risks from Phase 5b — compute, deps, ai_dev_cycle, reproducibility, capital, code_complexity, temporal_maturity, regulatory]
 
 ### Combined Assessment

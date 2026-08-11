@@ -56,10 +56,11 @@ EXPECTED_PHASE_COUNT = 21
 # layer. test_output_protocol_tree_matches_hardcoded_dirs keeps both in sync.
 EXPECTED_STAGE_DIRS = frozenset({
     ".sciforge",
+    "refine-logs",
     "literature",
     "methods",
     "derivations",
-    "code",
+    "src",
     "experiments",
     "logs",
     "figures",
@@ -89,6 +90,7 @@ EXPECTED_VERDICT_FILES = frozenset({
     "REVIEW_LEDGER.json",
     "RUN_BUDGET.json",
     "FIGURE_AUDITS.json",
+    "EVALUATION_REVIEW.json",
     "PROBLEM_HASH.txt",
     "REGISTRY_HASH.txt",
 })

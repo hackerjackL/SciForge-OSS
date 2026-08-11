@@ -1,6 +1,6 @@
 # Idea DAG Schema — Single Source of Truth
 
-> **Status**: Contract for the Idea DAG data structure. Consumed by `/idea-discovery` Phase 2.5 (DAG-Based Idea Search). Produces `.sciforge/refine-logs/IDEA_DAG.json` (pre-v6.0 location `idea-stage/IDEA_DAG.json`, read as fallback only).
+> **Status**: Contract for the Idea DAG data structure. Consumed by `/idea-discovery` Phase 2.5 (DAG-Based Idea Search). Produces `refine-logs/IDEA_DAG.json` (pre-v6.0 location `idea-stage/IDEA_DAG.json`, read as fallback only).
 
 This schema defines a **Directed Acyclic Graph (DAG)** for storing the idea search space. Each node represents an Idea's state (including its sketch, fidelity scores, and UCB value). Edges represent iteration (Mutation) or combination (Crossover). The DAG structure captures the evolutionary history of ideas — which ideas were derived from which, and which were combined to form fusion ideas.
 
@@ -20,7 +20,7 @@ This schema defines a **Directed Acyclic Graph (DAG)** for storing the idea sear
 
 ## 2. JSON Schema
 
-The DAG is persisted as `.sciforge/refine-logs/IDEA_DAG.json` with the following structure:
+The DAG is persisted as `refine-logs/IDEA_DAG.json` with the following structure:
 
 ```json
 {
@@ -214,11 +214,11 @@ The `idea_sketch` field carries discipline-specific content per `DISCIPLINE_CONT
 
 ## 8. Artifact Registration
 
-`.sciforge/refine-logs/IDEA_DAG.json` is a registered artifact in [`artifact-registry.md`](artifact-registry.md):
+`refine-logs/IDEA_DAG.json` is a registered artifact in [`artifact-registry.md`](artifact-registry.md):
 
 | Artifact | Path | Producer | Consumers | Schema |
 |----------|------|----------|-----------|--------|
-| `.sciforge/refine-logs/IDEA_DAG.json` | .sciforge/refine-logs/ | `/idea-discovery` Phase 2.5 | `/idea-discovery` (self-consumed across MCTS iterations), `/novelty-check` (reads promoted ideas), `/auto-review-loop` (reads promoted ideas for review) | This schema (v1.0) |
+| `refine-logs/IDEA_DAG.json` | refine-logs/ | `/idea-discovery` Phase 2.5 | `/idea-discovery` (self-consumed across MCTS iterations), `/novelty-check` (reads promoted ideas), `/auto-review-loop` (reads promoted ideas for review) | This schema (v1.0) |
 
 ---
 

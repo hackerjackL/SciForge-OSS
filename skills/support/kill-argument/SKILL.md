@@ -1,6 +1,6 @@
 ---
 name: kill-argument
-version: 1.3.2
+version: 1.4.0
 description: "Adversarial attack-defense self-review: write the single strongest 200-word rejection, then defend point-by-point and surface load-bearing unresolved issues. Phase 14 sub-step. Invoke after stable score, before submission/rebuttal."
 type: reference-skill
 role: adversarial-attack-defense-reviewer
@@ -72,7 +72,7 @@ Locate the derivation directory and research artifacts:
 
 - Find the derivation output (`derivations/{problem_id}/derivation_output.md`) — the primary theory/derivation document
 - Find the claims file (`CLAIMS_FROM_RESULTS.md`) — validated claims from `/result-to-claim`
-- Find the SymPy script (`code/derivations/{problem_id}/derivation.py`) — the executable proof
+- Find the SymPy script (`src/derivations/{problem_id}/derivation.py`) — the executable proof
 - Find the verification report (`derivations/{problem_id}/verification_report.md`) — numerical sanity checks
 - If a paper draft exists (`paper/main.tex` + `paper/sections/*.tex`), include it as additional context
 

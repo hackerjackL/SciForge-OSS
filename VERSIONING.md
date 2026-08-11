@@ -1,21 +1,21 @@
 # VERSIONING.md — SciForge-OSS 大一统版本策略
 
-> **Status (v1.3.2)**: 单一版本号策略 — 开发、release、marketplace、README、CHANGELOG、plugin manifest **全部使用同一个版本号**。不再有"内容版本 vs 发布版本 vs 框架版本"的多套编号混乱。
+> **Status (v1.4.0)**: 单一版本号策略 — 开发、release、marketplace、README、CHANGELOG、plugin manifest **全部使用同一个版本号**。不再有"内容版本 vs 发布版本 vs 框架版本"的多套编号混乱。
 
 ---
 
 ## 1. 核心原则：一个版本号，全链路统一
 
-SciForge-OSS **只有一个版本号**：**`1.3.2`**（当前正式版）。
+SciForge-OSS **只有一个版本号**：**`1.4.0`**（当前正式版）。
 
 | 位置 | 使用 | 必须与当前版本一致 |
 |------|------|---------------------|
-| 根 `./SKILL.md` frontmatter `version:` | atomcode skill-package 发布版本 | ✅ `1.3.2` |
-| `.atomcode-plugin/plugin.json` `"version"` | marketplace 插件版本 | ✅ `1.3.2` |
-| 25 个子 skill `SKILL.md` frontmatter `version:` | 每个子 skill 的版本 | ✅ `1.3.2` |
-| `README.md` 版本徽章 | 仓库主页展示 | ✅ `1.3.2` |
-| `CHANGELOG.md` 最新条目 | 变更记录 | ✅ `1.3.2` |
-| git release tag | 发行版 | ✅ `v1.3.2` |
+| 根 `./SKILL.md` frontmatter `version:` | atomcode skill-package 发布版本 | ✅ `1.4.0` |
+| `.atomcode-plugin/plugin.json` `"version"` | marketplace 插件版本 | ✅ `1.4.0` |
+| 25 个子 skill `SKILL.md` frontmatter `version:` | 每个子 skill 的版本 | ✅ `1.4.0` |
+| `README.md` 版本徽章 | 仓库主页展示 | ✅ `1.4.0` |
+| `CHANGELOG.md` 最新条目 | 变更记录 | ✅ `1.4.0` |
+| git release tag | 发行版 | ✅ `v1.4.0` |
 | `.atomcode/` marketplace `git_commit` | 自动拉取锁定的 commit | 与 release tag 对应 |
 
 **为什么这么做**：v3.2→v3.4 期间出现过 4 套编号并存（根 SKILL.md=1.2.0/1.3.0、plugin.json=3.4.0、experiment-execution=2.0.0、publishability-score=2.2.0、22 个子 skill 无 version）——读者无法判断哪个是"当前版本"。大一统后：**任何时候只有一个版本号**，任何入口读到的都是同一个。
@@ -24,7 +24,7 @@ SciForge-OSS **只有一个版本号**：**`1.3.2`**（当前正式版）。
 
 ## 2. 版本号规则（正式版 + 补丁）
 
-### 2.1 当前版本：`1.3.2`（正式版）
+### 2.1 当前版本：`1.4.0`（正式版）
 
 `1.3.0` 是**当前正式版**（1.1.0 初始发布 → 1.1.1 定位收敛与绘图工具链 → 1.1.2 管线治理 → 1.2.0 v5.3 治理加固 + 加固补丁 → **1.3.0 判断力深化**：文献先行 gap 链（idea 锚定文献空白）/ evidence_norm 证据门槛领域学习 / `.sciforge/` 双层工作区（隐藏状态层 + 交付层）/ RUNSTATE 长续航恢复契约 / 路由感知 N/A verdict + 懒实例化动态清理 / 预算低耗守卫。按 §2.3 规则，行为改变 + 新链路 = 次版本升级）。
 

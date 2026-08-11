@@ -53,6 +53,10 @@ Supported JSON-Schema subset (stdlib-only validator, no `jsonschema` package)
     additionalProperties  boolean, or a sub-schema applied to every property
                           not listed in `properties`
     enum             exact-match value list
+
+Null handling (pragmatic subset rule): a null value on a NON-required property
+is treated as absence (the subset cannot express nullable types); required
+properties still fail on null.
     pattern          regex (re.search) applied to strings
     minimum/maximum  numeric bounds (inclusive)
     items            sub-schema applied to every array element
@@ -132,6 +136,7 @@ REGISTRY = {
     "PUBLISHABILITY_SCORE.json": {"schema": "PUBLISHABILITY_SCORE.schema.json"},
     "RUN_BUDGET.json": {"schema": "RUN_BUDGET.schema.json"},
     "FIGURE_AUDITS.json": {"schema": "FIGURE_AUDITS.schema.json"},
+    "EVALUATION_REVIEW.json": {"schema": "EVALUATION_REVIEW.schema.json"},
 }
 
 # Hash artifacts: single-line lowercase sha256 hex (no schema file).
@@ -249,9 +254,16 @@ def validate_against(instance, schema, path="$"):
         if not isinstance(properties, dict):
             errors.append("%s: schema 'properties' must be an object" % path)
             properties = {}
+        required_set = set(required) if isinstance(required, list) else set()
         additional = schema.get("additionalProperties", True)
         for name, value in instance.items():
             if name in properties:
+                # Pragmatic subset rule: an explicit null on an OPTIONAL
+                # property is treated as absence (producers commonly write
+                # null for empty optional fields; the subset cannot express
+                # nullable types). Required nulls still fail their type check.
+                if value is None and name not in required_set:
+                    continue
                 errors.extend(validate_against(value, properties[name], "%s.%s" % (path, name)))
             elif additional is False:
                 errors.append("%s: additional property '%s' is not allowed" % (path, name))

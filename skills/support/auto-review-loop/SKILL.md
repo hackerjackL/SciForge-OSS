@@ -1,6 +1,6 @@
 ---
 name: auto-review-loop
-version: 1.3.2
+version: 1.4.0
 description: "Iterative self-review (review→fix→re-review) with role-switch + v3.2 Phase B.2 domain-expert blind-spot review (wired into explicit ordered chain A→B.1→B.2→C) + kill-argument anti-self-deception. v3.4 STOP CONDITION uses effective_score=min(Phase C raw, B.2 cap) — a fatal blind-spot caps at 5, blocks false 'ready'. Writes BLINDSPOT_CHECK.json. Phase 14. Invoke to improve the draft until score≥6 or MAX_ROUNDS."
 type: reference-skill
 role: autonomous-review-loop-orchestrator
@@ -49,7 +49,7 @@ Key artifacts consumed (read from upstream):
 - `derivations/{problem_id}/derivation_output.md` — derivation results summary produced by `/theory-derivation` (primary input)
 - `CLAIMS_FROM_RESULTS.md` — validated claims from `/result-to-claim`
 - `findings.md` — prior findings (compact mode)
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — pre-registered primary outcomes (for fidelity gatekeeping)
+- `refine-logs/FINAL_PROPOSAL.md` — pre-registered primary outcomes (for fidelity gatekeeping)
 
 ## Configuration
 
@@ -214,6 +214,8 @@ Then extract structured fields:
 - **Verdict** ("ready" / "almost" / "not ready")
 - **Action items** (ranked list of fixes)
 
+**LOOP-COMPLETION DISCIPLINE (v1.4.0 — anti-premature-surrender)**: one invocation of this skill covers the ENTIRE loop: rounds continue until the STOP CONDITION fires OR MAX_ROUNDS (default 4) is exhausted. Ending the loop after an early round with `effective_score < 6` while rounds remain is a CONTRACT VIOLATION (premature surrender — the CRUX shadow evaluation's agents declared "I'm done" with hours and budget still on the clock; the structural interceptor treats an under-budget `not_ready` finalization the same way: the next boundary or the eval gate rejects it). A low round score means FIX AND RE-REVIEW, not finalize.
+
 **STOP CONDITION**: If `effective_score >= 6` AND verdict contains "ready" or "almost" → stop loop, document final state. **v3.2 — `effective_score` not raw score**: the score used for the stop condition is the **min of (Phase C raw score, B.2 cap)**, NOT the raw Phase C score alone. A raw 7/10 that hides a fatal unresolved domain blind-spot (B.2 cap = 5) is `effective_score = 5` → does NOT stop, must fix the blind-spot first. This closes the gap where the generic Phase C review could declare "ready" while a fatal endogeneity / boundary-condition / straw-man failure (B.2) was never addressed.
 
 **Anti-Shrinkage Protocol (v5.1 — from CRUX shadow-evaluation failure mode #2)**:
@@ -239,7 +241,7 @@ Then extract structured fields:
 
 **Apply the 3-fidelity ladder** to primary outcomes (see [`/result-to-claim`](../result-to-claim/SKILL.md) for the ladder):
 
-1. **Read `.sciforge/refine-logs/FINAL_PROPOSAL.md`** to identify which outcomes are **pre-specified primary outcomes**. Outcomes not pre-specified are automatically classified as "secondary".
+1. **Read `refine-logs/FINAL_PROPOSAL.md`** to identify which outcomes are **pre-specified primary outcomes**. Outcomes not pre-specified are automatically classified as "secondary".
 
 2. **Parse derivation/verification results** from `derivations/{problem_id}/` directory. For each outcome, determine:
    - Is it a **primary outcome** (pre-specified)? Or a **secondary outcome** (mechanism test, robustness check)?
@@ -272,7 +274,7 @@ Then extract structured fields:
 **Runs on EVERY round, all difficulties (medium/hard/nightmare) — it is NOT gated behind difficulty like Phase B.5/B.6.** This is the single biggest content-quality lever; it cannot be opt-in.
 
 **Inputs**:
-- `.sciforge/refine-logs/domain-signature.json` (from Phase 1b `/domain-learner`) — read `evidence_type` + `methodology_profile`
+- `refine-logs/domain-signature.json` (from Phase 1b `/domain-learner`) — read `evidence_type` + `methodology_profile`
 - [`domain-failure-modes.md`](../../shared-references/domain-failure-modes.md) — the canonical failure-mode catalog, keyed by `evidence_type`
 - The research artifacts under review this round (`derivations/`, `CLAIMS_FROM_RESULTS.md`, `paper/sections/*.tex`)
 
@@ -302,7 +304,8 @@ Then extract structured fields:
 **Boundaries**:
 - This phase is **additive to, not a replacement for**, Phase B.1 (fidelity gate) and Phase C (generic review). Run all three; the score is the min of (Phase C score, B.2 cap).
 - The failure-mode row is **selected by `evidence_type` only** — never by a discipline label. No economics/physics hardcode.
-- If `domain-signature.json` is missing (Phase 1b failed), this phase **WARNs and falls back to the `derivational` row** (the most general: hidden_assumption / circular_reasoning / quantifier_error) — it never silently skips. The WARN is recorded in `BLINDSPOT_CHECK.json` (`fallback_reason: signature_missing`).
+- If `domain-signature.json` is missing (Phase 1b failed), this phase **WARNs and falls back to the `derivational` row** (the most general: hidden_assumption / circular_reasoning / quantifier_error) — it never silently skips. The WARN is recorded in `.sciforge/verdicts/BLINDSPOT_CHECK.json` (`fallback_reason: signature_missing`); when no fallback occurs, OMIT the `fallback_reason` key entirely (never write `null`).
+- Failure modes LEARNED from `domain-signature.json` (beyond the catalog) are checked with severity `learned` — they impose NO score cap (caps belong to catalog severities only: fatal→5, severe→6), but every `unresolved` learned mode still joins the fix list.
 - `unresolved` findings feed the fix list exactly like Phase C weaknesses — they are not informational-only. The loop must attempt a fix (bounded 2 solution paths before conceding, per the "Exhaust before surrendering" rule).
 - A `fatal` unresolved that survives MAX_ROUNDS surfaces to the human as `BLOCKED, reason_code: unresolved_domain_blindspot_<mode>` — it is never self-waived.
 
@@ -544,7 +547,7 @@ At termination, append one final `details.rounds[]` entry with `phase: "finalize
 ### Termination
 
 When loop ends (positive assessment or max rounds):
-1. Update `.sciforge/verdicts/REVIEW_STATE.json` with `status: completed`.
+1. Update `.sciforge/verdicts/REVIEW_STATE.json` with `status: completed` — and keep the `response_class` array populated for EVERY concern of the final round (`response_class` is a REQUIRED schema field and the v5.1 anti-shrinkage audit hook; a REVIEW_STATE without it fails validation and blocks the boundary).
 2. Write final summary to `.sciforge/audits/AUTO_REVIEW.md`.
 3. Update project notes with conclusions.
 4. **Write method / derivation description** to `.sciforge/audits/AUTO_REVIEW.md` under a `## Method Description` section — a concise 1-2 paragraph description of the final derivation, its structure, and the verification chain. This serves as input for `/unified-plotting` in the figure generation phase.

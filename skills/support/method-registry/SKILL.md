@@ -1,6 +1,6 @@
 ---
 name: method-registry
-version: 1.3.2
+version: 1.4.0
 description: "Build the 8-section method registry + hash-lock Section 3 + human approval gate. Phase 5. Invoke after idea selection to pre-register the methodology before derivation."
 type: reference-skill
 role: method-registry-builder
@@ -11,7 +11,7 @@ role: method-registry-builder
 ## Quick Reference
 
 - **Purpose**: method pre-registration + hash lock + forced human approval, preventing post-hoc method selection
-- **Input**: .sciforge/refine-logs/FINAL_PROPOSAL.md
+- **Input**: refine-logs/FINAL_PROPOSAL.md
 - **Output**: METHOD_REGISTRY.md + REGISTRY_HASH.txt + .sciforge/APPROVAL_LOG.txt
 - **Key**: 8-section schema; Section 3 (Method Selection) locked; assumption quality scoring (new); forced human approval
 
@@ -142,7 +142,7 @@ Every assumption is scored for reasonability. This is the **assumption registry*
 ```json
 {"budget_scale": "full|lite|pilot",
  "groups": [{"name": "main|baseline_<n>|ablation_<k>|hyperparam|robustness",
-             "hypothesis": "...", "script": "code/<path>",
+             "hypothesis": "...", "script": "src/<path>",
              "estimated_minutes": 0, "background": true, "subagents": 0}],
  "locked_hash": "[computed together with Section 3]"}
 ```
@@ -231,8 +231,8 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 ### Step 1: Locate Existing Artifacts
 
 Derive sections from existing artifacts:
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` Problem Anchor + Q-id → Section 1
-- `.sciforge/refine-logs/IDEA_DAG.json` + `.sciforge/refine-logs/FINAL_PROPOSAL.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
+- `refine-logs/FINAL_PROPOSAL.md` Problem Anchor + Q-id → Section 1
+- `refine-logs/IDEA_DAG.json` + `refine-logs/FINAL_PROPOSAL.md` → Section 2 (assumptions), Section 3 (method), Section 4 (outcomes)
 
 If none exist, this is the **first** pre-writing step. Initialize an empty registry with the schema above and ask the user to fill in Sections 2-4, or — if there is enough context — propose a draft for user approval.
 

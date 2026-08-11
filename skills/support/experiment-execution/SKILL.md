@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 1.3.2
+version: 1.4.0
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
@@ -23,7 +23,7 @@ version: 1.3.2
 
 The pipeline reaches this skill when `verification_type` is NOT `theory-only`:
 - `verification_type = computational` → run numerical experiments
-- `verification_type = theory+experiment` → run code/data experiments
+- `verification_type = theory+experiment` → run src/data experiments
 - `verification_type = theory-only` → **skip this skill entirely** (handled by Phase 6 alone)
 
 Typical invocation from orchestrator:
@@ -220,7 +220,7 @@ Step 2a: Create experiment directory
          → experiments/toy/session_{timestamp}/
 
 Step 2b: Write experiment script
-         → code/experiments/toy/session_{timestamp}/toy_experiment.py
+         → src/experiments/toy/session_{timestamp}/toy_experiment.py
 
 Step 2c: Execute with timeout
          → subprocess.run(timeout=timeout_toy)
@@ -377,7 +377,7 @@ The main agent is an **orchestrator**, not an executor. When the following condi
 Before dispatching ANY full-mode experiment script, run the scanner (exit 0 = PASS/WARN, exit 3 = BLOCKED):
 
 ```bash
-python3 scripts/security_scan.py code/experiments/full/{script}.py   # add --json for machine-readable output
+python3 scripts/security_scan.py src/experiments/full/{script}.py   # add --json for machine-readable output
 ```
 
 | Verdict | Action |
@@ -393,7 +393,7 @@ python3 scripts/security_scan.py code/experiments/full/{script}.py   # add --jso
 > **Why this exists (honest gap)**: the toy gate (Step 3) validates the *idea's reasoning chain* at 1-10% scale; it does NOT validate that the *full-scale script itself* runs end-to-end on the real data without crashing. [`leakage-audit`](../leakage-audit/SKILL.md) and [`logic-verification`](../logic-verification/SKILL.md) are both **structural/symbolic** audits that deliberately "do not run the code" (leakage-audit boundary) — so neither catches runtime crashes. Without this gate, a full experiment can be dispatched to background, run 6+ hours, and die at the final aggregation step because of a shape mismatch or an OOM only triggered at full scale — discovered only when Phase 10 reads a `failed` STATUS.json. This gate runs a 60-second end-to-end smoke on the full script at a 1-step/1-batch slice and refuses to dispatch if it cannot complete that slice.
 
 **Procedure**:
-1. **Slice to 1 step / 1 batch**: invoke the full-scale script (`code/experiments/full/{script}.py`) with an override that caps it to 1 training step (ML), 1 timestep (PDE sim), 1 bootstrap iteration (causal), 1 k-point (eigenvalue), or 1 claim (interpretive). The script MUST already expose such a cap (Step 4 design rule "Add checkpointing" implies a `--max-steps`/`--max-epochs`/`--steps` flag; if it doesn't, **add one now** — this is part of full-experiment design, not optional).
+1. **Slice to 1 step / 1 batch**: invoke the full-scale script (`src/experiments/full/{script}.py`) with an override that caps it to 1 training step (ML), 1 timestep (PDE sim), 1 bootstrap iteration (causal), 1 k-point (eigenvalue), or 1 claim (interpretive). The script MUST already expose such a cap (Step 4 design rule "Add checkpointing" implies a `--max-steps`/`--max-epochs`/`--steps` flag; if it doesn't, **add one now** — this is part of full-experiment design, not optional).
 2. **Run with a 60-second foreground timeout** (`subprocess.run(timeout=60)`). This is cheap and stays in the foreground budget. The slice must: (a) import without exception, (b) load the real dataset (or a 1-row slice of it — verifying the data path + parsing are correct, not just synthetic), (c) execute 1 step of the actual computation, (d) write a checkpoint + 1 row to STATUS.json, (e) exit 0.
 3. **Verdict**:
    - Smoke `PASS` (exit 0, 1 STATUS.json row written, no exception) → proceed to dispatch the **full** run (remove the step cap). The gate's only job was to prove the script is dispatchable; it does not validate the *results* (that's Phase 10's job).
@@ -436,7 +436,7 @@ Check environment:
 ```bash
 # Create detached session
 tmux new-session -d -s "sfexp_{experiment_id}" \
-  "cd {workdir} && python code/experiments/full/{script}.py 2>&1 | tee logs/experiments/{experiment_id}.log"
+  "cd {workdir} && python src/experiments/full/{script}.py 2>&1 | tee logs/experiments/{experiment_id}.log"
 
 # Monitor: tmux attach -t sfexp_{experiment_id}
 ```
@@ -444,7 +444,7 @@ tmux new-session -d -s "sfexp_{experiment_id}" \
 **nohup dispatch** (universal fallback):
 
 ```bash
-cd {workdir} && nohup python code/experiments/full/{script}.py \
+cd {workdir} && nohup python src/experiments/full/{script}.py \
   > experiments/full/{experiment_id}.log 2>&1 &
 echo $! > experiments/full/{experiment_id}.pid
 disown
@@ -459,7 +459,7 @@ cat > /etc/systemd/system/sfexp-{experiment_id}.service << 'EOF'
 Description=SciForge Experiment {experiment_id}
 [Service]
 WorkingDirectory={workdir}
-ExecStart=/usr/bin/python3 code/experiments/full/{script}.py
+ExecStart=/usr/bin/python3 src/experiments/full/{script}.py
 StandardOutput=append:{workdir}/experiments/full/{experiment_id}.log
 StandardError=append:{workdir}/experiments/full/{experiment_id}.log
 Restart=on-failure

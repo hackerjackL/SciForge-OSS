@@ -1,6 +1,6 @@
 ---
 name: rebuttal
-version: 1.3.2
+version: 1.4.0
 description: "Point-by-point rebuttal / appeal letter generator: after a rejection or a review round, classify every reviewer point (experiment_redesign / pivot / kill / wording), concede what must be conceded, respond with evidence, and emit exact manuscript changes. Output: paper/REBUTTAL_LETTER.md. Invoke after reviews land or a rejection letter arrives."
 type: reference-skill
 role: rebuttal-letter-writer

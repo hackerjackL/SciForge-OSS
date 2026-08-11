@@ -1,6 +1,6 @@
 ---
 name: citation-audit
-version: 1.3.2
+version: 1.4.0
 description: "Final 3-layer citation verification (existence + metadata + context) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
 type: reference-skill
 role: bibliographic-integrity-auditor
@@ -336,6 +336,10 @@ The `--uncited` flag does **not** appear in this table: uncited entries are advi
 - **Pre-print vs published**: when both exist, reviewer should prefer the published venue (ICML 2024 over arXiv 2401.xxxxx) but flag both.
 - **Anthology vs OpenReview**: NeurIPS/ICLR papers have OpenReview entries before official proceedings; both are valid sources.
 - **Multi-author truncation**: bib entries with 6+ authors using `and others` are conventional and not flagged unless the truncation hides a co-author the user explicitly cares about.
+
+## Closure discipline (v1.4.0)
+
+The audit MUST NOT close while FIX items remain unresolved: every FIX (author-list correction, context mis-attribution, weak citation) is either repaired (re-verify via the 3-layer chain) or explicitly declared `unfixable` with a reason (e.g., source metadata genuinely absent). Silent carry-over of FIX items into the final manuscript is a contract violation — the eval gate treats unresolved FIX items as a blocked citation audit.
 
 ## Output Shape
 

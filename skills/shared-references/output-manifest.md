@@ -30,7 +30,7 @@ Every skill, after dual-writing its output (per [`output-versioning.md`](output-
 
 **Example row**:
 ```markdown
-| 2026-07-21T10:00:00Z | /domain-learner | domain-signature | .sciforge/refine-logs/domain-signature_20260721T100000Z.json | .sciforge/refine-logs/domain-signature.json | a3f5e8c1d2b4f6a8e0c2d4b6f8a0e2c4d6b8f0a2c4e6d8b0f2a4 |
+| 2026-07-21T10:00:00Z | /domain-learner | domain-signature | refine-logs/domain-signature_20260721T100000Z.json | refine-logs/domain-signature.json | a3f5e8c1d2b4f6a8e0c2d4b6f8a0e2c4d6b8f0a2c4e6d8b0f2a4 |
 ```
 
 **Field semantics**:

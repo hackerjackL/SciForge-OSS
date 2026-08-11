@@ -1,6 +1,6 @@
 ---
 name: paper-compile
-version: 1.3.2
+version: 1.4.0
 description: "Compile LaTeX (elsarticle) to submission-ready PDF with zero-warnings policy + anti-deadloop escalation + table/figure overflow checks. v3.4 Step 1.5 pipeline-leakage scrub gate consumer (refuses to compile if LEAKAGE_SCRUB.json missing/FAIL, defense-in-depth re-scan). Phase 13. Invoke after paper-writing to produce main.pdf."
 type: reference-skill
 role: latex-compiler
@@ -70,8 +70,8 @@ Verify all required files exist:
 1. Read `paper/LEAKAGE_SCRUB.json`. If it does NOT exist → the paper-writing skill never ran its Step 3.5 scrub gate. This is a contract violation: **BLOCKED**, `reason_code: leakage_scrub_gate_not_run`. Do NOT compile. Surface to the human: "paper-writing did not run the pipeline-leakage scrub gate (Step 3.5); the manuscript may contain internal paths/jargon/identifiers. Re-run /paper-writing before compiling."
 2. If `LEAKAGE_SCRUB.json` exists but `status != "PASS"` (e.g., `FAIL` with `hits_remaining > 0`) → **BLOCKED**, `reason_code: pipeline_leakage_not_scrubbed`, listing the `classes_seen` and `hits_remaining`. Do NOT compile. The manuscript still contains leakage that a reviewer would catch.
 3. If `status == "PASS"` (zero hits remaining) → proceed to Step 2 (compile).
-4. **Defense-in-depth re-scan** (even when PASS): before compiling, re-grep `paper/main.tex` + `paper/sections/*.tex` + `paper/math_commands.tex` for the 8 leakage classes defined in `/paper-writing` Step 3.5 (internal paths, phase jargon, audit verdicts, pipeline identifiers, rendering-pipeline captions, internal config, draft comments, frontmatter leak). If the re-scan finds hits the scrub missed (e.g., the scrub gate ran before a later edit re-introduced leakage), **BLOCKED** with the specific hits — do not trust the PASS stamp alone, re-verify against the actual file contents. Write any newly-found hits to `paper/LEAKAGE_SCRUB.json` as `defense_in_depth_hits` and refuse compile.
-5. On PASS + clean re-scan → write `paper/LEAKAGE_SCRUB_VERIFIED.json` (`{"verified_at":"<ISO>","re_scan_hits":0,"compile_allowed":true}`) and proceed to Step 2.
+4. **Defense-in-depth re-scan** (even when PASS): before compiling, re-grep `paper/main.tex` + `paper/sections/*.tex` + `paper/math_commands.tex` for the 8 leakage classes defined in `/paper-writing` Step 3.5 (internal paths, phase jargon, audit verdicts, pipeline identifiers, rendering-pipeline captions, internal config, draft comments, frontmatter leak). If the re-scan finds hits the scrub missed (e.g., the scrub gate ran before a later edit re-introduced leakage), **BLOCKED** with the specific hits — do not trust the PASS stamp alone, re-verify against the actual file contents. Merge any newly-found hits into the registered scrub verdict `.sciforge/verdicts/LEAKAGE_SCRUB.json` as `defense_in_depth_hits` (never a separate `paper/LEAKAGE_SCRUB.json` — legacy pre-v5.2 path) and refuse compile.
+5. On PASS + clean re-scan → write `paper/LEAKAGE_SCRUB_VERIFIED.json` (`{"verified_at":"<ISO>","re_scan_hits":0,"compile_allowed":true}`) and proceed to Step 2. This compile-permission token lives in `paper/` by contract — it is NOT a registered pipeline verdict and must NEVER be written into `.sciforge/verdicts/` (reserved for registered names).
 
 **Boundaries**:
 - This check is a **hard wall** — there is no `WARN` downgrade, no "compile anyway and flag it". A paper that has not passed the scrub gate does not compile, full stop. The zero-warnings compile policy is downstream of this gate: a clean compile of a leaky manuscript is a failure, not a success.

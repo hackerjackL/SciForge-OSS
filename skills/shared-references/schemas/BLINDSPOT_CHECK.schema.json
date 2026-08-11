@@ -4,7 +4,13 @@
   "title": "BLINDSPOT_CHECK.json - domain-expert blind-spot review (Phase B.2)",
   "description": "Produced by /auto-review-loop Phase B.2 per its SKILL.md. One check object per round; the docs say 'one per round, appended' while output-protocol.md fixes a single flat file - this schema validates the single latest-round object (known gap, see schemas/README.md). A fatal unresolved mode caps the round score at 5; severe caps at 6.",
   "type": "object",
-  "required": ["round", "evidence_type", "failure_modes_checked", "unresolved_count", "fatal_unresolved"],
+  "required": [
+    "round",
+    "evidence_type",
+    "failure_modes_checked",
+    "unresolved_count",
+    "fatal_unresolved"
+  ],
   "properties": {
     "round": {
       "type": "integer",
@@ -19,7 +25,10 @@
       "description": "One entry per failure mode in the evidence_type row of domain-failure-modes.md.",
       "items": {
         "type": "object",
-        "required": ["mode", "verdict"],
+        "required": [
+          "mode",
+          "verdict"
+        ],
         "properties": {
           "mode": {
             "type": "string",
@@ -27,7 +36,11 @@
           },
           "verdict": {
             "type": "string",
-            "enum": ["checked_clear", "not_applicable", "unresolved"]
+            "enum": [
+              "checked_clear",
+              "not_applicable",
+              "unresolved"
+            ]
           },
           "evidence": {
             "type": "string",
@@ -39,8 +52,12 @@
           },
           "severity": {
             "type": "string",
-            "enum": ["fatal", "severe"],
-            "description": "Catalog severity from domain-failure-modes.md (fatal caps score at 5, severe at 6)."
+            "enum": [
+              "fatal",
+              "severe",
+              "learned"
+            ],
+            "description": "Catalog severity from domain-failure-modes.md (fatal caps score at 5, severe at 6). 'learned' = mode learned from domain-signature.json with no catalog severity assigned; learned modes impose NO cap (they are checked, not capped)."
           },
           "added_to_fix_list": {
             "type": "boolean"
@@ -59,7 +76,7 @@
     },
     "fallback_reason": {
       "type": "string",
-      "description": "Present when domain-signature.json is missing and the derivational row is used as fallback (e.g. signature_missing)."
+      "description": "Present ONLY when domain-signature.json is missing and the derivational row is used as fallback (e.g. signature_missing). Omit the key entirely when no fallback occurred — never write null."
     }
   },
   "additionalProperties": true

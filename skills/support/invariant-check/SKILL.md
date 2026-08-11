@@ -1,6 +1,6 @@
 ---
 name: invariant-check
-version: 1.3.2
+version: 1.4.0
 description: "Verify INV-G1 problem-anchor freeze (Q-id referenced in every downstream artifact). Phase 9. Invoke before result-to-claim to ensure the question hasn't drifted."
 type: reference-skill
 role: phase-boundary-verifier
@@ -11,7 +11,7 @@ role: phase-boundary-verifier
 ## Quick Reference
 
 - **Purpose**: phase-boundary structural check — verify file existence, Q-id freeze, verdict validity
-- **Input**: .sciforge/refine-logs/FINAL_PROPOSAL.md + current-phase artifacts
+- **Input**: refine-logs/FINAL_PROPOSAL.md + current-phase artifacts
 - **Output**: INVARIANT_CHECK.json + INVARIANT_CHECK.md
 - **Key**: only INV-G1 (PROBLEM_ANCHOR_FREEZE) is active; no quality assessment, structural-integrity checks only
 
@@ -50,7 +50,7 @@ OSS has **one** active invariant. There is no discipline prefix table (main SciF
 
 | ID | Name | Trigger | Pass Condition | Fail Action | Rationale |
 |----|------|---------|----------------|-------------|-----------|
-| `INV-G1` | `PROBLEM_ANCHOR_FREEZE` | Before `/theory-derivation`, before `/logic-verification`, before `/paper-writing`, before `/result-to-claim` | The original problem statement's Q-id (from `the user-supplied research question`, supplied by the human user's prompt) is recorded in `.sciforge/refine-logs/FINAL_PROPOSAL.md` AND referenced in the current phase's working artifact (derivation chain / verification audit / paper draft / claim) | BLOCK — re-anchor to the original Q-id before proceeding | Prevents problem drift mid-paper. Without this, the agent may start solving a different (easier, more familiar) problem than the one the human user supplied. The freeze forces every phase to trace back to the same Q-id. |
+| `INV-G1` | `PROBLEM_ANCHOR_FREEZE` | Before `/theory-derivation`, before `/logic-verification`, before `/paper-writing`, before `/result-to-claim` | The original problem statement's Q-id (from `the user-supplied research question`, supplied by the human user's prompt) is recorded in `refine-logs/FINAL_PROPOSAL.md` AND referenced in the current phase's working artifact (derivation chain / verification audit / paper draft / claim) | BLOCK — re-anchor to the original Q-id before proceeding | Prevents problem drift mid-paper. Without this, the agent may start solving a different (easier, more familiar) problem than the one the human user supplied. The freeze forces every phase to trace back to the same Q-id. |
 
 **No other invariants are active in OSS.** Main SciForge's `INV-E1~E5` (economics PREREG_HASH / OUTCOME_CLASSIFICATION / LEAKAGE_AUDIT_VERDICT / DATA_SOURCE_CONSISTENCY / ESTIMATOR_VERIFICATION_GATE), `INV-C1~C4` (cs-ml BENCHMARK_PROTOCOL_LOCK / ABLATION_COMPLETENESS / SEED_STRATEGY_LOCK / LEAKAGE_AUDIT_VERDICT), `INV-P1~P5` (physics PNV_SKETCH_HASH / SIMULATION_REPRODUCIBILITY / LEAKAGE_AUDIT_VERDICT / PNV_CHAIN_CLOSURE / TYPE_IV_ESCAPE_CHECK) are all **removed** — they are discipline-specific and OSS has no discipline dispatch.
 
@@ -61,7 +61,7 @@ The universal `LEAKAGE_AUDIT_VERDICT` check (main SciForge had it as INV-E3 / IN
 The verifier reads from the project root. It does not modify any files except its own output.
 
 **Inputs** (checked, not consumed):
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` — from the orchestrator's Phase 1 (problem understanding); must contain the frozen Q-id
+- `refine-logs/FINAL_PROPOSAL.md` — from the orchestrator's Phase 1 (problem understanding); must contain the frozen Q-id
 - `.sciforge/verdicts/LEAKAGE_AUDIT.json` — from `/leakage-audit` (for the pre-paper-writing gate)
 - Current phase's working artifact (derivation chain / verification audit / paper draft / claim) — path passed by the orchestrator
 
@@ -100,7 +100,7 @@ Write to `.sciforge/verdicts/INVARIANT_CHECK.json`:
       "name": "PROBLEM_ANCHOR_FREEZE",
       "verdict": "PASS",
       "detail": "Q-id SCIMATH-042 frozen in FINAL_PROPOSAL.md and referenced in paper draft Section 1",
-      "evidence": ".sciforge/refine-logs/FINAL_PROPOSAL.md Q-id == paper/main.tex Section 1 Q-id reference"
+      "evidence": "refine-logs/FINAL_PROPOSAL.md Q-id == paper/main.tex Section 1 Q-id reference"
     }
   ]
 }
@@ -120,11 +120,11 @@ The orchestrator passes the phase boundary identifier (e.g. `before-theory-deriv
 
 ### Step 2: Run INV-G1 Check
 
-1. Check that `.sciforge/refine-logs/FINAL_PROPOSAL.md` exists. If not, verdict = `BLOCKED` (prerequisite missing).
+1. Check that `refine-logs/FINAL_PROPOSAL.md` exists. If not, verdict = `BLOCKED` (prerequisite missing).
 2. Extract the frozen Q-id from `FINAL_PROPOSAL.md` (the `Q-id:` field).
 3. Check that the current phase's working artifact (path passed by orchestrator) exists. If not, verdict = `BLOCKED`.
 4. Search the working artifact for a reference to the same Q-id. If found, verdict = `PASS`. If the Q-id is absent, verdict = `FAIL` (problem anchor lost). If a *different* Q-id is referenced, verdict = `FAIL` (problem drift — the agent started solving a different problem).
-5. **Problem-content hash check (v5.1 — from CRUX shadow-evaluation failure mode #3)**: beyond Q-id presence, verify that the problem **content** has not been rewritten. At first freeze, compute the SHA256 of the problem-statement paragraph in FINAL_PROPOSAL.md and write it to `.sciforge/refine-logs/PROBLEM_HASH.txt`; recompute and compare on every INV-G1 trigger. Mismatch → `FAIL (problem_content_rewritten)`. **Death mode addressed**: in the CRUX experiments, after all early detectors failed, the agent rewrote the goal into "prove that such detectors do not exist", then wrote a negative-result paper — "like a PhD student who, after finding the hypothesis fails, turns around and renames the thesis topic". The Q-id stayed unchanged but the substance of the problem changed; the old INV-G1 only checked Q-id presence and could not stop this rewrite
+5. **Problem-content hash check (v5.1 — from CRUX shadow-evaluation failure mode #3)**: beyond Q-id presence, verify that the problem **content** has not been rewritten. At first freeze, compute the SHA256 of the problem-statement paragraph in FINAL_PROPOSAL.md and write it to `refine-logs/PROBLEM_HASH.txt`; recompute and compare on every INV-G1 trigger. Mismatch → `FAIL (problem_content_rewritten)`. **Death mode addressed**: in the CRUX experiments, after all early detectors failed, the agent rewrote the goal into "prove that such detectors do not exist", then wrote a negative-result paper — "like a PhD student who, after finding the hypothesis fails, turns around and renames the thesis topic". The Q-id stayed unchanged but the substance of the problem changed; the old INV-G1 only checked Q-id presence and could not stop this rewrite
 6. Record the verdict, detail, and evidence.
 
 **The only legitimate path to change the problem**: if a negative result confirms the original problem is infeasible (toy/full evidence + KILL-or-PIVOT decision = KILL), run `/kill-argument` kill argument → back to Phase 2 to **explicitly swap the idea** (new Q-id, new FINAL_PROPOSAL, new PROBLEM_HASH), with the orchestrator logging the pivot/kill event — rewriting the problem wording in place on the original FINAL_PROPOSAL to "fit" the negative result is **forbidden**. In-place rewrite = `problem_content_rewritten` FAIL; swapping the idea and re-running = legitimate.

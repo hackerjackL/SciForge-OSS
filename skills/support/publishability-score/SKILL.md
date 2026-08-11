@@ -3,7 +3,7 @@ name: publishability-score
 description: "Final publishability scoring across dim1-first-axis + multi-dim. Phase 15.5. Invoke after citation-audit for the go/no-go submission verdict."
 type: support-skill
 role: paper-publishability-assessor
-version: 1.3.2
+version: 1.4.0
 ---
 > **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `.sciforge/verdicts/` (filenames: see the artifact directory structure in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).
 
@@ -57,7 +57,7 @@ Non-negotiable goals:
 
 **Weight notes**: dimension 1 is the primary axis (not counted in the 0.15 average; it gates instead); dimensions 2-6 are 0.15 each, summing to 0.75; the remaining 0.25 is modulated by dimension 1.
 
-**v6.0 evidence-norm calibration**: the evidence-strength dimension is scored against the discipline's `evidence_norm_profile` (`.sciforge/refine-logs/domain-signature.json` — sample_size_norm / control_design_norm / effect_reporting_norm / negative_result_norm; wiring per `domain-signature-consumer.md`): claims meeting the exemplar-venue bar score full, each unmet norm deducts per the rubric, and `negative_result_norm` decides whether a negative-result framing is publishable as-is or must carry a power analysis. Unknown norm → conservative default bar + `evidence_norm_missing` note in the score report. Formula:
+**v6.0 evidence-norm calibration**: the evidence-strength dimension is scored against the discipline's `evidence_norm_profile` (`refine-logs/domain-signature.json` — sample_size_norm / control_design_norm / effect_reporting_norm / negative_result_norm; wiring per `domain-signature-consumer.md`): claims meeting the exemplar-venue bar score full, each unmet norm deducts per the rubric, and `negative_result_norm` decides whether a negative-result framing is publishable as-is or must carry a power analysis. Unknown norm → conservative default bar + `evidence_norm_missing` note in the score report. Formula:
 ```
 total = 0.25 * dim1 + 0.15*(dim2+dim3+dim4+dim5+dim6)   # if dim1=0 then total ≤ 0.25*0 + 0.75 = 0.75, but see the hard cap below
 hard_cap_if_main_logic_fail: if dim1 == 0 → total capped at 0.4 (NOT_PUBLISHABLE_NO_MEAN), regardless of dim2-6
@@ -86,7 +86,7 @@ Read:
 - `.sciforge/verdicts/LOGIC_VERIFICATION.json` + `.sciforge/verdicts/LEAKAGE_AUDIT.json` (logic/leakage audit)
 - `.sciforge/audits/REVIEW_REPORT.md` + `.sciforge/audits/KILL_ARGUMENT.md` (Phase 14 review)
 - `literature/FILTER_CHAIN_AUDIT.json` (literature chain)
-- `.sciforge/refine-logs/FINAL_PROPOSAL.md` (core claim freeze)
+- `refine-logs/FINAL_PROPOSAL.md` (core claim freeze)
 - `.sciforge/PIPELINE_STATUS.md` (pipeline execution report)
 
 ### Step 2: Score Dimension 1 (Main-Experiment-Logic) — GATING
@@ -148,7 +148,7 @@ Write `PUBLISHABILITY_SCORE.json` + `PUBLISHABILITY_SCORE.md` (human-readable). 
     "theoretical_rigor": {"score": 0.9, "rationale": "...", "evidence": ["derivations/.../verification_report.md"]},
     "empirical_completeness": {"score": 0.4, "rationale": "main experiments✓ ablation✗ robustness✗ baselines✗", "evidence": ["experiments/"]},
     "writing_quality": {"score": 0.9, "rationale": "zero warnings✓ citations✓", "evidence": ["paper/COMPILE_REPORT.json"]},
-    "novelty_contribution": {"score": 0.8, "rationale": "...", "evidence": [".sciforge/refine-logs/novelty_report.json"]},
+    "novelty_contribution": {"score": 0.8, "rationale": "...", "evidence": ["refine-logs/novelty_report.json"]},
     "reproducibility": {"score": 0.9, "rationale": "render.py✓ seed42✓", "evidence": ["figures/"]}
   },
   "main_logic_gating": {"dim1_score": 1.0, "gating_triggered": false, "cap_applied": null},

@@ -1,6 +1,6 @@
 ---
 name: domain-learner
-version: 1.3.2
+version: 1.4.0
 description: "Learn a discipline's signature (evidence_type, methodology, writing style, failure modes, and v6.0 evidence_norm — what counts as sufficient evidence here) from literature — Phase 1b, sole writer of domain-signature.json. Invoke when the pipeline needs domain adaptation for a new problem."
 type: meta-skill
 role: domain-characteristic-learner
@@ -16,7 +16,7 @@ role: domain-characteristic-learner
 
 - **Purpose**: Auto-learn domain characteristics from literature, replacing hardcoded signatures
 - **Input**: Problem description + seed literature
-- **Output**: .sciforge/refine-logs/domain-signature.json (overrides the rule signature; consumed uniformly downstream)
+- **Output**: refine-logs/domain-signature.json (overrides the rule signature; consumed uniformly downstream)
 - **Key**: Learns from scratch every run, no predefined rules — including v6.0 `evidence_norm_profile` (what counts as sufficient evidence in this discipline); output path matches /domain-signature to guarantee seamless downstream consumption
 
 ## How It Works
@@ -166,8 +166,8 @@ for better domain adaptation.
 
 ## Output Shape
 
-- `.sciforge/refine-logs/domain-signature.json` — learned domain profile (overrides /domain-signature's low-confidence output; consumed uniformly by all downstream skills; schema compatible with /domain-signature)
-- `.sciforge/refine-logs/domain-learning-log.md` — detailed learning log (searches, analyses, synthesis)
+- `refine-logs/domain-signature.json` — learned domain profile (overrides /domain-signature's low-confidence output; consumed uniformly by all downstream skills; schema compatible with /domain-signature)
+- `refine-logs/domain-learning-log.md` — detailed learning log (searches, analyses, synthesis)
 
 ## Boundaries
 

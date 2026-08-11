@@ -7,7 +7,7 @@
 >
 > The three originals were deleted in v1.0.0; their content is preserved here in three clearly-delineated sections. The previous cross-references between the three files (each cited the other two in "See Also") are collapsed into the unified guide below.
 >
-> **Core principle**: Domain adaptation is a wiring layer, not a discipline branch. Every skill reads `.sciforge/refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. This guide is the **concrete mechanism** — follow the steps exactly to ensure domain adaptation works correctly.
+> **Core principle**: Domain adaptation is a wiring layer, not a discipline branch. Every skill reads `refine-logs/domain-signature.json` at startup and adapts its behavior accordingly. This guide is the **concrete mechanism** — follow the steps exactly to ensure domain adaptation works correctly.
 
 ---
 
@@ -18,7 +18,7 @@
 ### Step 0: Prerequisites
 
 Before starting, verify:
-- [ ] `.sciforge/refine-logs/` directory exists
+- [ ] `refine-logs/` directory exists
 - [ ] `shared-references/domain-signature-consumer.md` exists
 - [ ] `shared-references/domain-failure-modes.md` exists
 - [ ] `shared-references/startup-protocol.md` exists
@@ -44,7 +44,7 @@ The user provides a problem. Example:
 2. Extract domain keywords → map to evidence_type
 3. Extract methodology keywords → map to methodology_profile
 4. Extract writing style signals → map to writing_profile
-5. Write .sciforge/refine-logs/domain-signature.json
+5. Write refine-logs/domain-signature.json
 ```
 
 **Concrete prompt for agent**:
@@ -60,7 +60,7 @@ Analysis:
 - Writing style: empirical economics → AER-style, author-year citations
 - Failure modes: endogeneity, omitted variable bias, selection bias
 
-Writing domain-signature.json to .sciforge/refine-logs/...
+Writing domain-signature.json to refine-logs/...
 ```
 
 ### Step 3: Execute Startup Protocol (Every Skill)
@@ -69,7 +69,7 @@ Writing domain-signature.json to .sciforge/refine-logs/...
 
 ```
 For each skill (idea-discovery, adversarial-falsification, paper-writing, etc.):
-  1. Check if .sciforge/refine-logs/domain-signature.json exists
+  1. Check if refine-logs/domain-signature.json exists
   2. If YES: Read it → Apply consumption rules → Log adaptation
   3. If NO: Log warning → Use defaults
 ```
@@ -78,7 +78,7 @@ For each skill (idea-discovery, adversarial-falsification, paper-writing, etc.):
 ```text
 I am executing Mandatory Startup Protocol for /idea-discovery.
 
-1. Check .sciforge/refine-logs/domain-signature.json → EXISTS
+1. Check refine-logs/domain-signature.json → EXISTS
 2. Read signature → evidence_type = "causal_inference"
 3. Look up consumption rules in domain-signature-consumer.md
 4. Found: causal_inference → perspective_weights = {theoretical: 0.3, computational: 0.5, qualitative: 0.2}
@@ -145,7 +145,7 @@ Logging: "Domain adaptation applied: paper-writing → style=AER, citation=autho
 
 ```text
 Check: Was the domain signature consumed?
-  - .sciforge/refine-logs/startup-log.md must contain "Domain adaptation applied" entries
+  - refine-logs/startup-log.md must contain "Domain adaptation applied" entries
   - Each entry must specify which skill, which field, and which value
 
 Check: Did the output reflect domain adaptation?
@@ -158,7 +158,7 @@ If any check fails: Log WARNING and apply manual override
 
 ### Step 6: Handle Missing Signature
 
-If `.sciforge/refine-logs/domain-signature.json` does not exist:
+If `refine-logs/domain-signature.json` does not exist:
 
 ```text
 1. Log: "WARNING: No domain signature found. Using default behavior."
@@ -206,7 +206,7 @@ Test 3: Medicine
 DOMAIN ADAPTATION EXECUTION
 ============================
 1. RECEIVE problem → extract domain signals
-2. EXTRACT signature → write to .sciforge/refine-logs/domain-signature.json
+2. EXTRACT signature → write to refine-logs/domain-signature.json
 3. STARTUP each skill → read signature → apply rules → log
 4. EXECUTE phase → with adapted behavior
 5. VERIFY adaptation → check logs and output
@@ -628,7 +628,7 @@ Output: Humanities-style paper with argument-counterargument structure
 [ ] Gate 4: Falsifiability → FAIL (claim is not falsifiable)
 [ ] Fantasy verdict: FANTASY or MOSTLY_FANTASY
 [ ] Phase 12: Paper writing is BLOCKED (fantasy prevention)
-[ ] Fantasy log entry is written to .sciforge/refine-logs/fantasy-log.md
+[ ] Fantasy log entry is written to refine-logs/fantasy-log.md
 ```
 
 **Pass Condition**: All 6 checks pass → FANTASY_PREVENTION: PASS
@@ -676,7 +676,7 @@ Output: Humanities-style paper with argument-counterargument structure
 **Expected Behavior**:
 ```
 [ ] Phase 2.5: Data requirements spec generated
-[ ] Phase 2.5: data-requirements.json written to .sciforge/refine-logs/
+[ ] Phase 2.5: data-requirements.json written to refine-logs/
 [ ] Ouroboros: data-availability-report.json received
 [ ] Phase 10: Joint confidence computed (theoretical × data)
 [ ] Phase 12: Paper includes data limitations section

@@ -23,7 +23,7 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 │   ├── .sciforge/APPROVAL_LOG.txt                  ← human-checkpoint + test_mode bypass log
 │   ├── .sciforge/verdicts/                         ← all machine-readable verdicts (flat, fixed names — see output-protocol.md)
 │   ├── logs/                             ← pipeline state stream: pipeline.log + phase_<n>.log
-│   ├── .sciforge/refine-logs/
+│   ├── refine-logs/
 │   │   ├── IDEA_CANDIDATES.md / IDEA_DAG.json / MCTS_LOG.md / GAP_ANCHOR_LOG.md
 │   │   ├── ENGINEERING_GROUNDING.md      ← EG report (Phase 2.5b)
 │   │   ├── FRONTIER_MAP.json             ← frontier node graph (Phase 3)
@@ -57,7 +57,7 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 │       ├── derivation_output.md          ← derivation report (Phase 6)
 │       └── verification_report.md        ← SymPy verification (Phase 6)
 │
-├── code/                                 ← [single home] for all scripts (v5.0, unchanged)
+├── src/                                 ← [single home] for all scripts (v5.0, unchanged)
 │   ├── derivations/                      ←   derivation/symbolic-verification scripts
 │   ├── experiments/                      ←   experiment scripts (toy/full/ablation/hyperparameter)
 │   ├── figures/                          ←   rendering scripts
@@ -147,7 +147,7 @@ Every artifact produced is appended to `.sciforge/MANIFEST.md` as it is created 
 | Phase | Artifact | Path | Status | Hash (optional) |
 |-------|----------|------|--------|-----------------|
 | 0 | PROBLEM.md | problem/PROBLEM.md | frozen | sha256:... |
-| 2 | IDEA_CANDIDATES.md | .sciforge/refine-logs/IDEA_CANDIDATES.md | done | |
+| 2 | IDEA_CANDIDATES.md | refine-logs/IDEA_CANDIDATES.md | done | |
 | 4 | references.bib | literature/references.bib | verified (N entries) | |
 | 6 | derivation_output.md | derivations/{id}/derivation_output.md | machine-verified | |
 | 6b | RESULT.json | experiments/toy/session_*/RESULT.json | PASS | |

@@ -3,7 +3,7 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.2-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -462,7 +462,7 @@ SciForge-OSS 的完成离不开以下贡献，谨此致以诚挚谢意：
 
 - **Luo H. W.**（GewisLab 负责人）——项目发起、核心研究思路与整体架构设计。
 - **Yang J. T.**——主要开发者，负责框架的实现与工程落地。
-- **Yang J. T.、Lu Y. H.、Li L. S.、Jia W. H.、Qiu Y. M.、Zhang W. B.、Wang C. Y.、Fan L. Q.**（排名不分先后）——慷慨提供计算资源（API token）支持，支撑本仓库持续的自迭代、优化与维护。
+- **Yang J. T.、Lu Y. H.、Li L. S.、Jia W. H.、Qiu Y. M.、Zhang W. B.、Wang C. Y.、Fan L. X.、Zhao J.**（排名不分先后）——慷慨提供计算资源（API token）支持，支撑本仓库持续的自迭代、优化与维护。
 
 同时感谢所有通过 issue 与 pull request 改进 SciForge-OSS 的贡献者。
 

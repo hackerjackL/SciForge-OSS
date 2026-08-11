@@ -1,8 +1,58 @@
 # Changelog
 
-## [Unreleased]
+## [1.4.0] - 2026-08-10
+
+### v1.4.0 全量修复轮（跑测反馈 → skill 全量修正，279 tests 全绿）
+
+**失败假设不再当贡献（负向贡献清除）**
+- paper-writing / result-to-claim：贡献列表只收 `polarity: positive`；`boundary`/`negative`（含 "Honest validation boundaries"、"we report these boundaries"、"structurally non-calibratable" 等 framing）一律路由到 Limitations/Discussion，出现在贡献/摘要/结论 → FAIL `negative_result_as_contribution`；paper-writing 自检新增 #12 负向贡献扫描
+
+**图表印刷级 overhaul（太小/字不是黑/太简陋）**
+- sciforge_style v2.2：文本/刻度/轴全黑 `#000000`、纯白底 `#FFFFFF`（移除灰褐 ink 与 off-white science 底）；字号地板提升到印刷尺度（轴≥16/刻度≥13/图例≥13/标题≥18/注释≥12）；线宽主≥1.8；新增 `figsize_full/single/panel` 印刷尺寸契约（按最终嵌入宽度渲染，杜绝 8in 图缩到 2in panel）；composite 默认 ≤2 列（3-across 数据图即"字太小"元凶）
+- 同步更新 color-themes.md / unified-plotting / figure-quality-contract 指引与示例（黑字白底、≤2 列、印刷字号）
+
+**目录工程化（code/ → src/，去重）**
+- 工作区代码目录 `code/` 全量改名 `src/`（13 个 skill 文件 + output-protocol 树 + e2e 测试同步），对齐真实工程框架；`derivations/ experiments/ figures/` 只放产物、`src/` 单家放脚本，paper/ 不再复制代码
+
+**正文 vs 附录 + 篇幅 + 断点**
+- writing-principles 新增 §Main-text vs Appendix + 篇幅预算（主结果图/主对比必须在正文；附录只放证明/扩展表/次要鲁棒性/代码；主体 6-9 页、>12 页过长按压缩）；paper-writing 自检 #13 放置+篇幅审计
+- output-protocol RUNSTATE 契约强化：每个 sub-phase（1a/1b/2.5/6a/6b/6c/15.5）与后台 dispatch 返回都写断点，"DAG 无一条链路无断点"
+
+**去模型名 + 署名 + 边界**
+- 清除 skill 内全部模型名（gpt-5.5 / GPT-4o / Gemini 等 → 占位符/通用表述）；skill 不含 eval harness（纯 pytest 测试保留）
+- 致谢名单：Fan L. Q. → Fan L. X.，新增 Zhao J.（中英 README + CHANGELOG 同步）
+- INSTALL.md 增补 v1.4.0 边界说明（印刷契约零新增依赖；eval harness 与模型端点均在 skill 外部）
+
+### 端到端跑测版本：work v6.0 边界修正 + RUNSTATE 续航 + RUN_PREPRINT 归档 + WP3 三轮对抗性评审修复
+
+**边界修正（基于全链路跑测反馈）**
+- `.sciforge/` 边界收窄：隐藏层只保留管线机制 + 判定（RUNSTATE、MANIFEST、verdicts/、管线日志、审计叙述、tmp）；**研究痕迹（IDEA_CANDIDATES / IDEA_DAG / GAP_ANCHOR_LOG / FRONTIER_MAP / FINAL_PROPOSAL / domain-signature 等）从产出那一刻就写在可见层 `refine-logs/`**，不再"最后才移植"——output-protocol.md、artifact-registry.md、project-architecture-contract.md 及全 35 个相关 skill 文件同步修正
+
+**RUNSTATE 续航契约（Long-Horizon Resume）**
+- `.sciforge/RUNSTATE.json`：每个 boundary 与 human checkpoint 重写（current_phase / last_completed_boundary / next_action / status / pending_approvals / budget_snapshot）
+- 启动恢复协议：非 completed 的 RUNSTATE 存在时，校验 verdict 完整性 + 迁移 legacy 路径 + 从 next_action 续跑——天级运行不怕会话死亡
+- schemas/RUNSTATE.schema.json 已注册
+
+**RUN_PREPRINT 跨 run 归档（AgentRxiv 机制借鉴）**
+- Phase 16 新增 `output/RUN_PREPRINT.md` 产出义务：本次 run 的 gap-ids / fired kills / verdict 摘要 / 失败笔记 / 预算消耗
+- idea-discovery 可查询同级工作区的 RUN_PREPRINT.md 归档（`PREPRINT:<run-id>#<gap>` 锚定），系统自身历史成为一等文献证据
+
+**WP3 对抗性评审修复（CRUX 失败模式映射，三轮迭代）**
+- **Round 1**：BLINDSPOT_CHECK schema severity 枚举扩展（+`learned`）；REVIEW_LEDGER finalized 条目须带 score/verdict；verdicts/ 预留规则（只许注册名，phase-internal 归 refine-logs/）；paper-compile 泄漏扫描路径修正；harness stdin DEVNULL 降噪
+- **Round 2**：optional-null 容忍（validator：非必填字段 null 当缺省处理）；REVIEW_STATE `response_class` 必填强调
+- **Round 3**：paper-writing abstract/conclusion 追溯规则（逐句对照 CLAIMS_FROM_RESULTS，失败假设只能按限制性结论处理）；result-to-claim 失败 pre-registration 必须重定为 LIMIT/NEGATIVE（不许把失败的 claim 改头换面当新 claim）；method-registry 校准参数必须带 sensitivity sweep（单点 match 不算验证）；citation-audit 不许带着未修复的 FIX 项关闭
+- **Round 3 补充**：LEAKAGE_AUDIT schema `callback.iteration` 最小值 1→0（无回调的正常审计可迭代 0 次）；注册 EVALUATION_REVIEW.json（对抗性评审 verdict，21 个注册 artifact）
 
 ### 许可证变更：MIT → PolyForm Noncommercial 1.0.0
+- LICENSE 由 MIT 更换为 [PolyForm Noncommercial License 1.0.0](LICENSE)，版权声明改为 GewisLab
+- 个人及非商用用途免费（科研、学习、教育、公益、政府机构等）；商用用途不在协议授权范围内，需另行购买商业授权
+- 同步更新 package.json / CITATION.cff / SKILL.md 的 license 字段，以及 README（中英）的徽章与许可章节
+- 注：历史 CHANGELOG 条目中记录的 "MIT" 为该版本发布时的真实状态，保持不变
+
+### 致谢更新
+- 计算资源（API token）提供者致谢名单新增 Wang C. Y.、Fan L. X.、Zhao J.（中英 README 同步）
+
+：MIT → PolyForm Noncommercial 1.0.0
 
 - LICENSE 由 MIT 更换为 [PolyForm Noncommercial License 1.0.0](LICENSE)，版权声明改为 GewisLab
 - 个人及非商用用途免费（科研、学习、教育、公益、政府机构等）；商用用途不在协议授权范围内，需另行购买商业授权
@@ -12,7 +62,7 @@
 
 ### 致谢更新
 
-- 计算资源（API token）提供者致谢名单新增 Wang C. Y.、Fan L. Q.（中英 README 同步）
+- 计算资源（API token）提供者致谢名单新增 Wang C. Y.、Fan L. X.、Zhao J.（中英 README 同步）
 
 ## [1.3.2] - 2026-08-09
 

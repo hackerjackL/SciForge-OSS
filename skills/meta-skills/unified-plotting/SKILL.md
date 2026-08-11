@@ -1,6 +1,6 @@
 ---
 name: unified-plotting
-version: 1.3.2
+version: 1.4.0
 description: "Render publication-quality vector figures (PDF+SVG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.5 UNIFIED SINGLE-ENTRY RENDERER: all diagram engines (d2/graphviz/tikz/SVG) consolidated behind one tool `scripts/plotting/render_figure.py` with embedded Nature-level audit. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
@@ -29,7 +29,7 @@ role: figure-renderer-and-spec-generator
 >
 > **v3.8 composite figure engine (Composite — SCI Zone-1 norm, contract §7)**: multi-panel composite figures (4/6/N panels) are assembled via the single entry point `render_figure.py xxx.composite.json`: panels (PDF/PNG) → grid layout → **(a)(b)(c)… bold panel labels** (reserved strip above each panel, never covering content) → dual output + audit. **Composition decisions follow Nature/Science/Cell logic**: compose by narrative unit (only panels belonging to the same argument/experiment chain share one figure), panel count **hard cap 9** (beyond it the renderer rejects outright — split the figure or move panels to supplementary material — the "everything-in-one-pot" anti-pattern), single-panel figures remain equally legal, numbering adapts continuously to the panel count. Every panel must **independently** satisfy all audit and complexity rules — composite assembly cannot rescue low-quality panels. Data plots (curves/ablations/heatmaps, etc.) join composite figures as panels; when coexisting in one figure with schematic panels, the style must be unified (same font family / color sequence / line width).
 >
-> **v3.9 two-tier visual review (Visual Review — zero external API, see [`figure-quality-review.md`](../../shared-references/figure-quality-review.md))**: the mechanical audit (A1–A10) verifies structure only, not aesthetics; visual quality is closed by a two-tier protocol: **Tier 1 = the agent's own native vision** — when the host agent can read images (multimodal models such as Claude/GPT-4o/Gemini), after every render it **must open `output.svg` and self-review item by item against the 9-item visual checklist** (message readability / visual hierarchy / whitespace balance / wiring legibility / typography scan / palette discipline / icon discriminability / composite-specific / print-shrink test), write the answers into `revision_log.md`, and fix at source + re-render when problems are found; **Tier 2 = external advisor** (optional — used only when the deployment already has a model endpoint; the skill stores no credentials and initiates no calls). **A text-only agent cannot read images → record `visual-review: skipped-text-only`, deliver per the mechanical audit, never block**. Capability detection is a host attribute: this skill never calls an external vision API on the host's behalf.
+> **v3.9 two-tier visual review (Visual Review — zero external API, see [`figure-quality-review.md`](../../shared-references/figure-quality-review.md))**: the mechanical audit (A1–A10) verifies structure only, not aesthetics; visual quality is closed by a two-tier protocol: **Tier 1 = the agent's own native vision** — when the host agent can read images (a multimodal, vision-capable host), after every render it **must open `output.svg` and self-review item by item against the 9-item visual checklist** (message readability / visual hierarchy / whitespace balance / wiring legibility / typography scan / palette discipline / icon discriminability / composite-specific / print-shrink test), write the answers into `revision_log.md`, and fix at source + re-render when problems are found; **Tier 2 = external advisor** (optional — used only when the deployment already has a model endpoint; the skill stores no credentials and initiates no calls). **A text-only agent cannot read images → record `visual-review: skipped-text-only`, deliver per the mechanical audit, never block**. Capability detection is a host attribute: this skill never calls an external vision API on the host's behalf.
 
 > **Agent-driven staged design workflow (borrows AutoFigure-Edit's staged assembly idea, MIT licensed; this skill has zero external API — the "model" is the agent itself, and users get it out of the box with their own Claude/Codex/AtomCode)**:
 > 1. **Skeleton**: extract the component list + data flow + grouping hierarchy from the methods-section text; write the layout skeleton first (containers/rows-columns/edges), do not rush to draw
@@ -176,7 +176,7 @@ From the request, extract:
 4. **Title** — figure title (optional)
 5. **Legend** — series labels and grouping
 6. **Annotations** — specific points, regions, or formulas to emphasize
-7. **Q-id** — the frozen problem Q-id (from `.sciforge/refine-logs/FINAL_PROPOSAL.md`) — reference in the figure's preserved spec
+7. **Q-id** — the frozen problem Q-id (from `refine-logs/FINAL_PROPOSAL.md`) — reference in the figure's preserved spec
 
 Validate data shape matches chart type:
 - Line plot → 2D coordinate array (x, y)
@@ -209,13 +209,14 @@ Write the complete Python render script (`render.py`):
 5. Apply labels, title, legend, and annotations
 6. **Save BOTH `output.pdf` AND `output.svg`** (v2.2: dual output non-negotiable — PDF for LaTeX, SVG for viewing/editing)
 7. Set random seed for reproducibility
-8. **Set `figsize` to a 16:9 ratio** (e.g., `(8, 4.5)`, `(10, 5.625)`) unless `aspect_ratio` overridden
+8. **Set `figsize` to the physical width the figure will occupy in the paper** (print-size contract, v2.2): use `sciforge_style.figsize_full()` for a full-textwidth figure, `figsize_single()` for a single column, `figsize_panel(cols)` for one panel of a composite. Do NOT render a large figure (e.g. `(8,4.5)`) and then shrink one panel of it to ~2in — that is exactly the "tiny unreadable fonts" failure. Aspect stays ~16:9 for full-width, taller for single-column.
 
-**Code quality rules (v2.2 — Nature-level floor per [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §3)**:
+**Code quality rules (v2.2 print contract — Nature-level floor per [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §3)**:
 - Every axis must carry unit annotation (e.g., "Time (s)", "Energy (eV)")
-- **Font sizes meet Nature floor**: axis labels ≥ 12pt, tick labels ≥ 10pt, legend ≥ 10pt, title ≥ 13pt, annotations ≥ 9pt (was 10pt/8pt — too small)
-- **Line widths**: primary ≥ 1.5pt, secondary ≥ 0.8pt
-- **Marker size**: ≥ 6pt
+- **All text is pure black `#000000` on a pure white `#FFFFFF` ground** (no grey/brown ink, no off-white science-style background)
+- **Font sizes meet the print floor AT FINAL EMBEDDED SCALE**: axis labels ≥ 16pt, tick labels ≥ 13pt, legend ≥ 13pt, title ≥ 18pt, annotations ≥ 12pt
+- **Line widths**: primary ≥ 1.8pt, secondary ≥ 1.0pt
+- **Marker size**: ≥ 7pt
 - Legend must not overlap data
 - `theme: academic` uses morandi palette (NEVER tab10/Set2/matplotlib defaults)
 - For continuous scalar fields (heatmap/surface/contour), use viridis/magma/plasma (NEVER jet/rainbow/hsv)
@@ -252,12 +253,12 @@ python scripts/plotting/render_figure.py spec.d2 \
 Hand-write a minimal SVG only when the diagram has ≤ 4 nodes and no auto-layout is needed. Deliver it through the unified CLI (`--engine svg`) so dual output + audit still apply:
 ```svg
 <svg width="800" height="450" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
-  <rect x="0" y="0" width="800" height="450" fill="#FAF8F5"/>
+  <rect x="0" y="0" width="800" height="450" fill="#FFFFFF"/>
   <rect x="80" y="160" width="200" height="90" rx="8" fill="#EDE9E2" stroke="#6E675F" stroke-width="1.5"/>
-  <text x="180" y="212" text-anchor="middle" font-family="TeX Gyre Heros, sans-serif" font-size="22" fill="#3A3733">Input</text>
-  <line x1="280" y1="205" x2="520" y2="205" stroke="#3A3733" stroke-width="2"/>
-  <rect x="520" y="160" width="200" height="90" rx="8" fill="#93A7BB" stroke="#6E675F" stroke-width="1.5"/>
-  <text x="620" y="212" text-anchor="middle" font-family="TeX Gyre Heros, sans-serif" font-size="22" fill="#3A3733">Output</text>
+  <text x="180" y="212" text-anchor="middle" font-family="TeX Gyre Heros, sans-serif" font-size="22" fill="#000000">Input</text>
+  <line x1="280" y1="205" x2="520" y2="205" stroke="#665F57" stroke-width="2"/>
+  <rect x="520" y="160" width="200" height="90" rx="8" fill="#8AA1BC" stroke="#6E675F" stroke-width="1.5"/>
+  <text x="620" y="212" text-anchor="middle" font-family="TeX Gyre Heros, sans-serif" font-size="22" fill="#000000">Output</text>
 </svg>
 ```
 
