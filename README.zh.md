@@ -347,7 +347,7 @@ SciForge-OSS/
 │   ├── security_scan.py                   ← agent 实验脚本派发前静态安全扫描
 │   ├── ci_check.py                        ← CI 单一入口（断链/版本/plotting/测试）
 │   └── verifiers/                         ← 外部产物校验器（评审台账、论文审计）
-├── tests/                                 ← 270+ pytest 用例（色板/审计/校验器/e2e 冒烟/verifier）
+├── tests/                                 ← 300+ pytest 用例（色板/审计/校验器/e2e 冒烟/verifier）
 ├── fixtures/e2e_minimal/                  ← 最小端到端 fixture（toy 实验 + 完整 verdict 链）
 ├── .workflow/ci.yml                       ← AtomGit Actions CI（与 ci_check.py 同一门控）
 └── [删除: templates/ 占位目录、discipline-templates/、experiment-*、plugin-router、wiki-helper、problems/ 题库]

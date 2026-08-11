@@ -272,7 +272,7 @@ SciForge-OSS/
 │   ├── security_scan.py             # static pre-dispatch scan for agent-authored experiments
 │   ├── ci_check.py                  # single CI entry point (links/versions/plotting/tests)
 │   └── verifiers/                   # external artifact verifiers (review ledger, paper audits)
-├── tests/                           # 270+ pytest cases (palette, audits, validator, e2e smoke, verifiers)
+├── tests/                           # 300+ pytest cases (palette, audits, validator, e2e smoke, verifiers)
 ├── fixtures/e2e_minimal/            # minimal end-to-end fixture (toy experiment + full verdict trail)
 ├── .workflow/ci.yml                 # AtomGit Actions CI (same gate as ci_check.py)
 ├── skills/
