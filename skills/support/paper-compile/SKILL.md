@@ -178,6 +178,27 @@ Deterministic (not eyeballed) checks on the compiled artifact:
 4. **No float-only page**: no body page may consist solely of figures/tables with no running text (scan per-page text length; a page whose non-whitespace text is only captions → `WARN`).
 - **Verdict**: `FAIL` on (1)/(2); `WARN` on (3)/(4). These feed the zero-warnings policy: a layout FAIL blocks submission like any compile warning.
 
+### Step 5.7: Figure-Embedding Gate (v1.4.0 — cures "figures rendered but never inserted")
+
+A model can render N vector figures and still ship a manuscript with zero
+`\begin{figure}`. This gate is **mechanical and model-independent** — run it
+before (or as part of) compilation and treat FAIL exactly like a compile error:
+
+```bash
+python scripts/check_figure_embedding.py paper/ --min-figures <budget>
+```
+
+- It counts `\begin{figure}` environments across `paper/main.tex` + `sections/*.tex`
+  and cross-checks that **every** `figures/**/*.pdf` on disk is referenced by an
+  `\includegraphics`/`\input`. Exit 2 = FAIL.
+- `<budget>` = the figure budget from `/unified-plotting`'s Figure Budget Contract
+  (≥1 architecture + 2-4 results; a body with fewer than 2 figures is a FAIL).
+- **Verdict**: exit 2 → `FAIL, reason_code: figures_not_embedded`; do NOT compile a
+  paper whose figures exist only on disk. Fix by `\input{figures/<id>/latex_include.tex}`
+  (or `\includegraphics`) for each missing figure, then re-run. This is the hard wall
+  that makes "the figure got dropped" impossible regardless of which model assembles
+  the paper.
+
 ### Step 6: Page Count Verification (v5.1 — hard FAIL on page overrun, from CRUX shadow-evaluation failure mode #5)
 
 **CRITICAL**: Verify paper fits within Max pages (OSS unified default: 15).

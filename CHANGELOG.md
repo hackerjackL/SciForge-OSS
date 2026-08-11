@@ -2,6 +2,12 @@
 
 ## [1.4.0] - 2026-08-10
 
+### v1.4.0 第四轮：图嵌入硬门（模型无关，防"图生了没插进正文"，290 tests 全绿；版本号不变）
+- 新增 `scripts/check_figure_embedding.py`：机械交叉核对——正文 `\begin{figure}` 数 ≥ 预算，且 `figures/**/*.pdf` 每张都被 `\includegraphics`/`\input` 引用，否则 exit 2。
+- `paper-compile` 新增 Step 5.7 Figure-Embedding Gate：exit 2 → `FAIL, figures_not_embedded`，拒编译"图只在磁盘上"的论文。
+- `paper-writing` 自检 #8 强化：渲染保留的 `latex_include.tex` 必须被 `\input`，图不得只存在于磁盘。
+- 通用、学科无关；针对真实跑测中"9 张图生成但正文 0 图"的组装失误，任何模型都拦得住。论文交付目录不在本仓库改动范围。
+
 ### v1.4.0 第三轮自检（断裂/泄露/错误/版本对账，285 tests 全绿；版本号不变）
 - **版本对账**：25/25 个 SKILL.md + package.json + CITATION.cff + README 徽章全部 1.4.0（sciforge_style 内部设计版本 v2.x 独立，不计）
 - **泄露**：模板 author/affiliation 由 `SciForge-OSS` 改为中性的 `[... to be completed at submission]` 占位（品牌不再进 PDF）；paper-writing 泄漏扫描新增 **Class I（工具品牌 + 虚构 frontmatter）**；模型名复核全清
