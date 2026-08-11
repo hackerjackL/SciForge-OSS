@@ -168,6 +168,16 @@ After visual review, explicitly verify table and figure boundaries:
 - Verify no `\ref{}` points to a non-existent label
 - **Verdict**: `FAIL` if any figure/table has no text reference; `WARN` if any `\ref{}` target is undefined
 
+### Step 5.6: Float Placement & Blank-Space Check (v1.4.0 — cures "figure drifts pages away / big blanks / one figure eats a page")
+
+Deterministic (not eyeballed) checks on the compiled artifact:
+
+1. **Float control present**: `grep -E "placeins|\\\\usepackage\{float\}|floatpagefraction" paper/main.tex` must hit (the unified template ships `\usepackage[section]{placeins}` + `\usepackage{float}` + fraction tuning). Missing → `FAIL, reason_code: float_control_missing` (figures would float unbounded).
+2. **No float-page promotion**: `grep -iE "float too large|too many floats" paper/compile.log` must be empty. A hit means LaTeX pushed a figure onto its own page → `FAIL` and shrink/split the offending figure (see `figure_audit.py` A2 float-page-risk WARN) then recompile.
+3. **Figure near first reference**: for each `\label{fig:X}`, extract per-page text (`pdftotext -layout`) and compare the page of the figure environment vs the page of its first `\cref{fig:X}`; drift > 1 page → `WARN` (placeins should already bound this to the section; a WARN means the figure is too tall — split it).
+4. **No float-only page**: no body page may consist solely of figures/tables with no running text (scan per-page text length; a page whose non-whitespace text is only captions → `WARN`).
+- **Verdict**: `FAIL` on (1)/(2); `WARN` on (3)/(4). These feed the zero-warnings policy: a layout FAIL blocks submission like any compile warning.
+
 ### Step 6: Page Count Verification (v5.1 — hard FAIL on page overrun, from CRUX shadow-evaluation failure mode #5)
 
 **CRITICAL**: Verify paper fits within Max pages (OSS unified default: 15).

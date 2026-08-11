@@ -2,6 +2,26 @@
 
 ## [1.4.0] - 2026-08-10
 
+### v1.4.0 第二轮完全体加固（LaTeX 浮动/编译尺寸 + 参考图级审美 + 根依赖 + 经验回放 + 静默断点，285 tests 全绿；版本号不变）
+
+**LaTeX 浮动 & 编译尺寸（平衡式）**
+- 模板加 `\usepackage[section]{placeins}` + `\usepackage{float}` + `\topfraction/\bottomfraction/\textfraction/\floatpagefraction` 调优 → 图不出本节、不再一图占整页/大空白
+- `render_figure.py` 输出 `[!htbp]`（替代自由 `[htbp]`）；`figure_audit.py` A2 新增"float-page 风险"（嵌入高度估 >7.2in → WARN 拆分/加宽）
+- `paper-compile` 新增 Step 5.6 确定性检查：placeins 存在 / log 无 "float too large" / 图距首次引用 ≤1 页 / 无纯浮动页
+
+**参考图级审美（精修莫兰迪 + 经典黑白结构）**
+- `sciforge_style` v2.2：ink=纯黑 #000000、ink-soft 中性灰、纯白底；仅 y 向浅 grid、去 top/right spines；新增 `series_style/add_error_band/legend_top/figsize_*` —— 实验图 = line+band + 每系列 marker + 顶部横排 legend + log-x（对齐用户给的 640.png）
+- unified-plotting 新增 Step 3d「Figure-1 级 overview 构图 recipe」（编号阶段/嵌套容器/图标词汇/度量 glyph/虚线 callout/单主干箭头，对齐 239.png）；figure-complexity-contract §3 增"编号阶段+单主干"线条纪律
+
+**根依赖外置 + 武器库**
+- 根新增 `requirements.txt`（core: matplotlib/numpy/Pillow；rec: SciencePlots；optional 注释）；README(中英) 加 `pip install -r requirements.txt`
+- INSTALL.md 新增 §0.5「武器库总表」（core/recommended/optional 分层，单入口 render_figure.py 消费，不并行）
+
+**经验回放 + 静默断点 + 失败闭环（CRUX 对应）**
+- 新增 `experience-replay-contract.md`：Phase 16 写 `LESSONS.json`（failed_experiments/idea_rollbacks/code_errors/what_worked）并镜像 output/；Phase 2/6b 读取作先验、`avoid` 为硬排除——越用越聪明，失败不当贡献也不静默丢弃
+- output-protocol 增 `.sciforge/RESUME_JOURNAL.md` 静默 append-only 变更日志（重启可见变更）
+- experiment-execution 增"失败→LESSON"路由
+
 ### v1.4.0 全量修复轮（跑测反馈 → skill 全量修正，279 tests 全绿）
 
 **失败假设不再当贡献（负向贡献清除）**

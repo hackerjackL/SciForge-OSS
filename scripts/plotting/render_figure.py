@@ -823,7 +823,7 @@ def write_latex_include(outdir: Path, name: str, caption: str | None,
             "% Composite figure — vector-faithful assembly: composite.tex\n"
             "% embeds the panel PDFs as vectors; output.pdf is a raster\n"
             "% preview only (see composite_meta.json).\n"
-            "\\begin{figure}[htbp]\n"
+            "\\begin{figure}[!htbp]\n"
             "    \\centering\n"
             f"    \\begin{{minipage}}{{{inner_w}}}\n"
             f"        \\input{{figures/{lab}/composite.tex}}\n"
@@ -833,7 +833,7 @@ def write_latex_include(outdir: Path, name: str, caption: str | None,
             "\\end{figure}\n", encoding="utf-8")
         return
     (outdir / "latex_include.tex").write_text(
-        "\\begin{figure}[htbp]\n"
+        "\\begin{figure}[!htbp]\n"
         "    \\centering\n"
         f"    \\includegraphics[{width_opt}]{{figures/{lab}/output.pdf}}\n"
         f"    \\caption{{{cap}}}\n"

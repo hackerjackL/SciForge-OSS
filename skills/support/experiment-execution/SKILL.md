@@ -316,6 +316,8 @@ Once triggered, enter the decision (written to the `kill_or_pivot` field of `EXP
 **Forbidden behaviors**:
 - "Keep tuning to force-rescue" is forbidden — when the toy has already falsified the core direction, tuning is stalling, not PIVOT
 - Repackaging negative toy results as "honest findings" to keep going is forbidden (negative-result discipline: see result-to-claim)
+
+**Failure → lesson (v1.4.0, experience replay)**: every FAIL / TIMEOUT / ERROR and every KILL-or-PIVOT decision is recorded with root cause + fix into the run's `LESSONS.json` (`failed_experiments` / `code_errors` / `idea_rollbacks`) per [`experience-replay-contract.md`](../../shared-references/experience-replay-contract.md), so the next run avoids the same configuration (`avoid` fields are hard exclusions at Phase 6b). The failure is thus *useful* (reusable judgment) without ever becoming a paper contribution.
 - PIVOT must change the **method** (method-registry re-registration, hash re-lock), not the hyperparameters
 
 ### Step 4: Design Full Experiment

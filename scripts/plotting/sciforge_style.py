@@ -61,9 +61,10 @@ def normalize_hex(h: str) -> str:
 # feedback round found v2.0 "not premium enough". Same validation gates.
 # --------------------------------------------------------------------------
 TOKENS: dict[str, str] = {
-    # ink & grounds (text, axes, backgrounds)
-    "ink": "#35322E",          # primary text / axes / arrows
-    "ink-soft": "#665F57",     # secondary text, strokes, gridlines
+    # ink & grounds (text, axes, backgrounds) — v2.2 classic black/white:
+    # every readable glyph and axis is pure black; strokes are neutral grey.
+    "ink": "#000000",          # primary text / axes / arrows (pure black)
+    "ink-soft": "#4D4D4D",     # secondary strokes / gridlines (neutral grey)
     "canvas": "#FFFFFF",       # figure background — PURE WHITE (v2.1)
     "surface": "#EDE9E2",      # default node fill / panel background
     "surface-alt": "#E3DDD3",  # alternating container fill
@@ -172,6 +173,34 @@ def figsize_panel(cols: int, aspect: float = 0.8) -> tuple[float, float]:
     """
     w = (TEXTWIDTH_IN * 0.94) / cols
     return (w, w * aspect)
+
+# --------------------------------------------------------------------------
+# Experiment-plot aesthetics (v2.3 — matches the 640.png reference: line+band
+# with per-series markers, top horizontal legend, log-x where warranted)
+# --------------------------------------------------------------------------
+MARKER_CYCLE = ["o", "s", "^", "D", "v", "P", "X", "*"]
+
+def series_style(i: int) -> dict:
+    """Consistent (color, marker) pair for series i so multi-line plots get
+    distinct markers like the reference, while colors stay on the morandi
+    series cycle."""
+    return {"color": SERIES_HEX[i % len(SERIES_HEX)],
+            "marker": MARKER_CYCLE[i % len(MARKER_CYCLE)]}
+
+def add_error_band(ax, x, y_mean, y_std, color, alpha: float = 0.16):
+    """Shaded +/-std (or CI) band around a line — the uncertainty device the
+    reference uses.  Call after plotting the mean line with the same color."""
+    y_mean = list(y_mean); y_std = list(y_std)
+    lo = [m - s for m, s in zip(y_mean, y_std)]
+    hi = [m + s for m, s in zip(y_mean, y_std)]
+    ax.fill_between(x, lo, hi, color=color, alpha=alpha, linewidth=0, zorder=1)
+
+def legend_top(ax, ncol: int | None = None):
+    """Frameless horizontal legend ABOVE the axes (as in the reference)."""
+    n = len(ax.get_legend_handles_labels()[0])
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02),
+              ncol=ncol or min(n, 4), frameon=False,
+              fontsize=NATURE_FLOOR["legend"])
 
 # d2 font sizes are SVG px; at the default ~1000px render width embedded at
 # 8in, 1px ≈ 0.58pt.  26px ≈ 15pt node labels — clears the raised 12pt
@@ -514,7 +543,11 @@ def apply_matplotlib_style(style: str = "academic") -> None:
         "axes.titlesize": NATURE_FLOOR["title"],
         "axes.titleweight": "bold",
         "axes.linewidth": 1.2,
-        "axes.grid": False,
+        # 640.png aesthetic: subtle horizontal gridlines ONLY, drawn under the
+        # data; top/right spines removed for a clean journal look.
+        "axes.grid": True,
+        "axes.grid.axis": "y",
+        "axes.axisbelow": True,
         "axes.spines.top": False,
         "axes.spines.right": False,
         "text.color": INK_TEXT,

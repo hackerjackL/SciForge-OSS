@@ -1,0 +1,17 @@
+# SciForge-OSS — Python dependencies (figure/data pipeline + audit).
+# Install:  pip install -r requirements.txt
+# Full cross-platform toolchain (d2/texlive/rsvg/... "arsenal") lives in
+# scripts/plotting/INSTALL.md; only the Python side is listed here.
+
+# --- core (required for data plots + the embedded Nature-level audit) ---
+matplotlib>=3.5
+numpy>=1.21
+Pillow>=9.0
+
+# --- recommended (journal-grade plot geometry) ---
+SciencePlots>=2.1
+
+# --- optional engines / fallbacks (uncomment if you use those render engines) ---
+# cairosvg>=2.6        # pure-Python SVG->PDF fallback when rsvg/inkscape absent
+# diagrams>=0.23       # mingrammer diagram-as-code (pro icon sets)
+# blockdiag>=3.0       # blockdiag/actdiag/seqdiag/nwdiag swimlane diagrams

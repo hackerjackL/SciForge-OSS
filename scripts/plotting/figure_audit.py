@@ -162,6 +162,7 @@ def audit_resolution(svg: Path, rep: Report, figdir: Path | None = None) -> None
         # adaptive width floor: a journal single-column preset legitimately
         # renders narrower than the 1200px wide-figure default
         floor = 1200.0
+        mm = 0.0
         if figdir is not None:
             pf = figdir / "width_preset.txt"
             if pf.is_file():
@@ -176,6 +177,20 @@ def audit_resolution(svg: Path, rep: Report, figdir: Path | None = None) -> None
                                   "column figs)")
         else:
             rep.add("A2", "PASS", f"SVG {w:.0f}x{h:.0f} viewBox (vector)")
+        # float-page risk (v1.4.0): a figure whose EMBEDDED height approaches a
+        # full page gets promoted to a float-only page by LaTeX (the "one figure
+        # eats a whole page / big blank" failure).  Estimate embedded height from
+        # the physical width (preset or full-textwidth default) x aspect ratio.
+        if w and h:
+            width_in = (mm / 25.4) if (figdir is not None and
+                                       (figdir / "width_preset.txt").is_file()
+                                       and mm) else 5.7
+            height_in = width_in * (h / w)
+            if height_in > 7.2:
+                rep.add("A2", "WARN",
+                        f"embedded height ~{height_in:.1f}in is close to a full "
+                        "page — LaTeX will float it onto its own page; split "
+                        "panels, reduce rows, or use a wider/shorter layout")
     # aspect ratio — contract §1 (ALL engines covered)
     ratio = w / h if h else 0
     override = bool(figdir and (figdir / "aspect_override.txt").is_file())

@@ -24,6 +24,8 @@ PLOTTING_DIR = REPO_ROOT / "scripts" / "plotting"
 if str(PLOTTING_DIR) not in sys.path:
     sys.path.insert(0, str(PLOTTING_DIR))
 
+import sciforge_style as st  # noqa: E402  (design tokens for palette-valid fixtures)
+
 # ---------------------------------------------------------------------------
 # skipif helpers for external tools (importable by the test modules)
 # ---------------------------------------------------------------------------
@@ -48,7 +50,7 @@ def _minimal_svg(width: int = 1600, height: int = 900,
         texts = (("Encoder", 300, 370),)
     body = "\n".join(
         f'  <text x="{x}" y="{y}" font-size="{font_size}" '
-        f'fill="#35322E">{label}</text>'
+        f'fill="{st.TOKENS["ink"]}">{label}</text>'
         for label, x, y in texts
     )
     return f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -57,7 +59,7 @@ def _minimal_svg(width: int = 1600, height: int = 900,
      font-family="Liberation Sans, sans-serif">
   <rect x="0" y="0" width="{width}" height="{height}" fill="#FFFFFF"/>
   <rect x="200" y="250" width="420" height="220" rx="8"
-        fill="#EDE9E2" stroke="#665F57" stroke-width="2"/>
+        fill="#EDE9E2" stroke="{st.TOKENS["ink-soft"]}" stroke-width="2"/>
 {body}
 {extra}
 </svg>
