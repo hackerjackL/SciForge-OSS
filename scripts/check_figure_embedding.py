@@ -11,6 +11,9 @@ Checks (FAIL => exit 2, so /paper-compile can refuse to compile):
   2. every figure PDF on disk (figures/*.pdf or figures/<id>/output.pdf) is
      actually referenced by an \\includegraphics / \\input in main.tex or its
      \\input'ed section files.
+  3. with --require-renderer: every figure was produced by the unified renderer
+     (figures/<id>/ carries figure_audit.json + latex_include.tex; no flat
+     hand-written pdfs) — cures "bypassed render_figure.py => no audit/palette".
 
 Usage:
   python scripts/check_figure_embedding.py <paper_dir> \
@@ -68,6 +71,35 @@ def collect_figure_pdfs(fig: Path) -> list[Path]:
     return sorted(fig.rglob("*.pdf"))
 
 
+def check_renderer_produced(fig: Path) -> list[str]:
+    """v1.4.0 hard gate: figures must come from the unified renderer.
+
+    `render_figure.py` always writes a per-figure directory containing the
+    deliverables PLUS `figure_audit.json` (Nature/palette/print-floor audit) and
+    `latex_include.tex` (the embed snippet).  A model that hand-writes matplotlib
+    and drops flat *.pdf/*.svg straight into figures/ bypasses the audit, the
+    palette/typography contract and the embed snippet — exactly the failure that
+    produced "figures rendered but 0 in the body".  Flag both shapes.
+    """
+    problems: list[str] = []
+    if not fig.is_dir():
+        return problems
+    flat = sorted(p.name for p in fig.iterdir()
+                  if p.is_file() and p.suffix in (".pdf", ".svg"))
+    if flat:
+        problems.append(
+            "flat figure file(s) not produced by the unified renderer (must live in "
+            "figures/<id>/ with figure_audit.json + latex_include.tex): %s" % flat)
+    for d in sorted(fig.iterdir()):
+        if d.is_dir() and any(p.suffix == ".pdf" for p in d.rglob("*.pdf")):
+            miss = [m for m in ("figure_audit.json", "latex_include.tex")
+                    if not (d / m).is_file()]
+            if miss:
+                problems.append("figure dir '%s' missing renderer artifact(s) %s"
+                                % (d.name, miss))
+    return problems
+
+
 def _referenced(pdf: Path, fig: Path, tokens: set[str]) -> bool:
     rel = pdf.relative_to(fig)
     cands = {pdf.name, pdf.stem, pdf.parent.name, str(rel), str(rel.with_suffix(""))}
@@ -81,6 +113,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("paper_dir", type=Path)
     ap.add_argument("--figures-dir", type=Path, default=None)
     ap.add_argument("--min-figures", type=int, default=1)
+    ap.add_argument("--require-renderer", action="store_true",
+                    help="v1.4.0 hard gate: also FAIL if figures were not produced "
+                         "by the unified renderer (flat pdfs, or dirs lacking "
+                         "figure_audit.json + latex_include.tex)")
     args = ap.parse_args(argv)
 
     paper = args.paper_dir
@@ -103,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
     if missing:
         problems.append(f"figure PDF(s) on disk never embedded in the "
                         f"manuscript: {missing}")
+    if args.require_renderer:
+        problems.extend(check_renderer_produced(fig))
 
     if problems:
         print("FIGURE-EMBEDDING FAIL")

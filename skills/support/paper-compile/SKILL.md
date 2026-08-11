@@ -185,8 +185,13 @@ A model can render N vector figures and still ship a manuscript with zero
 before (or as part of) compilation and treat FAIL exactly like a compile error:
 
 ```bash
-python scripts/check_figure_embedding.py paper/ --min-figures <budget>
+python scripts/check_figure_embedding.py paper/ --min-figures <budget> --require-renderer
 ```
+
+`--require-renderer` (v1.4.0) additionally FAILs if any figure was NOT produced by the
+unified renderer — i.e. flat hand-written `figures/*.pdf`, or a `figures/<id>/` dir
+lacking `figure_audit.json` + `latex_include.tex`. This closes the bypass where a model
+hand-writes matplotlib and skips the Nature audit / morandi palette / print floors.
 
 - It counts `\begin{figure}` environments across `paper/main.tex` + `sections/*.tex`
   and cross-checks that **every** `figures/**/*.pdf` on disk is referenced by an
