@@ -1,6 +1,6 @@
 ---
 name: citation-audit
-version: 1.4.0
+version: 1.5.0
 description: "Final 3-layer citation verification (existence + metadata + context) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
 type: reference-skill
 role: bibliographic-integrity-auditor
@@ -377,3 +377,12 @@ Together: code → result → claim → cited claim. Each layer has cross-family
 - [`shared-references/citation-discipline.md`](../../shared-references/citation-discipline.md) — protocol document for citation hygiene
 - [`shared-references/reviewer-independence.md`](../../shared-references/reviewer-independence.md) — cross-model review constraints
 - [`shared-references/integration-contract.md`](../../shared-references/integration-contract.md) — reserved overlay rows for other discipline venue allowlists (CS-ML / Physics / General)
+
+## Verified-ref cache (v1.5.0 — cross-run, optional)
+
+Re-verifying the same canonical references every run wastes time on long tasks. Keep a local
+`verified_papers.json` cache (key: DOI/arXiv-id → {layers passed, timestamp, metadata}); a ref
+verified within the TTL (e.g. 90 days) skips Layers 1-2 and only re-checks Layer 3 (context)
+against the current manuscript. A cache miss or any drift falls back to the full 3-layer chain.
+The cache never weakens verification: existence/metadata are re-checked on TTL expiry and any
+FIX invalidates the entry.
