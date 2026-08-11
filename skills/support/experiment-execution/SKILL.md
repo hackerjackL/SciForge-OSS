@@ -147,9 +147,9 @@ When large datasets (HLE ~several GB, PaperBench, NatureBench, ImageNet, COCO, P
 
 **Strictly forbidden**: skipping dataset acquisition because downloads are slow/timed out, substituting purely synthetic data for the real dataset (unless domain-signature explicitly allows it), or basing a toy gate PASS on incomplete, not-fully-downloaded data without flagging it.
 
-### Step 0a: Device Detection (v2.2 — CPU/GPU/NPU auto-detect)
+### Step 0a: Device Detection (v2.2 — CPU/GPU/NPU auto-detect; v1.4.0 domain-driven, canonical tool)
 
-Before running any experiment script, detect the available compute device. This machine has a small GPU (may not always); some machines have NPU; CPU is always available.
+Compute is **domain-dependent, not CPU-first and not GPU-first**: deep-learning domains want a GPU, Ascend workloads a NPU, symbolic/statistical/humanities runs only a CPU. So the device is **judged first** (Phase 0/6) via the canonical `python scripts/detect_device.py` (which probes nvidia-smi/rocminfo/npu-smi/mps/torch and prints a DEVICE profile JSON; `--out .sciforge/DEVICE.json` persists it), and the chosen backend + the matching optional compute extra (requirements.txt "compute backends") follow from that profile. Before running any experiment script, detect the available compute device. This machine has a small GPU (may not always); some machines have NPU; CPU is always available.
 
 **Detection order** (first match wins):
 1. `nvidia-smi` returns a GPU → `device=cuda` (NVIDIA GPU; PyTorch `torch.cuda.is_available()` confirms; check VRAM — this machine has ~12GB)
