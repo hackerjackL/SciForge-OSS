@@ -85,13 +85,13 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   ├── GAP_REPORT.md   ←   literature gap-mining report, broad-wave output (v6.0 gap chain; every gap carries a gap-id + cited evidence)
 │   └── TARGETED_WAVE_LOG.md ← per-idea targeted retrieval waves (append-only, v6.0 gap chain)
 ├── methods/            ← method-registry artifacts (METHOD_REGISTRY.md / METHOD_BINDING.md / OUTCOME_CLASSIFICATION.md / EVALUATION_PROTOCOL.md)
-├── derivations/        ← theory-derivation artifacts (.md documents only; scripts go to code/)
-├── code/               ← the [single home] for algorithms and source code (v5.0)
+├── derivations/        ← theory-derivation artifacts (.md documents only; scripts go to src/)
+├── src/               ← the [single home] for algorithms and source code (v5.0)
 │   ├── derivations/    ←   derivation/symbolic-verification scripts (formerly derivations/*.py, moved here)
 │   ├── experiments/    ←   experiment scripts (toy/full/ablation/hyperparameter, incl. group_<name>/)
 │   ├── figures/        ←   rendering scripts (render.py / spec.d2 / *.composite.json)
 │   └── utils/          ←   shared utility functions
-├── experiments/        ← experiment-execution artifacts (RESULT.json/data; scripts go to code/experiments/)
+├── experiments/        ← experiment-execution artifacts (RESULT.json/data; scripts go to src/experiments/)
 ├── logs/               ← [experiment & training logs ONLY] (v6.0: "logs" restored to its plain meaning)
 │   ├── experiments/    ←   {experiment_id}.log (stdout/stderr tee) + STATUS.json summary mirror
 │   └── checkpoints/    ←   model/training checkpoints of experiment runs
@@ -107,7 +107,7 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 The tree above is a **registry of canonical locations, not a pre-created skeleton**. Directories are created **on first canonical write** and never speculatively:
 
 1. A skill that writes an artifact creates its target directory at write time (`mkdir -p` semantics); no phase pre-creates the tree.
-2. Whole subtrees that a run legitimately never touches simply never exist. A theory-only/humanities run has no `experiments/`, `code/experiments/`, `logs/`, or `figures/` — that is CORRECT, not an error to be filled with placeholders.
+2. Whole subtrees that a run legitimately never touches simply never exist. A theory-only/humanities run has no `experiments/`, `src/experiments/`, `logs/`, or `figures/` — that is CORRECT, not an error to be filled with placeholders.
 3. Which verdicts a run will never produce is DECLARED, not guessed: `.sciforge/verdicts/VERIFICATION_ROUTING.json` carries `na_verdicts` (filenames from the .sciforge/verdicts/ table above that the chosen route + declared skips make Not-Applicable). `validate_verdicts.py` reports them as **N/A** instead of pending, and the wrap-up cleanliness audit treats the corresponding absent directories as legitimate. Default declaration sets per route are defined in [`verification-routing.md`](verification-routing.md) §5; the orchestrator copies the applicable set into the routing decision at Phase 6 entry and extends it with later declared skips (e.g., a Phase 11 figure-skip adds `FIGURE_AUDITS.json`).
 4. Emptiness rule: because of rule 1 an empty directory can only arise from an aborted write — the wrap-up protocol deletes it (after checking the MANIFEST for a contract reference).
 
@@ -123,7 +123,7 @@ The tree above is a **registry of canonical locations, not a pre-created skeleto
 
 Runs are long (hours to days) and sessions die. `.sciforge/RUNSTATE.json` is the machine-readable checkpoint that makes interruption survivable:
 
-1. **Written at every phase boundary** (and at forced human checkpoints) by the orchestrator: current phase, last completed boundary, next action, run status, pending human approvals, budget snapshot. Schema: `skills/shared-references/schemas/RUNSTATE.schema.json`.
+1. **Written at every phase boundary AND every sub-phase boundary** (1a/1b/2.5/6a/6b/6c/15.5, every background-dispatch return, and at forced human checkpoints) by the orchestrator: current phase, last completed boundary, next action, run status, pending human approvals, budget snapshot. **No link in the DAG lacks a breakpoint** — a run interrupted inside any sub-phase resumes from the last completed one, never from the top. Schema: `skills/shared-references/schemas/RUNSTATE.schema.json`.
 2. **Resume protocol** (orchestrator startup): if `{problem_id}/.sciforge/RUNSTATE.json` exists with status ≠ `completed` → run `python3 scripts/validate_verdicts.py {problem_id}/.sciforge/verdicts/` to verify state integrity → migrate any legacy-path artifacts (rule 5 above) → resume from `next_action`. A missing/corrupt RUNSTATE with a non-empty .sciforge/verdicts/ directory is itself a WARN (`resume_state_lost`) — resume is still possible from the verdict trail, but the human is told the checkpoint was lost.
 3. **Status vocabulary**: `running` / `paused_checkpoint` (awaiting human approval) / `paused_blocked` (BLOCKED verdict, human decision needed) / `completed` / `killed`.
 
@@ -136,7 +136,7 @@ Runs are long (hours to days) and sessions die. `.sciforge/RUNSTATE.json` is the
 
 **Single-Home Principle (v5.0, paths updated v6.0 — cures "directory chaos + code duplication")**:
 1. Every artifact class has a **unique canonical path** (table above); artifacts of the same class written elsewhere → audit WARN, and the writer is responsible for migrating them
-2. **Code exists in exactly one place, `code/`**: experiment/derivation/rendering scripts all go into the corresponding subdirectory of `code/`; `derivations/`, `figures/`, `experiments/` hold **only artifacts and documents** (.md/.json/PDF/SVG/data), **never scripts** — this eliminates the "code gets copied into paper/ once more during paper writing" duplication (no code copies inside paper/; code references go only through the Reproducibility statement pointing at `code/`)
+2. **Code exists in exactly one place, `src/`**: experiment/derivation/rendering scripts all go into the corresponding subdirectory of `src/`; `derivations/`, `figures/`, `experiments/` hold **only artifacts and documents** (.md/.json/PDF/SVG/data), **never scripts** — this eliminates the "code gets copied into paper/ once more during paper writing" duplication (no code copies inside paper/; code references go only through the Reproducibility statement pointing at `src/`)
 3. **Pipeline logs are centralized only in `.sciforge/logs/`**: stages no longer each create their own log files scattered in the root directory; `pipeline.log` is the single authoritative status stream (containing the PIPELINE_STATUS events), and each skill's process logs go to `.sciforge/logs/phase_<n>.log`. **Experiment/training logs** stay visible under `logs/` (their consumers are humans debugging runs, and they belong with the experiment deliverables)
 4. Migration compatibility: reads check the new canonical path first and fall back to the old path if not found (backward compatible with old run directories); writes always use the new path
 
@@ -155,13 +155,13 @@ On reads, the stage-scoped path is tried first; if not found, fall back to the r
 **Temporary-file ban (hard rules)**:
 1. The workspace root directory **allows only** the delivery-layer directories defined in the directory tree + `.sciforge/` + the top-level entry files listed there; any stray `.py`/`.tmp`/`.bak`/`.swp`/`nohup.out`/`core.*`/`*.orig`/`__pycache__/` → deleted or migrated by the wrap-up cleanup protocol
 2. **Temporary files go only into `/tmp` or `.sciforge/tmp/`**: debug scripts, rendering intermediates, and download caches are all written to `/tmp` (outside the pipeline) or `.sciforge/tmp/` (whole directory deleted at wrap-up); **never** into the workspace root or stage directories
-3. Experiment datasets (downloaded raw data) go into `experiments/data/<dataset_id>/`, not into `code/`, not into the workspace root
+3. Experiment datasets (downloaded raw data) go into `experiments/data/<dataset_id>/`, not into `src/`, not into the workspace root
 4. `nohup.out` / background-process output must always be redirected to `logs/experiments/<experiment_id>.log` (the experiment-execution dispatch command template forces a tee to that path)
 
 **Orphan-artifact governance**:
 1. **Orphan = an artifact with no upstream reference**: every stage artifact must be referenced by at least one downstream contract (the MANIFEST's `consumer` field); a MANIFEST entry written with an empty consumer → WARN `orphan_artifact`
 2. **Artifacts of rejected branches**: after a KILL/PIVOT, the artifacts of the rejected idea are **not deleted** (audit tracing needs them) but moved en masse into the `refine-logs/abandoned/<idea_id>/` archive — the active workspace keeps only the current idea's artifacts; history stays inspectable but out of the way
-3. **Zero tolerance for duplicate artifacts**: the same content present at two paths (e.g., code in both `code/` and `paper/`) → audit FAIL `duplicate_artifact`; symlinks are the only legitimate "same artifact visible in multiple places" mechanism
+3. **Zero tolerance for duplicate artifacts**: the same content present at two paths (e.g., code in both `src/` and `paper/`) → audit FAIL `duplicate_artifact`; symlinks are the only legitimate "same artifact visible in multiple places" mechanism
 
 **Wrap-up cleanup protocol (executed at every phase boundary + at the pipeline end state)**:
 1. Scan the workspace: delete `.sciforge/tmp/`, empty directories, `*.pyc`/`__pycache__/`, 0-byte files (keep anything with a contract reference)

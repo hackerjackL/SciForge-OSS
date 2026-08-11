@@ -11,7 +11,7 @@
 | Categorical/semantic colors | morandi (Layer 1) | Low saturation, soft, elegant. C* ≤ 25 (numerically validated) |
 | Continuous data heatmaps | viridis / magma / plasma (Layer 2) | Perceptually uniform, color-blind friendly |
 | Emphasis/annotation | `ochre` / `rose` tokens | Arrows, highlights, borders |
-| Text/axes | `ink` (#3A3733) | All body text, axis lines |
+| Text/axes/labels | **black `#000000`** (v2.2) | Every glyph, tick and axis spine is pure black; the morandi palette is ONLY for series fills/lines, never for text |
 
 ## Morandi palette (Layer 1) — fully consistent with sciforge_style.py
 
@@ -19,9 +19,9 @@
 
 | Token | HEX | C* | Use |
 |-------|-----|-----|------|
-| ink | #3A3733 | 3.0 | Primary text, axes, arrows |
-| ink-soft | #6E675F | 5.6 | Secondary text, node strokes, grid lines |
-| canvas | #FAF8F5 | 1.7 | Canvas background |
+| text/axes (INK_TEXT) | #000000 | 0.0 | **All** text, ticks, axis spines, arrows — pure black (v2.2) |
+| ink-soft | #665F57 | ~5 | Node strokes, grid lines (never for readable text) |
+| canvas/ground | #FFFFFF | 0.0 | Figure background — pure white, no off-white/grey |
 | surface | #EDE9E2 | 3.9 | Default node fill / panel background |
 | surface-alt | #E3DDD3 | 5.6 | Alternating container fill |
 
@@ -67,11 +67,14 @@
 |------|------|
 | Format | Dual output: PDF (embedded in LaTeX, the sole delivery format) + SVG (for viewing/editing) |
 | Fonts | Data figures: TeX Gyre Termes (serif, matches LaTeX); d2 figures: Liberation Sans (injected via CLI font file) |
-| Font sizes | Axis labels ≥12pt, ticks ≥10pt, legend ≥10pt, title ≥13pt, annotations ≥9pt |
-| Line widths | Primary lines ≥1.5pt, secondary lines ≥0.8pt |
-| Markers | ≥6pt, distinct shapes (circle/square/diamond) |
+| Text color | **Pure black `#000000`** on pure white `#FFFFFF` — never grey/brown ink, never off-white grounds (v2.2) |
+| Font sizes (AT FINAL EMBEDDED SCALE) | Axis labels ≥16pt, ticks ≥13pt, legend ≥13pt, title ≥18pt, annotations ≥12pt, diagram nodes ≥14pt |
+| Line widths | Primary lines ≥1.8pt, secondary lines ≥1.0pt |
+| Markers | ≥7pt, distinct shapes (circle/square/diamond) |
 | Captions | Self-contained: "Figure N. content + key conclusion" |
 | References | `\cref{fig:label}` — no hard-coded "Figure 3" |
+
+**Print-size contract (v2.2 — cures "figures too small in LaTeX")**: render every data plot at the physical width it will occupy in the paper (`sciforge_style.figsize_full()` / `figsize_single()` / `figsize_panel(cols)`), so the LaTeX embed scale is ~1:1 and the floors above are what the reader actually sees. Rendering an 8in plot and shrinking one panel of it to ~2in (3-across) is the failure this contract removes. Composite figures therefore default to **≤2 columns** for data panels; 3-across is reserved for simple schematics and must be requested explicitly in the `.composite.json` manifest.
 
 ## Forbidden colors (rejected by numerical validation)
 

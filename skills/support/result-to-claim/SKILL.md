@@ -198,7 +198,7 @@ Read `AGENT_DOC.md` for `DISCIPLINE_CONTEXT` block. In OSS, this is **always** `
 
 Gather derivation/verification evidence from whatever sources are available in the project:
 
-1. **Symbolic derivation logs** (`code/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
+1. **Symbolic derivation logs** (`src/derivations/{problem_id}/derivation.py` + `derivations/{problem_id}/derivation_output.md`): the SymPy proof chain from `/theory-derivation`.
 2. **Numerical sanity checks** (`derivations/{problem_id}/verification_report.md`): parameter sweeps, counterexample searches from `/dynamic-sandbox`.
 3. **Logic verification audit** (`.sciforge/verdicts/LOGIC_VERIFICATION.json`): the 6-dim audit from `/logic-verification`.
 4. **refine-logs/FINAL_PROPOSAL.md**: intended claims and derivation design (primary source).
@@ -257,7 +257,7 @@ A qualitative "looks right" judgment does not support a "proven" claim.
    - **Main-experiment-level negative** (core hypothesis unsupported) → not a writing problem, a direction problem: route back to `/experiment-execution`'s **KILL-or-PIVOT stop protocol** (toy level) or trigger a method re-examination (full level); the paper pipeline pauses pending new evidence — **continuing to write the paper on a falsified core hypothesis is forbidden**
    - **Local/boundary negative** (a sub-scenario, baseline, or ablation group falls short) → write into **Limitations/Discussion** as a boundary statement ("our method shows no advantage under condition X, indicating the applicability boundary is Y") — this is the correct form of academic honesty
 3. **Ablation/hyperparameter negatives are information, not failure**: an ablation shows a component adds no gain → report honestly that the component's contribution is not significant (valid scientific information in itself), but do not elevate it to a contribution claim such as "we found removal is better" without main-experiment-level evidence
-4. **Audit hook**: every claim in `CLAIMS_FROM_RESULTS.md` carries a `polarity: positive|boundary` field; an entry with `polarity: negative` appearing in the claims list → `/paper-writing` self-check FAIL (`reason_code: negative_result_as_contribution`)
+4. **Audit hook**: every claim in `CLAIMS_FROM_RESULTS.md` carries a `polarity: positive|boundary|negative` field. ONLY `polarity: positive` entries may feed the paper's contributions list / Abstract / conclusion. An entry with `polarity: boundary` or `polarity: negative` appearing in the claims/contributions list → `/paper-writing` self-check FAIL (`reason_code: negative_result_as_contribution`). `boundary` entries are routed to a dedicated `limitations:` field in `CLAIMS_FROM_RESULTS.md` that `/paper-writing` consumes ONLY for the Limitations/Discussion section. A failed hypothesis (pre-registration FAILED at full fidelity) is NEVER re-typed as a contribution — it is a `LIMIT`/`NEGATIVE` entry or a KILL-or-PIVOT trigger, never a `\item` in the contributions list
 
 ### Step 3: Parse and Normalize
 

@@ -210,7 +210,8 @@ def test_d2_preamble_contains_tokens_and_selectors():
     assert "*.style:" in p
     assert "(* -> *).style:" in p
     assert st.TOKENS["surface"] in p      # shape fill
-    assert st.TOKENS["ink"] in p          # edge stroke / font color
+    assert st.INK_TEXT in p               # v2.2: black text (font-color)
+    assert st.TOKENS["ink-soft"] in p     # edge stroke
     assert str(st.D2_FONT_PX["node"]) in p
 
 

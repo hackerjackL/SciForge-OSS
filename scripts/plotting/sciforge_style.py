@@ -116,20 +116,62 @@ FONT_STACK_SERIF = ["TeX Gyre Termes", "Liberation Serif", "DejaVu Serif"]
 FONT_STACK_SANS = ["TeX Gyre Heros", "Liberation Sans", "DejaVu Sans"]
 
 # --------------------------------------------------------------------------
-# Typography (Nature floor) — v2.1: floors raised globally (test feedback:
-# "all figures' font sizes run small")
+# Typography (Nature floor) — v2.2: floors raised to PRINT size (test feedback:
+# "figures look small / fonts unreadable once embedded in LaTeX").  These are
+# the sizes the reader sees AT FINAL EMBEDDED SCALE, assuming the figure is
+# rendered at the physical width it will occupy (see figsize_* helpers below).
 # --------------------------------------------------------------------------
 NATURE_FLOOR = {
-    "axis_label": 13.0,
-    "tick_label": 11.0,
-    "legend": 11.0,
-    "title": 15.0,
-    "annotation": 10.0,
-    "diagram_node": 12.0,   # physical pt equivalent for d2/graphviz text
-    "diagram_edge": 10.0,
+    "axis_label": 16.0,
+    "tick_label": 13.0,
+    "legend": 13.0,
+    "title": 18.0,
+    "annotation": 12.0,
+    "diagram_node": 14.0,   # physical pt equivalent for d2/graphviz text
+    "diagram_edge": 12.0,
 }
-LINEWIDTH = {"primary": 1.6, "secondary": 0.9, "diagram_stroke": 1.5}
-MARKER_SIZE_MIN = 6.5
+LINEWIDTH = {"primary": 1.8, "secondary": 1.0, "diagram_stroke": 1.6}
+MARKER_SIZE_MIN = 7.0
+
+# Black on pure white is the only acceptable text/ground combination for a
+# scientific paper figure.  The morandi tokens remain the CATEGORICAL series
+# palette (fills / lines) but every glyph, tick and axis spine is black, and
+# the figure background is pure white — no off-white / grey science-style
+# grounds and no brown-grey ink (v2.2, eval feedback: "text is not black").
+INK_TEXT = "#000000"
+GROUND = "#FFFFFF"
+
+# --------------------------------------------------------------------------
+# Print-size contract (v2.2 — cures "figures too small in LaTeX")
+# --------------------------------------------------------------------------
+# A figure's fonts are only as big as (font_pt * embedded_width/render_width).
+# The recurring failure was rendering a data plot at ~8in and embedding one
+# panel of it at ~2in (3-across composite) -> 4x shrink -> 13pt becomes 3pt.
+# The fix is to RENDER AT THE PHYSICAL SIZE THE FIGURE WILL OCCUPY, so the
+# embed scale is ~1:1 and the NATURE_FLOOR sizes are what the reader sees.
+# elsarticle [preprint,12pt] text block is ~6.3in; a single-column journal
+# figure is ~3.5in.  These helpers return (w_in, h_in) for plt.figure(figsize=...).
+TEXTWIDTH_IN = 6.3          # elsarticle preprint text block width
+SINGLE_COL_IN = 3.5         # typical journal single-column width
+
+def figsize_full(aspect: float = 0.62) -> tuple[float, float]:
+    """Full-textwidth figure (\\textwidth). aspect = height/width."""
+    return (TEXTWIDTH_IN, TEXTWIDTH_IN * aspect)
+
+def figsize_single(aspect: float = 0.75) -> tuple[float, float]:
+    """Single-column figure (~89mm)."""
+    return (SINGLE_COL_IN, SINGLE_COL_IN * aspect)
+
+def figsize_panel(cols: int, aspect: float = 0.8) -> tuple[float, float]:
+    """One panel of an N-across composite laid out across \\textwidth.
+
+    A 3-across panel is only ~2in wide — too small for readable axis text, so
+    data-heavy panels should use cols<=2.  When cols==3 the caller is told to
+    enlarge fonts (the returned size is small by construction); the skill docs
+    steer authors to 2-across (or stacked) for data plots.
+    """
+    w = (TEXTWIDTH_IN * 0.94) / cols
+    return (w, w * aspect)
 
 # d2 font sizes are SVG px; at the default ~1000px render width embedded at
 # 8in, 1px ≈ 0.58pt.  26px ≈ 15pt node labels — clears the raised 12pt
@@ -455,22 +497,29 @@ def apply_matplotlib_style(style: str = "academic") -> None:
                 pass
 
     stack = FONT_STACK_SERIF if style != "sans" else FONT_STACK_SANS
+    # v2.2 print contract: black glyphs on pure white, rendered at the size
+    # the figure will occupy in the paper (full textwidth default) so fonts
+    # read 1:1 after LaTeX embed.  Series colors stay morandi for fills/lines.
     rc = {
         "font.family": "serif",
         "font.serif": stack,
         "mathtext.fontset": "stix",
         "axes.prop_cycle": "cycler('color', %r)" % SERIES_HEX,
-        "figure.facecolor": TOKENS["canvas"],
-        "axes.facecolor": TOKENS["canvas"],
-        "axes.edgecolor": TOKENS["ink"],
-        "axes.labelcolor": TOKENS["ink"],
+        "figure.figsize": figsize_full(),
+        "figure.facecolor": GROUND,
+        "axes.facecolor": GROUND,
+        "axes.edgecolor": INK_TEXT,
+        "axes.labelcolor": INK_TEXT,
         "axes.labelsize": NATURE_FLOOR["axis_label"],
         "axes.titlesize": NATURE_FLOOR["title"],
         "axes.titleweight": "bold",
-        "axes.linewidth": 1.0,
+        "axes.linewidth": 1.2,
         "axes.grid": False,
-        "xtick.color": TOKENS["ink"],
-        "ytick.color": TOKENS["ink"],
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "text.color": INK_TEXT,
+        "xtick.color": INK_TEXT,
+        "ytick.color": INK_TEXT,
         "xtick.labelsize": NATURE_FLOOR["tick_label"],
         "ytick.labelsize": NATURE_FLOOR["tick_label"],
         "xtick.direction": "out",
@@ -479,8 +528,8 @@ def apply_matplotlib_style(style: str = "academic") -> None:
         "legend.frameon": False,
         "lines.linewidth": LINEWIDTH["primary"],
         "lines.markersize": MARKER_SIZE_MIN,
-        "patch.edgecolor": TOKENS["ink-soft"],
-        "grid.color": TOKENS["surface-alt"],
+        "patch.edgecolor": INK_TEXT,
+        "grid.color": "#D8D8D8",
         "grid.linewidth": 0.6,
         "figure.dpi": 150,
         "savefig.dpi": 300,
@@ -491,7 +540,7 @@ def apply_matplotlib_style(style: str = "academic") -> None:
     }
     if style == "monochrome":
         rc["axes.prop_cycle"] = "cycler('color', %r)" % [
-            "#3A3733", "#6E675F", "#A9A29A", "#C9C3BB"]
+            "#000000", "#404040", "#737373", "#A6A6A6"]
     mpl.rcParams.update(rc)
 
 
@@ -514,15 +563,15 @@ def d2_preamble(direction: str | None = None) -> str:
         f"  fill: \"{TOKENS['surface']}\"",
         f"  stroke: \"{TOKENS['ink-soft']}\"",
         "  stroke-width: 2",
-        f"  font-color: \"{TOKENS['ink']}\"",
+        f"  font-color: \"{INK_TEXT}\"",
         f"  font-size: {D2_FONT_PX['node']}",
         "  border-radius: 6",
         "  bold: false",
         "}",
         "(* -> *).style: {",
-        f"  stroke: \"{TOKENS['ink']}\"",
+        f"  stroke: \"{TOKENS['ink-soft']}\"",
         "  stroke-width: 2",
-        f"  font-color: \"{TOKENS['ink']}\"",
+        f"  font-color: \"{INK_TEXT}\"",
         f"  font-size: {D2_FONT_PX['edge']}",
         "}",
         "# ---- end preamble; author spec follows ----",

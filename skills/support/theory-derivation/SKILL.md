@@ -12,7 +12,7 @@ role: theory-builder-and-symbolic-verifier
 
 - **Purpose**: SymPy symbolic derivation + step-by-step machine verification; theory-only mode uses engine=manual
 - **Input**: refine-logs/FINAL_PROPOSAL.md (selected idea + assumptions)
-- **Output**: code/derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
+- **Output**: src/derivations/{problem_id}/derivation.py + derivation_output.md + verification_report.md
 - **Key**: SymPy verification at every step; 3 modes (derive/verify/simplify); theory-only steps marked [not machine-verified]
 
 > **Status**: Bridges verbal reasoning and mathematical rigor. **OSS merges main SciForge's `formula-derivation`** (research theory-line construction — build the derivation package, freeze the invariant object, classify steps) **into this skill** (SymPy symbolic verification — derive / verify / simplify / solve with machine-checked steps). **OSS is discipline-agnostic** — no physics SI-units enforcement, no economics estimator-verification, no cs-ml convergence-rate framing. The universal derivation package schema + SymPy verification applies to every problem.
@@ -185,7 +185,7 @@ If the derivation still lacks a coherent object, stable assumptions, or an hones
 Write the structured derivation document (see Required File Structure below) AND the SymPy script:
 
 ```python
-# code/derivations/{problem_id}/derivation.py
+# src/derivations/{problem_id}/derivation.py
 # SymPy script for Q-id {Q-id}
 # Every step in DERIVATION_PACKAGE.md is verified by this script.
 import sympy as sp
@@ -247,7 +247,7 @@ Step 2. ...
 - ...
 
 ## SymPy Script
-[reference to code/derivations/{problem_id}/derivation.py]
+[reference to src/derivations/{problem_id}/derivation.py]
 ```
 
 ## Output Modes
@@ -292,7 +292,7 @@ Whatever the outcome, write `.sciforge/verdicts/PROOF_AUDIT.json` — the step-b
 
 The final output is:
 1. `derivations/{problem_id}/premises.md` — starting assumptions (frozen Q-id referenced)
-2. `code/derivations/{problem_id}/derivation.py` — executable SymPy script (every step machine-verified)
+2. `src/derivations/{problem_id}/derivation.py` — executable SymPy script (every step machine-verified)
 3. `derivations/{problem_id}/derivation_output.md` — rendered derivation report (the structure above)
 4. `derivations/{problem_id}/verification_report.md` — verification results (boundary / dimensional / limiting cases / numerical sanity)
 5. `DERIVATION_PACKAGE.md` (or user-specified target) — the paper-ready formula document

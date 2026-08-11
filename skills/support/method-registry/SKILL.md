@@ -142,7 +142,7 @@ Every assumption is scored for reasonability. This is the **assumption registry*
 ```json
 {"budget_scale": "full|lite|pilot",
  "groups": [{"name": "main|baseline_<n>|ablation_<k>|hyperparam|robustness",
-             "hypothesis": "...", "script": "code/<path>",
+             "hypothesis": "...", "script": "src/<path>",
              "estimated_minutes": 0, "background": true, "subagents": 0}],
  "locked_hash": "[computed together with Section 3]"}
 ```

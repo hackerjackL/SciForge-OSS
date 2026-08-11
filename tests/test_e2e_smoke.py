@@ -60,7 +60,7 @@ EXPECTED_STAGE_DIRS = frozenset({
     "literature",
     "methods",
     "derivations",
-    "code",
+    "src",
     "experiments",
     "logs",
     "figures",

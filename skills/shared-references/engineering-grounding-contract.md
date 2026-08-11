@@ -21,7 +21,7 @@
 
 ## 2. The 8 Sub-Dimensions (AI Perspective, Domain-Agnostic)
 
-Every idea candidate is scored on 8 sub-dimensions. For humanities/social-science domains where code/experiment is not needed, relevant sub-dimensions are marked `NOT_APPLICABLE` (automatic 10/10, no penalty).
+Every idea candidate is scored on 8 sub-dimensions. For humanities/social-science domains where src/experiment is not needed, relevant sub-dimensions are marked `NOT_APPLICABLE` (automatic 10/10, no penalty).
 
 | # | Sub-dimension | What it measures | 0 (BLOCKED) | 5 (CONSTRAINED) | 10 (READY) | N/A handling |
 |---|---------------|-----------------|-------------|-----------------|------------|-------------|
@@ -169,7 +169,7 @@ The existing Phase 5 (Computational Feasibility) is **split** into two independe
 | **Phase 5a** | OSS Sandbox Feasibility (unchanged) | Can the idea be run in OSS sandbox (SymPy + numpy)? | Independent |
 | **Phase 5b** | AI Engineering Grounding Estimate (NEW) | AI perspective — 8-dimension EG evaluation | **Runs even if Phase 5a BLOCKED** (sandbox≠engineering) |
 
-Phase 5b produces the `ENGINEERING_GROUNDING.md` report. It runs AFTER Phase 5a, but is **independent** — even if Phase 5a BLOCKED the idea, Phase 5b still executes. Phase 5b only skips if the idea is purely theoretical (no code/experiment needed).
+Phase 5b produces the `ENGINEERING_GROUNDING.md` report. It runs AFTER Phase 5a, but is **independent** — even if Phase 5a BLOCKED the idea, Phase 5b still executes. Phase 5b only skips if the idea is purely theoretical (no src/experiment needed).
 
 ---
 

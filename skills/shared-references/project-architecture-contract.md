@@ -57,7 +57,7 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 │       ├── derivation_output.md          ← derivation report (Phase 6)
 │       └── verification_report.md        ← SymPy verification (Phase 6)
 │
-├── code/                                 ← [single home] for all scripts (v5.0, unchanged)
+├── src/                                 ← [single home] for all scripts (v5.0, unchanged)
 │   ├── derivations/                      ←   derivation/symbolic-verification scripts
 │   ├── experiments/                      ←   experiment scripts (toy/full/ablation/hyperparameter)
 │   ├── figures/                          ←   rendering scripts

@@ -373,7 +373,11 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
             "supplementary — cramming unrelated panels into one figure "
             "is the 'figure soup' anti-pattern; this cap is enforced, "
             "not overridable")
-    cols = spec.get("cols") or (n if n <= 2 else (2 if n <= 4 else 3))
+    # v2.2 print contract: default to <=2 columns so each panel is ~3in wide
+    # and its axis text stays readable after LaTeX embed.  A 3-across row of
+    # data plots is the "tiny fonts" failure; authors may still force cols=3
+    # for simple schematics via the manifest, but never by default.
+    cols = spec.get("cols") or (n if n <= 2 else 2)
     cols = min(cols, n)
     rows = -(-n // cols)  # ceil
     gap = int(spec.get("gap", 48))
@@ -466,7 +470,7 @@ def render_composite(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
             # would corrupt the assembled SVG (it must stay well-formed) (F9)
             label_parts.append(
                 f'<text x="{x:.0f}" y="{y + strip - fs * 0.28:.0f}" '
-                f'font-size="{fs}" font-weight="bold" fill="{st.TOKENS["ink"]}">'
+                f'font-size="{fs}" font-weight="bold" fill="{st.INK_TEXT}">'
                 f'({html.escape(labels[i])})</text>')
         y += strip + row_h[r] + gap
     parts.append("</g>")

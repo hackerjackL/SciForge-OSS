@@ -437,7 +437,7 @@ The development of SciForge-OSS would not have been possible without the followi
 
 - **Luo H. W.** (leader of GewisLab) — project initiation, core research ideas, and overall architecture design.
 - **Yang J. T.** — lead developer, responsible for the implementation and engineering of the framework.
-- **Yang J. T., Lu Y. H., Li L. S., Jia W. H., Qiu Y. M., Zhang W. B., Wang C. Y., and Fan L. Q.** (in no particular order) — generous provision of computational resources (API tokens), which sustain the continuous self-iteration, optimization, and maintenance of this repository.
+- **Yang J. T., Lu Y. H., Li L. S., Jia W. H., Qiu Y. M., Zhang W. B., Wang C. Y., Fan L. X., and Zhao J.** (in no particular order) — generous provision of computational resources (API tokens), which sustain the continuous self-iteration, optimization, and maintenance of this repository.
 
 We also thank all contributors who have improved SciForge-OSS through issues and pull requests.
 

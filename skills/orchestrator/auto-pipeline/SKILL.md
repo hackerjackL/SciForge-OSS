@@ -358,8 +358,8 @@ On successful completion, the orchestrator produces the following structure unde
 │                                    + TARGETED_WAVE_LOG.md (v6.0) + VERIFICATION_LOG.md
 ├── methods/                      ← METHOD_REGISTRY.md / METHOD_BINDING.md /
 │                                    OUTCOME_CLASSIFICATION.md / EVALUATION_PROTOCOL.md
-├── derivations/                  ← derivation documents (.md only; scripts in code/)
-├── code/                         ← single home for scripts (derivations/experiments/figures/utils)
+├── derivations/                  ← derivation documents (.md only; scripts in src/)
+├── src/                         ← single home for scripts (derivations/experiments/figures/utils)
 ├── experiments/                  ← RESULT.json + data (toy sessions / full group_<name>/)
 ├── logs/                         ← experiment & training logs ONLY ({experiment_id}.log,
 │                                    STATUS.json mirror, checkpoints/)
@@ -515,7 +515,7 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
   - Neither — checkpoint ON (default): the pipeline waits. A KILL executed without the required confirmation is a contract violation; the next phase boundary MUST detect the missing `.sciforge/APPROVAL_LOG.txt` entry and BLOCK.
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
 - **The orchestrator never executes research.** It delegates to the corresponding skill. Do not inline derivation / verification / writing logic into this orchestrator.
-- **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no code/experiment):
+- **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no src/experiment):
   - Phase 5 (method-registry) → Phase 6 (theory-derivation with `engine=manual`) → Phase 6b/6c (SKIP) → Phase 7 (Type IV = NOT_APPLICABLE) → Phase 8 (logic-verification)
   - Phase 10 (result-to-claim): qualitative fidelity is the expected norm for theory-only problems
   - The derivation output is marked `[not machine-verified]` and the claim strength is adjusted accordingly

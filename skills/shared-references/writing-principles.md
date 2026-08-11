@@ -71,6 +71,46 @@ Paper prose style **must adapt to the discipline** — same template skeleton, d
 - "We prove that X converges under assumption Y"
 - "We show that method A improves B by 15% on benchmark C"
 
+## Main-text vs Appendix placement + length budget (v1.4.0)
+
+**Field feedback (end-to-end eval)**: runs dumped the interesting experiments and
+result panels into the appendix, left the main body thin on evidence, and let the
+overall manuscript bloat with restated results. A reviewer judges the MAIN text;
+an appendix-heavy body reads as "the paper has no experiments".
+
+**Placement — what MUST be in the main text**:
+- The primary result figures/tables that carry each contribution (the Results
+  section's 2-4 panels from the figure budget). The main comparison and the main
+  ablation/sensitivity that bears a contribution are NEVER appendix material.
+- The core theorem statements (proofs may be deferred, statements stay in body).
+- One concise limitations paragraph in Discussion.
+
+**Placement — what belongs in the appendix (and only these)**:
+- Full mathematical proofs (theorem statement in body, proof in appendix).
+- Extended hyperparameter / full-sweep tables (the body shows the headline
+  comparison; the full grid is appendix for the `full_grid_reported` check).
+- Secondary robustness checks that do not bear a contribution.
+- Code listings, dataset cards, per-seed raw tables.
+
+**Rule of thumb**: if removing a figure/table from the body would weaken the
+argument for a contribution, it is main-text material, not appendix material.
+
+**Length budget (elsarticle preprint, main body excl. references & appendix)**:
+| Part | Budget |
+|------|--------|
+| Abstract | ≤ 250 words |
+| Introduction | ≤ 1.5 pages |
+| Related work | ≤ 1 page |
+| Method/theory | as needed but no restated motivation |
+| Results | 1.5-2.5 pages (the evidentiary core) |
+| Discussion + Conclusion | ≤ 1.5 pages |
+| Whole main body | target 6-9 pages; > 12 pages is over-long → compress |
+
+**Redundancy rule**: each result is stated ONCE per role (abstract = claim,
+intro = preview, results = evidence, discussion = interpretation). Verbatim
+restatement across sections is bloat → cut. Prefer one precise sentence to two
+vague ones; delete any sentence that does not advance the argument.
+
 ## Time allocation
 
 - Abstract / introduction / figures / everything else ≈ 25% effort each

@@ -138,3 +138,19 @@ python scripts/plotting/render_figure.py fig.composite.json --out /tmp/t3 --labe
 ```
 
 If all three print `[audit: PASS]` (or only A2/A5 WARN), the replication succeeded.
+
+## 9. v1.4.0 Notes (no new dependencies; boundary clarifications)
+
+- **Print-size / black-text contract (v2.2 design system)** requires **no new
+  dependencies** — it is pure `sciforge_style.py` rcParams/token changes
+  (black `#000000` text on `#FFFFFF`, raised font floors, `figsize_*` helpers,
+  composite default ≤2 columns). Re-render existing figures to pick it up.
+- **The skill ships NO model and NO eval harness.** The run-while-testing
+  evaluation harness lives OUTSIDE this repository (see `sciforge-eval-runner`);
+  the skill itself contains only pure pytest tests (`tests/`, `fixtures/`) that
+  need nothing beyond `pip install pytest` plus the core figure deps above.
+  Model endpoints (for actually running the pipeline) are configured by the
+  deployment, never inside the skill, and no model name is hard-coded anywhere
+  in the skill.
+- **Python floor**: ≥3.10 (the toolchain is stdlib + matplotlib/numpy/Pillow;
+  `SciencePlots` is optional but recommended for journal-grade geometry).

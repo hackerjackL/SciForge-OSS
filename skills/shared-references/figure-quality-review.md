@@ -23,11 +23,10 @@ Determine the host agent's capability class and record it in the figure's
 | **V (vision-native)** | The agent can read the figure file (SVG) and describe it | Tier 1 MANDATORY + Tier 2 optional |
 | **T (text-only)** | The agent cannot ingest images | Mechanical audit + structure checklist only; Tier 1 recorded as `skipped-text-only` |
 
-**Rule**: capability is a property of the HOST agent (Claude with vision,
-GPT-4o, Gemini, a vision-enabled Codex/AtomCode build...), not of this
-skill. The skill never calls an external vision API itself — if the host
-has no vision, the run continues with the mechanical gate; it never blocks
-and never fabricates a visual review.
+**Rule**: capability is a property of the HOST agent (any vision-enabled
+agent build), not of this skill. The skill never calls an external vision
+API itself — if the host has no vision, the run continues with the
+mechanical gate; it never blocks and never fabricates a visual review.
 
 ## Tier 1 — Agent-native visual self-review (MANDATORY for class V)
 
