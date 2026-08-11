@@ -8,8 +8,10 @@
 # sympy1.13 shap0.52 SciencePlots2.2 Pillow11 jieba0.42 plotly6.9 kaleido1.3 CairoSVG2.9
 # diagrams0.25 blockdiag3.0 requests2.31 tqdm4.66 Jinja2 3.1.
 #
-# GPU / PyTorch are intentionally NOT listed (environment-specific; the pipeline is CPU-first
-# and degrades gracefully without a GPU — see experiment-execution auto-detect).
+# Compute backend is DOMAIN-DEPENDENT (GPU / CPU / NPU / none-for-humanities) — NOT "CPU-first".
+# Run `python scripts/detect_device.py` at Phase 0/6 to profile the box (cuda/rocm/npu/mps/cpu +
+# which libs are present); it tells you which optional compute extra below to enable. The base
+# file stays installable on a CPU-only box; humanities/social runs need no compute extra at all.
 
 # ============ core (data plots + Nature-level audit + numerics) ============
 matplotlib>=3.9
@@ -56,3 +58,11 @@ jieba>=0.42                # Chinese segmentation (topic mining, edu/SS data)
 # dvc>=3.0                 # data/artifact versioning (reproducibility bundle)
 # plotly>=5.18             # ANALYSIS-only interactive EDA (NOT for paper figures)
 # kaleido>=0.2             # plotly static export (analysis-only)
+
+# ============ compute backends (device-conditional — enable per detect_device.py) ============
+# The pipeline is device-agnostic; the DOMAIN + box decide. Detect first, then uncomment ONE:
+# torch>=2.2               # GPU (CUDA) or CPU tensors — ML/deep domains
+# torch>=2.2 + rocm        # AMD ROCm: install the rocm build per INSTALL.md, not plain pip
+# torch_npu>=2.2           # Huawei NPU (Ascend) — pairs with torch
+# (none)                   # humanities / social / symbolic domains run on CPU only
+# Never hardcode .cuda() in src/ — experiment-execution picks the backend from the DEVICE profile.

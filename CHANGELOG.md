@@ -2,6 +2,11 @@
 
 ## [1.4.0] - 2026-08-10
 
+### v1.4.0 第七轮：武器库根 requirements + 设备类型判定（domain-driven，非 CPU-first；版本号不变）
+- 根 `requirements.txt` 全量分层（core/统计因果ML/图渲染/文本/文献API/可选升级），floor 索引参考机。
+- **纠正"CPU-first"**：计算后端按**领域+机器**定（GPU/CPU/NPU/人文无）。新增 `scripts/detect_device.py`（Phase 0/6 先判设备，输出/持久化 DEVICE profile），`experiment-execution` Step 0a 与 INSTALL §2.6 改为"先判设备再选后端/可选 compute extra"，requirements 增 device-conditional compute 段。
+- 新增 tests/test_detect_device.py。
+
 ### v1.4.0 第六轮：诚实定位——"全领域"措辞修订为"代码可执行的科学"（版本号不变）
 - README(中/英)/根 SKILL.md/CITATION.cff：把绝对的"any domain/不限任何学科"修订为**方法全领域、能力边界=代码可执行科学**。
 - 新增"Scope & capability boundary/范围与能力边界"：范围内=数值/符号仿真、ML/统计、因果推断、web 检索增强人文社科；范围外=专有/GUI 绑定求解器（商业 CFD、COMSOL、光学台架）与湿实验硬件，除非可脚本化。

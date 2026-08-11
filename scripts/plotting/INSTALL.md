@@ -77,7 +77,27 @@ is mirrored in the repo-root `requirements.txt`.
 | `inkscape` | SVG conversion fallback | `sudo apt install inkscape` | `brew install --cask inkscape` | `choco install inkscape` |
 | `svgo` | SVG slimming | `npm install -g svgo` | Same as left | Same as left |
 
-**Explicitly not adopted (evaluation record)**: `blender` (the headless black-screen problem is unfixable), `plotly+kaleido` (depends on headless Chrome). `Memslides`/`AutoFigure-Edit` are consulted for methodology only (scoped revision / staged assembly), not integrated as engines — keep the single pipeline `render_figure.py`.
+**Explicitly not adopted (evaluation record)**: `blender` (the headless black-screen problem is unfixable), `plotly+kaleido` for *paper figures* (depends on headless Chrome; kept only for analysis-only EDA). `Memslides`/`AutoFigure-Edit` are consulted for methodology only (scoped revision / staged assembly), not integrated as engines — keep the single pipeline `render_figure.py`.
+
+## 2.6 Compute Backends (device-conditional — v1.4.0, domain-driven)
+
+There is no CPU-first/GPU-first default: the **domain + box decide**. Profile first:
+
+```bash
+python scripts/detect_device.py            # prints DEVICE profile (cuda/rocm/npu/mps/cpu)
+python scripts/detect_device.py --out .sciforge/DEVICE.json   # persist for the run
+```
+
+| Detected backend | Install (optional, only if the domain needs it) |
+|------|------|
+| `cuda` | `pip install torch` (CUDA build matching `nvidia-smi` driver) |
+| `rocm` | install the **ROCm** torch build per PyTorch ROCm instructions (NOT plain pip torch) |
+| `npu` | `pip install torch torch_npu` (Ascend/CANN; set `ASCEND_HOME`) |
+| `mps` | system torch on Apple Silicon (no extra install) |
+| `cpu` | nothing — symbolic/statistical/humanities runs are CPU-only |
+
+Experiment scripts must read the DEVICE profile and never hardcode `.cuda()`
+(experiment-execution Step 0a). `requirements.txt` "compute backends" mirrors this table.
 
 ## 3. Composite-Figure Assembly (Contract §7, SCI top-journal standards)
 
