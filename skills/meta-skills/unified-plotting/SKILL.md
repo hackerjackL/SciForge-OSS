@@ -41,7 +41,7 @@ role: figure-renderer-and-spec-generator
 
 > **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the morandi palette + Layer 2 data-encoding colormaps are universal contracts.
 >
-> **v2.2 upgrades (figure-quality-contract)**: (1) **dual output** — every figure produces both PDF (for LaTeX compile, the only format embedded in the paper) AND SVG (for agent viewing/editing); default `format` is now `pdf+svg` (was `svg`). (2) **16:9 horizontal default** — Nature/Science wide-figure standard. (3) **Nature-level readability floor** — axis labels ≥12pt, ticks ≥10pt, legend ≥10pt (was 10pt/8pt). (4) **d2 pipeline for complex diagrams** — AI-direct SVG demoted to ≤4-node trivial only; 5+ node architecture/flow diagrams use d2 (auto-layout, proper typography) → SVG → PDF+SVG. (5) **humanities/arts figures** use the same pipeline (d2 timelines, flowcharts) — no quality deviation. See [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md).
+> **v2.2 upgrades (figure-quality-contract)**: (1) **dual output** — every figure produces both PDF (for LaTeX compile, the only format embedded in the paper) AND SVG (for agent viewing/editing); default `format` is now `pdf+svg` (was `svg`). (2) **16:9 horizontal default** — Nature/Science wide-figure standard. (3) **Nature-level readability floor (v2.2 print floors, at final embedded scale)** — axis labels ≥16pt, ticks ≥13pt, legend ≥13pt, title ≥18pt, annotations ≥12pt. (4) **d2 pipeline for complex diagrams** — AI-direct SVG demoted to ≤4-node trivial only; 5+ node architecture/flow diagrams use d2 (auto-layout, proper typography) → SVG → PDF+SVG. (5) **humanities/arts figures** use the same pipeline (d2 timelines, flowcharts) — no quality deviation. See [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md).
 >
 > **Key OSS relaxation**: main SciForge enforces Python pipeline (matplotlib/seaborn) for all figures. OSS **allows AI-direct SVG generation** when the figure is simple enough (≤ 4 nodes — architecture diagrams, flow charts, topology) — the morandi palette contract is still enforced, but the Python pipeline is not mandatory for non-data figures. For **data plots** (line/scatter/bar/heatmap/3D), the Python pipeline remains mandatory (reproducibility requires preserved render script + input data).
 
@@ -247,7 +247,7 @@ python scripts/plotting/render_figure.py spec.d2 \
 4. **Morandi enforcement**: all `style.fill`/`style.stroke` in the `.d2` spec MUST be morandi tokens — the renderer rejects off-palette specs (exit 2). Engine-injected theme colors are deterministically remapped to tokens before delivery.
 5. The CLI preserves `spec.d2` + `intermediate.svg` + `render.log` in the figure dir as the reproducible source (equivalent to `render.py` for data plots).
 
-**d2 readability**: the injected preamble sets node font-size 22px / edge 18px (≈12.7pt/10.4pt physical at 16:9 embed width — above the Nature floor) and Liberation Sans (Helvetica-metric) via d2's `--font-*` flags. The audit verifies physical text size ≥ 10pt.
+**d2 readability**: the injected preamble sets node font-size 22px / edge 18px (≈12.7pt/10.4pt physical at 16:9 embed width — above the Nature floor) and Liberation Sans (Helvetica-metric) via d2's `--font-*` flags. The audit verifies physical text size ≥ the diagram-node floor (14pt).
 
 ### Step 3c: AI-Direct SVG (≤4-node trivial ONLY — v3.5 demoted)
 
@@ -335,7 +335,7 @@ Append to `figures/FIGURE_INDEX.md`:
 - **Data/Source**: `figures/{figure_name}/input_data.json` (data) OR `spec.d2` (d2) OR `spec.md` (AI-direct)
 - **Script**: `figures/{figure_name}/render.py` (Python) OR `figures/{figure_name}/spec.d2` (d2) OR `source.md` (AI-direct)
 - **Palette**: morandi (Layer 1) / viridis (Layer 2)
-- **Readability**: Nature floor verified (axis ≥12pt, ticks ≥10pt)
+- **Readability**: Nature print floor verified (axis ≥16pt, ticks ≥13pt)
 ```
 
 ### Step 6.5: Update the verdict mirror (v5.3 — FIGURE_AUDITS.json)
