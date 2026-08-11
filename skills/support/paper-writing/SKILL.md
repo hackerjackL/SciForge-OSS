@@ -248,6 +248,7 @@ After writing, verify:
 | **F. Internal config / debug** | `hbox_warnings`, `overfull.*pt`, `font_embedding`, `microtypesetup`, compile.log fragments, `COMPILE_REPORT`, `PAPER_PLAN` references in body | These belong in `paper/COMPILE_REPORT.json` (engineering sidecar), NEVER in the manuscript body |
 | **G. Draft comments** | `%.*Q-`, `%.*Phase`, `%.*verification_type`, `%.*evidence_type`, `%.*mode:`, `%.*INV` | Remove all internal-identifier comments from preamble/section headers; keep only standard academic comments (`% section title`) |
 | **H. Frontmatter leak** | `verification_type`, `evidence_type`, `mode:`, `INV-G` in main.tex preamble comments or PAPER_PLAN exposed in body | main.tex preamble comment must be a neutral title only (`% Harmonic series remainder asymptotics`), never `% Q-HARM-001: ... (verification_type=theory-only)` |
+| **I. Tool/brand leak + fabricated frontmatter (v1.4.0)** | `SciForge`, `sci[- ]?forge`, `AutoFigure`, `render_figure`, `AtomCode`, `AgentRxiv`, `elsarticle` (in body prose), and any non-placeholder `\author{...}`/`\affiliation{...}` that names the framework instead of real authors | The manuscript must never name the tool that produced it; author/affiliation are either real (human-supplied) or the explicit `[... to be completed at submission]` placeholders. Rewrite/remove |
 
 **Scrub procedure**:
 1. `grep -rnE "<patterns above>" paper/main.tex paper/sections/*.tex paper/math_commands.tex` — collect every hit.

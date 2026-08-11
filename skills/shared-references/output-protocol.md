@@ -55,6 +55,7 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   │                                  the orchestrator books entries and checks the caps at every phase boundary;
 │   │   │                                  bookkeeping from the old BA_BUDGET.json is merged into this file, BA_BUDGET.json remains as a read-only fallback)
 │   │   ├── FIGURE_AUDITS.json          ← all-figure audit summary mirror (unified-plotting; per-figure detail still ships with each figure_audit.json)
+│   │   ├── EVALUATION_REVIEW.json      ← adversarial EI-conference rubric review verdict (auto-review-loop / external judge)
 │   │   └── PIPELINE_VERDICT_SUMMARY.md ← pipeline verdict overview (rewritten by the orchestrator at every phase boundary; derived document, the only .md allowed inside .sciforge/verdicts/)
 │   ├── logs/           ←   [pipeline state stream] (v6.0: pipeline logs only; experiment/training logs live in visible logs/)
 │   │   ├── pipeline.log    ← auto-pipeline status stream (the single authoritative status record)

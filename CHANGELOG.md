@@ -2,6 +2,12 @@
 
 ## [1.4.0] - 2026-08-10
 
+### v1.4.0 第三轮自检（断裂/泄露/错误/版本对账，285 tests 全绿；版本号不变）
+- **版本对账**：25/25 个 SKILL.md + package.json + CITATION.cff + README 徽章全部 1.4.0（sciforge_style 内部设计版本 v2.x 独立，不计）
+- **泄露**：模板 author/affiliation 由 `SciForge-OSS` 改为中性的 `[... to be completed at submission]` 占位（品牌不再进 PDF）；paper-writing 泄漏扫描新增 **Class I（工具品牌 + 虚构 frontmatter）**；模型名复核全清
+- **断裂**：output-protocol verdicts 表补 `EVALUATION_REVIEW.json`（已在 validator 注册但表内缺失）；figure-quality-contract §3 字号地板与 v2.2 印刷契约对齐（16/13/13/18/12、线宽 1.8/1.0、marker 7）
+- **错误**：ci_check markdown-links / version-consistency / plotting-module / test-suite 全 PASS
+
 ### v1.4.0 第二轮完全体加固（LaTeX 浮动/编译尺寸 + 参考图级审美 + 根依赖 + 经验回放 + 静默断点，285 tests 全绿；版本号不变）
 
 **LaTeX 浮动 & 编译尺寸（平衡式）**

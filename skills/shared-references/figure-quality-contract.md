@@ -57,16 +57,20 @@ Every figure produces **BOTH** a PDF and a PNG:
 
 Figures must meet Nature/Science readability floors. The old standards (axis labels ≥ 10pt, tick labels ≥ 8pt) are insufficient — they produce figures where text is too small at print scale.
 
-| Element | Minimum (Nature floor) | Old OSS floor | Rationale |
+All floors are **at final embedded scale** (v2.2 print contract): render at the physical
+width the figure will occupy so these are what the reader sees. Text is **pure black on
+pure white** (single refined-morandi style for series fills).
+
+| Element | Minimum (print floor, v2.2) | Pre-v2.2 floor | Rationale |
 |---------|------------------------|---------------|-----------|
-| **Axis label** | ≥ 12pt | 10pt | Readable at 1-column print (88mm width) |
-| **Tick label** | ≥ 10pt | 8pt | Readable at print scale |
-| **Legend text** | ≥ 10pt | (none) | Legend must be as readable as ticks |
-| **Title** | ≥ 13pt | (none) | Title anchors the figure |
-| **Annotation text** | ≥ 9pt | (none) | Inline annotations readable |
-| **Line width** | ≥ 1.5pt (primary), ≥ 0.8pt (secondary) | 1.5-2pt / 0.5-1pt | Visible at print |
-| **Marker size** | ≥ 6pt | (none) | Distinguishable |
-| **Font family** | serif (Nature default) OR sans-serif (Science default) — pick one, state once | serif | Consistent within paper |
+| **Axis label** | ≥ 16pt | 12pt | Readable at 1-column print (88mm width) |
+| **Tick label** | ≥ 13pt | 10pt | Readable at print scale |
+| **Legend text** | ≥ 13pt | 10pt | Legend must be as readable as ticks |
+| **Title** | ≥ 18pt | 13pt | Title anchors the figure |
+| **Annotation text** | ≥ 12pt | 9pt | Inline annotations readable |
+| **Line width** | ≥ 1.8pt (primary), ≥ 1.0pt (secondary) | 1.5pt / 0.8pt | Visible at print |
+| **Marker size** | ≥ 7pt | 6pt | Distinguishable |
+| **Font family** | serif (TeX Gyre Termes, matches LaTeX) — ONE style per paper | serif | Consistent within paper |
 
 **Enforcement**: the render script sets `fontsize` on every text element to meet these floors. The skill's color-audit step (Step 4) now ALSO audits font sizes — rejecting a figure with any text below the Nature floor.
 
