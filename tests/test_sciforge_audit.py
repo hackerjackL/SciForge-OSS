@@ -37,15 +37,20 @@ def _ws(tmp_path, tex=GOOD_TEX, verdicts=True):
 
 
 def test_template_check_markers():
-    ws = _ws_tmp = None
     import tempfile
     with tempfile.TemporaryDirectory() as td:
         p = Path(td)
         good = p / "good"; good.mkdir(); (good / "main.tex").write_text(GOOD_TEX)
-        bad = p / "bad"; bad.mkdir()
-        (bad / "main.tex").write_text("\\begin{document}x\\end{document}")
+        # has a figure but no float-control markers -> must flag
+        fig_nomark = p / "fignm"; fig_nomark.mkdir()
+        (fig_nomark / "main.tex").write_text(
+            "\\begin{document}\\begin{figure}x\\end{figure}\\end{document}")
+        # text-only (no floats) -> all-domain: not applicable, no problem
+        text_only = p / "txt"; text_only.mkdir()
+        (text_only / "main.tex").write_text("\\begin{document}x\\end{document}")
         assert sa.template_check(good) == []
-        assert sa.template_check(bad) != []
+        assert sa.template_check(fig_nomark) != []
+        assert sa.template_check(text_only) == []
 
 
 def test_audit_fails_when_verdicts_absent(tmp_path):

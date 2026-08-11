@@ -39,6 +39,10 @@ def template_check(paper: Path) -> list[str]:
     if not main.is_file():
         return ["no paper/main.tex"]
     t = main.read_text(encoding="utf-8", errors="replace")
+    # All-domain: a theory/humanities paper may legitimately have NO floats; only
+    # enforce float-control when the manuscript actually embeds figures.
+    if not ("\\begin{figure}" in t or "\\includegraphics" in t):
+        return []
     missing = [m for m in FLOAT_MARKERS if m not in t]
     problems = []
     if missing:
@@ -50,15 +54,22 @@ def template_check(paper: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("workspace", type=Path)
-    ap.add_argument("--min-figures", type=int, default=2)
+    # All-domain floor: every paper has >=1 figure (unified-plotting), but a
+    # single-figure theory/humanities paper is legitimate — do not demand 2.
+    ap.add_argument("--min-figures", type=int, default=1)
     args = ap.parse_args(argv)
 
     ws = args.workspace
     paper = ws / "paper"
     verdicts = ws / ".sciforge" / "verdicts"
 
-    fig_rc = cfe.main([str(paper), "--min-figures", str(args.min_figures),
-                       "--require-renderer"])
+    # Routing-aware N/A (all-domain): a text-only/humanities run declares
+    # FIGURE_AUDITS.json N/A in VERIFICATION_ROUTING.json -> the figure gate is
+    # not applicable and must not FAIL the audit.
+    na, _ = vv.load_na_verdicts(verdicts) if verdicts.is_dir() else (set(), [])
+    fig_na = "FIGURE_AUDITS.json" in na
+    fig_rc = 0 if fig_na else cfe.main(
+        [str(paper), "--min-figures", str(args.min_figures), "--require-renderer"])
     val_rc = 0
     if verdicts.is_dir():
         val_rc = vv.main([str(verdicts), "--strict", "--require-complete"])
