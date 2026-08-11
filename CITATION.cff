@@ -14,11 +14,17 @@ identifiers:
     value: https://gitcode.com/GewisLab/SciForge-OSS
 repository-code: https://gitcode.com/GewisLab/SciForge-OSS.git
 abstract: >-
-  A pure Skill-driven AI Scientist framework for ANY scientific
-  domain. SciForge-OSS is a Markdown-based framework that enables
-  AI agents to conduct end-to-end scientific research across
-  physics, mathematics, computer science, medicine, economics,
-  education, materials science, earth science, and more.
+  A pure Skill-driven AI Scientist framework whose method is
+  domain-agnostic and whose capability envelope is code-runnable
+  science: any field whose methodology can be executed as code,
+  data, and literature work on a machine or GPU cluster (numerical/
+  symbolic simulation, ML/statistics, causal inference, and
+  web-search-augmented humanities). Domains requiring proprietary
+  or GUI-bound solvers (commercial CFD, COMSOL) or wet-lab hardware
+  are out of scope unless reducible to a scriptable pipeline.
+  Demonstrated across physics, mathematics, computer science,
+  medicine, economics, education, materials science, earth science,
+  and more.
 keywords:
   - AI for Science
   - AI Scientist

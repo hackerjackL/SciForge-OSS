@@ -2,6 +2,11 @@
 
 ## [1.4.0] - 2026-08-10
 
+### v1.4.0 第六轮：诚实定位——"全领域"措辞修订为"代码可执行的科学"（版本号不变）
+- README(中/英)/根 SKILL.md/CITATION.cff：把绝对的"any domain/不限任何学科"修订为**方法全领域、能力边界=代码可执行科学**。
+- 新增"Scope & capability boundary/范围与能力边界"：范围内=数值/符号仿真、ML/统计、因果推断、web 检索增强人文社科；范围外=专有/GUI 绑定求解器（商业 CFD、COMSOL、光学台架）与湿实验硬件，除非可脚本化。
+- 这是对**证据生产工具**的诚实限定，不削弱方法的全领域性；利于 SCI 审稿可信度。
+
 ### v1.4.0 第五轮：防"绕过渲染器"＋防"审计机器被跳过"两个硬门（低能力模型跑测暴露，295 tests 全绿；版本号不变）
 - **A 图必须经统一渲染器**：`check_figure_embedding.py --require-renderer` — flat 手写 pdf 或 `figures/<id>/` 缺 `figure_audit.json`+`latex_include.tex` → FAIL；paper-compile Step 5.7 / paper-writing 自检 #8 强制带该 flag。堵住"手写 matplotlib 绕过 Nature 审计/莫兰迪/印刷字号"。
 - **B 判定完整性硬门**：`validate_verdicts.py --require-complete` — 注册 verdict 仍 PENDING 且未声明 N/A → exit 1；auto-pipeline wrap-up 与 output-protocol 规定 completion 前必须跑 `--strict --require-complete`，否则 `BLOCKED verdicts_incomplete`。堵住"论文写了但 leakage/logic/citation/claim 审计一个没跑"。

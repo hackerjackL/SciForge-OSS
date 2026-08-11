@@ -36,9 +36,15 @@
 
 ## What is this
 
-**SciForge-OSS** is a pure-Skill-driven **universal AI Scientist framework** with no discipline restriction. Whether physics, mathematics, computer science, life science, medicine, economics, education, materials science, earth science, atmospheric science, astronomy, chemistry, engineering, sensors, optoelectronics — any scientific domain can use this framework.
+**SciForge-OSS** is a pure-Skill-driven **universal AI Scientist framework**. Its *method* is domain-agnostic — one pipeline, no discipline branches — and it has been exercised across physics, mathematics, computer science, life science, medicine, economics, education, materials, earth science, and more. Its *capability envelope*, stated honestly, is **code-runnable science**: any domain whose methodology can be carried out as code, data, and literature work on a commodity Linux machine or GPU cluster.
 
-**Core philosophy**: Domain-Agnostic. The framework itself hardcodes no domain knowledge; all domain-specific methodology is handled by the agent's runtime reasoning.
+**Core philosophy**: Domain-Agnostic *method*. The framework itself hardcodes no domain knowledge; all domain-specific methodology is handled by the agent's runtime reasoning — expressed as programs, numerical/symbolic computation, and retrieved evidence.
+
+### Scope & capability boundary (v1.4.0 — honest positioning)
+
+- **In scope**: anything reducible to code/data/literature on one machine or cluster — numerical & symbolic simulation (NumPy/SciPy/SymPy/Julia), ML & statistical estimation, causal inference, agent-based/ODE-PDE models solved in code, and web-search-augmented qualitative / humanities / social-science analysis (retrieve → reason → write → figure).
+- **Out of scope (unless scriptable)**: domains whose core evidence demands **proprietary or GUI-bound solvers** (e.g. commercial CFD/FEA packages, COMSOL multiphysics, optical-instrument bench software) or **physical / wet-lab hardware**. If such a method can be reduced to a scriptable, open, or code-callable pipeline (e.g. OpenFOAM/Julia PDE instead of a GUI CFD suite), it re-enters scope; the GUI-only workflow itself does not.
+- This is a statement about the *evidence-producing instrument*, not about intelligence: the same pipeline reasons about any field, but it produces evidence only where a machine-executable method exists.
 
 **OSS = Open Single-question Stream** — single-question execution: each invocation processes one Q-id and does not auto-iterate all questions; one universal pipeline for all domains (no overlays, no discipline branches); the agent's runtime reasoning handles domain methods; a single `senior-reviewer-agnostic` persona; a single unified `elsarticle` template; four optional verification routes (theory-only / computational / theory+experiment / qualitative); INV-G1 as the sole invariant (PROBLEM_ANCHOR_FREEZE, universal).
 
