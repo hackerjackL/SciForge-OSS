@@ -23,8 +23,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _root():
+    """The repo root for gate scripts. Evolution runs pass SCIFORGE_REPO=scratch
+    checkout so gates measure the PATCHED tree (S16); normal runs use the real repo."""
+    return Path(os.environ.get("SCIFORGE_REPO", REPO_ROOT))
+
+
 def run_py(script: str, args: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, str(REPO_ROOT / script), *args],
+    return subprocess.run([sys.executable, str(_root() / script), *args],
                           capture_output=True, text=True, timeout=900)
 
 

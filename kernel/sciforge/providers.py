@@ -62,9 +62,18 @@ class Providers:
         self.pricing = self.cfg.get("pricing_usd_per_mtok", {})
         self.usage_log: list[dict] = []
         self.total_cost = 0.0
-        # host mode: no providers configured -> the host agent (claude/codex) does
-        # the LLM work; the kernel only tracks cost if the host reports it.
-        self.host_mode = not self.backends
+        # gateway support: Claude-compatible proxies (LiteLLM, enterprise gateways,
+        # agent harnesses) export ANTHROPIC_BASE_URL/KEY; honor them over defaults.
+        base = os.environ.get("ANTHROPIC_BASE_URL")
+        if base:
+            self.backends.setdefault("anthropic", {})["base_url"] = base.rstrip("/")
+        # model override: SCIFORGE_MODEL (host-reported current model) applies to all roles
+        for r in self.roles.values():
+            if isinstance(r, dict) and os.environ.get("SCIFORGE_MODEL"):
+                r["model"] = os.environ["SCIFORGE_MODEL"]
+        # host mode: no providers configured AND no gateway env -> the host agent
+        # (claude/codex) does the LLM work; the kernel only tracks cost if host reports it.
+        self.host_mode = not self.backends and not base
 
     def model_for(self, role: str) -> dict:
         entry = self.roles.get(role) or self.roles.get("default") or {}
@@ -98,10 +107,11 @@ class Providers:
             # Claude Code login sets proxy-managed keys; direct API needs ANTHROPIC_API_KEY.
             raise ProviderError(f"backend {backend_name}: set {key_env or 'ANTHROPIC_API_KEY'}")
         last_err: Exception | None = None
+        schema = json_schema  # gateways lacking forced tool_choice => degrade to plain JSON ask
         for attempt in range(retries + 1):
             try:
                 text, usage = self._raw_call(backend_name, base, key, model, system, prompt,
-                                              max_tokens, temperature, json_schema)
+                                              max_tokens, temperature, schema)
                 rec = CallRecord(role=role, backend=backend_name, model=model,
                                  input_tokens=usage.get("input_tokens", 0),
                                  output_tokens=usage.get("output_tokens", 0),
@@ -114,6 +124,14 @@ class Providers:
                 return text, rec
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as e:
                 last_err = e
+                if isinstance(e, urllib.error.HTTPError) and e.code in (400, 422) and schema is not None:
+                    # gateway rejected forced tool_choice / response_format: degrade
+                    # to plain-prompt JSON (instructed in the prompt tail) and retry once
+                    schema = None
+                    prompt_tail = "\n\nReply ONLY a single JSON object, no prose."
+                    if prompt_tail not in prompt:
+                        prompt = prompt + prompt_tail
+                    continue
                 if attempt < retries:
                     time.sleep(backoff * (2 ** attempt) + random.uniform(0, 0.5))
                     continue

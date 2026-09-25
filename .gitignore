@@ -42,6 +42,7 @@ build/
 
 # SciForge runtime
 .sciforge/
+!fixtures/e2e_minimal/.sciforge/
 review-stage/
 derivations/
 paper/

@@ -1,0 +1,24 @@
+{
+  "dimensions": {
+    "main_experiment_logic": 7,
+    "evidence_sufficiency": 6,
+    "novelty_positioning": 6,
+    "soundness": 7,
+    "clarity_reproducibility": 7,
+    "citation_integrity": 8
+  },
+  "justifications": {
+    "main_experiment_logic": "central experiment tests the headline claim",
+    "evidence_sufficiency": "claims backed at numerical fidelity",
+    "novelty_positioning": "delta vs closest citation defended",
+    "soundness": "derivation machine-verified",
+    "clarity_reproducibility": "artifacts support rerun",
+    "citation_integrity": "all refs 3-layer verified"
+  },
+  "fatal_flaws": [],
+  "required_revisions": [
+    "state regime caveat in abstract"
+  ],
+  "overall": 6.8,
+  "verdict": "REVISE"
+}

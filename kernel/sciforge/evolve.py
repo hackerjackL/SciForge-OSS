@@ -165,15 +165,23 @@ class JudgeDomain(Domain):
         system = ("You are a frozen-rubric judge for research-skill patches. "
                   "Score 0-10 on: specificity, machine-checkability, evidence-anchoring, "
                   "non-regression. Rubric (immutable):\n" + self.rubric)
-        prompt = ("Candidate patch:\n```json\n" + patch.text() + "\n```\n"
-                  "Reply ONLY JSON: {\"score\": <0-10>, \"rationale\": \"...\"}")
+        ops_desc = []
+        for op in patch["ops"]:
+            ops_desc.append(f"- file {op['path']}\n  anchor: {op['old'][:120]}\n"
+                            f"  ADDITION (the whole change): {op['new'][:500]}\n"
+                            f"  rationale: {op.get('rationale', '')}")
+        prompt = ("Candidate patch (the change is an appended RSI note; judge the "
+                  "ADDITION only — does it turn a stall signal into a sharper, "
+                  "actionable, machine-checkable instruction, or is it empty/vague/"
+                  "weakening/placeholder-garbage?):\n" + "\n".join(ops_desc) +
+                  "\n\nReply ONLY JSON: {\"score\": <0-10>, \"rationale\": \"...\"}")
         try:
             text, rec = self.providers.complete("grading", system, prompt, temperature=0.0,
                                                 json_schema={"type": "object",
                                                              "properties": {"score": {"type": "number"},
                                                                             "rationale": {"type": "string"}},
                                                              "required": ["score"]})
-            d = json.loads(text)
+            d = json.loads(_balanced_obj(text))
             return {"score": float(d["score"]) / 10.0, "rationale": d.get("rationale", ""),
                     "usage": rec.as_dict()}
         except Exception as e:
@@ -203,6 +211,30 @@ class HybridDomain(Domain):
         j = self.judge.score(patch)
         s = (self.w * g["score"] + (1 - self.w) * j["score"])
         return {"score": s, "gate": g["score"], "judge": j["score"], "judged": True}
+
+
+def _balanced_obj(raw: str) -> str:
+    """First complete top-level JSON object (models often prefix with prose,
+    or emit an empty {} shell before the real payload — prefer score-bearing)."""
+    objs = []
+    i = 0
+    while i < len(raw):
+        if raw[i] == "{":
+            depth = 0
+            for j in range(i, len(raw)):
+                if raw[j] == "{":
+                    depth += 1
+                elif raw[j] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        objs.append(raw[i:j + 1])
+                        i = j
+                        break
+        i += 1
+    for o in objs:
+        if '"score"' in o:
+            return o
+    return objs[0] if objs else raw
 
 
 # ---------------- pre-flight probe (S13) ----------------
@@ -387,9 +419,9 @@ class EvolutionRun:
             self._emit("expanded", parent_score=parent_score, child_score=score,
                        algorithm=self.algorithm)
         # held-out evaluation on test shard (nobody steered on it)
-        best, best_score = self._best()
+        best_score, best = self._best()  # _best returns (score, candidate)
         held = None
-        if self.shard_check is not None and best:
+        if best is not None:
             held = self._evaluate(best, -1, shard="test", apply=True)
         return {"status": "done", "algorithm": self.algorithm,
                 "best_score": best_score, "best_patch": best["ops"] if best else None,
