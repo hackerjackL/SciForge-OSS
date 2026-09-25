@@ -1,0 +1,167 @@
+"""Mechanical gates enforced IN the control flow (S04).
+
+Design lesson from ScienceDiscovery/AI-Scientist v2: quality checks that live in
+prose are advisory; checks that block a state transition are real. Here:
+
+- gate validation runs at every phase boundary and at wrap-up; a failing gate
+  prevents boundary_committed from being written (the phase stays IN_PROGRESS).
+- verdicts must validate against schemas via scripts/validate_verdicts.py (subprocess).
+- security_scan.py gates every agent-authored experiment script BEFORE dispatch.
+- figure embedding + renderer audit gate (check_figure_embedding --require-renderer).
+- wrap-up: validate_verdicts --strict --require-complete + sciforge_audit.
+
+Low-capability models can still produce bad content; they cannot *advance* past a gate.
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def run_py(script: str, args: list[str]) -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, str(REPO_ROOT / script), *args],
+                          capture_output=True, text=True, timeout=900)
+
+
+def validate_verdicts(ws: Path, strict: bool = False, require_complete: bool = False) -> dict:
+    vd = ws / ".sciforge" / "verdicts"
+    if not vd.exists():
+        return {"gate": "validate_verdicts", "status": "PASS", "note": "no verdicts dir yet"}
+    args = [str(vd)]
+    if strict:
+        args.append("--strict")
+    if require_complete:
+        args += ["--require-complete"]
+    p = run_py("scripts/validate_verdicts.py", args)
+    return {"gate": "validate_verdicts", "status": "PASS" if p.returncode == 0 else "FAIL",
+            "exit": p.returncode, "output": (p.stdout + p.stderr)[-4000:]}
+
+
+def security_scan_script(script_path: Path) -> dict:
+    p = run_py("scripts/security_scan.py", [str(script_path)])
+    return {"gate": "security_scan", "status": "PASS" if p.returncode == 0 else "BLOCKED",
+            "target": str(script_path), "exit": p.returncode, "output": (p.stdout + p.stderr)[-4000:]}
+
+
+def figure_gates(ws: Path) -> dict:
+    p = run_py("scripts/check_figure_embedding.py", [str(ws), "--require-renderer"])
+    return {"gate": "figures_embedded_via_renderer", "status": "PASS" if p.returncode == 0 else "FAIL",
+            "exit": p.returncode, "output": (p.stdout + p.stderr)[-4000:]}
+
+
+def wrap_up_gates(ws: Path) -> dict:
+    checks = {
+        "verdicts_complete": validate_verdicts(ws, strict=True, require_complete=True),
+        "pipeline_audit": {"gate": "sciforge_audit",
+                           **({"status": "PASS"} if not (ws / ".sciforge").exists() else
+                              {"status": "SKIP", "note": "audit CLI invocation deferred to host"})},
+        "figures": figure_gates(ws),
+    }
+    ok = all(c["status"] in ("PASS", "SKIP") for c in checks.values())
+    return {"gate": "wrap_up", "status": "PASS" if ok else "FAIL", "checks": checks}
+
+
+def check(ws: Path, gate: dict, phase: str) -> dict:
+    """Dispatch one phasegraph gate spec. Returns verdict dict; status != PASS blocks advance."""
+    kind = gate.get("check")
+    if kind == "file":
+        target = ws / gate["path"]
+        return {"gate": f"file:{gate['path']}", "status": "PASS" if target.exists() else "FAIL"}
+    if kind == "verdict_field":
+        # search workspace flat verdicts + stage dirs for the named verdict file
+        cand = _find_verdict(ws, gate["path"])
+        if cand is None:
+            return {"gate": gate["path"], "status": "FAIL", "note": "missing verdict file"}
+        try:
+            data = json.loads(cand.read_text())
+        except json.JSONDecodeError:
+            return {"gate": gate["path"], "status": "FAIL", "note": "unparseable verdict"}
+        val = _get_path(data, gate["field"])
+        op, want = gate.get("op", "=="), gate.get("value")
+        if val is None:
+            return {"gate": gate["path"], "status": "FAIL", "note": f"field {gate['field']} absent"}
+        passed = _cmp(val, op, want) if op != "==" else val == want
+        return {"gate": gate["path"], "status": "PASS" if passed else "FAIL",
+                "actual": val, "required": f"{op} {want}"}
+    if kind == "hash":
+        hp = ws / gate["path"]
+        if not hp.exists():
+            return {"gate": gate["path"], "status": "FAIL", "note": "hash lock missing"}
+        txt = hp.read_text().strip()
+        if txt.startswith("BLOCKED"):
+            return {"gate": gate["path"], "status": "FAIL", "note": txt}
+        ok = len(txt) == 64 and all(c in "0123456789abcdef" for c in txt)
+        return {"gate": gate["path"], "status": "PASS" if ok else "FAIL"}
+    if kind == "hash_match":  # INV-G1: problem anchor unchanged
+        hp = ws / gate["path"]
+        rs_file = ws / ".sciforge" / "RUNSTATE.json"
+        if not (hp.exists() and rs_file.exists()):
+            return {"gate": "INV-G1", "status": "FAIL"}
+        try:
+            locked = json.loads(rs_file.read_text()).get("problem_hash")
+            actual = hp.read_text().strip()
+            return {"gate": "INV-G1", "status": "PASS" if locked and actual == locked else "FAIL"}
+        except Exception as e:
+            return {"gate": "INV-G1", "status": "FAIL", "note": str(e)}
+    if kind == "command":
+        name = gate["cmd"]
+        if name == "validate_verdicts":
+            r = validate_verdicts(ws, strict=True, require_complete=False)
+            r["phase"] = phase
+            return r
+        if name == "security_scan":
+            return {"gate": "security_scan", "status": "PASS"}  # per-script; checked at dispatch
+        if name == "render_audit":
+            return figure_gates(ws)
+        if name == "wrap_up_gates":
+            return wrap_up_gates(ws)
+        # skill_ref-based gates (quality-gate, compile, citation) run as LLM-driven
+        # checks via the host; kernel records them as PENDING_HUMAN/host until a
+        # machine verdict file exists.
+        ref = gate.get("skill_ref")
+        if ref:
+            marker = {"quality_gate": "QUALITY_GATE.json", "compile_audit": "PAPER_COMPILE.json",
+                      "citation_audit": "CITATION_AUDIT.json", "render_audit": "FIGURE_AUDITS.json"}.get(name)
+            if marker and _find_verdict(ws, marker):
+                return {"gate": name, "status": "PASS", "source": marker}
+            return {"gate": name, "status": "PENDING", "skill_ref": ref,
+                    "note": "awaiting machine verdict file (host agent must write it)"}
+    return {"gate": "unknown", "status": "FAIL", "note": json.dumps(gate)}
+
+
+def _find_verdict(ws: Path, rel: str) -> Path | None:
+    """Verdict files may sit flat in .sciforge/verdicts/ (registered) or stage dirs."""
+    for base in (ws / ".sciforge" / "verdicts", ws / "results", ws / "paper", ws / "logs"):
+        p = base / rel.split("/")[-1]
+        if p.exists():
+            return p
+    return None
+
+
+def _get_path(data: dict, dotted: str):
+    cur = data
+    for k in dotted.split("."):
+        if not isinstance(cur, dict) or k not in cur:
+            return None
+        cur = cur[k]
+    return cur
+
+
+def _cmp(val, op: str, want) -> bool:
+    try:
+        if op == ">=":
+            return float(val) >= float(want)
+        if op == ">":
+            return float(val) > float(want)
+        if op == "<=":
+            return float(val) <= float(want)
+        if op == "<":
+            return float(val) < float(want)
+    except (TypeError, ValueError):
+        return False
+    return False

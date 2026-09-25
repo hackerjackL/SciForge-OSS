@@ -19,7 +19,6 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 *.egg-info/
-.venv/
 venv/
 
 # LaTeX
@@ -60,3 +59,4 @@ KILL_ARGUMENT.json
 KILL_ARGUMENT.html
 # eval harness (test scaffolding, not shipped)
 scripts/eval/
+.venv/

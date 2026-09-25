@@ -1,0 +1,423 @@
+{
+  "schema_version": "1.0",
+  "source_contract": "skills/orchestrator/auto-pipeline/SKILL.md v1.5.0 (21-phase DAG)",
+  "comment": "Executable encoding of the pipeline: knowledge stays in skills/ (Markdown), control lives here. Gates run as code at boundaries; loopbacks L1-L13 enforced by kernel.",
+  "effort_limits": {
+    "lite": {
+      "wall_clock_seconds_max": 43200,
+      "api_cost_usd_max": 10.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    },
+    "balanced": {
+      "wall_clock_seconds_max": 172800,
+      "api_cost_usd_max": 40.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    },
+    "max": {
+      "wall_clock_seconds_max": 345600,
+      "api_cost_usd_max": 120.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    },
+    "beast": {
+      "wall_clock_seconds_max": 864000,
+      "api_cost_usd_max": 400.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    }
+  },
+  "phases": [
+    {
+      "id": "0",
+      "name": "load-problem",
+      "skill": null,
+      "mode": "MUST",
+      "kernel_native": true,
+      "produces": [
+        "RUN_BUDGET.json",
+        "PROBLEM_HASH.txt"
+      ],
+      "next": "1"
+    },
+    {
+      "id": "1",
+      "name": "understand-decompose",
+      "skill": null,
+      "mode": "MUST",
+      "kernel_native": true,
+      "next": "1a"
+    },
+    {
+      "id": "1a",
+      "name": "domain-signature",
+      "skill": "skills/meta-skills/domain-signature/SKILL.md",
+      "mode": "OPTIONAL",
+      "optional_on": "host-agent",
+      "next": "1b"
+    },
+    {
+      "id": "1b",
+      "name": "domain-learner",
+      "skill": "skills/meta-skills/domain-learner/SKILL.md",
+      "mode": "MUST",
+      "next": "4broad"
+    },
+    {
+      "id": "4broad",
+      "name": "retrieval-broad-wave",
+      "skill": "skills/meta-skills/universal-retrieval/SKILL.md",
+      "mode": "MUST",
+      "note": "v6.0 gap chain: broad wave BEFORE idea anchoring",
+      "next": "2"
+    },
+    {
+      "id": "2",
+      "name": "idea-discovery",
+      "skill": "skills/meta-skills/idea-discovery/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "file",
+        "path": "literature/GAP_REPORT.md"
+      },
+      "loopback": {
+        "id": "L3",
+        "on": "no_survivor",
+        "target": "2",
+        "budget": 1
+      },
+      "next": "2.5"
+    },
+    {
+      "id": "2.5",
+      "name": "adversarial-falsification",
+      "skill": "skills/support/adversarial-falsification/SKILL.md",
+      "mode": "MUST",
+      "loopback": {
+        "id": "L1",
+        "on": "WEAKENED",
+        "target": "2",
+        "budget": 3
+      },
+      "next": "2.5b"
+    },
+    {
+      "id": "2.5b",
+      "name": "engineering-grounding",
+      "skill": "skills/support/adversarial-falsification/SKILL.md",
+      "mode": "MUST",
+      "next": "3"
+    },
+    {
+      "id": "3",
+      "name": "novelty-check",
+      "skill": "skills/meta-skills/novelty-check/SKILL.md",
+      "mode": "MUST",
+      "next": "4targeted",
+      "checkpoint_after": "idea-pick"
+    },
+    {
+      "id": "4targeted",
+      "name": "retrieval-targeted-waves",
+      "skill": "skills/meta-skills/universal-retrieval/SKILL.md",
+      "mode": "MUST",
+      "next": "5"
+    },
+    {
+      "id": "5",
+      "name": "method-registry",
+      "skill": "skills/support/method-registry/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "hash",
+        "path": ".sciforge/verdicts/REGISTRY_HASH.txt"
+      },
+      "next": "6",
+      "checkpoint_after": "method-approval"
+    },
+    {
+      "id": "6",
+      "name": "verification-routing",
+      "skill": "skills/support/experiment-execution/SKILL.md",
+      "mode": "MUST",
+      "kernel_native": true,
+      "produces": [
+        "VERIFICATION_ROUTING.json"
+      ],
+      "next_by_route": {
+        "theory-only": "6a",
+        "experiment-first": "6b",
+        "hybrid": "6a"
+      }
+    },
+    {
+      "id": "6a",
+      "name": "theory-derivation",
+      "skill": "skills/support/theory-derivation/SKILL.md",
+      "mode": "ROUTED",
+      "next": "6b"
+    },
+    {
+      "id": "6b",
+      "name": "experiment-toy",
+      "skill": "skills/support/experiment-execution/SKILL.md",
+      "mode": "ROUTED",
+      "gate": {
+        "check": "verdict_field",
+        "path": "RESULT.json",
+        "field": "status"
+      },
+      "loopback": {
+        "id": "L5",
+        "on": "FAIL",
+        "target": "5-or-2",
+        "budget": 2
+      },
+      "next": "6c"
+    },
+    {
+      "id": "6c",
+      "name": "experiment-full",
+      "skill": "skills/support/experiment-execution/SKILL.md",
+      "mode": "ROUTED",
+      "background": true,
+      "gate": {
+        "check": "verdict_field",
+        "path": "STATUS.json",
+        "field": "budget_floor.satisfied"
+      },
+      "loopback": {
+        "id": "L7",
+        "on": "BA_FAIL",
+        "target": "2",
+        "budget": 2,
+        "shared": "ba"
+      },
+      "next": "7"
+    },
+    {
+      "id": "7",
+      "name": "leakage-audit",
+      "skill": "skills/support/leakage-audit/SKILL.md",
+      "mode": "MUST",
+      "loopback": {
+        "id": "L8",
+        "on": "CRITICAL",
+        "target": "5",
+        "budget": 3
+      },
+      "next": "8"
+    },
+    {
+      "id": "8",
+      "name": "logic-verification",
+      "skill": "skills/support/logic-verification/SKILL.md",
+      "mode": "MUST",
+      "loopback": {
+        "id": "L9",
+        "on": "FATAL",
+        "target": "6",
+        "budget": 3,
+        "ba": {
+          "target": "2",
+          "budget": 2,
+          "shared": "ba"
+        }
+      },
+      "next": "9"
+    },
+    {
+      "id": "9",
+      "name": "invariant-check",
+      "skill": "skills/support/invariant-check/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "hash_match",
+        "path": ".sciforge/verdicts/PROBLEM_HASH.txt"
+      },
+      "next": "10"
+    },
+    {
+      "id": "10",
+      "name": "result-to-claim",
+      "skill": "skills/support/result-to-claim/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "file",
+        "path": ".sciforge/audits/CLAIMS_FROM_RESULTS.md"
+      },
+      "next": "11"
+    },
+    {
+      "id": "11",
+      "name": "unified-plotting",
+      "skill": "skills/meta-skills/unified-plotting/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "command",
+        "cmd": "render_audit"
+      },
+      "next": "12"
+    },
+    {
+      "id": "12",
+      "name": "paper-writing",
+      "skill": "skills/support/paper-writing/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "command",
+        "cmd": "quality_gate"
+      },
+      "next": "13"
+    },
+    {
+      "id": "13",
+      "name": "paper-compile",
+      "skill": "skills/support/paper-compile/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "command",
+        "cmd": "compile_audit",
+        "waivable": false
+      },
+      "loopback": {
+        "id": "L12",
+        "on": "PAGE_OVERFLOW",
+        "target": "12",
+        "budget": -1
+      },
+      "next": "14"
+    },
+    {
+      "id": "14",
+      "name": "auto-review-loop",
+      "skill": "skills/support/auto-review-loop/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "verdict_field",
+        "path": "REVIEW_STATE.json",
+        "field": "score",
+        "op": ">=",
+        "value": 6
+      },
+      "loopback": {
+        "id": "L10",
+        "on": "score_lt_6",
+        "target": "6",
+        "budget": 4,
+        "ba": {
+          "id": "L11",
+          "on": "kill_holds",
+          "target": "2",
+          "budget": 2,
+          "shared": "ba"
+        }
+      },
+      "next": "15"
+    },
+    {
+      "id": "15",
+      "name": "citation-audit",
+      "skill": "skills/support/citation-audit/SKILL.md",
+      "mode": "MUST",
+      "gate": {
+        "check": "command",
+        "cmd": "citation_audit"
+      },
+      "next": "15.5"
+    },
+    {
+      "id": "15.5",
+      "name": "publishability-score",
+      "skill": "skills/support/publishability-score/SKILL.md",
+      "mode": "MUST",
+      "produces": [
+        "PUBLISHABILITY_SCORE.json"
+      ],
+      "next": "16"
+    },
+    {
+      "id": "16",
+      "name": "final-assembly",
+      "skill": null,
+      "mode": "MUST",
+      "kernel_native": true,
+      "produces": [
+        "RUN_PREPRINT.md",
+        "LESSONS.json"
+      ],
+      "gate": {
+        "check": "command",
+        "cmd": "wrap_up_gates"
+      },
+      "next": "DONE"
+    }
+  ],
+  "boundary_gates": [
+    {
+      "cmd": "validate_verdicts",
+      "script": "scripts/validate_verdicts.py",
+      "args": [
+        "{ws}/.sciforge/verdicts/"
+      ],
+      "strict_from": "5",
+      "require_complete_at": "16"
+    },
+    {
+      "cmd": "security_scan",
+      "script": "scripts/security_scan.py",
+      "applies_to": "agent-authored experiment scripts",
+      "when": [
+        "6b",
+        "6c"
+      ]
+    },
+    {
+      "cmd": "render_audit",
+      "script": "scripts/check_figure_embedding.py",
+      "args": [
+        "{ws}",
+        "--require-renderer"
+      ],
+      "when": [
+        "11"
+      ]
+    },
+    {
+      "cmd": "quality_gate",
+      "skill_ref": "skills/support/quality-gate/SKILL.md",
+      "when": [
+        "12"
+      ]
+    },
+    {
+      "cmd": "compile_audit",
+      "skill_ref": "skills/support/paper-compile/SKILL.md",
+      "when": [
+        "13"
+      ]
+    },
+    {
+      "cmd": "citation_audit",
+      "skill_ref": "skills/support/citation-audit/SKILL.md",
+      "when": [
+        "15"
+      ]
+    },
+    {
+      "cmd": "wrap_up_gates",
+      "script": "scripts/sciforge_audit.py",
+      "when": [
+        "16"
+      ]
+    }
+  ],
+  "invariants": {
+    "INV-G1": "PROBLEM_ANCHOR_FREEZE: Q-id hash-locked at phase 0; every boundary kernel re-checks PROBLEM_HASH.txt",
+    "three_round_cap": "per failure type; exhaustion = BLOCKED + surface to human",
+    "ba_shared_budget": 2,
+    "pivot_budget": 2,
+    "kill_checkpoint_default": true
+  }
+}
