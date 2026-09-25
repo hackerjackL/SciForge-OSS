@@ -1,4 +1,4 @@
-# SciForge 超级迭代作战计划 — v2.0.0（30 项大重构定版映射）
+# SciForge 超级迭代作战计划 — v1.5.0（30 项大重构定版映射）
 
 > 性质变更声明：SciForge-OSS 从"纯 Skill 包"升级为 **Skill 驱动的研究运行时**（Runtime Kernel + Skill Library + RSI Evolution）。技能库依旧纯 Markdown、可被任何 agent 直读；新增 `kernel/` 提供代码级控制循环。无 UI——通过 `sciforge run` CLI + claude/codex 宿主适配器使用。
 > 吸取对象：ScienceDiscovery(openJiuwen/华为: evolve sidecar、三 shard、评分冻结、probe、skill 冻结包+扩展区、run 状态机、NPU broker)、AI-Scientist v2(PUCT 树、worker 池、token 实测)、EvoScientist(6-agent、自演化 memory、serve/deploy、cron)、DeepScientist(事件可重放、quest-as-git、runner 委托)、STORM(逐角色模型分档、stage 开关断点续跑)、AgentLaboratory(报错历史注入勿重复、best_codes 精英池)。
@@ -34,7 +34,7 @@
 | S27 | 检索质量门：GAP_REPORT 判别力检查（gap-id 必须引用可验证矛盾/空白 + 引用密度下限），防空洞 gap 驱动幻觉选题 | OpenScholar 自反馈 | W3 |
 | S28 | 环境完全体：macOS pip venv(3.12) + TinyTeX + brew 工具链一键 `sciforge install --full`；requirements 分层重做含 kernel extras | SciDis start-stack 经验 | W4 |
 | S29 | 三平台工程化：Docker headless 镜像、GitHub Actions 三平台 CI 矩阵、Linux bwrap、Windows WSL2 实测文档 | 用户目标 linux 无GUI | W4 |
-| S30 | 文档定版：README(中英)/AGENT_GUIDE/CHANGELOG 2.0.0 重写——性质变更、新架构图、复现实验清单、30 项映射表；demo 子代理全链实测记录 | 用户定版要求 | W4 |
+| S30 | 文档定版：README(中英)/AGENT_GUIDE/CHANGELOG 1.5.0 定版重写——性质变更、新架构图、复现实验清单、30 项映射表；demo 实测记录 | 用户定版要求 | W4 |
 
 ## 硬约束（不变量）
 - 技能库保持纯 Markdown 可独立消费（kernel 是第一个宿主，不是唯一宿主；Codex/Claude Code 直读模式保留）

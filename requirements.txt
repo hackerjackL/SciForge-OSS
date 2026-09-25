@@ -37,7 +37,7 @@ blockdiag>=3.0             # blockdiag/actdiag/seqdiag/nwdiag swimlanes
 # ============ text / topic / language (RQ2 + writing QA) ============
 jieba>=0.42                # Chinese segmentation (topic mining, edu/SS data)
 
-# ============ runtime kernel (v2.0 — the control plane; Python >= 3.10) ============
+# ============ runtime kernel (v1.5.0 — the control plane; Python >= 3.10) ============
 # kernel/ is stdlib-only by design; pytest is needed for the gate suite (ci_check/evolve gates).
 pytest>=7.0                # kernel + skill gate tests (300+ repo suite incl. tests/test_kernel.py)
 

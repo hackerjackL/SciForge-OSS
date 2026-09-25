@@ -8,18 +8,21 @@
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
 
-> **AI for Scientist Anything** — a pure Skill-driven universal scientific intelligence framework.
+> **AI for Scientist Anything** — a Skill-driven universal research runtime: **Skill Library (pure Markdown) + Runtime Kernel (code-enforced control loop) + RSI evolution layer**.
 >
-> The pure-skill-driven spirit: **no `.py` scripts, no bash code blocks, no IDE-specific syntax**.
-> Any AI agent that can read Markdown (Claude Code, Cursor, Trae, Codex, etc.) can consume these skills.
+> The knowledge layer keeps its spirit: **the skills are pure Markdown** — no IDE-specific syntax, consumable by any agent that can read files (Claude Code, Cursor, Trae, Codex…). The 1.5.0 change is the split: **what to do stays in Markdown; how it is enforced moves into code**. The optional `kernel/` (Python ≥3.10, stdlib-only) runs the 21-phase DAG as a real state machine with event-sourced resume, mechanical gates, human checkpoints as code, multi-backend providers, a cross-model review panel, and a recursive skill-library evolution loop. **No UI** — headless CLI (`sciforge run …`) or host-agent mode.
 >
-> SciForge-OSS is a **fully autonomous research skill**, not a problem-solving benchmark: the human supplies ONE research question (any domain), and the pipeline runs end-to-end from idea discovery to submission-ready paper.
+> Two ways to use: **(A) skills-only** (inside any AI agent: `/auto-pipeline "problem"`) — unchanged from before; **(B) skills + kernel** (`sciforge run --workspace … --host claude`) — the pipeline can no longer silently skip a gate, survives process death, and gets measurably better with every run (RSI).
+>
+> SciForge is a **fully autonomous research system**, not a problem-solving benchmark: the human supplies ONE research question (any domain), and the pipeline runs end-to-end from idea discovery to submission-ready paper.
 
 ---
 
 ## Table of Contents
 
 - [What is this](#what-is-this)
+- [Runtime kernel (v1.5.0)](#runtime-kernel-v150)
+- [RSI: the skill library evolves itself](#rsi-the-skill-library-evolves-itself)
 - [Installation](#installation)
 - [Architecture: DAG-driven research loop](#architecture-dag-driven-research-loop)
 - [Quick Start](#quick-start)
@@ -56,6 +59,45 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 | **Dynamic Tooling** | Tool factory | When tools are insufficient at runtime, dynamically write and register temporary tools |
 | **Universal Retrieval** | Literature search | Multi-source academic search (arXiv/S2/CrossRef/PubMed/Web/OpenAlex) + 3-layer anti-hallucination verification |
 | **Unified Plotting** | Figure rendering | Structured data → publication-quality vector figures (PDF+SVG); Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) |
+
+## Runtime kernel (v1.5.0)
+
+`kernel/` is a **code control plane** for the skill library (Python ≥3.10, stdlib-only — the only extra pip dep is pytest). Skills stay the single source of *method*; the kernel is where *control* lives:
+
+| Capability | Mechanism |
+|---|---|
+| **State machine** | `kernel/config/phasegraph.json` encodes the 21-phase DAG, loopbacks L1–L13 with budgets, per-phase gates — the orchestrator loop runs as code, not prose |
+| **Event-sourced resume** | `.sciforge/events.ndjson` (append-only) + `RUNSTATE.json`; a dead process is detected via stale lockfile and **replays from the exact boundary** (kill -9 verified on macOS) |
+| **Gates in control flow** | every boundary runs `validate_verdicts.py --strict`, `security_scan.py`, `gap_gate.py`, `check_figure_embedding.py --require-renderer`, `leakage_scan.py` **as code**; a failing gate blocks the transition — audits can no longer be silently skipped |
+| **HITL as data** | checkpoints = `paused_checkpoint` + approval records + `APPROVAL_LOG.txt`; decide with `sciforge approve/deny`, or delegate via `--human-skip` / `--test-mode` |
+| **Providers** | role-tiered multi-backend routing (Anthropic/OpenAI-compatible/Ollama; env gateway honored) with real token accounting into `RUN_BUDGET.json` |
+| **Hosts** | `--host claude` (Claude Code CLI, reports `total_cost_usd`), `--host codex`, or `manual` bundle protocol (any agent drives via `.sciforge/host/*.done.json`) |
+| **Experiments** | sandbox-gated dispatch (Seatbelt on macOS, bubblewrap on Linux), worker pool, background nohup + STATUS.json aggregation, device planning (CUDA/ROCm/NPU/MPS/CPU via `detect_device.py`) |
+| **Daemon** | `sciforge serve` — headless queue + loopback HTTP (:4510) for overnight server runs; no GUI anywhere |
+
+```bash
+sciforge run --workspace ./runs/Q001 --problem "your question" --host claude --loop
+sciforge status --workspace ./runs/Q001
+sciforge resume --workspace ./runs/Q001 --loop     # after crash: replays events, continues
+sciforge approve --workspace ./runs/Q001 idea-pick # human checkpoint
+sciforge doctor                                    # environment self-check
+```
+
+## RSI: the skill library evolves itself
+
+Completed runs emit signals (loopback counts, gate rejections, `LESSONS.json`, event log). `sciforge evolve` turns them into **SKILL.md patch candidates** and searches for the best one with a real optimizer — PUCT tree or MAP-Elites islands — scoring each candidate with **hybrid gates**: mechanical CI / schemas / golden regression (hard-zero on failure) + a frozen-rubric LLM judge (discrimination). Defenses absorbed from openJiuwen/ScienceDiscovery and AI-Scientist v2, live-verified:
+
+- **Three-shard** rollout/gate/**held-out test** — a reported improvement cannot be inflated by the search itself
+- **Pre-flight probe** — a scorer that cannot separate good from corrupt patches is rejected before spending budget
+- **Scorer freeze** — candidates may never edit `tests/`, `schemas/`, validators, or the rubric itself
+- **Freeze + extensions** — staged skill packages are read-only (`0444` + package hash); evolution output lands in `skill-extensions/`
+- **Human merge** — `sciforge submit` applies the winner only after the full `ci_check` gate passes; a failing post-merge check **auto-rolls-back** (observed live on first loop)
+
+```bash
+sciforge evolve --workspace ./runs --proposes ./patches.json --budget 8 --algorithm puct
+sciforge submit --workspace ./runs evo_123456   # human-authorized merge, full CI gate
+sciforge daily  --workspace ./runs              # plain-text digest (print/push anywhere)
+```
 
 ## Installation
 
@@ -261,7 +303,12 @@ SciForge-OSS/
 ├── CHANGELOG.md                     # version history
 ├── CITATION.cff                      # citation metadata
 ├── package.json                     # npm distribution metadata (local CLI; not published to registry)
-├── bin/sciforge.js                  # local CLI (init / tools-check / tools-install)
+├── bin/sciforge.js                  # local CLI (init / tools-check / tools-install / run·resume·approve·evolve·serve → kernel)
+├── kernel/                          # v1.5.0 runtime kernel (Python >= 3.10, stdlib-only control plane)
+│   ├── config/phasegraph.json       # 21-phase DAG as executable config (loopbacks, gates, budgets)
+│   ├── config/providers.json        # role-tiered multi-backend model routing
+│   ├── config/evolve.json           # RSI gate battery (CI + schemas + golden)
+│   └── sciforge/                    # pipeline.py state machine · state.py events+RUNSTATE · gates.py · approvals.py · execution.py (sandbox+pool) · providers.py · review.py (cross-model panel) · evolve.py (PUCT+MAP-Elites) · propose.py · skills_pack.py (frozen packages) · litcache.py · proxy.py · memory.py · daemon.py · golden.py · cli.py
 ├── scripts/
 │   ├── plotting/                    # figure toolchain (single entry point)
 │   │   ├── render_figure.py         # unified renderer — 12 engines, one pipeline, embedded audit

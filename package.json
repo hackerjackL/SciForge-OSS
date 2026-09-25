@@ -25,9 +25,11 @@
   },
   "files": [
     "skills/",
+    "kernel/",
     "AGENT_GUIDE.md",
     "SKILL.md",
     "README.md",
+    "README.zh.md",
     "CHANGELOG.md",
     "LICENSE",
     "VERSIONING.md",

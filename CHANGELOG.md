@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.5.0] - 2026-09-26 (定版追加：Runtime Kernel + RSI 进化，性质变更)
+
+### v1.5.0 定版：从"纯 Skill 包"跃迁为"Skill 驱动的研究运行时"（30 项超级重构，S01–S30）
+> 性质变更声明：**技能库依旧纯 Markdown**（任何 agent 直读不变）；新增 `kernel/`（Python ≥3.10 stdlib-only）**代码级控制面**——知识/控制分离。吸取对象：ScienceDiscovery(openJiuwen/华为)、AI-Scientist v2、EvoScientist、DeepScientist、STORM、AgentLaboratory。无 UI；接入 claude/codex 即用。作战计划全文：`EVOLUTION_PLAN.md`。
+
+- **W1 Runtime Kernel（S01–S10）**：`kernel/config/phasegraph.json` 把 21-phase DAG/回路预算/门编码为可执行配置；`pipeline.py` 代码状态机驱动循环（指针化 phase bundle + 硬约束逐边界原文再注入）；`events.ndjson` 事件溯源 + `RUNSTATE.json` v2（**崩溃→kill -9 实测→stale lockfile 检出→断点精确续跑**）；`providers.py` 多后端角色分档（网关 env 覆盖 + 400 自动降级 tool→plain-JSON；**真实 token/成本入 RUN_BUDGET**，claude 宿主实测 $1.13 记账）；`gates.py` 机械门嵌入控制流（**不过门无法提交边界**：validate_verdicts/security_scan/figures/gap_gate/leakage/compile 全 code-enforce）；`approvals.py` HITL 代码化（PENDING_APPROVAL + paused_checkpoint + 超时语义 + APPROVAL_LOG）；`execution.py` worker 池/沙箱策略（macOS Seatbelt + Linux bwrap 生成）/设备规划（detect_device 升格）；`skills_pack.py` skill 冻结包（0444 + package hash + **skill-extensions 可写自进化区**）；`daemon.py` `sciforge serve` headless 队列+HTTP（:4510，Linux 无 GUI 服务器过夜运行）；claude/codex/manual 三宿主适配器实测。
+- **W2 RSI 进化层（S11–S19）**：`evolve.py` 双引擎（**PUCT 树 + MAP-Elites 多岛环形迁移+inspiration 变异**，共用 Domain 接缝）× 四评分模式（gate_metric/llm_judge 冻结 rubric/hybrid/probe）；**三分片 rollout/gate/test**（held-out 报数，防搜索自我刷分）；**probe 预检**（评分无判别力→拒绝开跑，实测拦截 2 次）；**评分器冻结**（FROZEN_PREFIXES：tests/schemas/validators/kernel 自身——候选永不触碰）；`propose.py` 审计事件→SKILL.md patch 提案；**端到端 RSI 闭环实测**：搜索 6 候选 → 胜出 score=0.88/held_out=0.76 → `submit` 全量 CI 门合入（bad-candidate 首次 submit 被 ci_check **正确拦截并自动回滚**——安全机制现场生效）；golden 回归电池 `golden.py`（7/7：路由确定性×4 + gap 判别×2 + fixture 完整×1，入进化硬门）。
+- **W3 科研纵深（S20–S27）**：`review.py` **多模型交叉审稿团**——3 独立盲审视角（methods/novelty/repro）+ 分歧仲裁（ADJUDICATE_REQUIRED 升 chair），phase 14 实测（stub 论文被诚实打 2.3 分 11 fatal，非橡皮图章；REVIEW_PANEL.json + registered REVIEW_STATE.json 双落盘）；`litcache.py` verified-ref SQLite 缓存（30d/6h TTL 分级，实测）；`proxy.py` 文献代理自动发现（实测发现网关 62503，替代写死 8099）；`scripts/leakage_scan.py` **10 类管线泄漏+AIGC 痕迹机械扫描**（stdlib 正则，exit-code 门；实测抓全植入泄漏含伪造 frontmatter）；`scripts/gap_gate.py` GAP_REPORT 判别力门（锚点 id+引用+discrimination lexicon，防空洞 gap 驱动幻觉选题）。
+- **工程与可复现（S28–S30）**：`Dockerfile` headless 镜像（texlive+d2+graphviz+rsvg+poppler，GPU `--gups`/NPU/ CPU 全兼容，无 GUI）；macOS 完全体实测（uv py3.12 + brew graphviz/librsvg/poppler + TinyTeX standalone；`sciforge doctor` 全绿）；requirements 增 kernel 段（pytest 入门槛）；npm 包发布面含 kernel/（`sciforge run|resume|status|step|approve|gate|doctor|dispatch|jobs|evolve|submit|daily|serve|cache|proxy`）；**基线 6 洞修复**（fixture 缺 2 注册 verdict + RUNSTATE 被 gitignore 吞 + standalone 缺包——314→**320 测试全绿**，golden 门必须全绿是进化准入）。
+- 版本策略：**定版 1.5.0**（用户指令）——本轮 30 项全部并入 1.5.0 条目，不升 2.0.0；VERSIONING 大一统纪律保持（package.json/CITATION/README×2/26 SKILL.md 同版本）。
+
+### 实测记录（macOS arm64, 2026-09-25/26）
+1. manual-host 协议：phase 0→1b 逐步推进 + done.json 应答 ✓
+2. **kill -9 模拟**：stale lockfile → `recover()` → 事件重放 → 断点 phase 1b 精确续跑 ✓
+3. claude 宿主适配器：Phase 1a 真实执行（domain-signature-hint.json 落盘 + $1.13 成本入 RUN_BUDGET）✓
+4. RSI 完整环：probe 拦截平坦评分器×2 → 判别力建立（good 0.5 vs corrupt 0.0）→ PUCT 6 候选 → 0.88 胜出 → submit 全量 ci_check 拦截坏合入→回滚 ✓ → 修基线后重跑 held-out 0.76 → 合入 commit 158fc16 ✓
+5. S20 面板：3 盲审 + 仲裁 + 21-schema REVIEW_STATE 写入 ✓
+6. gap_gate/leakage_scan/security_scan/sandbox/dispatch/cache/proxy/golden：单元+实弹 ✓
+7. 全链 --host claude --loop 过夜电池（S29 记录持续更新）
+
 ## [1.5.0] - 2026-08-12
 
 ### v1.5.0：武器库 + 设备判定 + 收敛链路 + 修订模式 + 反漂移/活人感/证伪探针（统一版本，无修版本）

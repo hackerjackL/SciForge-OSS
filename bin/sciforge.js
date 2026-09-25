@@ -46,7 +46,7 @@ function cmd_init(target) {
   copyTree("scripts");  // v5.3: toolchain (plotting/validators/security scan) ships with the skills
   copyTree("tests");    // v1.3.2: self-verification suite ships with the package
   copyTree("fixtures"); // v1.3.2: e2e fixture workspace (verdict contract pins)
-  copyTree("kernel");   // v2.0: runtime kernel (control plane; needs Python >= 3.10)
+  copyTree("kernel");   // v1.5.0: runtime kernel (control plane; needs Python >= 3.10)
   for (const f of ["AGENT_GUIDE.md", "SKILL.md", "README.md", "LICENSE", "VERSIONING.md", "CITATION.cff", "package.json"]) {
     const s = join(PKG_ROOT, f);
     if (existsSync(s)) copyFileSync(s, join(dst, f));
@@ -95,7 +95,7 @@ function cmd_tools_install() {
   cmd_tools_check();
 }
 
-// ---- runtime kernel (v2.0: the control plane; skills stay pure Markdown) ----
+// ---- runtime kernel (v1.5.0: the control plane; skills stay pure Markdown) ----
 // The kernel needs Python >= 3.10. Search order: repo .venv, python3.13/.12/.11/.10,
 // python3 (only if its version passes), conda. Cache nothing — cheap probes.
 function findKernelPython() {
@@ -159,8 +159,17 @@ switch (sub) {
   case "deny":
     cmd_run(["approve", ...rest, "--deny"]);
     break;
+  case "selftest": {
+    const py = findKernelPython();
+    if (!py) { console.error("[sciforge] no Python >= 3.10 found"); process.exit(1); }
+    try {
+      execSync(`"${py.path}" "${join(PKG_ROOT, "scripts", "ci_check.py")}"`,
+        { stdio: "inherit", cwd: PKG_ROOT });
+    } catch (e) { process.exit(e.status ?? 1); }
+    break;
+  }
   case "--help": case "-h": case undefined:
-    console.log("SciForge — AI for Scientist Anything (skill library + runtime kernel, v2.0)\n");
+    console.log("SciForge — AI for Scientist Anything (skill library + runtime kernel, v1.5.0)\n");
     console.log("Usage (skill-only mode — read in any Markdown-capable agent):");
     console.log("  /auto-pipeline \"your scientific problem\"   (inside claude/codex/cursor/trae)");
     console.log("\nUsage (runtime kernel — headless CLI, needs Python >= 3.10):");
@@ -175,7 +184,8 @@ switch (sub) {
     console.log("  sciforge evolve --workspace DIR --proposes p.json [--budget 8] [--algorithm puct|openevolve]");
     console.log("  sciforge submit --workspace DIR evo_<id>       # human-authorized skill patch merge");
     console.log("  sciforge daily --workspace DIR");
-    console.log("  sciforge doctor                                 # environment self-check");
+    console.log("  sciforge doctor · sciforge cache|proxy · sciforge selftest");
+    console.log("  sciforge serve --archive DIR                    # headless daemon (loopback :4510)");
     console.log("  sciforge init [dir] · sciforge tools-check · sciforge tools-install");
     console.log("\nKnowledge stays in skills/ (pure Markdown); control lives in kernel/. See AGENT_GUIDE.md.");
     break;
