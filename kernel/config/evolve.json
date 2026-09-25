@@ -1,0 +1,24 @@
+{
+  "gate_checks": [
+    {
+      "id": "ci_scratch",
+      "cmd": "${SCIFORGE_PY:-python3} scripts/ci_check.py --repo-root .",
+      "timeout": 1800,
+      "hard": ["ci_scratch"]
+    },
+    {
+      "id": "verdict_schemas",
+      "cmd": "${SCIFORGE_PY:-python3} -m pytest tests/test_validate_verdicts.py tests/test_round5_gates.py -q",
+      "timeout": 600,
+      "hard": ["verdict_schemas"]
+    },
+    {
+      "id": "kernel_unit",
+      "cmd": "${SCIFORGE_PY:-python3} -m pytest tests/test_kernel.py -q",
+      "timeout": 600,
+      "hard": ["kernel_unit"]
+    }
+  ],
+  "evo_workspace": "/tmp/sciforge-evo",
+  "comment": "Evolution gates run inside the scratch checkout, so they measure the PATCHED tree. Hard gates zero out candidates that break CI/schemas. $SCIFORGE_PY lets the kernel pass its own venv python into subprocesses."
+}

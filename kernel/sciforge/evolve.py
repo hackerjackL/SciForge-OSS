@@ -208,7 +208,7 @@ class HybridDomain(Domain):
 # ---------------- pre-flight probe (S13) ----------------
 def probe(domain: Domain, seed: Patch, rng: random.Random) -> dict:
     """4 checks: discriminates good-vs-corrupt, headroom, stability, repairable errors."""
-    corrupt = Patch({"ops": [dict(op, new=op["new"][:10] + "\n<!-- deliberate corruption -->")
+    corrupt = Patch({"ops": [dict(op, new="###CORRUPT###\n" + op["new"][:10])
                              for op in seed["ops"]][:1] or []})
     base = domain.score(seed)
     if not corrupt["ops"]:
@@ -337,6 +337,7 @@ class EvolutionRun:
         self.engine = (PUCT(domain) if algorithm == "puct"
                        else MapElites(domain))
         self.events_path = ws / ".sciforge" / f"evolve_{int(time.time())}.ndjson"
+        self.events_path.parent.mkdir(parents=True, exist_ok=True)
         self.results: list[dict] = []
 
     def _emit(self, kind, **kw):
@@ -349,7 +350,7 @@ class EvolutionRun:
         pr = probe(self.domain, self.seed, random.Random(42))
         self._emit("probe", **pr)
         if not pr["ok"]:
-            return {"status": "rejected_scoring", "probe": pr}
+            return {"status": "rejected_scoring", "probe": pr, "events": str(self.events_path)}
         budget_left = self.budget
         # expand seed first
         sc = self._evaluate(self.seed, parent_idx=-1)

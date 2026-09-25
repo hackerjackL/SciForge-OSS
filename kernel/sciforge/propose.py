@@ -55,12 +55,13 @@ def audit_run(ws: Path) -> dict:
     return sig
 
 
-def proposals_from_signals(sigs: list[dict], skills_root: Path) -> list[dict]:
+def proposals_from_signals(sigs: list[dict], repo_root: Path) -> list[dict]:
     """Rule-based proposals: stall points -> sharpen the responsible skill's gate wording.
 
-    Each proposal = {path, old, new, rationale, evidence}. `old` MUST be verbatim
-    existing text (apply_patch enforces); templates pull anchor sentences from the
-    target skill so proposals are grounded, not invented.
+    Each proposal = {path, old, new, rationale, evidence}. `path` is repo-relative
+    ("skills/..."); `repo_root` resolves it. `old` MUST be verbatim existing text
+    (apply_patch enforces); templates pull anchor sentences from the target skill
+    so proposals are grounded, not invented.
     """
     # aggregate signals across runs
     agg: dict[str, int] = {}
@@ -75,7 +76,7 @@ def proposals_from_signals(sigs: list[dict], skills_root: Path) -> list[dict]:
     out: list[dict] = []
     hot = sorted(agg.items(), key=lambda x: -x[1])[:8]
     for signal, count in hot:
-        target, anchor, insert = _map_signal(signal, skills_root)
+        target, anchor, insert = _map_signal(signal, repo_root)
         if not (target and anchor and insert):
             continue
         out.append({"path": target, "old": anchor, "new": anchor + insert,

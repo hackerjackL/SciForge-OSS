@@ -79,6 +79,8 @@ def main(argv=None) -> int:
     p_ev.add_argument("--proposes", type=Path, required=True, help="patches JSON (from `evolve-analyze`)")
     p_ev.add_argument("--budget", type=int, default=8, help="max candidate expansions")
     p_ev.add_argument("--algorithm", choices=["puct", "openevolve"], default="puct")
+    p_ev.add_argument("--fast", action="store_true",
+                       help="quick gate subsets only (demo/iteration; submit still runs full ci_check)")
 
     p_sub = sub.add_parser("submit", help="accept an evolved skill patch into skill-extensions")
     p_sub.add_argument("--workspace", type=Path, required=True)
@@ -86,6 +88,24 @@ def main(argv=None) -> int:
 
     p_dr = sub.add_parser("daily", help="evolution/progress daily digest -> text (S17)")
     p_dr.add_argument("--workspace", type=Path, required=True)
+
+    p_srv = sub.add_parser("serve", help="headless daemon: queue + HTTP control (loopback :4510)")
+    p_srv.add_argument("--archive", type=Path, required=True, help="runs archive dir")
+    p_srv.add_argument("--port", type=int, default=4510)
+    p_srv.add_argument("--host-agent", choices=["manual", "claude", "codex"], default="manual")
+    p_srv.add_argument("--effort", default="balanced",
+                       choices=["lite", "balanced", "max", "beast"])
+
+    p_ca = sub.add_parser("cache", help="verified-reference cache (S24)")
+    p_ca.add_argument("what", choices=["lookup", "put", "stats"])
+    p_ca.add_argument("--id", default=None)
+    p_ca.add_argument("--kind", default="auto")
+    p_ca.add_argument("--verified", action="store_true")
+    p_ca.add_argument("--payload", default="{}")
+
+    p_px = sub.add_parser("proxy", help="literature-proxy auto-discovery (S24)")
+    p_px.add_argument("--write", type=Path, default=None,
+                       help="write discovery result JSON to this path")
 
     a = ap.parse_args(argv)
 
@@ -125,6 +145,25 @@ def main(argv=None) -> int:
     if a.cmd == "daily":
         from .evolve_cli import daily_digest
         print(daily_digest(a.workspace))
+        return 0
+    if a.cmd == "serve":
+        from .daemon import serve
+        serve(a.archive, port=a.port, run_host=a.host_agent, effort=a.effort)
+        return 0
+    if a.cmd == "cache":
+        from . import litcache
+        if a.what == "stats":
+            print(json.dumps(litcache.stats(), indent=2))
+        elif a.what == "lookup":
+            r = litcache.lookup(a.id, a.kind)
+            print(json.dumps(r, indent=2, ensure_ascii=False) if r else '{"cache": "MISS"}')
+        else:  # put
+            r = litcache.put(a.id, a.verified, json.loads(a.payload), a.kind)
+            print(json.dumps(r, indent=2))
+        return 0
+    if a.cmd == "proxy":
+        from .proxy import discover
+        print(json.dumps(discover(write_to=a.write), indent=2))
         return 0
     return 2
 
@@ -240,3 +279,7 @@ def cmd_dispatch(a) -> int:
     if not r.get("dispatched"):
         return 2
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

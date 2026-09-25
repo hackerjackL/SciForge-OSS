@@ -110,6 +110,10 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             return {"gate": "INV-G1", "status": "FAIL", "note": str(e)}
     if kind == "command":
         name = gate["cmd"]
+        if name == "gap_gate":
+            p = run_py("scripts/gap_gate.py", [str(ws)])
+            return {"gate": "gap_gate", "status": "PASS" if p.returncode == 0 else "FAIL",
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
         if name == "validate_verdicts":
             r = validate_verdicts(ws, strict=True, require_complete=False)
             r["phase"] = phase
@@ -120,6 +124,33 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             return figure_gates(ws)
         if name == "wrap_up_gates":
             return wrap_up_gates(ws)
+        if name == "leakage_scan":
+            # exit 0 = PASS or no-paper-yet SKIP; exit 2 = hits remaining => FAIL
+            p = run_py("scripts/leakage_scan.py", [str(ws), "--write-verdict"])
+            return {"gate": "leakage_scan",
+                    "status": "PASS" if p.returncode == 0 else "FAIL",
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-3000:]}
+        if name == "compile_audit":
+            # the mechanical half of paper-compile. v1.4.0 taught us the failure
+            # mode is "audit never ran" — so when no machine verdict exists we
+            # BLOCK (PENDING => gate rejected), not wave through. The LaTeX
+            # zero-warning compile itself stays host-driven; the host satisfies
+            # this gate by writing PAPER_COMPILE.json (plus a passing
+            # LEAKAGE_SCRUB.json, which this gate also verifies).
+            pc = _find_verdict(ws, "PAPER_COMPILE.json")
+            lv = _find_verdict(ws, "LEAKAGE_SCRUB.json")
+            if lv:
+                try:
+                    if json.loads(lv.read_text()).get("status") != "PASS":
+                        return {"gate": "compile_audit", "status": "FAIL",
+                                "note": "LEAKAGE_SCRUB.json status != PASS (compile refuses)"}
+                except Exception:
+                    return {"gate": "compile_audit", "status": "FAIL",
+                            "note": "LEAKAGE_SCRUB.json unreadable"}
+            if pc:
+                return {"gate": "compile_audit", "status": "PASS", "source": "PAPER_COMPILE.json"}
+            return {"gate": "compile_audit", "status": "FAIL",
+                    "note": "PAPER_COMPILE.json absent — host must compile (zero warnings) and write the verdict"}
         # skill_ref-based gates (quality-gate, compile, citation) run as LLM-driven
         # checks via the host; kernel records them as PENDING_HUMAN/host until a
         # machine verdict file exists.

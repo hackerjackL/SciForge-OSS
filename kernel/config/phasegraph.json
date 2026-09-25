@@ -70,6 +70,10 @@
       "skill": "skills/meta-skills/universal-retrieval/SKILL.md",
       "mode": "MUST",
       "note": "v6.0 gap chain: broad wave BEFORE idea anchoring",
+      "gate": {
+        "check": "command",
+        "cmd": "gap_gate"
+      },
       "next": "2"
     },
     {
@@ -276,31 +280,30 @@
       "name": "paper-compile",
       "skill": "skills/support/paper-compile/SKILL.md",
       "mode": "MUST",
-      "gate": {
-        "check": "command",
-        "cmd": "compile_audit",
-        "waivable": false
-      },
       "loopback": {
         "id": "L12",
         "on": "PAGE_OVERFLOW",
         "target": "12",
         "budget": -1
       },
-      "next": "14"
+      "next": "14",
+      "gates": [
+        {
+          "check": "command",
+          "cmd": "leakage_scan"
+        },
+        {
+          "check": "command",
+          "cmd": "compile_audit",
+          "waivable": false
+        }
+      ]
     },
     {
       "id": "14",
       "name": "auto-review-loop",
       "skill": "skills/support/auto-review-loop/SKILL.md",
       "mode": "MUST",
-      "gate": {
-        "check": "verdict_field",
-        "path": "REVIEW_STATE.json",
-        "field": "score",
-        "op": ">=",
-        "value": 6
-      },
       "loopback": {
         "id": "L10",
         "on": "score_lt_6",
@@ -314,7 +317,16 @@
           "shared": "ba"
         }
       },
-      "next": "15"
+      "next": "15",
+      "gates": [
+        {
+          "check": "verdict_field",
+          "path": "REVIEW_STATE.json",
+          "field": "score",
+          "op": ">=",
+          "value": 6
+        }
+      ]
     },
     {
       "id": "15",

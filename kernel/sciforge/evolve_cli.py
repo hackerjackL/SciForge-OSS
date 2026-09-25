@@ -61,13 +61,22 @@ def _demo_mutator(rng_seed: int = 7):
     return mut
 
 
-def _golden_checks(root: Path | None = None) -> list[dict]:
+def _golden_checks(root: Path | None = None, fast: bool = False) -> list[dict]:
+    """fast=True: only the quick gate subsets (demo/iteration); full = + ci_check.
+    `submit` ALWAYS runs the full ci_check post-merge regardless of this flag."""
     cfg = _load_config()
     root = root or REPO_ROOT
-    checks = list(cfg.get("gate_checks", []))
-    checks.append({"id": "ci_check",
-                   "cmd": f"python3 {root / 'scripts' / 'ci_check.py'} --repo-root {root}",
-                   "timeout": 1200, "hard": ["ci_check"]})
+    py = sys.executable  # the venv running the kernel — scratch gates must not use system python
+    checks = []
+    for c in cfg.get("gate_checks", []):
+        if fast and c.get("id") == "ci_scratch":
+            continue
+        cmd = c.get("cmd", "").replace("${SCIFORGE_PY:-python3}", py)
+        checks.append({**c, "cmd": cmd})
+    if not fast:
+        checks.append({"id": "ci_check",
+                       "cmd": f"{py} {root / 'scripts' / 'ci_check.py'} --repo-root {root}",
+                       "timeout": 1800, "hard": ["ci_check"]})
     return checks
 
 
@@ -85,7 +94,7 @@ def run_evolve_cli(a) -> int:
         # no archives yet: use a synthetic seed proposal to validate the machinery
         sigs = []
     # 2. proposals
-    props = proposals_from_signals(sigs, REPO_ROOT / "skills") if sigs else []
+    props = proposals_from_signals(sigs, REPO_ROOT) if sigs else []
     prop_file = a.proposes
     if prop_file and prop_file.exists():
         props = json.loads(prop_file.read_text())["proposals"]
@@ -94,8 +103,13 @@ def run_evolve_cli(a) -> int:
                           "hint": "pass --proposes <patches.json> (from audit) or complete runs first"},
                          indent=2))
         return 1
-    # 3. domain + shards
-    gate = GateDomain(_golden_checks())
+    # 3. domain + shards — evolution runs on a SCRATCH checkout clone, never the
+    # live repo (S16 hard line); gates also run inside it so they measure the PATCHED tree.
+    evo_ws = Path(cfg.get("evo_workspace", "/tmp/sciforge-evo"))
+    evo_ws.mkdir(parents=True, exist_ok=True)
+    scratch = evo_ws / f"checkout_{int(time.time())}"
+    subprocess.run(["git", "clone", "-q", str(REPO_ROOT), str(scratch)], timeout=300, check=True)
+    gate = GateDomain(_golden_checks(scratch, fast=getattr(a, "fast", False)))
     judge = None
     try:
         from .providers import Providers
@@ -109,11 +123,6 @@ def run_evolve_cli(a) -> int:
     # shard_check: candidate may only touch editable paths and golden gate shard
     def shard_check(patch: Patch) -> bool:
         return all(editable(op["path"]) for op in patch["ops"])
-    evo_ws = Path(cfg.get("evo_workspace", "/tmp/sciforge-evo"))
-    evo_ws.mkdir(parents=True, exist_ok=True)
-    # evolution operates on a SCRATCH checkout, never the live repo (S16 hard line)
-    scratch = evo_ws / f"checkout_{int(time.time())}"
-    subprocess.run(["git", "clone", "-q", str(REPO_ROOT), str(scratch)], timeout=300, check=True)
     er = EvolutionRun(scratch, domain, _demo_mutator(), algorithm=a.algorithm,
                       budget=a.budget, seed_patch=seed, shard_check=shard_check)
     # rewire apply to scratch

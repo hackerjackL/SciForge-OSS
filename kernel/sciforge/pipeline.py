@@ -152,16 +152,19 @@ class Kernel:
         """Gate check then, only on PASS, commit boundary atomically."""
         ph = self.graph.phases[pid]
         results = []
-        # phase-specific gate
-        if ph.get("gate"):
-            results.append(gates_mod.check(self.ws, ph["gate"], pid))
+        # phase-specific gate(s): support "gates": [..] or single "gate"
+        for g in ph.get("gates", [ph["gate"]] if ph.get("gate") else []):
+            results.append(gates_mod.check(self.ws, g, pid))
         # every boundary: registered verdicts validation (strict from phase 5)
         strict = _ord(ph) >= 5
         results.append(gates_mod.validate_verdicts(self.ws, strict=strict))
         # wrap-up gates at 16
         if pid == "16":
             results.append(gates_mod.wrap_up_gates(self.ws))
-        failed = [r for r in results if r.get("status") == "FAIL"]
+        # anything that is not a clean pass/skip blocks the boundary
+        # (PENDING = host has not produced the machine verdict yet — v1.4.0's
+        #  "audit never ran" failure mode must NOT be able to advance)
+        failed = [r for r in results if r.get("status") not in ("PASS", "SKIP", "NOT_APPLICABLE")]
         self.log.emit(pid, "gates", {"results": results})
         if failed:
             # boundary NOT committed: phase stays in progress; record gate failure

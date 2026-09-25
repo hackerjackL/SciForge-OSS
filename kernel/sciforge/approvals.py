@@ -33,7 +33,7 @@ class Approvals:
                "status": "PENDING", "payload": payload}
         (self.dir / f"{phase.replace('.', '_')}.json").write_text(
             json.dumps(rec, indent=2, ensure_ascii=False))
-        rs.status = "blocked"
+        rs.status = "paused_checkpoint"
         rs.update(pending=[checkpoint])
         rs.write()
         return rec
@@ -115,8 +115,9 @@ def accrue(ws: Path, *, phase: str, cost_usd: float | None = None,
     if not p.exists():
         return {}
     d = json.loads(p.read_text())
-    started = time.strptime(d["started_at"], "%Y-%m-%dT%H:%M:%SZ")
-    d["wall_clock_seconds"] = int(time.time() - time.mktime(started))
+    import calendar
+    started = calendar.timegm(time.strptime(d["started_at"], "%Y-%m-%dT%H:%M:%SZ"))
+    d["wall_clock_seconds"] = int(time.time() - started)
     if cost_usd is not None:
         d["api_cost_usd"] = round(max(0.0, d["api_cost_usd"] + cost_usd), 4)  # monotone
     if duration_s is not None:
