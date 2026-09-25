@@ -1,6 +1,12 @@
 {
   "gate_checks": [
     {
+      "id": "golden",
+      "cmd": "PYTHONPATH=kernel ${SCIFORGE_PY:-python3} -m sciforge.golden",
+      "timeout": 300,
+      "hard": ["golden"]
+    },
+    {
       "id": "ci_scratch",
       "cmd": "${SCIFORGE_PY:-python3} scripts/ci_check.py --repo-root .",
       "timeout": 1800,

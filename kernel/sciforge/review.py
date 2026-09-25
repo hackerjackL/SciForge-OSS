@@ -108,5 +108,22 @@ def adjudicate_cross(provider, panel: dict, paper_text: str, claims: str) -> dic
 
 
 def _jsonobj(raw: str) -> str:
-    i, j = raw.find("{"), raw.rfind("}")
-    return raw[i:j + 1] if i >= 0 and j > i else raw
+    """First score-bearing complete JSON object (models often emit an empty
+    shell {} before the real payload, and wrap it in prose)."""
+    objs = []
+    i = 0
+    while i < len(raw):
+        if raw[i] == "{":
+            depth = 0
+            for j in range(i, len(raw)):
+                if raw[j] == "{":
+                    depth += 1
+                elif raw[j] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        objs.append(raw[i:j + 1]); i = j; break
+        i += 1
+    for o in objs:
+        if '"overall"' in o or '"decision"' in o or '"score"' in o:
+            return o
+    return objs[0] if objs else raw

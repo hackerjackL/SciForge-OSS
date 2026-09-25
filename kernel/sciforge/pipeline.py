@@ -408,8 +408,8 @@ class Kernel:
         (self.ws / ".sciforge" / "audits").mkdir(parents=True, exist_ok=True)
         (self.ws / ".sciforge" / "audits" / "REVIEW_PANEL.json").write_text(
             json.dumps(panel, indent=2, ensure_ascii=False))
-        rs_verdict = {"ready" if panel["verdict"] == "ACCEPT" else
-                      "almost" if panel["verdict"] == "ADJUDICATE_REQUIRED" else "not_ready"}
+        rs_verdict = ("ready" if panel["verdict"] == "ACCEPT" else
+                      "almost" if panel["verdict"] == "ADJUDICATE_REQUIRED" else "not_ready")
         rs = {"round": 1, "threadId": self.rs.data.get("run_id", ""),
               "status": "completed", "difficulty": "medium",
               "last_score": panel.get("overall") or 0, "last_verdict": rs_verdict,
