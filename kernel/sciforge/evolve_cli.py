@@ -185,7 +185,7 @@ def submit_patch(a) -> int:
     meta["status"] = "MERGED"
     (ext / "meta.json").write_text(json.dumps(meta, indent=2))
     msg = f"evolve({a.run_id}): merge skill patch score={meta['score']:.2f} held_out={meta.get('held_out')}"
-    subprocess.run(["git", "add", *res["applied"], ".sciforge/"], cwd=str(REPO_ROOT), check=True)
+    subprocess.run(["git", "add", *res["applied"]], cwd=str(REPO_ROOT), check=True)
     subprocess.run(["git", "-c", "user.name=sciforge-evolve", "-c",
                     "user.email=evolve@sciforge.local", "commit", "-m", msg],
                    cwd=str(REPO_ROOT), capture_output=True, text=True)
