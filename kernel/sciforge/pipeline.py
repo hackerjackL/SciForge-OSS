@@ -84,6 +84,13 @@ class Kernel:
         self.log = EventLog(self.ws)
         self.rs = RunState(self.ws)
         self.appr = Approvals(self.ws)
+        self._providers = None  # lazily: gateway present => real cross-model review
+
+    def providers(self):
+        if self._providers is None:
+            from .providers import Providers
+            self._providers = Providers()
+        return self._providers
 
     # ---------------- state helpers ----------------
     @property
@@ -209,6 +216,12 @@ class Kernel:
         # kernel-native phases handled internally
         if ph.get("kernel_native"):
             return self._native(pid, ph)
+
+        # Phase 14: if a model gateway is configured, run the cross-model review
+        # panel in-process (S20/S21) and write the machine verdicts. In host
+        # mode we fall through to the host dispatch (manual/claude/codex).
+        if pid == "14" and not self.providers().host_mode:
+            return self._native_review()
 
         b = self.budget
         bundle = bundle_mod.build(self.ws, ph, b)
@@ -375,6 +388,46 @@ class Kernel:
         return target
 
     # ---------------- native phases ----------------
+    def _native_review(self) -> Verdict:
+        """S20/S21 in-process: 3 independent-model blind review + adjudication.
+
+        Writes: .sciforge/audits/REVIEW_PANEL.json (full panel narrative) and
+        registered REVIEW_STATE.json (mapped verdict) so the boundary gate +
+        validate_verdicts see the same machine truth the host agent would write.
+        """
+        import time as _t
+        from . import review as review_mod
+        paper = self.ws / "paper" / "main.tex"
+        text = paper.read_text(errors="replace") if paper.exists() else "(paper not yet assembled)"
+        claims = self.ws / ".sciforge" / "audits" / "CLAIMS_FROM_RESULTS.md"
+        ctext = claims.read_text(errors="replace") if claims.exists() else ""
+        panel = review_mod.review_paper(self.providers(), text)
+        if panel.get("adjudication_needed"):
+            adj = review_mod.adjudicate_cross(self.providers(), panel, text, ctext)
+            panel["adjudication"] = adj
+        (self.ws / ".sciforge" / "audits").mkdir(parents=True, exist_ok=True)
+        (self.ws / ".sciforge" / "audits" / "REVIEW_PANEL.json").write_text(
+            json.dumps(panel, indent=2, ensure_ascii=False))
+        rs_verdict = {"ready" if panel["verdict"] == "ACCEPT" else
+                      "almost" if panel["verdict"] == "ADJUDICATE_REQUIRED" else "not_ready"}
+        rs = {"round": 1, "threadId": self.rs.data.get("run_id", ""),
+              "status": "completed", "difficulty": "medium",
+              "last_score": panel.get("overall") or 0, "last_verdict": rs_verdict,
+              "pending_derivations": [],
+              "timestamp": _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime()),
+              "response_class": ["panel"],
+              "panel_source": "kernel/sciforge/review.py (S20 cross-model)"}
+        (self.ws / ".sciforge" / "verdicts" / "REVIEW_STATE.json").write_text(
+            json.dumps(rs, indent=2, ensure_ascii=False))
+        v = "PASS" if panel["verdict"] == "ACCEPT" else \
+            "WARN" if panel["verdict"] == "ADJUDICATE_REQUIRED" else "FAIL"
+        cost = sum((r.get("usage") or {}).get("cost_usd") or 0.0 for r in panel.get("per_reviewer", {})
+                   if isinstance(r, dict))
+        return Verdict(v, artifacts=[".sciforge/audits/REVIEW_PANEL.json",
+                                     ".sciforge/verdicts/REVIEW_STATE.json"],
+                       notes=panel["verdict"], cost_usd=cost or None,
+                       reason_code=f"panel_{panel['verdict']}")
+
     def _native(self, pid: str, ph: dict) -> Verdict:
         if pid == "0":
             b = self.budget
