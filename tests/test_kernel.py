@@ -667,3 +667,89 @@ def test_bug8_native_review_state_schema_valid(tmp_path: Path, monkeypatch):
                  str(tmp_path / ".sciforge" / "verdicts"), "--strict"],
                 capture_output=True, text=True)
     assert "REVIEW_STATE.json" in p.stdout and "PASS" in p.stdout.split("REVIEW_STATE.json")[1][:40], p.stdout[-800:]
+
+
+# ---------------- three-route green e2e (demo judgment: only theory-only was tested) ----------------
+
+def _drive(ws: Path, answers: dict, max_steps: int = 40) -> str:
+    """Drive the kernel via manual-host protocol with pre-baked phase answers.
+    Returns final status. Gates are real; only the LLM content is stubbed."""
+    k = Kernel(ws)
+    k.start(ws.name, f"route test {ws.name}", "lite", host="manual", human_skip=True)
+    for _ in range(max_steps):
+        r = k.step()
+        st = r["status"]
+        if st in ("done",):
+            return st
+        if st in ("blocked", "error"):
+            return f"{st}:{r.get('reason') or r.get('notes', '')}"
+        if st == "halted":
+            pid = r["phase"]
+            if pid in answers:
+                (ws / ".sciforge" / "host" / f"phase_{pid}.done.json").write_text(
+                    json.dumps(answers[pid]))
+            else:
+                (ws / ".sciforge" / "host" / f"phase_{pid}.done.json").write_text(
+                    json.dumps({"verdict": "PASS", "artifacts": [], "notes": "stub"}))
+        if st == "gate_fail":
+            pass  # retry loop handles it
+    return "max_steps"
+
+
+def test_route_theory_only_green(tmp_path: Path):
+    """theory-only route green path: routing selects theory-only, experiment
+    phases are NOT_APPLICABLE (no RESULT/STATUS demanded), 6a still runs as
+    primary verification (must NOT be skipped)."""
+    ws = tmp_path / "G-theory"
+    ws.mkdir()
+    (ws / ".sciforge" / "refine-logs").mkdir(parents=True)
+    (ws / ".sciforge" / "refine-logs" / "FINAL_PROPOSAL.json").write_text(
+        json.dumps({"verification_type": "theory-only"}))
+    k = Kernel(ws)
+    k.start(ws.name, "x", "lite", host="manual", human_skip=True)
+    k._route()
+    rt = json.loads((ws / ".sciforge" / "verdicts" /
+                     "VERIFICATION_ROUTING.json").read_text())
+    assert rt["route"] == "theory-only", rt
+    assert "EXPERIMENT_MATRIX.json" in rt["na_verdicts"], rt
+    # experiment phases skip; theory-derivation does NOT
+    assert k.run_phase("6b").v == "NOT_APPLICABLE"
+    assert k.run_phase("6c").v == "NOT_APPLICABLE"
+    v6a = k.run_phase("6a")
+    assert v6a.v != "NOT_APPLICABLE", "6a is primary verification on theory-only"
+
+
+def test_route_computational_routes_experiment(tmp_path: Path):
+    """computational route: VERIFICATION_ROUTING selects experiment-first."""
+    ws = tmp_path / "G-comp"
+    ws.mkdir()
+    (ws / "literature").mkdir()
+    (ws / "literature" / "GAP_REPORT.md").write_text(
+        "## GAP-1\n[A 2023] finds X while [B 2024] finds not-X; no ablation exists (C 2025).\n"
+        "## GAP-2\nPer [D 2024], the absence of a matched baseline remains untested.\n")
+    (ws / ".sciforge" / "refine-logs").mkdir(parents=True)
+    (ws / ".sciforge" / "refine-logs" / "FINAL_PROPOSAL.json").write_text(
+        json.dumps({"verification_type": "computational"}))
+    k = Kernel(ws)
+    k.start(ws.name, "x", "lite", host="manual", human_skip=True)
+    k._route()
+    rt = json.loads((ws / ".sciforge" / "verdicts" /
+                     "VERIFICATION_ROUTING.json").read_text())
+    assert rt["route"] == "experiment-first", rt
+
+
+def test_route_hybrid_via_nested_signature(tmp_path: Path):
+    """hybrid route via nested domain-signature (BUG-3 regression, e2e form)."""
+    ws = tmp_path / "G-hybrid"
+    ws.mkdir()
+    (ws / ".sciforge" / "refine-logs").mkdir(parents=True)
+    (ws / ".sciforge" / "refine-logs" / "domain-signature.json").write_text(
+        json.dumps({"domain_profile": {"evidence_type": "empirical"},
+                    "methodology_profile": {"suggested_verification_type": "theory+experiment"}}))
+    k = Kernel(ws)
+    k.start(ws.name, "x", "lite", host="manual", human_skip=True)
+    k._route()
+    rt = json.loads((ws / ".sciforge" / "verdicts" /
+                     "VERIFICATION_ROUTING.json").read_text())
+    assert rt["route"] == "hybrid", rt
+    assert rt["evidence_type"] == "empirical", rt

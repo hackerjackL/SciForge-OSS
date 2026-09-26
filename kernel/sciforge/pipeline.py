@@ -596,9 +596,15 @@ class Kernel:
         route = {"theory-only": "theory-only", "qualitative": "theory-only",
                  "computational": "experiment-first",
                  "theory+experiment": "hybrid"}.get(vt, "experiment-first")
+        # verification-routing.md §5: theory-only declares the experiment-gated
+        # registered artifacts N/A up-front (the route legitimately never produces
+        # them) — matches the e2e fixture's 5-N/A set.
         na = []
         if route == "theory-only":
-            na = ["BUDGET_FLOOR.json", "FIGURE_AUDITS.json"] if vt == "qualitative" else ["BUDGET_FLOOR.json"]
+            na = ["BUDGET_FLOOR.json", "EXPERIMENT_MATRIX.json",
+                  "EVALUATION_PROTOCOL.json", "REGISTRY_HASH.txt", "FAIRNESS.json"]
+            if vt == "qualitative":
+                na.append("FIGURE_AUDITS.json")
         vp = self.ws / ".sciforge" / "verdicts"
         vp.mkdir(parents=True, exist_ok=True)
         (vp / "VERIFICATION_ROUTING.json").write_text(json.dumps({
