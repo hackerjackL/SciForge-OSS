@@ -637,11 +637,21 @@ def apply_matplotlib_style(style: str = "academic") -> None:
     # v2.2 print contract: black glyphs on pure white, rendered at the size
     # the figure will occupy in the paper (full textwidth default) so fonts
     # read 1:1 after LaTeX embed.  Series colors stay dopamine for fills/lines.
+    #
+    # v3.0 cycle ordering: the default matplotlib prop_cycle is consumed by
+    # line plots first, so line-safe tokens (white contrast >= 3) come before
+    # fill-only tokens (gold/blue/orange, which need a stroke_for outline).
+    # This keeps the naive `ax.plot(x, y)` path readable without forcing every
+    # author to call series_style(); fills still get the full 8-token palette.
+    _vis = palette_visibility()
+    LINE_SAFE_HEX = [TOKENS[n] for n in _vis["line_safe"]]
+    FILL_ONLY_HEX = [TOKENS[n] for n in _vis["fill_only"]]
+    PROP_CYCLE_HEX = LINE_SAFE_HEX + FILL_ONLY_HEX
     rc = {
         "font.family": "serif",
         "font.serif": stack,
         "mathtext.fontset": "stix",
-        "axes.prop_cycle": "cycler('color', %r)" % SERIES_HEX,
+        "axes.prop_cycle": "cycler('color', %r)" % PROP_CYCLE_HEX,
         "figure.figsize": figsize_full(),
         "figure.facecolor": GROUND,
         "axes.facecolor": GROUND,
