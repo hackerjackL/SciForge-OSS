@@ -91,6 +91,7 @@ EXPECTED_VERDICT_FILES = frozenset({
     "RUN_BUDGET.json",
     "FIGURE_AUDITS.json",
     "EVALUATION_REVIEW.json",
+    "FAIRNESS.json",
     "PROBLEM_HASH.txt",
     "REGISTRY_HASH.txt",
 })
@@ -236,7 +237,7 @@ def test_theory_only_routing_reports_na_not_pending(tmp_path):
     shutil.copytree(MOCK_VERDICTS, verdicts_dir)
 
     na_set = ["EXPERIMENT_MATRIX.json", "EVALUATION_PROTOCOL.json",
-              "BUDGET_FLOOR.json", "REGISTRY_HASH.txt"]
+              "BUDGET_FLOOR.json", "REGISTRY_HASH.txt", "FAIRNESS.json"]
     for name in na_set:
         (verdicts_dir / name).unlink()
     routing = json.loads((verdicts_dir / "VERIFICATION_ROUTING.json").read_text(encoding="utf-8"))
@@ -257,9 +258,9 @@ def test_theory_only_routing_reports_na_not_pending(tmp_path):
     assert summary, f"no Summary line:\n{proc.stdout}"
     n_pass, n_fail, n_warn, n_pending, n_na = map(int, summary.groups())
     assert n_fail == 0 and n_warn == 0, proc.stdout
-    assert n_na == 4, f"expected 4 N/A verdicts, got {n_na}:\n{proc.stdout}"
+    assert n_na == 5, f"expected 5 N/A verdicts, got {n_na}:\n{proc.stdout}"
     assert n_pending == 0, f"declared-N/A verdicts leaked into pending:\n{proc.stdout}"
-    assert n_pass == len(EXPECTED_VERDICT_FILES) - 4
+    assert n_pass == len(EXPECTED_VERDICT_FILES) - 5  # 5 N/A on theory-only (incl. FAIRNESS)
 
 
 def test_na_declared_but_present_warns(tmp_path):

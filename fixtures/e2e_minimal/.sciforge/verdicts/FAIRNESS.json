@@ -1,0 +1,29 @@
+{
+  "gate": "experiment-fairness",
+  "version": "v1.5.0-w2",
+  "verdict": "PASS",
+  "checks": {
+    "compute_budget_parity": "PASS",
+    "data_split_lock": "PASS",
+    "seed_policy": "PASS",
+    "hparam_budget_parity": "PASS",
+    "metric_definitions": "PASS"
+  },
+  "comparisons": [
+    {
+      "table_id": "main",
+      "methods": [
+        "ours",
+        "baseline"
+      ],
+      "seed_count": 5,
+      "mean_std_reported": true,
+      "effect_size_reported": true,
+      "ci_reported": true,
+      "multiple_comparison_control": "bh"
+    }
+  ],
+  "numbers_stale": false,
+  "unfair_notes": [],
+  "generated_at": "2026-08-09T00:02:00Z"
+}
