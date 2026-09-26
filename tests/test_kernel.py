@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 if sys.version_info < (3, 10):
     pytest.skip("kernel requires Python >= 3.10 (X | Y syntax)", allow_module_level=True)
 
@@ -446,3 +448,100 @@ def test_memory_index_query(tmp_path: Path):
     # lexical hashing embedding: query shares tokens with the stored lesson
     hits = query(idx, "toy gate too loose lr diverged seeds RESULT FAIL")
     assert hits and "toy" in hits[0]["text"]
+
+
+# ---------------- wave-2: DeepMind fusion + fairness + SCI voice ----------------
+
+def test_research_domain_hard_zeros_science_integrity():
+    """S39: cascade layer — patches weakening science discipline never reach the judge."""
+    from sciforge.evolve import HybridDomain, Patch, ResearchDomain
+    bad = Patch({"ops": [{"path": "skills/x/SKILL.md", "old": "a",
+                          "new": "we may package the failure as a contribution"}]})
+    good = Patch({"ops": [{"path": "skills/x/SKILL.md", "old": "a",
+                           "new": "add a machine-checkable gate note"}]})
+    rd = ResearchDomain()
+    assert rd.score(bad)["hard_fail"] and rd.score(bad)["score"] == 0.0
+    assert not rd.score(good)["hard_fail"]
+    class Flat:
+        name = "flat"
+        def score(self, p):
+            return {"score": 1.0}
+    class CountingJudge:
+        calls = 0
+        def score(self, p):
+            self.calls += 1
+            return {"score": 8.0, "rationale": "fine"}
+    judge = CountingJudge()
+    h = HybridDomain(Flat(), judge)
+    r = h.score(bad)
+    assert r["score"] == 0.0 and r["judged"] is False
+    assert judge.calls == 0  # judge must NOT be called on a hard-zero candidate
+    r2 = h.score(good)  # judge IS called on clean candidates
+    assert r2["judged"] is True and r2["score"] > 0 and judge.calls == 1
+
+
+def test_fairness_gate_unfair_vs_fair():
+    """S33: unfair ledger FAILs; fair ledger PASSes (registered FAIRNESS.json)."""
+    import subprocess, tempfile, json as _j
+    from pathlib import Path as _P
+    ws = _P(tempfile.mkdtemp())
+    (ws / "methods").mkdir()
+    (ws / "methods" / "FAIRNESS_LEDGER.json").write_text(_j.dumps({"comparisons": [{
+        "table_id": "t1", "methods": ["a", "b"], "seed_count": 1,
+        "mean_std_reported": False, "effect_size_reported": False,
+        "ci_reported": False, "multiple_comparison_control": "none",
+        "budget_per_method": {"a": 100, "b": 10}}]}))
+    import sys as _s
+    r = subprocess.run([_s.executable, str(REPO_ROOT / "scripts" / "fairness_gate.py"),
+                        str(ws), "--write-verdict"], capture_output=True, text=True)
+    assert r.returncode == 2  # FAIL
+    (ws / "methods" / "FAIRNESS_LEDGER.json").write_text(_j.dumps({"comparisons": [{
+        "table_id": "t1", "methods": ["a", "b"], "seed_count": 5,
+        "mean_std_reported": True, "effect_size_reported": True,
+        "ci_reported": True, "multiple_comparison_control": "bh",
+        "budget_per_method": {"a": 100, "b": 100}}]}))
+    r2 = subprocess.run([_s.executable, str(REPO_ROOT / "scripts" / "fairness_gate.py"),
+                         str(ws), "--write-verdict"], capture_output=True, text=True)
+    assert r2.returncode == 0  # PASS
+    v = _j.loads((ws / ".sciforge" / "verdicts" / "FAIRNESS.json").read_text())
+    assert v["verdict"] == "PASS" and v["gate"] == "experiment-fairness"
+
+
+def test_class_k_apology_scan():
+    """S31: apology/defense register is a hard FAIL (SCI body voice §0.6)."""
+    import subprocess, tempfile
+    from pathlib import Path as _P
+    ws = _P(tempfile.mkdtemp())
+    (ws / "paper").mkdir()
+    (ws / "paper" / "main.tex").write_text(
+        "\\documentclass{elsarticle}\n\\begin{document}\n"
+        "Unfortunately, we hope that future work will fix this.\n\\end{document}\n")
+    import sys as _s
+    r = subprocess.run([_s.executable, str(REPO_ROOT / "scripts" / "leakage_scan.py"),
+                        str(ws)], capture_output=True, text=True)
+    assert r.returncode == 2 and '"class": "K"' in r.stdout
+    # clean SCI voice passes
+    (ws / "paper" / "main.tex").write_text(
+        "\\documentclass{elsarticle}\n\\begin{document}\n"
+        "For rho in [0.2, 0.8] the rate is linear; beyond this regime untested.\n"
+        "\\end{document}\n")
+    r2 = subprocess.run([_s.executable, str(REPO_ROOT / "scripts" / "leakage_scan.py"),
+                         str(ws)], capture_output=True, text=True)
+    assert r2.returncode == 0
+
+
+def test_verified_proofs_only_pass_results(tmp_path: Path):
+    """S43: only status=PASS results enter LESSONS.verified_proofs (AlphaProof)."""
+    k = Kernel(tmp_path)
+    k.start("V1", "x", "lite", host="manual")
+    exp = tmp_path / "experiments" / "toy"
+    exp.mkdir(parents=True)
+    (exp / "RESULT.json").write_text(json.dumps({"status": "PASS", "metrics": {"err": 1e-6}}))
+    (tmp_path / "experiments" / "bad").mkdir()
+    (tmp_path / "experiments" / "bad" / "RESULT.json").write_text(
+        json.dumps({"status": "FAIL", "metrics": {"err": 9.9}}))
+    k._write_preprint()
+    lessons = json.loads((tmp_path / "output" / "LESSONS.json").read_text())
+    arts = [v["artifact"] for v in lessons["verified_proofs"]]
+    assert any("toy" in a for a in arts)
+    assert not any("bad" in a for a in arts)
