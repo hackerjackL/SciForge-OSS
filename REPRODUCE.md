@@ -1,13 +1,13 @@
 # Reproduction Guide — SciForge v1.5.0 (macOS 实测记录)
 
 > 目的：任何人（或任何 agent）在干净机器上，按本文命令能逐条复现 v1.5.0 定版的**全部关键行为**。
-> 实测环境：macOS (Darwin arm64), Python 3.12 (uv venv), Node 22, TinyTeX, Homebrew；所有命令在仓库根目录执行。
+> 实测环境：macOS (Darwin arm64), Python 3.14.7 (uv venv), Node 22, TinyTeX, Homebrew；所有命令在仓库根目录执行。
 
 ## 0. 环境（S28 完全体，一次性）
 
 ```bash
 # Python ≥3.10（kernel 要求）+ 科学栈
-uv venv --python 3.12 .venv            # 或 conda create -n sciforge python=3.12
+uv venv --python 3.14 .venv            # 或 conda create -n sciforge python=3.14（kernel 最低 ≥3.10，实测 3.14.7 全绿）
 .venv/bin/pip install -r requirements.txt
 
 # 非 Python 工具链（绘图/编译）
@@ -95,7 +95,7 @@ GPU/NPU：镜像内 `detect_device.py` 自动 cuda/rocm/npu/mps/cpu；NPU allow-
 
 ```bash
 .venv/bin/python -m pytest tests/test_kernel.py -q     # kernel 23 项
-.venv/bin/python -m pytest tests/ -q                   # 全仓 323 项（macOS 实测全绿）
+.venv/bin/python -m pytest tests/ -q                   # 全仓 338 项（macOS Python 3.14 实测全绿）
 ```
 
 ## 已知边界（诚实）
@@ -119,3 +119,26 @@ ls ~/.claude/skills/sciforge/SKILL.md ~/.claude/agents/sciforge-*.md CLAUDE.md
 # Closed-loop demo (RK4 energy conservation): quality report per phase
 ls runs/DEMO-RK4/QUALITY_REPORT.md
 ```
+
+## 9. GPU 后端：colab-mcp（免费 T4）接入 Claude Code
+
+SciForge 的 Phase 6b/6c 实验可选用 Google Colab 的免费 T4 GPU，通过 `colab-mcp` 桥接。它注册为 cc-haha/Claude Code 的 MCP server，**不是常驻进程**（客户端按需 spawn，故等效开机自启）。
+
+- 官方仓库只发 git HEAD，且要求 **Python ≥3.13**（`pyproject` 钉死，独立于 SciForge 的 3.14 venv）。本机 Xcode CLT 许可会卡 `git`/`python3` shim，因此用 uv 托管 Python 从本地源码部署：
+  ```bash
+  # 一次性部署（已在本机完成，产物在 ~/.sciforge-gateway/colab-mcp）
+  curl -sL -o /tmp/cm.tar.gz https://codeload.github.com/googlecolab/colab-mcp/tar.gz/refs/heads/main
+  mkdir -p ~/.sciforge-gateway/colab-mcp && tar xzf /tmp/cm.tar.gz -C ~/.sciforge-gateway/colab-mcp --strip-components=1
+  cd ~/.sciforge-gateway/colab-mcp && uv sync   # uv 自动拉 py3.13，绕开 Xcode shim git
+  ~/.sciforge-gateway/colab-mcp/.venv/bin/colab-mcp --help   # 冒烟
+  ```
+- cc-haha/Claude Code 注册（`~/.claude.json` 的 `mcpServers.colab-mcp`，指向 `.venv/bin` 直接二进制避免 `uv run` 冷启动握手超时）：
+  ```bash
+  # 用官方命令写入更稳；本机已注册并 `✓ Connected`
+  # 注意 add-json 可能丢 cwd，验证后需确认 command 指向 .venv/bin/colab-mcp
+  claude mcp list | grep colab   # 期望：colab-mcp ... ✓ Connected
+  ```
+- **用法（GPU 在浏览器侧开启，colab-mcp 只是桥）**：
+  1. 浏览器打开 colab.research.google.com，新建 notebook
+  2. 网页菜单「修改 → 笔记本设置 → 硬件加速器 → T4 GPU」
+  3. cc-haha 里说"连接我的 Colab" → agent 调 `open_colab_browser_connection`（首次弹浏览器授权）→ 连上后动态解锁 notebook 读/写/运行工具 → 可把 `src/` 训练脚本丢到 T4 跑并回收结果

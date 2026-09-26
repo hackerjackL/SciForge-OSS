@@ -103,7 +103,7 @@ function findKernelPython() {
     join(PKG_ROOT, ".venv/bin/python"),
     join(PKG_ROOT, ".venv/Scripts/python.exe"),
   ];
-  for (const m of ["3.13", "3.12", "3.11", "3.10"]) cands.push(`python${m}`);
+  for (const m of ["3.14", "3.13", "3.12", "3.11", "3.10"]) cands.push(`python${m}`);
   cands.push("python3");
   if (process.env.CONDA_PREFIX) cands.push(join(process.env.CONDA_PREFIX, "bin/python"));
   for (const c of cands) {
