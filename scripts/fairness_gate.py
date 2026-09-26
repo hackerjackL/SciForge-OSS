@@ -21,12 +21,14 @@ Exit 0 = PASS/WARN (WARN allowed), 2 = FAIL, 3 = no ledger yet (SKIP).
 from __future__ import annotations
 
 import argparse
+import os
 import datetime
 import json
 import sys
 from pathlib import Path
 
-MIN_SEEDS = 3
+MIN_SEEDS = 3  # default (balanced+); lite tier allows >=2 (method-registry)
+EFFORT_MIN = {"lite": 2, "balanced": 3, "max": 3, "beast": 3}
 
 
 def load_comparisons(ws: Path) -> list[dict]:
@@ -81,14 +83,16 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("workspace", type=Path)
     ap.add_argument("--write-verdict", action="store_true")
-    ap.add_argument("--min-seeds", type=int, default=MIN_SEEDS)
+    ap.add_argument("--min-seeds", type=int, default=None,
+                    help="override; default = effort-aware (lite>=2, others>=3)")
     args = ap.parse_args(argv)
     ws = args.workspace
     comps = load_comparisons(ws)
     if not comps:
         print("fairness_gate: no FAIRNESS_LEDGER.json / methods/comparisons/*.json — SKIP")
         return 3
-    results = [check_comparison(c, args.min_seeds) for c in comps]
+    min_seeds = args.min_seeds or EFFORT_MIN.get(os.environ.get("SCIFORGE_EFFORT", "lite"), MIN_SEEDS)
+    results = [check_comparison(c, min_seeds) for c in comps]
     hard_fails = [r for r in results if r["problems"] and not r["warn_only"]]
     warns = [r for r in results if r["warn_only"]]
     verdict = "FAIL" if hard_fails else ("WARN" if warns else "PASS")
