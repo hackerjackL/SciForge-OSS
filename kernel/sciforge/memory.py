@@ -67,7 +67,7 @@ def build_index(archive_dir: Path, out: Path) -> int:
                     d = json.loads(cand.read_text())
                 except Exception:
                     continue
-                for bucket in ("failed_experiments", "idea_rollbacks", "code_errors", "lessons", "what_worked"):
+                for bucket in ("failed_experiments", "idea_rollbacks", "code_errors", "lessons", "what_worked", "verified_proofs"):
                     for item in d.get(bucket, []):
                         text = json.dumps(item, ensure_ascii=False) if not isinstance(item, str) else item
                         if not text.strip():

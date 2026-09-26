@@ -291,3 +291,15 @@ The orchestrator (Phase 10 boundary) MUST:
 - [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — orchestrator contract
 - [`ouroboros-integration.md`](ouroboros-integration.md) — § A D dimension basic call source + § B T dimension `theory_data_validation` deep call source (consolidated v1.0.0)
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — A dimension source (learner-written signature)
+
+
+## retrain_from_results (v1.5.0-w2, GNoME active-learning pattern)
+
+Verified experiment results are not terminal — they are **training evidence** for the
+next domain-learning pass. When `experiments/**/RESULT.json` carries `status=PASS`, the
+domain-learner SHOULD append the verified regime/metric to
+`refine-logs/domain-signature.json` under `retrain_from_results` (list of
+{regime, metric, artifact}) so the next run's signature already knows where the method
+holds. This mirrors GNoME's predict -> DFT-verify -> retrain loop: the evidence that
+survives verification feeds the model that will propose the next structures. Unverified
+results never enter this field (hallucinated results must not self-reinforce).

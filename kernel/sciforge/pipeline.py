@@ -570,9 +570,22 @@ class Kernel:
                  *[f"- {e['phase']} {e['kind']}: {json.dumps(e['payload'])[:200]}"
                    for e in events if e["kind"] in ("gate_rejected", "blocked", "loopback_exhausted")][:20]]
         (out / "RUN_PREPRINT.md").write_text("\n".join(lines))
+        # AlphaProof generate-verify-reinforce: verified results are reinforced
+        # evidence for the next run's idea prior (not just "what worked" prose).
+        verified = []
+        for pth in (self.ws / "experiments").glob("**/RESULT.json") if (self.ws / "experiments").exists() else []:
+            try:
+                r = json.loads(pth.read_text())
+                if r.get("status") == "PASS":
+                    verified.append({"artifact": str(pth.relative_to(self.ws)),
+                                     "metric": r.get("result_summary") or r.get("metrics"),
+                                     "reinforce": True})
+            except Exception:
+                continue
         lessons = {"schema_version": "1.0", "run_id": rs.get("run_id"),
                    "failed_experiments": [], "idea_rollbacks": kills,
                    "what_worked": [p for p, v in verdicts.items() if v == "PASS"],
+                   "verified_proofs": verified,
                    "lessons": []}
         (out / "LESSONS.json").write_text(json.dumps(lessons, indent=2, ensure_ascii=False))
 
