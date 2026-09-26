@@ -195,22 +195,59 @@ _DEFAULT_RUBRIC = (
     "0.1-0.0 weakens a gate, removes a constraint, or edits the measuring instrument.")
 
 
+class ResearchDomain(Domain):
+    """Third evaluator (AlphaEvolve multi-evaluator pattern): research-validity
+    checks that are neither CI gates nor LLM taste — e.g. does the patch keep the
+    negative-result discipline, the INV-G1 anchor, and the no-apology voice rule?
+    Deterministic regex/structure checks; a FAIL hard-zeros (mis-science is not
+    negotiable, no judge can rescue it)."""
+
+    name = "research_validity"
+
+    FORBIDDEN = (
+        (r"negative_result_as_contribution|package the failure as",
+         "weakens the negative-result discipline"),
+        (r"skip (?:the )?(?:citation|audit|gate)|waive (?:the )?(?:gate|audit)",
+         "weakens an audit gate"),
+        (r"INV-G1[^\n]{0,40}(?:may|can) (?:be )?(?:skipped|relaxed)",
+         "weakens the anchor invariant"),
+    )
+
+    def score(self, patch: Patch) -> dict:
+        text = json.dumps(patch["ops"], ensure_ascii=False)
+        hits = [why for pat, why in self.FORBIDDEN if re.search(pat, text, re.I)]
+        return {"score": 0.0 if hits else 1.0, "hard_fail": bool(hits),
+                "violations": hits}
+
+
 class HybridDomain(Domain):
-    """gate hard-zero first, then judge soft score. A candidate that fails hard
-    gates never gets judged (reward-hacking defense)."""
+    """Cascading multi-evaluator (AlphaEvolve): cheap deterministic gates FIRST,
+    then research-validity, and only then the expensive LLM judge. A candidate
+    that fails any hard layer is never judged — the shortest path to a high score
+    must never be to weaken the measuring instrument."""
 
     name = "hybrid"
 
-    def __init__(self, gate: GateDomain, judge: JudgeDomain, weight=0.6):
+    def __init__(self, gate: GateDomain, judge: JudgeDomain, weight=0.6,
+                 research: "ResearchDomain | None" = None):
         self.gate, self.judge, self.w = gate, judge, weight
+        self.research = research or ResearchDomain()
 
     def score(self, patch: Patch) -> dict:
-        g = self.gate.score(patch)
+        g = self.gate.score(patch)  # cheapest: CI/schemas/golden
         if g.get("hard_fail"):
             return {**g, "score": 0.0, "judged": False, "reason": "hard_gate_fail"}
-        j = self.judge.score(patch)
-        s = (self.w * g["score"] + (1 - self.w) * j["score"])
-        return {"score": s, "gate": g["score"], "judge": j["score"], "judged": True}
+        r = self.research.score(patch)  # next: science-integrity regex
+        if r.get("hard_fail"):
+            return {**r, "score": 0.0, "gate": g["score"], "judged": False,
+                    "reason": "research_validity_fail"}
+        if self.judge is None:  # no gateway: gate+research only
+            return {"score": g["score"] * r["score"], "gate": g["score"],
+                    "research": r["score"], "judged": False}
+        j = self.judge.score(patch)  # most expensive: LLM taste
+        s = self.w * g["score"] * r["score"] + (1 - self.w) * j["score"]
+        return {"score": s, "gate": g["score"], "research": r["score"],
+                "judge": j["score"], "judged": True}
 
 
 def _balanced_obj(raw: str) -> str:
