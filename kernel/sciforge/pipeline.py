@@ -556,7 +556,48 @@ class Kernel:
         if pid == "16":
             self._write_preprint()
             return Verdict("PASS", artifacts=["output/RUN_PREPRINT.md", "output/LESSONS.json"])
+        if pid == "9":  # INVARIANT_CHECK: kernel-native — a structural invariant is
+            return self._invariant_check()  # the kernel's own evidence, not the host's
         return Verdict("PASS")
+
+    def _invariant_check(self) -> Verdict:
+        """A0 fix: INV-G1 verification is pure structure (hash compare + Q-id
+        reference scan), so the KERNEL writes the registered INVARIANT_CHECK.json
+        rather than trusting the host to self-report it. Schema-shaped to
+        schemas/INVARIANT_CHECK.schema.json (5 required check fields)."""
+        import datetime
+        v = self.ws / ".sciforge" / "verdicts"
+        v.mkdir(parents=True, exist_ok=True)
+        lock = self.rs.data.get("problem_hash")
+        checks = []
+        # check 1: the anchor hash file still matches the frozen lock
+        hp = v / "PROBLEM_HASH.txt"
+        actual = hp.read_text().strip() if hp.exists() else ""
+        anchor_ok = bool(lock) and actual == lock
+        checks.append({"id": "INV-G1", "name": "PROBLEM_ANCHOR_FREEZE",
+                       "verdict": "PASS" if anchor_ok else "FAIL",
+                       "detail": "verdicts/PROBLEM_HASH.txt matches the Phase-0 lock",
+                       "evidence": f"lock={(lock or '')[:12]} vs file={actual[:12]}"})
+        # check 2: the Q-id appears in downstream artifacts (not drifted away)
+        qid = self.rs.data.get("problem_id", "")
+        touched = 0
+        for f in (self.ws / "PROBLEM.md", v / "VERIFICATION_ROUTING.json", v / "RUN_BUDGET.json"):
+            if f.exists() and qid and qid in f.read_text(errors="replace"):
+                touched += 1
+        checks.append({"id": "INV-G1-ref", "name": "Q-id referenced downstream",
+                       "verdict": "PASS" if touched else "WARN",
+                       "detail": "problem id token present in checked artifacts",
+                       "evidence": f"{touched} artifact(s) reference '{qid}'"})
+        overall = "FAIL" if any(c["verdict"] == "FAIL" for c in checks) else \
+                  ("WARN" if any(c["verdict"] == "WARN" for c in checks) else "PASS")
+        doc = {"timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+               "phase_boundary": "phase-9", "discipline_context": "general",
+               "overall_verdict": overall, "checks": checks}
+        (v / "INVARIANT_CHECK.json").write_text(json.dumps(doc, indent=2, ensure_ascii=False))
+        self.log.emit("9", "invariant_check_native", {"overall": overall})
+        return Verdict("PASS" if overall != "FAIL" else "FAIL",
+                       artifacts=[".sciforge/verdicts/INVARIANT_CHECK.json"],
+                       notes=f"INVARIANT_CHECK {overall}")
 
     def _route(self) -> Verdict:
         """Deterministic routing from prior verdict artifacts (rule-based first, LLM fallback)."""

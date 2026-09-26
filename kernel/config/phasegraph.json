@@ -270,7 +270,9 @@
         "check": "hash_match",
         "path": ".sciforge/verdicts/PROBLEM_HASH.txt"
       },
-      "next": "10"
+      "next": "10",
+      "kernel_native": true,
+      "note": "v1.6: was host-filled; now kernel produces schema-valid INVARIANT_CHECK.json (structural invariant = kernel responsibility). hash_match gate still double-checks at boundary."
     },
     {
       "id": "10",
@@ -305,11 +307,17 @@
       "name": "paper-writing",
       "skill": "skills/support/paper-writing/SKILL.md",
       "mode": "MUST",
-      "gate": {
-        "check": "command",
-        "cmd": "quality_gate"
-      },
-      "next": "13"
+      "next": "13",
+      "gates": [
+        {
+          "check": "command",
+          "cmd": "quality_gate"
+        },
+        {
+          "check": "command",
+          "cmd": "fantasy_gate"
+        }
+      ]
     },
     {
       "id": "13",

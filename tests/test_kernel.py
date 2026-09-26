@@ -965,3 +965,82 @@ def test_citation_support_fails_orphan_reference(tmp_path: Path):
 def test_citation_support_skip_without_paper(tmp_path: Path):
     r = gates.check(tmp_path, {"check": "command", "cmd": "citation_support"}, "15")
     assert r["status"] == "PASS", r  # SKIP exit 0
+
+
+# ---------------- v1.6 A2: fantasy-prevention 5-gate (was prose-only "most important gate") ----------------
+
+def _fantasy_ws(tmp_path: Path, *, grounded=True) -> Path:
+    v = tmp_path / ".sciforge" / "verdicts"; v.mkdir(parents=True)
+    rl = tmp_path / ".sciforge" / "refine-logs"; rl.mkdir(parents=True)
+    (v / "VERIFICATION_ROUTING.json").write_text(json.dumps(
+        {"route": "theory-only", "na_verdicts": []}))
+    if grounded:
+        (v / "PROOF_AUDIT.json").write_text(json.dumps({"verdict": "PASS"}))
+        (v / "CITATION_AUDIT.json").write_text(json.dumps({"verdict": "PASS"}))
+        (rl / "FINAL_PROPOSAL.json").write_text(json.dumps(
+            {"assumptions": [{"text": "a1", "reasonability": 7}]}))
+        (rl / "FALSIFICATION_RECORD.json").write_text(json.dumps(
+            {"counterexamples": [{"id": "c1", "result": "survived"}]}))
+    else:
+        (v / "PROOF_AUDIT.json").write_text(json.dumps({"verdict": "FAIL"}))
+    return tmp_path
+
+def test_fantasy_gate_grounded_passes(tmp_path: Path):
+    ws = _fantasy_ws(tmp_path, grounded=True)
+    r = gates.check(ws, {"check": "command", "cmd": "fantasy_gate"}, "12")
+    assert r["status"] == "PASS", r
+    assert "GROUNDED" in r["output"] or "MOSTLY_GROUNDED" in r["output"], r
+
+def test_fantasy_gate_blocks_ungrounded(tmp_path: Path):
+    # empirical claim: failed derivation + absent data -> the evaluable gates
+    # (g1, g5) both FAIL -> FANTASY, paper-writing blocked + fantasy-log written.
+    v = tmp_path / ".sciforge" / "verdicts"; v.mkdir(parents=True)
+    (v / "VERIFICATION_ROUTING.json").write_text(json.dumps(
+        {"route": "experiment-first", "na_verdicts": []}))
+    (v / "PROOF_AUDIT.json").write_text(json.dumps({"verdict": "FAIL"}))
+    (v / "CITATION_AUDIT.json").write_text(json.dumps({"verdict": "FAIL"}))
+    # g1+g2 both evaluable-failed => FANTASY (a lone failed gate is correctly
+    # treated as insufficient evidence, not a fantasy verdict, mid-run)
+    r = gates.check(tmp_path, {"check": "command", "cmd": "fantasy_gate"}, "12")
+    assert r["status"] == "FAIL", r
+    assert (tmp_path / ".sciforge" / "refine-logs" / "fantasy-log.md").exists()
+
+def test_fantasy_gate_skip_empty(tmp_path: Path):
+    r = gates.check(tmp_path, {"check": "command", "cmd": "fantasy_gate"}, "12")
+    assert r["status"] == "PASS", r  # SKIP exit 0
+
+
+# ---------------- v1.6 A0: INVARIANT_CHECK is kernel-produced (was host self-report) ----------------
+
+def test_invcheck_kernel_produces_schema_valid(tmp_path: Path):
+    """Phase 9 goes kernel-native: the kernel writes INVARIANT_CHECK.json itself
+    (structural invariant = kernel's evidence). The produced file must validate
+    under the strict registered verifier and carry the 5-field check shape."""
+    k = Kernel(tmp_path)
+    k.start("A0inv", "anchor", "lite", host="manual")
+    # routing + a downstream artifact so g2 reference scan has something
+    (tmp_path / ".sciforge" / "verdicts" / "VERIFICATION_ROUTING.json").write_text(
+        json.dumps({"schema_version": "1.0", "route": "theory-only", "evidence_type": "formal",
+                    "verification_type": "theory-only", "reason": "test fixture",
+                    "na_verdicts": []}))
+    v = k.run_phase("9")
+    assert v.v == "PASS", v.notes
+    ic = tmp_path / ".sciforge" / "verdicts" / "INVARIANT_CHECK.json"
+    assert ic.exists(), "kernel must write INVARIANT_CHECK.json"
+    doc = json.loads(ic.read_text())
+    assert doc["overall_verdict"] == "PASS"
+    assert all(set(c) >= {"id", "name", "verdict", "detail", "evidence"} for c in doc["checks"])
+    # and it passes the real registered validator under --strict
+    val = gates.validate_verdicts(tmp_path, strict=True)
+    assert val["status"] == "PASS", val["output"][-400:]
+
+def test_invcheck_detects_anchor_tampering(tmp_path: Path):
+    """Tampering PROBLEM_HASH.txt after the Phase-0 lock must make the kernel
+    emit FAIL (INVARIANT_CHECK catches drift it used to only trust the host to catch)."""
+    k = Kernel(tmp_path)
+    k.start("A0tam", "anchor", "lite", host="manual")
+    (tmp_path / ".sciforge" / "verdicts" / "PROBLEM_HASH.txt").write_text("0"*64 + "\n")
+    v = k.run_phase("9")
+    assert v.v == "FAIL", v.notes
+    doc = json.loads((tmp_path / ".sciforge" / "verdicts" / "INVARIANT_CHECK.json").read_text())
+    assert doc["overall_verdict"] == "FAIL"
