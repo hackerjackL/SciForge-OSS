@@ -205,6 +205,81 @@ def test_sandbox_policy_builds(tmp_path: Path):
         assert cmd is not None and cmd[0] in ("sandbox-exec", "bwrap")
 
 
+def test_host_bg_dispatch_lifecycle(tmp_path: Path, monkeypatch):
+    """claude/codex phases are BACKGROUND-dispatched: launch -> await -> collect.
+    No foreground blocking on a heavy phase; a dead kernel's orphan child result
+    is adopted from the outfile. Uses a fake `claude` shim that prints the JSON
+    envelope so the whole path runs without a real model."""
+    import os
+    shim_dir = tmp_path / "bin"
+    shim_dir.mkdir()
+    shim = shim_dir / "claude"
+    # fake claude: emit one result line + cost to stdout (argv ignored).
+    # written via python repr so no shell-escaping ambiguity exists.
+    payload = json.dumps({"type": "result",
+                          "result": json.dumps({"verdict": "PASS",
+                                                "notes": "from fake claude"}),
+                          "total_cost_usd": 0.42})
+    shim.write_text("#!/bin/sh\ncat <<'SFEOF'\n" + payload + "\nSFEOF\n")
+    shim.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{shim_dir}{os.pathsep}{os.environ['PATH']}")
+
+    k = Kernel(tmp_path)
+    k.start("H1", "x", "lite", host="claude")
+    from sciforge.pipeline import PhaseGraph
+    ph = k.graph.phases["1a"]  # a non-native skill phase
+    bundle = tmp_path / ".sciforge" / "refine-logs" / "phase_1a.bundle.md"
+    bundle.parent.mkdir(parents=True, exist_ok=True)
+    bundle.write_text("bundle")
+    # 1) dispatch: launches the shim, writes job, returns await_host
+    v1 = k._dispatch_host_bg("1a", ph, bundle)
+    assert v1.v == "BLOCKED" and "await_host" in v1.reason_code
+    job = tmp_path / ".sciforge" / "host" / "1a.job.json"
+    assert job.exists()
+    # shim already exited (it's a quick echo) -> poll collects the outfile,
+    # mirroring the real loop's 5s throttle (racing the shim's exit is the point)
+    import time as _t
+    v2 = k._dispatch_host_bg("1a", ph, bundle)
+    for _ in range(25):
+        if v2.v != "BLOCKED":
+            break
+        _t.sleep(0.2)
+        v2 = k._dispatch_host_bg("1a", ph, bundle)
+    assert v2.v == "PASS" and "fake claude" in v2.notes
+    assert v2.cost_usd == 0.42  # real host cost surfaced
+    assert not job.exists()     # consumed
+
+
+def test_host_bg_running_awaits(tmp_path: Path, monkeypatch):
+    """While the child pid is alive, dispatch returns await_host (no double launch)."""
+    import os, json, time
+    k = Kernel(tmp_path)
+    k.start("H2", "x", "lite", host="claude")
+    hostdir = tmp_path / ".sciforge" / "host"
+    hostdir.mkdir(parents=True)
+    # claim a live pid (this very process) so the liveness probe says "running"
+    (hostdir / "1a.job.json").write_text(json.dumps(
+        {"pid": os.getpid(), "bin": "claude", "started_at": time.time(), "phase": "1a"}))
+    bundle = tmp_path / "b.md"; bundle.write_text("x")
+    v = k._dispatch_host_bg("1a", k.graph.phases["1a"], bundle)
+    assert v.v == "BLOCKED" and "await_host" in v.reason_code
+    assert (hostdir / "1a.job.json").exists()  # job not re-launched, not consumed
+
+
+def test_host_bg_dead_no_output(tmp_path: Path):
+    """Dead pid + no outfile => ERROR (kernel surfaces, never silently relaunches a
+    phase whose child crashed before writing)."""
+    import json
+    k = Kernel(tmp_path)
+    k.start("H3", "x", "lite", host="claude")
+    hostdir = tmp_path / ".sciforge" / "host"; hostdir.mkdir(parents=True)
+    (hostdir / "1a.job.json").write_text(json.dumps(
+        {"pid": 999999999, "bin": "claude", "started_at": 0, "phase": "1a"}))
+    bundle = tmp_path / "b.md"; bundle.write_text("x")
+    v = k._dispatch_host_bg("1a", k.graph.phases["1a"], bundle)
+    assert v.v == "ERROR"
+
+
 # ---------------- skills frozen (S14) ----------------
 
 def test_skill_stage_freeze_verify(tmp_path: Path):

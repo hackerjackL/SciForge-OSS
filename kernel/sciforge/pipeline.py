@@ -227,52 +227,78 @@ class Kernel:
         bundle = bundle_mod.build(self.ws, ph, b)
         host = self.rs.data.get("host", "manual")
         try:
-            if host == "claude":
-                return self._dispatch_claude(pid, ph, bundle)
-            if host == "codex":
-                return self._dispatch_codex(pid, ph, bundle)
+            if host in ("claude", "codex"):
+                ph["_host"] = host
+                return self._dispatch_host_bg(pid, ph, bundle)
             return self._dispatch_host_file(pid, bundle)  # manual: wait for done.json
         except DispatchError as e:
             self.log.emit(pid, "dispatch_error", {"error": str(e)})
             return Verdict("ERROR", notes=str(e))
 
     # --- host adapters (S08) ---
-    def _dispatch_claude(self, pid, ph, bundle: Path) -> Verdict:
+    # claude/codex phases are dispatched BACKGROUND (same discipline as full
+    # experiments): a heavy phase (MCTS ideation) legitimately runs 1-2h; the
+    # kernel must not block a foreground subprocess on it. Launch once, poll per
+    # step; a dead kernel orphan-harms nothing (the claude child survives and
+    # a re-launched kernel adopts its result from the outfile).
+    def _host_cmd(self, pid: str, ph: dict) -> tuple[list[str], str]:
         prompt = self._phase_prompt(pid, ph)
+        if ph.get("_host") == "codex":
+            return ["codex", "exec", prompt], "codex"
         cmd = ["claude", "-p", prompt, "--output-format", "json",
                "--allowedTools", "Read,Write,Edit,Bash(python3:*),Bash(python:*)",
                "--add-dir", str(self.ws)]
         model = os.environ.get("SCIFORGE_MODEL")
         if model:
             cmd += ["--model", model]
-        try:
-            p = subprocess.run(cmd, capture_output=True, text=True, timeout=3600,
-                               cwd=str(self.ws))
-        except FileNotFoundError as e:
-            raise DispatchError("claude CLI not found") from e
-        except subprocess.TimeoutExpired:
-            return Verdict("ERROR", notes="host claude timeout 3600s")
-        try:
-            data = json.loads(p.stdout)
-            result = data.get("result", "")
-            cost = float(data.get("total_cost_usd") or 0.0)  # S23: real host cost
-        except json.JSONDecodeError:
-            result, cost = p.stdout[:4000], 0.0
-        v = self._parse_verdict_json(result)
-        v.cost_usd = v.cost_usd or cost or None
-        self.log.emit(pid, "host_result", {"raw": result[:3000], "cost_usd": cost})
-        return v
+        return cmd, "claude"
 
-    def _dispatch_codex(self, pid, ph, bundle: Path) -> Verdict:
-        prompt = self._phase_prompt(pid, ph)
-        try:
-            p = subprocess.run(["codex", "exec", prompt], capture_output=True,
-                               text=True, timeout=3600, cwd=str(self.ws))
-        except FileNotFoundError as e:
-            raise DispatchError("codex CLI not found") from e
-        v = self._parse_verdict_json(p.stdout)
-        self.log.emit(pid, "host_result", {"raw": p.stdout[:3000]})
-        return v
+    def _dispatch_host_bg(self, pid, ph, bundle: Path) -> Verdict:
+        hostdir = self.ws / ".sciforge" / "host"
+        hostdir.mkdir(parents=True, exist_ok=True)
+        job = hostdir / f"{pid}.job.json"
+        outfile = hostdir / f"{pid}.out.json"
+        if job.exists():
+            try:
+                meta = json.loads(job.read_text())
+            except json.JSONDecodeError:
+                job.unlink()
+                return Verdict("ERROR", notes=f"corrupt job file for {pid}")
+            alive = _child_alive(int(meta["pid"]))
+            if alive:
+                self.log.emit(pid, "host_running", {"pid": meta["pid"], "since": meta["started_at"]})
+                return Verdict("BLOCKED", reason_code=f"await_host:{pid}",
+                               notes=f"{meta.get('bin')} running (pid {meta['pid']})")
+            # exited (or died) — collect the result
+            job.unlink()
+            try:
+                raw = outfile.read_text()
+                data = json.loads(_first_json(raw))
+                result = data.get("result", raw)
+                cost = float(data.get("total_cost_usd") or 0.0)  # S23 real host cost
+            except FileNotFoundError:
+                return Verdict("ERROR", notes=f"{meta.get('bin')} died leaving no output")
+            except json.JSONDecodeError:
+                result, cost = raw[:4000], 0.0
+            v = self._parse_verdict_json(result)
+            v.cost_usd = v.cost_usd or cost or None
+            self.log.emit(pid, "host_result", {"raw": str(result)[:2000], "cost_usd": cost})
+            return v
+        cmd, binname = self._host_cmd(pid, ph)
+        # claude absent -> fall back to manual bundle protocol (host answers done.json)
+        import shutil as _sh
+        if _sh.which(cmd[0]) is None:
+            return self._dispatch_host_file(pid, bundle)
+        with open(outfile, "wb") as of:
+            proc = subprocess.Popen(cmd, stdout=of, stderr=subprocess.STDOUT,
+                                    stdin=subprocess.DEVNULL, cwd=str(self.ws),
+                                    env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "kernel")},
+                                    start_new_session=True)
+        job.write_text(json.dumps({"pid": proc.pid, "bin": binname,
+                                   "started_at": time.time(), "phase": pid}))
+        self.log.emit(pid, "host_dispatched", {"pid": proc.pid, "bin": binname})
+        return Verdict("BLOCKED", reason_code=f"await_host:{pid}",
+                       notes=f"{binname} dispatched for phase {pid}")
 
     def _dispatch_host_file(self, pid, bundle: Path) -> Verdict:
         """manual/bundle protocol: kernel writes a request; the driving agent answers.
@@ -526,6 +552,8 @@ class Kernel:
             # await_host or checkpoint: not a failure — boundary not attempted
             self.log.emit(pid, "halted", {"reason": v.reason_code or v.notes})
             self.rs.write()
+            if str(v.reason_code).startswith("await_host"):
+                time.sleep(5)  # background host job: poll throttle, no busy-wait
             return {"status": "halted", "phase": pid, "reason": v.reason_code or v.notes}
         if v.v == "ERROR":
             self.rs.status = "paused_blocked"
@@ -569,12 +597,47 @@ class Kernel:
             return {"status": "blocked", "phase": pid, "reason": b["breach"]}
         return {"status": "advanced", "from": pid, "to": b["next"]}
 
-    def run(self, max_steps: int = 400) -> dict:
+    def run(self, max_steps: int = 400, max_polls: int = 4320) -> dict:
+        """Loop boundaries until terminal. Polls (await_host) don't consume the
+        step budget — max_polls caps a stuck child at ~6h (5s throttle)."""
+        polls = 0
         for _ in range(max_steps):
             r = self.step()
+            if r["status"] == "halted":
+                polls += 1
+                if polls > max_polls:
+                    self.rs.status = "paused_blocked"
+                    self.rs.update(reason_code=f"host_poll_cap_{r.get('phase')}")
+                    self.rs.write()
+                    return {"status": "error", "phase": r.get("phase"),
+                            "notes": "host job stuck past poll cap"}
+                continue
+            polls = 0
             if r["status"] in ("done", "blocked", "error", "blocked_checkpoint"):
                 return r
         return {"status": "max_steps"}
+
+
+def _child_alive(pid: int) -> bool:
+    """Liveness for host-adapter children. os.kill(pid, 0) LIES for zombies —
+    an exited child the kernel loop hasn't reaped still "exists". So: try
+    waitpid(WNOHANG) for our own children (reaps+detects exit); signal-0 probe
+    for external pids."""
+    try:
+        r, _ = os.waitpid(pid, os.WNOHANG)
+        if r == pid:
+            return False  # our child exited (and was just reaped)
+        if r == 0:
+            return True   # our child still running
+    except ChildProcessError:
+        pass  # not our child — probe instead
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, ValueError):
+        return False
+    except PermissionError:
+        return True  # exists, not ours to signal
 
 
 def _ord(ph) -> int:
@@ -611,3 +674,20 @@ def _json_candidates(raw: str):
                         break
         i += 1
     return reversed(out)
+
+
+def _first_json(raw: str) -> str:
+    """First balanced JSON object — claude --output-format json writes one line;
+    merged stderr noise may precede it."""
+    i = raw.find("{")
+    if i < 0:
+        return raw
+    depth = 0
+    for j in range(i, len(raw)):
+        if raw[j] == "{":
+            depth += 1
+        elif raw[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return raw[i:j + 1]
+    return raw[i:]
