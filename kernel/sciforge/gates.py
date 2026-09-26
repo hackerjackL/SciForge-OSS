@@ -135,7 +135,26 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             r["phase"] = phase
             return r
         if name == "security_scan":
-            return {"gate": "security_scan", "status": "PASS"}  # per-script; checked at dispatch
+            # B5 fix (v1.6): the phasegraph declares security_scan at the 6b/6c
+            # boundaries ("agent-authored experiment scripts before dispatch") —
+            # the kernel now ENFORCES it: every agent-authored script under
+            # src/ and experiments/ must pass the static scan before either
+            # experiment boundary can commit. No scripts yet = SKIP (legit,
+            # e.g. theory-only never reaches here).
+            roots = [ws / "src", ws / "experiments"]
+            scripts = sorted({p for r in roots if r.is_dir() for p in r.rglob("*.py")})
+            if not scripts:
+                return {"gate": "security_scan", "status": "SKIP",
+                        "note": "no agent-authored scripts present"}
+            violations = []
+            for s in scripts:
+                r = security_scan_script(s)
+                if r["status"] != "PASS":
+                    violations.append({"script": str(s.relative_to(ws)),
+                                       "detail": r["output"][-500:]})
+            return {"gate": "security_scan",
+                    "status": "PASS" if not violations else "BLOCKED",
+                    "scanned": len(scripts), "violations": violations[:5]}
         if name == "render_audit":
             return figure_gates(ws)
         if name == "wrap_up_gates":

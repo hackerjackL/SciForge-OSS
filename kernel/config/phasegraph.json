@@ -167,12 +167,6 @@
       "name": "experiment-toy",
       "skill": "skills/support/experiment-execution/SKILL.md",
       "mode": "ROUTED",
-      "gate": {
-        "check": "verdict_field",
-        "path": "RESULT.json",
-        "field": "status",
-        "value": "PASS"
-      },
       "loopback": {
         "id": "L5",
         "on": "FAIL",
@@ -183,6 +177,18 @@
       "na_on_skip": [],
       "skip_on_route": [
         "theory-only"
+      ],
+      "gates": [
+        {
+          "check": "verdict_field",
+          "path": "RESULT.json",
+          "field": "status",
+          "value": "PASS"
+        },
+        {
+          "check": "command",
+          "cmd": "security_scan"
+        }
       ]
     },
     {
@@ -191,12 +197,6 @@
       "skill": "skills/support/experiment-execution/SKILL.md",
       "mode": "ROUTED",
       "background": true,
-      "gate": {
-        "check": "verdict_field",
-        "path": "STATUS.json",
-        "field": "budget_floor.satisfied",
-        "value": true
-      },
       "loopback": {
         "id": "L7",
         "on": "BA_FAIL",
@@ -212,6 +212,18 @@
       ],
       "skip_on_route": [
         "theory-only"
+      ],
+      "gates": [
+        {
+          "check": "verdict_field",
+          "path": "STATUS.json",
+          "field": "budget_floor.satisfied",
+          "value": true
+        },
+        {
+          "check": "command",
+          "cmd": "security_scan"
+        }
       ]
     },
     {

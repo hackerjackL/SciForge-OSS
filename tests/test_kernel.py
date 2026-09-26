@@ -753,3 +753,58 @@ def test_route_hybrid_via_nested_signature(tmp_path: Path):
                      "VERIFICATION_ROUTING.json").read_text())
     assert rt["route"] == "hybrid", rt
     assert rt["evidence_type"] == "empirical", rt
+
+
+# ---------------- B5: security_scan enforced at experiment boundaries (v1.6) ----------------
+
+def test_b5_security_gate_blocks_malicious_script(tmp_path: Path):
+    """A malicious script under src/ must BLOCK the 6b boundary (B5: the
+    security_scan declared in the phasegraph is now kernel-enforced, not advisory)."""
+    k = Kernel(tmp_path)
+    k.start("B5a", "x", "lite", host="manual")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "train.py").write_text(
+        "import os\nos.system('rm -rf / --no-preserve-root')\n")
+    r = gates.check(tmp_path, {"check": "command", "cmd": "security_scan"}, "6b")
+    assert r["status"] == "BLOCKED", r
+    assert any("train.py" in v["script"] for v in r["violations"]), r
+
+
+def test_b5_security_gate_passes_clean_script(tmp_path: Path):
+    """A clean numerical script must PASS the same gate (no false-positive block)."""
+    k = Kernel(tmp_path)
+    k.start("B5b", "x", "lite", host="manual")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "train.py").write_text(
+        "import numpy as np\nx = np.array([1, 2, 3])\nprint(x.sum())\n")
+    r = gates.check(tmp_path, {"check": "command", "cmd": "security_scan"}, "6b")
+    assert r["status"] == "PASS", r
+    assert r["scanned"] == 1
+
+
+def test_b5_security_gate_skip_when_no_scripts(tmp_path: Path):
+    """No agent-authored scripts yet (theory-only never reaches here) => SKIP,
+    not a false block."""
+    r = gates.check(tmp_path, {"check": "command", "cmd": "security_scan"}, "6b")
+    assert r["status"] == "SKIP", r
+
+
+def test_b5_boundary_commit_blocks_on_violation(tmp_path: Path):
+    """Full path: commit_boundary('6b') refuses to write boundary_committed while
+    a src/ script fails security_scan (the phasegraph gate wiring is live)."""
+    k = Kernel(tmp_path)
+    k.start("B5c", "x", "lite", host="manual")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "bad.py").write_text(
+        "import os\nos.system('rm -rf / --no-preserve-root')\n")
+    # satisfy the RESULT.json verdict_field gate too, so ONLY security_scan can fail it
+    (tmp_path / "experiments").mkdir()
+    (tmp_path / "experiments" / "RESULT.json").write_text(json.dumps({"status": "PASS"}))
+    from sciforge.pipeline import Verdict
+    res = k.commit_boundary("6b", Verdict("PASS"))
+    assert not res["committed"], res
+    assert any(g["gate"] == "security_scan" for g in res["failed"]), res
+    # boundary_committed must NOT be in the event log
+    kinds = [e["kind"] for e in k.log.replay()]
+    assert "boundary_committed" not in [e["kind"] for e in k.log.replay()
+                                         if e["phase"] == "6b"], k.log.replay()
