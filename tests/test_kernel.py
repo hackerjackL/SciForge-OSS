@@ -869,3 +869,32 @@ def test_providers_reports_429_cooldown(monkeypatch):
         pass
     from sciforge.limiter import limiter as lm
     assert lm().wait_time("m1") >= 1.0, "429 should have cooled key m1"
+
+
+# ---------------- v1.6 A3: SMOKE gate enforced at 6c (Step 5.0 load-bearing) ----------------
+
+def test_smoke_gate_blocks_missing_smoke(tmp_path: Path):
+    (tmp_path / "experiments" / "full" / "g1").mkdir(parents=True)
+    (tmp_path / "experiments" / "full" / "g1" / "DISPATCH.json").write_text("{}")
+    (tmp_path / "experiments" / "full" / "g1" / "STATUS.json").write_text(
+        json.dumps({"state": "done"}))
+    r = gates.check(tmp_path, {"check": "command", "cmd": "smoke_gate"}, "6c")
+    assert r["status"] == "FAIL", r
+    assert "SMOKE" in r["output"], r
+
+
+def test_smoke_gate_passes_with_real_smoke(tmp_path: Path):
+    g = tmp_path / "experiments" / "full" / "g1"; g.mkdir(parents=True)
+    (g / "DISPATCH.json").write_text("{}")
+    (g / "STATUS.json").write_text(json.dumps({"state": "done"}))
+    (g / "g1.SMOKE.json").write_text(json.dumps({
+        "experiment_id": "g1", "smoke_scale": "1-step", "smoke_result": "PASS",
+        "fail_code": None, "fix_attempts": 0, "status_row_written": True,
+        "executed_at": "2026-09-26T10:00:00Z", "duration_seconds": 12}))
+    r = gates.check(tmp_path, {"check": "command", "cmd": "smoke_gate"}, "6c")
+    assert r["status"] == "PASS", r
+
+
+def test_smoke_gate_skip_before_dispatch(tmp_path: Path):
+    r = gates.check(tmp_path, {"check": "command", "cmd": "smoke_gate"}, "6c")
+    assert r["status"] == "PASS", r  # no full/ dir => exit 0 SKIP semantics

@@ -223,6 +223,10 @@
         {
           "check": "command",
           "cmd": "security_scan"
+        },
+        {
+          "check": "command",
+          "cmd": "smoke_gate"
         }
       ]
     },
