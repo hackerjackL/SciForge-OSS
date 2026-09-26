@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.5.0] - 2026-09-26 波次二收官：闭环 demo 实测 + 8 个 kernel bug 修复（S58–S60 定版）
+
+### 闭环 demo（DEMO-RK4，子代理加载本项目全链实测）
+- **问题**：RK4 积分下阻尼谐振子能量是否守恒、误差如何随 dt 缩放。**36 个边界全链走完，kernel status=completed**，421 事件，`validate_verdicts --strict --require-complete` 24/24 PASS。
+- **科学产出（真结论，非样例）**：RK4 不守恒能量；精确乘子 ρ(h)²=1−h⁶/72+h⁸/576；固定 T 误差 ∝ dt⁵（拟合斜率 4.94，预注册带 [4.7,5.3] 内）；阻尼 e^{−cT} 因子化预测被证伪→按负结果纪律进 Limitations。论文 `runs/DEMO-RK4/paper/main.pdf`（7 页 elsarticle，latexmk 零警告零错误）。
+- **逐相质量评分**：26 相均分 **8.5**（科学内容 9.0 / 基础设施 7.5）；`runs/DEMO-RK4/QUALITY_REPORT.md` 全量表（每相产物/亮点/缺陷/分数）。
+- **live 文献核验**：CrossRef/arXiv 真实查询，2 判别性 gap，15 引用 3 层验证零捏造（S2 限流如实记录）。
+- **SCI 语域实证**：成稿正文 class K（道歉/防御）0 命中；Limitations 为 regime ledger。
+
+### 闭环抓出并已修复的 8 个 kernel bug（这是本次 demo 最大价值）
+| # | 严重度 | 修复 |
+|---|---|---|
+| BUG-1 | medium | checkpoint_after 消耗 done.json 后重复派发 → verdict 缓存跨检查点（1446ee0）|
+| BUG-2 | — | 撤回（误报）|
+| BUG-3 | medium | evidence_type 顶层读取（skill 实际嵌套在 domain_profile）→ 嵌套读取（4f78f04）|
+| BUG-4 | **high** | verdict_field 缺 value 永假 + 不搜 experiments/** → 正在**卡死所有实验 run**，已修（4f78f04）|
+| BUG-5 | high | figure_gates 传错目录（ws 而非 ws/paper）→ 修正（0d336d9）|
+| BUG-6 | high | QUALITY_GATE/PAPER_COMPILE 未注册被 --strict 拒 → 注册为 25 个 verdict（0d336d9）|
+| BUG-7 | **critical** | providers.json 强制非 host 模式 → phase 14 空跑 L10 回卷全链 → 凭据感知 host_mode（0d336d9）|
+| BUG-8 | high | _native_review 写出 schema 非法 REVIEW_STATE（response_class 类型错）→ 修正（768aba1）|
+| minor | low | fairness min-seeds 与 lite 档不一致 → effort 感知（a4621c7）|
+
+每个 bug 均带回归测试。**最终：335/335 测试全绿 + ci_check OVERALL PASS。**
+
 ## [1.5.0] - 2026-09-26 波次二（SCI 语域 + 实验公平 + DeepMind 融合 + Claude Code 无缝）
 
 ### v1.5.0-w2：30 项深度优化续（git 多提交，版本号不变，收 1.5.0）
