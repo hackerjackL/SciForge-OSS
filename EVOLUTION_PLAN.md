@@ -76,6 +76,6 @@
 | S55 | 单项测试：fairness 不公/公平双路 | 同上 | ✅ |
 | S56 | 单项测试：class K 道歉扫描 + verified_proofs PASS-only | 同上 | ✅ |
 | S57 | deepen freeze 单测 + mode 参数遮蔽 bug 修复 | 实测发现 | ✅ |
-| S58 | 闭环 demo：子代理加载项目全链跑 RK4 问题 + 逐相质量评分 | 用户核心要求 | 🔄 进行中 |
-| S59 | demo 发现的 kernel bug 修复轮 | 闭环价值 | ⏳ |
-| S60 | 最终 ci_check + 329 测试全绿 + 文档定版收尾 | 收尾 | ⏳ |
+| S58 | 闭环 demo：子代理加载项目全链跑 RK4 问题 + 逐相质量评分 | 用户核心要求 | ✅ 26 相均分 8.5，completed |
+| S59 | demo 发现的 kernel bug 修复轮 | 闭环价值 | ✅ 8 bug 全修复+回归测试 |
+| S60 | 最终 ci_check + 335 测试全绿 + 文档定版收尾 | 收尾 | ✅ 335/335 + OVERALL PASS + v1.5.0 tag |
