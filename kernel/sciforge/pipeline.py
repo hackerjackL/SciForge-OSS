@@ -628,7 +628,21 @@ class Kernel:
                     "hint": "run `sciforge approve <checkpoint>` or set human_skip"}
         if self.rs.status == "paused_blocked":
             return {"status": "blocked", "reason": self.rs.data.get("reason_code", "")}
-        v = self.run_phase(pid)
+        # BUG-1 (found by the DEMO-RK4 closed loop): a phase whose checkpoint_after
+        # fires must NOT be re-dispatched — the host answer was already consumed.
+        # Cache the parsed verdict on disk; resume from cache after the checkpoint.
+        cache_f = self.ws / ".sciforge" / "host" / f"phase_{pid}.verdict.json"
+        if cache_f.exists():
+            try:
+                d = json.loads(cache_f.read_text())
+                v = Verdict(d["verdict"], d.get("artifacts"), d.get("notes"),
+                            d.get("cost_usd"), d.get("reason_code"))
+                self.log.emit(pid, "verdict_cache_hit", {"from": str(cache_f.name)})
+            except Exception:
+                cache_f.unlink()
+                v = self.run_phase(pid)
+        else:
+            v = self.run_phase(pid)
         if v.v in ("BLOCKED",):
             # await_host or checkpoint: not a failure — boundary not attempted
             self.log.emit(pid, "halted", {"reason": v.reason_code or v.notes})
@@ -644,12 +658,19 @@ class Kernel:
         # post-phase checkpoints (S05): advance is gated on human approval
         ck = ph.get("checkpoint_after")
         if ck and not self._checkpoint_satisfied(ck, pid):
+            # persist the verdict so the phase is not re-dispatched after approval
+            cache_f.parent.mkdir(parents=True, exist_ok=True)
+            cache_f.write_text(json.dumps({
+                "verdict": v.v, "artifacts": v.artifacts, "notes": v.notes,
+                "cost_usd": v.cost_usd, "reason_code": v.reason_code}, indent=2))
             payload = self._checkpoint_payload(ck, pid)
             self.appr.request(ck, pid, payload, self.rs)
             self.log.emit(pid, "checkpoint_requested", {"checkpoint": ck})
             self.rs.write()
             return {"status": "blocked_checkpoint", "pending": [ck],
                     "hint": "run `sciforge approve` or rerun with human_skip=true"}
+        if cache_f.exists():
+            cache_f.unlink()  # boundary will commit; cache no longer needed
         if v.v == "FAIL":
             target = self.apply_loopback(pid, v)
             if target:

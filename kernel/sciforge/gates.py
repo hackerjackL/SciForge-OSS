@@ -142,6 +142,15 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             return {"gate": "leakage_scan",
                     "status": "PASS" if p.returncode == 0 else "FAIL",
                     "exit": p.returncode, "output": (p.stdout + p.stderr)[-3000:]}
+        if name in ("quality_gate", "citation_audit"):
+            # machine-verdict file must exist (host writes it after the skill runs);
+            # missing verdict = FAIL (v1.4.0 lesson: audits must not silently skip)
+            marker = {"quality_gate": "QUALITY_GATE.json",
+                      "citation_audit": "CITATION_AUDIT.json"}[name]
+            if _find_verdict(ws, marker):
+                return {"gate": name, "status": "PASS", "source": marker}
+            return {"gate": name, "status": "FAIL",
+                    "note": f"{marker} absent — host must run the {name} skill and write the verdict"}
         if name == "compile_audit":
             # the mechanical half of paper-compile. v1.4.0 taught us the failure
             # mode is "audit never ran" — so when no machine verdict exists we
