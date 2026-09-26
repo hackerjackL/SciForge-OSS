@@ -138,6 +138,10 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             p = run_py("scripts/arb_verify.py", [str(ws)])
             return {"gate": "arb_verify", "status": "PASS" if p.returncode == 0 else "FAIL",
                     "exit": p.returncode, "output": (p.stdout + p.stderr)[-1500:]}
+        if name == "dep_gate":
+            p = run_py("scripts/dep_gate.py", [str(ws)])
+            return {"gate": "dep_gate", "status": "PASS" if p.returncode == 0 else "FAIL",
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
         if name == "smoke_gate":
             p = run_py("scripts/smoke_gate.py", [str(ws)])
             return {"gate": "smoke_gate", "status": "PASS" if p.returncode == 0 else "FAIL",

@@ -1157,3 +1157,24 @@ def test_kill_decision_ledger_records_routing_facts(tmp_path: Path):
     assert kl.exists(), "routing decision not recorded"
     rec = json.loads(kl.read_text().splitlines()[-1])
     assert rec["loopback"] == "L1" and rec["to"] == "2" and rec["trigger_verdict"] == "FAIL"
+
+
+# ---------------- v1.6.1 dependency governance (dep_gate) ----------------
+
+def test_dep_gate_blocks_undeclared_import(tmp_path: Path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "train.py").write_text("import numpy\nimport xgboost\n")
+    r = gates.check(tmp_path, {"check": "command", "cmd": "dep_gate"}, "6b")
+    assert r["status"] == "FAIL", r
+    assert "xgboost" in r["output"], r
+
+def test_dep_gate_allows_declared_and_stdlib(tmp_path: Path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "train.py").write_text(
+        "import numpy as np\nimport scipy.stats\nimport json, os, math\n")
+    r = gates.check(tmp_path, {"check": "command", "cmd": "dep_gate"}, "6b")
+    assert r["status"] == "PASS", r
+
+def test_dep_gate_skip_no_code(tmp_path: Path):
+    r = gates.check(tmp_path, {"check": "command", "cmd": "dep_gate"}, "6b")
+    assert r["status"] == "PASS", r  # SKIP exit 0

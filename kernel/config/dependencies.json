@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "comment": "Dependency contract (v1.6.1) — the SINGLE source of truth for what agent-authored code (src/ experiments, figures/**/render.py) may import. The model cannot use whatever it wants: dep_gate.py fails any import whose root is not listed here. Tiers mirror requirements.txt. Adding a dependency = edit requirements.txt AND this manifest (one PR, both gates). stdlib is always allowed (auto-detected, not enumerated).",
+  "python": {
+    "core": [
+      "numpy", "scipy", "pandas", "matplotlib", "PIL", "sympy",
+      "statsmodels", "sklearn", "shap"
+    ],
+    "figure_toolchain": [
+      "SciencePlots", "cairosvg", "diagrams", "blockdiag", "actdiag",
+      "nwdiag", "seqdiag", "flint"
+    ],
+    "text_topic": ["jieba", "textstat", "language_tool_python"],
+    "literature": ["requests", "bibtexparser", "pyalex", "habanero"],
+    "compute_backends": ["torch", "torch_npu", "tensorflow", "jax", "diffrax", "optuna"],
+    "reproducibility": ["pytest", "codecarbon", "psutil", "dvc"],
+    "causal": ["dowhy", "linearmodels", "causallearn", "diff_diff", "mlsynth"],
+    "viz_optional": ["seaborn", "plotly", "kaleido", "adjustText", "networkx", "igraph"]
+  },
+  "always_forbidden": {
+    "comment": "never importable in agent-authored experiment/figure code regardless of tier — these bypass the unified toolchain or are unsafe-by-policy (mirrors security_scan SEC-106)",
+    "roots": ["pip", "setuptools", "subprocess_pip", "importlib_metadata_install"]
+  },
+  "note": "plotly/kaleido are viz_optional and analysis-only — paper figures must go through render_figure.py (the figure contract), never a direct plotly savefig; dep_gate allows the import (analysis) but the figure audit rejects a plotly-produced paper figure."
+}

@@ -188,6 +188,10 @@
         {
           "check": "command",
           "cmd": "security_scan"
+        },
+        {
+          "check": "command",
+          "cmd": "dep_gate"
         }
       ]
     },
@@ -227,6 +231,10 @@
         {
           "check": "command",
           "cmd": "smoke_gate"
+        },
+        {
+          "check": "command",
+          "cmd": "dep_gate"
         }
       ]
     },
