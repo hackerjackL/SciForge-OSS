@@ -213,11 +213,33 @@ def render_python(src: Path, outdir: Path, dpi: int, log: list) -> None:
     and call apply_matplotlib_style() first.  After running the CLI
     derives output.svg via pdf_to_svg, then adds latex_include.tex + the
     embedded audit, keeping data plots on the same single-entry contract.
+
+    NOTE (v1.6.1): for NEW figures prefer the declarative `recipe` engine —
+    render.py grants full matplotlib freedom (legend/ticks/layout) which is the
+    toolchain-unity failure the recipe system removes. render.py stays supported
+    for reproducibility of existing figures and for genuinely custom plots the
+    model must justify in the caption/revision_log.
     """
     if src.resolve() != (outdir / src.name).resolve():
         shutil.copyfile(src, outdir / src.name)
         src = outdir / src.name
     run([sys.executable, str(src)], cwd=str(outdir), log=log)
+    pdf_to_svg(outdir / "output.pdf", outdir / "output.svg", log)
+
+
+def render_recipe(src: Path, outdir: Path, dpi: int, log: list) -> None:
+    """Declarative publication recipes (v1.6.1) — the layout-locked data-plot path.
+
+    A `.recipe.json` spec supplies DATA + LABELS + a small enum of semantic
+    choices; figure_recipes fixes geometry, fonts, dopamine palette, legend,
+    error semantics. This is the toolchain-unity answer: the model cannot pick
+    legend position / band-vs-bar / tick style — one shared theme for the corpus.
+    Produces output.pdf (+ svg) exactly like render.py, so the audit + LaTeX
+    include pipeline is unchanged.
+    """
+    import figure_recipes
+    spec = json.loads(src.read_text(encoding="utf-8"))
+    figure_recipes.render(spec, outdir)
     pdf_to_svg(outdir / "output.pdf", outdir / "output.svg", log)
 
 
@@ -915,7 +937,8 @@ def doctor() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="SciForge unified figure renderer")
     ap.add_argument("source", nargs="?", help="spec.d2 / spec.dot / spec.tex / "
-                    "source.svg / spec.asy / spec.typ / render.py / spec.diag")
+                    "source.svg / spec.asy / spec.typ / render.py / spec.diag / "
+                    "spec.recipe.json (declarative data plots, v1.6.1)")
     ap.add_argument("--doctor", action="store_true",
                     help="check the figure toolchain environment and exit")
     ap.add_argument("--out", default=None, help="output dir (default: beside source)")
@@ -923,7 +946,7 @@ def main() -> int:
     ap.add_argument("--engine",
                     choices=["d2", "graphviz", "tikz", "svg", "asy",
                              "typst", "diagrams", "blockdiag", "mermaid",
-                             "pikchr", "composite", "python", "auto"],
+                             "pikchr", "composite", "python", "recipe", "auto"],
                     default="auto")
     ap.add_argument("--layout", default=None,
                     help="d2: dagre|elk|tala  /  graphviz: dot|neato|fdp|...")
@@ -963,6 +986,8 @@ def main() -> int:
                   ".mermaid": "mermaid", ".pik": "pikchr"}.get(ext)
         if src.name.endswith(".composite.json"):
             engine = "composite"
+        elif src.name.endswith(".recipe.json"):
+            engine = "recipe"
         elif engine is None and src.name.endswith("_diagr.py"):
             engine = "diagrams"
         if engine is None:
@@ -991,6 +1016,9 @@ def main() -> int:
         elif engine == "python":
             outdir.mkdir(parents=True, exist_ok=True)
             render_python(src, outdir, args.dpi, log)
+        elif engine == "recipe":
+            outdir.mkdir(parents=True, exist_ok=True)
+            render_recipe(src, outdir, args.dpi, log)
         elif engine == "tikz":
             render_tikz(src, out_pdf, out_svg, args.dpi, log)
         elif engine == "asy":

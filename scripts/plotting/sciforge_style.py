@@ -200,11 +200,33 @@ def palette_visibility() -> dict[str, list[str]]:
 # --------------------------------------------------------------------------
 MARKER_CYCLE = ["o", "s", "^", "D", "v", "P", "X", "*"]
 
+# v1.6.1 single source of truth for series color ORDER. The default matplotlib
+# prop_cycle AND series_style() both draw from this, so a naive ax.plot and an
+# explicit series_style(0) agree. Ordering is by canvas visibility: the 5
+# line-safe tokens (contrast >= 3 on white) come first so the 1st/2nd series of
+# any line plot are readable as thin geometry; the 3 fill-only tokens (gold,
+# blue, orange — need a stroke_for outline) trail for bars/areas. SERIES_ORDER
+# (semantic role order: hero=blue…) is preserved separately for role lookup.
+# Lazily computed (palette_visibility needs contrast/stroke_for, defined below).
+_CYCLE_HEX: list[str] | None = None
+
+
+def cycle_hex() -> list[str]:
+    """Visibility-ordered series colors — the one cycle both prop_cycle and
+    series_style consume (toolchain unity: no second source of color order)."""
+    global _CYCLE_HEX
+    if _CYCLE_HEX is None:
+        vis = palette_visibility()
+        _CYCLE_HEX = [TOKENS[n] for n in vis["line_safe"] + vis["fill_only"]]
+    return _CYCLE_HEX
+
+
 def series_style(i: int) -> dict:
     """Consistent (color, marker) pair for series i so multi-line plots get
     distinct markers like the reference, while colors stay on the dopamine
-    series cycle."""
-    return {"color": SERIES_HEX[i % len(SERIES_HEX)],
+    series cycle (visibility-ordered — see cycle_hex)."""
+    cyc = cycle_hex()
+    return {"color": cyc[i % len(cyc)],
             "marker": MARKER_CYCLE[i % len(MARKER_CYCLE)]}
 
 def add_error_band(ax, x, y_mean, y_std, color, alpha: float = 0.16):
@@ -641,17 +663,13 @@ def apply_matplotlib_style(style: str = "academic") -> None:
     # v3.0 cycle ordering: the default matplotlib prop_cycle is consumed by
     # line plots first, so line-safe tokens (white contrast >= 3) come before
     # fill-only tokens (gold/blue/orange, which need a stroke_for outline).
-    # This keeps the naive `ax.plot(x, y)` path readable without forcing every
-    # author to call series_style(); fills still get the full 8-token palette.
-    _vis = palette_visibility()
-    LINE_SAFE_HEX = [TOKENS[n] for n in _vis["line_safe"]]
-    FILL_ONLY_HEX = [TOKENS[n] for n in _vis["fill_only"]]
-    PROP_CYCLE_HEX = LINE_SAFE_HEX + FILL_ONLY_HEX
+    # cycle_hex() is the SINGLE source shared with series_style() — a naive
+    # ax.plot and an explicit series_style(0) draw the same first color.
     rc = {
         "font.family": "serif",
         "font.serif": stack,
         "mathtext.fontset": "stix",
-        "axes.prop_cycle": "cycler('color', %r)" % PROP_CYCLE_HEX,
+        "axes.prop_cycle": "cycler('color', %r)" % cycle_hex(),
         "figure.figsize": figsize_full(),
         "figure.facecolor": GROUND,
         "axes.facecolor": GROUND,

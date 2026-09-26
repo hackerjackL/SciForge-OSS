@@ -14,6 +14,7 @@ import types
 
 import pytest
 
+from pathlib import Path
 import render_figure as rf
 import sciforge_style as st
 
@@ -244,3 +245,99 @@ def test_main_svg_engine_end_to_end(monkeypatch, tmp_path, make_svg):
     assert audit["verdict"] in ("PASS", "WARN")
     # the original source was kept beside the deliverables
     assert (out / "source.svg").is_file()
+
+
+# ---------------- v1.6.1 declarative recipe engine (toolchain unity) ----------------
+
+import json as _json
+
+def _recipe_pdf(tmp_path, spec):
+    import subprocess, sys
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    sp = tmp_path / "f.recipe.json"
+    sp.write_text(_json.dumps(spec))
+    out = tmp_path / "out"
+    p = subprocess.run([sys.executable, str(Path(rf.__file__)),
+                        str(sp), "--out", str(out), "--name", "output"],
+                       capture_output=True, text=True, timeout=180)
+    return p, out
+
+def test_recipe_line_comparison_renders(tmp_path):
+    p, out = _recipe_pdf(tmp_path, {
+        "recipe": "line-comparison", "size": "single",
+        "x_label": "t", "y_label": "y",
+        "series": [{"name": "a", "x": [1, 2, 3], "y": [1, 2, 4], "err": [.1, .1, .1], "stat": "sem"},
+                   {"name": "b", "x": [1, 2, 3], "y": [1, 1.5, 2]}]})
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert (out / "output.pdf").exists() and (out / "output.svg").exists()
+    assert (out / "figure_audit.json").exists()  # unified entry audits recipes too
+
+def test_recipe_bar_and_forest(tmp_path):
+    p, out = _recipe_pdf(tmp_path, {
+        "recipe": "bar-grouped", "groups": ["x", "y"],
+        "series": [{"name": "m", "values": [1, 2], "err": [.1, .1], "stat": "sd"}]})
+    assert p.returncode == 0, p.stderr
+    p2, out2 = _recipe_pdf(tmp_path / "f", {
+        "recipe": "forest-plot",
+        "rows": [{"label": "s1", "effect": .4, "lo": .1, "hi": .7}],
+        "pooled": {"effect": .3, "lo": .1, "hi": .5}})
+    assert p2.returncode == 0, p2.stderr
+    assert (out2 / "output.pdf").exists()
+
+def test_recipe_unknown_kind_fails(tmp_path):
+    sp = tmp_path / "bad.recipe.json"
+    sp.write_text(_json.dumps({"recipe": "pie-3d", "series": []}))
+    import subprocess, sys
+    p = subprocess.run([sys.executable, str(Path(rf.__file__)),
+                        str(sp), "--out", str(tmp_path / "o")],
+                       capture_output=True, text=True, timeout=60)
+    assert p.returncode != 0
+    assert "unknown recipe" in (p.stdout + p.stderr)
+
+def test_recipe_heatmap_enforces_layer2(tmp_path):
+    p, _ = _recipe_pdf(tmp_path, {"recipe": "heatmap", "matrix": [[1, 2], [3, 4]],
+                                  "colormap": "jet"})
+    assert p.returncode != 0  # jet is forbidden for continuous fields
+    p2, out2 = _recipe_pdf(tmp_path / "ok", {"recipe": "heatmap",
+                              "matrix": [[1, 2], [3, 4]], "colormap": "cividis"})
+    assert p2.returncode == 0 and (out2 / "output.pdf").exists()
+
+def test_recipe_panel_grid_shared_legend(tmp_path):
+    p, out = _recipe_pdf(tmp_path, {
+        "recipe": "panel-grid", "cols": 2,
+        "panels": [
+            {"recipe": "line-comparison", "x_label": "t", "y_label": "E",
+             "series": [{"name": "RK4", "x": [0, 1, 2], "y": [1, .9, .7]}]},
+            {"recipe": "bar-grouped", "x_label": "c", "y_label": "acc",
+             "groups": ["a", "b"],
+             "series": [{"name": "ours", "values": [.9, .8], "err": [.02, .02], "stat": "sem"}]}]})
+    assert p.returncode == 0, p.stderr
+    # one shared figure-level legend (not per-panel): verify in-process
+    import matplotlib; matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import figure_recipes as fr
+    spec = _json.loads((tmp_path / "f.recipe.json").read_text())
+    fig = plt.figure()
+    plt.close(fig)
+    # render via the module and introspect the produced figure's legend count
+    import unittest.mock as mock
+    created = {}
+    real_subplots = plt.subplots
+    def spy(*a, **k):
+        f, ax = real_subplots(*a, **k)
+        created["fig"] = f
+        return f, ax
+    with mock.patch.object(plt, "subplots", spy):
+        fr.render(spec, tmp_path / "out2")
+    figs = created["fig"]
+    assert len(figs.legends) == 1, f"expected ONE shared legend, got {len(figs.legends)}"
+    plt.close(figs)
+
+def test_cycle_order_single_source():
+    """series_style(0) == prop_cycle[0] (the panel color-drift bug guard)."""
+    import sciforge_style as st
+    st.apply_matplotlib_style()
+    import matplotlib as mpl
+    cyc = [c["color"] for c in mpl.rcParams["axes.prop_cycle"]]
+    assert cyc[0] == st.series_style(0)["color"]
+    assert st.contrast(cyc[0], "#FFFFFF") >= 3.0  # first series is line-safe
