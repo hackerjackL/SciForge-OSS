@@ -64,9 +64,49 @@ start and what is frozen:
 5. **Re-audit + recompile**: `sciforge_audit.py` + the full verdict gates, then paper-compile.
 6. Negative/unsupported findings still go to Limitations (negative-result discipline holds).
 
-Balanced mode selection: `mode=full` (default, from-scratch) vs `mode=revision`. Both share
-the single orchestrator, the single renderer, and the same hard gates — one chain, no drift
-from parallel pipelines.
+Balanced mode selection: `mode=full` (default, from-scratch) vs `mode=revision` vs `mode=deepen`.
+All three share the single orchestrator, the single renderer, and the same hard gates — one
+chain, no drift from parallel pipelines.
+
+## Deepen Mode (v1.5.0-w2 — "make an existing paper SOTA-grade WITHOUT changing its innovation")
+
+The third first-class mode — `mode=deepen` — takes a working manuscript + its data/code and
+improves **evidential depth and experimental fairness only**. The innovation structure
+(core claim, method identity, contribution list) is FROZEN (INV-G1 anchors the thesis the
+same way revision does); what may change is everything *around* the claim:
+
+1. **Frozen**: core claim + contribution list + method identity. A deepen run that proposes
+   a different method/claim is a drift → BLOCKED (`reason_code: deepen_frozen_violation`).
+2. **DEEPEN_PLAN** (replaces DIAGNOSIS): audit the paper against the *fairness + depth*
+   checklist and produce ordered, justified improvements:
+   - **Fairness** (`FAIRNESS.md`): every comparison re-run under identical compute budget,
+     identical data splits (frozen split hash), identical seed policy (≥ N seeds, reported
+     mean±std), identical early-stopping/hyperparameter budget per method (no cherry-tuned
+     baselines), and identical metric definitions. Any asymmetry → fix it, re-run, re-table.
+   - **Depth** (structure-preserving): expand seeds (power: raise N until CI excludes 0 at
+     the claimed effect or the claim is downgraded — never ship underpowered positives);
+     full ablation ladder per contribution (each claimed component gets a remove/replace
+     arm); robustness battery (falsification probes domain-selected, sensitivity sweep on
+     the calibrated parameters, outlier/subsample checks); multiple-comparison control
+     (Bonferroni/BH over the reported family); effect sizes + CIs in every table cell that
+     carries a claim (no naked means).
+   - **Evidence relocation**: any borderline positive that survives only under one
+     configuration moves to "regime-limited" reporting with the regime stated — never
+     deleted, never inflated.
+3. **Exec**: targeted re-runs via `/experiment-execution` (same harness for all arms), then
+   table regeneration via `/unified-plotting`, then `/result-to-claim` re-gating (the claim
+   strength may NOT exceed the new evidence — it may only match it or drop).
+4. **Fairness gate (hard)**: `FAIRNESS.json` is a registered verdict; paper tables whose
+   numbers predate the fairness re-run are invalidated (`numbers_stale: true`) until
+   regenerated. Publishability-score's main-experiment-logic axis REQUIRES fairness PASS.
+5. **Wording contract (SCI body voice)**: the deepened paper reads as an SCI manuscript
+   body, not a reviewer response or an engineering report — see writing-principles §0.6
+   (stance-first, zero apologies, zero defensive framing in body text; hedges are legal
+   only as precise regime statements, never as pre-emptive self-defense).
+
+Why deepen exists: "SOTA-but-not-tuning" is the honest way to raise a paper's level —
+stronger evidence for the SAME innovation, not a different innovation. This is also the
+mechanism that converts "凑合但不足以发表" drafts into submission-grade ones.
 
 ## Domain Signature Propagation
 

@@ -130,6 +130,12 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             return figure_gates(ws)
         if name == "wrap_up_gates":
             return wrap_up_gates(ws)
+        if name == "fairness_gate":
+            p = run_py("scripts/fairness_gate.py", [str(ws), "--write-verdict"])
+            # exit 3 = no ledger yet (SKIP, deepen-exec not run); 0=PASS/WARN; 2=FAIL
+            status = "SKIP" if p.returncode == 3 else ("PASS" if p.returncode == 0 else "FAIL")
+            return {"gate": "fairness_gate", "status": status,
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
         if name == "leakage_scan":
             # exit 0 = PASS or no-paper-yet SKIP; exit 2 = hits remaining => FAIL
             p = run_py("scripts/leakage_scan.py", [str(ws), "--write-verdict"])

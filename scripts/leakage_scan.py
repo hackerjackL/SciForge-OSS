@@ -38,6 +38,10 @@ CLASSES = {
     "H": r"(?m)^%.*(?:verification_type|evidence_type|mode:|INV-G)",
     "I": r"\bSciForge\b|sci[- ]?forge|AutoFigure|render_figure|AtomCode|AgentRxiv",
     "J": r"\bdelve[sd]?\b|\btapestry\b|\bIt is worth noting\b|\bIn conclusion, this comprehensive\b|\bnavigate the complexities\b|\bAs an AI\b|\bstem from\b(?=.*\bmoreover\b)|\bunlock(?:ing|s)? (?:the )?(?:power|potential|secret)",
+    # class K (v1.5.0-w2): apology / defensive register — writing-principles §0.6.
+    # Limitations uses the flat regime ledger, so apology verbs are hits everywhere;
+    # defense-framing phrases are hits everywhere (hedge-without-bound is the §0.6 rule).
+    "K": r"\bwe apologize\b|\bapolog(?:y|ies|ize|ise)\b|\bunfortunately\b|\bregrettably\b|\bsadly\b|\bit is a pity\b|\bwe are sorry\b|\bwe failed to\b|\bwe failed\b|\badmittedly\b|\bit should be admitted\b|\bwe must acknowledge\b|\bwe hope (?:that|future)\b|\bhopefully\b|\bour work (?:has|suffers from) (?:the following )?limitations\b|\bmay be limited by\b(?![^\.]{0,40}\b(?:rho|rho|range|N=|n=|CI|regime|\[0\.|\d+\s*[-–]\s*\d+))",
 }
 
 FABRICATED_AUTHOR = re.compile(
@@ -95,7 +99,7 @@ def main(argv=None) -> int:
     hits = scan_tex_files(paper) + check_frontmatter(paper)
     classes = sorted({h["class"] for h in hits})
     verdict = {
-        "gate": "pipeline-leakage-scrub", "version": "v3.5-mech",
+        "gate": "pipeline-leakage-scrub", "version": "v3.6-mech",
         "status": "PASS" if not hits else "FAIL",
         "hits_found": len(hits), "hits_scrubbed": 0,
         "hits_remaining": len(hits), "classes_seen": classes,

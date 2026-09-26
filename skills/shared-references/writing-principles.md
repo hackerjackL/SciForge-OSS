@@ -61,6 +61,38 @@ Paper prose style **must adapt to the discipline** — same template skeleton, d
 3. Report-style spot check: run the discrimination test on one sampled paragraph per section; report-style paragraph → WARN (`report_style`); Introduction or Discussion entirely in report style → FAIL
 4. Dash/parenthetical count: > 5 dashes across the whole text → WARN
 
+## 0.6 SCI Body Voice — Stance-First, Zero-Apology, Zero-Defense (v1.5.0-w2)
+
+**The framing law**: the paper body is an SCI manuscript body — addressed to the *reader
+of the science*, not to a reviewer and never to a critic. It is **not** a rebuttal, not a
+status report, not a defense. Three hard consequences:
+
+### 1. Zero apologies in body text (machine-checked, class K)
+Forbidden in Abstract / Introduction / Methods / Results / Discussion body (Limitations is
+the ONE place boundary statements live — see §3):
+
+| Forbidden pattern | Why | Replacement |
+|---|---|---|
+| "we apologize", "apologies for", "unfortunately", "regrettably", "we failed to", "we are sorry", "it is a pity that", "sadly" | Apologetic register = pre-emptive self-defense | State the fact and its consequence: "Under regime R, the effect reverses; the proposed model does not cover R" |
+| "our work has the following limitations" mid-body (outside Limitations) | Defense framing smuggled into the story | Move the sentence to Limitations; body keeps only the boundary fact |
+| "however, our method cannot…" opening a Results paragraph | Results paragraphs lead with what WAS shown | Lead with the result; scope goes to Limitations once, globally |
+| "it should be admitted that", "admittedly", "we must acknowledge", "granted," | Concession theatre | If true and relevant, state it flatly as a fact with evidence |
+| "we hope that", "hopefully", "future work will fix" | Wishful register | Delete, or state the next experiment as an observable question |
+
+### 2. Hedges legal ONLY as precise regime statements (rounding, not defending)
+- OK (precision): "For rho in [0.2, 0.8] the rate is linear; beyond this regime untested." — measurement scope, not defense.
+- Forbidden (defense): "However, our results may be limited by scale, which we regret could not be larger." — regret + generic hedge + no number.
+Rule: **every hedge must carry a bound** (range / N / CI / regime). A hedge without a bound is defensive prose. A paragraph whose hedges outnumber claims (hedge-to-claim ratio > 1.0) is rewritten stance-first.
+
+### 3. Limitations section = regime ledger, not confession
+3-6 entries max, each: regime/boundary + observable consequence + (optional) the measurement that would resolve it. No apologies, no "future work will certainly", no enumeration of internal difficulties. Negative/boundary results route here per the negative-result discipline — the section reports *what the evidence does not cover*, flat register.
+
+### 4. Stance-first paragraph order
+Body paragraphs open with the claim/result, then evidence, then (rarely) one bounded hedge. The "apology sandwich" (hedge → weak claim → hedge) is forbidden structure. Rewrite test: delete every hedge — if the claim still stands, fine; if the claim collapses without hedges, the claim is under-evidenced (strengthen evidence or downgrade the claim; never keep hedges load-bearing).
+
+### 5. Machine hooks (class K in scripts/leakage_scan.py)
+Class K counts apology/defense patterns per section; Abstract/Introduction/Methods/Results/Discussion tolerate ZERO hits; Limitations tolerates apology verbs at zero too (boundary statements use the flat register). Verdict `FAIL aigc_apology` / `WARN hedge_flood` go into `PAPER_CLAIM_AUDIT.json.aigc_scan`.
+
 ## Narrative principles
 
 - The core contribution must be statable in one sentence; otherwise the framework has not converged

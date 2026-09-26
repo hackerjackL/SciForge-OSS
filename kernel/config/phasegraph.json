@@ -359,7 +359,13 @@
       "produces": [
         "PUBLISHABILITY_SCORE.json"
       ],
-      "next": "16"
+      "next": "16",
+      "gates": [
+        {
+          "check": "command",
+          "cmd": "fairness_gate"
+        }
+      ]
     },
     {
       "id": "16",
