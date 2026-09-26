@@ -41,3 +41,41 @@
 - verdict schema 向后兼容；旧工作区可迁移
 - 所有新增机械门必须模型无关（低能力模型漏跑=被门拦截，而非静默通过）
 - 进化不可触碰区优先于任何进化提案
+
+
+---
+
+# 波次二（v1.5.0-w2）30 项续 — 同版本号，git 多提交
+
+| # | 项 | 吸取自 | 状态 |
+|---|---|---|---|
+| S31 | SCI 正文语域硬门：零道歉零防御（§0.6 + class K 机器检测） | 用户要求 + Nature/Science 文风 | ✅ |
+| S32 | hedge 带界规则（range/N/CI/regime），禁 apology sandwich | 同上 | ✅ |
+| S33 | FAIRNESS.json 注册 verdict + fairness_gate.py（同预算/同划分/同种子/同超参/同指标） | MLE-bench 公平性原则 | ✅ |
+| S34 | mode=deepen：创新点冻结 + 证据深度优化（功效/消融/稳健/多重比较/效应量+CI） | 用户"刷SOTA不调参"要求 | ✅ |
+| S35 | DEEPEN_FREEZE.json 哈希锁：方法/claim 变异=BLOCKED | INV-G1 同构 | ✅ |
+| S36 | 数字过期语义（numbers_stale）：公平性重跑前的表格数值作废 | 深化模式纪律 | ✅ |
+| S37 | Limitations=regime ledger（3-6 条，边界+可观测后果+解决测量） | SCI 写作法 | ✅ |
+| S38 | stance-first 段落序 + hedge 删除测试（claim 不得靠 hedge 站立） | §0.6 | ✅ |
+| S39 | 级联多评估器（便宜门→科学诚信正则→LLM judge） | **AlphaEvolve** | ✅ |
+| S40 | ResearchDomain 科学诚信硬零层（削弱纪律/审计/锚点的 patch 直接 0 分） | AlphaEvolve 反 reward-hacking | ✅ |
+| S41 | 生成-验证-强化闭环：verified_proofs 仅 PASS 结果进下轮先验 | **AlphaProof** | ✅ |
+| S42 | active-learning 回流：retrain_from_results → domain-signature | **GNoME** | ✅ |
+| S43 | 神经-符号分工：LLM 出构造，SymPy/门严格验证 | **AlphaGeometry** | ✅ |
+| S44 | 形式可验证性锚：22 个注册 verdict + validator 硬门 | AlphaProof/Geometry | ✅ |
+| S45 | DeepMind 融合调研文档（6 项目映射表） | docs/DEEPMIND_FUSION.md | ✅ |
+| S46 | baseline 对照强制 + 效应量/CI（GraphCast 管线启示入 method-registry） | GraphCast | ✅ |
+| S47 | Claude Code skill 适配器（pointer-load，单一事实源） | 用户"无缝集成 claudecode" | ✅ |
+| S48 | CLAUDE.md 项目记忆（硬规则/verdict 契约/gotcha） | Claude Code 惯例 | ✅ |
+| S49 | 三个子代理角色：researcher/reviewer/experimenter | AI Co-Scientist 角色分解 | ✅ |
+| S50 | kernel verdict JSON 契约写入 CLAUDE.md（宿主应答格式） | 实测经验 | ✅ |
+| S51 | docs/agents/ 镜像（可移植，不绑家目录） | 工程化 | ✅ |
+| S52 | REPRODUCE.md wave-2 复现命令集 | 可复现要求 | ✅ |
+| S53 | CHANGELOG 波次二条目 | 定版要求 | ✅ |
+| S54 | 单项测试：ResearchDomain 级联（含 judge 不可调用断言） | 测试纪律 | ✅ |
+| S55 | 单项测试：fairness 不公/公平双路 | 同上 | ✅ |
+| S56 | 单项测试：class K 道歉扫描 + verified_proofs PASS-only | 同上 | ✅ |
+| S57 | deepen freeze 单测 + mode 参数遮蔽 bug 修复 | 实测发现 | ✅ |
+| S58 | 闭环 demo：子代理加载项目全链跑 RK4 问题 + 逐相质量评分 | 用户核心要求 | 🔄 进行中 |
+| S59 | demo 发现的 kernel bug 修复轮 | 闭环价值 | ⏳ |
+| S60 | 最终 ci_check + 329 测试全绿 + 文档定版收尾 | 收尾 | ⏳ |
