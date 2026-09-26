@@ -15,6 +15,7 @@ import types
 import pytest
 
 import render_figure as rf
+import sciforge_style as st
 
 from conftest import requires_rsvg
 
@@ -35,8 +36,8 @@ def test_palette_check_flags_off_palette_hex():
     '<rect fill="#000000"/>',           # black
     '<rect fill="#808080"/>',           # neutral grey (C* < 2)
     '<g fill="none"/>',                 # no hex at all
-    '<rect fill="#EDE9E2"/>',           # morandi token (surface)
-    '<rect fill="#8AA1BC"/><rect fill="#B99585"/>',
+    f'<rect fill="{st.TOKENS["surface"]}"/>',  # neutral surface token
+    f'<rect fill="{st.TOKENS["blue"]}"/><rect fill="{st.TOKENS["crimson"]}"/>',
 ])
 def test_palette_check_accepts_neutrals_and_palette(text):
     assert rf.palette_check(text, "spec.svg") == []

@@ -19,12 +19,19 @@ TOKEN_HEXES = sorted(st.TOKENS.values())
 
 
 # ---------------------------------------------------------------------------
-# Palette property: every morandi token satisfies C* <= 25
+# Palette property (v3.0 dopamine contract): every series token is vivid
+# (C* >= 30) and visible on the white canvas; neutrals stay neutral.
 # ---------------------------------------------------------------------------
 
+NEUTRAL_TOKENS = ("ink", "ink-soft", "canvas", "surface", "surface-alt")
+
 @pytest.mark.parametrize("name,hexcolor", TOKEN_ITEMS)
-def test_every_morandi_token_chroma_within_contract(name, hexcolor):
-    assert st.chroma(hexcolor) <= 25.0, f"{name} ({hexcolor}) exceeds C* 25"
+def test_every_series_token_vivid_on_canvas(name, hexcolor):
+    if name in NEUTRAL_TOKENS:
+        return
+    assert st.chroma(hexcolor) >= 30.0, f"{name} ({hexcolor}) not vivid (C*<30)"
+    vis = max(st.contrast(hexcolor, "#FFFFFF"), st.contrast(hexcolor, "#000000"))
+    assert vis >= 3.0, f"{name} ({hexcolor}) invisible on canvas"
 
 
 @pytest.mark.parametrize("name,hexcolor", TOKEN_ITEMS)
@@ -109,7 +116,7 @@ def test_is_morandi_true_for_palette_members(hexcolor):
 
 
 @pytest.mark.parametrize("hexcolor", ["#FF0000", "#0000FF"])
-def test_is_morandi_false_for_saturated_primaries(hexcolor):
+def test_is_morandi_false_for_unknown_primaries(hexcolor):
     assert not st.is_morandi(hexcolor)
 
 
@@ -234,3 +241,62 @@ def test_mix_endpoints():
 
 def test_contrast_white_on_black_is_21():
     assert st.contrast("#FFFFFF", "#000000") == pytest.approx(21.0, abs=0.1)
+
+
+# ---------------------------------------------------------------------------
+# v3.0 dopamine infrastructure: CVD net + visibility tiers + self-check
+# ---------------------------------------------------------------------------
+
+def test_cvd_simulation_moves_red_toward_dark_yellow():
+    # protanopia: pure red loses its L-cone signal -> dark yellow-ish
+    sim = st.simulate_cvd("#FF0000", "protanopia")
+    r, g, b = st.hex2rgb(sim)
+    assert r > b and g > b and b < 60, sim
+
+
+def test_red_green_pair_collides_under_protanopia():
+    """Classic CVD failure mode: pure red vs pure green collapse for
+    protanopes (ΔE ~10) — the net must catch it."""
+    r = st.pair_distinguishable("#FF0000", "#008000")
+    assert not r["ok"] and "protanopia" in r["failed_modes"]
+    assert r["deltaE"]["protanopia"] < 15
+
+
+def test_series_palette_passes_cvd_net():
+    dv = st.palette_distinguishability(st.SERIES_HEX, min_delta=15.0)
+    # grayscale collisions are expected (marker encoding covers them); only a
+    # genuine CVD failure would be a contract violation
+    cvd_fails = [o for o in dv["offenders"]
+                 if any(m != "grayscale(L*)" for m in o["failed_modes"])]
+    assert not cvd_fails, cvd_fails
+
+
+def test_series_tokens_are_vivid_and_visible():
+    for name in st.SERIES_ORDER:
+        h = st.TOKENS[name]
+        assert st.chroma(h) >= 30.0, f"{name} not vivid"
+        vis = max(st.contrast(h, "#FFFFFF"), st.contrast(h, "#000000"))
+        assert vis >= 3.0, f"{name} invisible"
+        # fill-only tokens must have a line-safe stroke (the visibility contract)
+        if st.contrast(h, "#FFFFFF") < 3.0:
+            assert st.contrast(st.stroke_for(h), "#FFFFFF") >= 4.5, f"{name} stroke too light"
+
+
+def test_palette_visibility_tiers():
+    v = st.palette_visibility()
+    assert set(v) == {"line_safe", "fill_only", "line_strokes"}
+    assert not set(v["line_safe"]) & set(v["fill_only"])
+    assert set(v["line_safe"]) | set(v["fill_only"]) == set(st.SERIES_ORDER)
+    assert len(v["line_strokes"]) == len(v["fill_only"])
+
+
+def test_style_self_check_passes():
+    import subprocess, sys
+    p = subprocess.run([sys.executable, str(st.__file__)], capture_output=True, text=True, timeout=60)
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert "tokens OK" in p.stdout
+
+
+def test_layer2_includes_cividis():
+    assert "cividis" in st.LAYER2_COLORMAPS  # CVD-designed continuous map (research-adopted)
+    assert "jet" in st.FORBIDDEN_COLORMAPS

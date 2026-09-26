@@ -32,7 +32,7 @@ CLASSES = {
     "B": r"\bPhase\s+[0-9][0-9ab.]*\b|\btoy[_ ]stage\b|\btoy_gate\b|background dispatch|\bnohup\b|\bMCTS\b|\bDAG\b|\bevidence_type\b|\bverification_type\b|\btest_mode\b|effort:\s?(lite|balanced|max|beast)|role[_ -]switch|senior[_ -]reviewer|adversarial[_ -]falsification",
     "C": r"Type I (LEAKY|CLEAN|WEAK)|Type IV \(ESCAPE|INV-G\d|0 FATAL|0 CRITICAL|6 dimensions.{0,40}20.category|fidelity.{0,30}(symbolic|numerical|qualitative)|assurance[_ -]contract",
     "D": r"\bQ-[A-Z]+-[A-Z0-9]+\b|problem[_ -]anchor|\bQ-id\b|domain[_ -]signature",
-    "E": r"\bMorandi\b|\bmorandi\b|\bviridis\b|\bmagma colormap\b|\b16:9\b|render\.py|input_data\.json|color[_ -]palette|\bchroma\b",
+    "E": r"\bMorandi\b|\bmorandi\b|\bdopamine palette\b|\bdopamine\b|\bviridis\b|\bmagma colormap\b|\b16:9\b|render\.py|input_data\.json|color[_ -]palette|\bchroma\b",
     "F": r"hbox_warnings|overfull.{0,10}pt|font_embedding|microtypesetup|COMPILE_REPORT|PAPER_PLAN",
     "G": r"^\s*%.*(?:\bQ-|Phase|\bverification_type\b|\bevidence_type\b|mode:|INV-)",
     "H": r"(?m)^%.*(?:verification_type|evidence_type|mode:|INV-G)",

@@ -2,7 +2,18 @@
 
 ## [1.6.0] - 2026-09-26 定版：可验证证据链 + 运行时防御（第三轮，Top-12 清单落地）
 
-> 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的**。候选池分析见 `ANALYSIS_V1.6.md`（五路开源调研收敛信号 + 本地承诺兑现审计）。本轮全部改动带回归测试；367/367 绿，ci_check PASS。
+> 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的**。候选池分析见 `ANALYSIS_V1.6.md`（五路开源调研收敛信号 + 本地承诺兑现审计）。本轮全部改动带回归测试；371/371 绿，ci_check PASS。
+
+### 追加：图系统深度优化（多巴胺色板 v3.0 — 用户指令"图的颜色/工具链/skill 深度找开源项目，色系统一多巴胺"）
+
+- **色板性质变更**：Layer 1 莫兰迪（C*≤25）退役，换 **多巴胺高饱和色板**（8 系列：blue #00A6FB / orange #F3722C / green #06A77D / red #FF3B6B / teal #118AB2 / violet #8338EC / gold #FFBF00 / crimson #D90429）。**不是拍脑袋选色**：经约束搜索（29 色高饱和池 × CVD 双网）锁定——全部 28 对组合在 protan/deutan/tritan 三型模拟下 min ΔE = 15.0、零失败；9 色被证明物理不可行（第 9 色必破 ΔE≥15），故系列循环止于 8 色，9+ 由 marker+明度双编码延展。
+- **双安全网（新增基础设施，`sciforge_style.py`）**：`simulate_cvd`（Viénot/Brettel 线性 RGB 近似矩阵，纯 stdlib）+ `pair_distinguishable`/`palette_distinguishability`（CIE76 ΔE 三型+灰度）+ `palette_visibility`（line-safe vs fill-only 分层——gold/blue/orange 对比度 <3 只准做填充且必配 ≥5.1 对比描边，`stroke_for` 兜底）。调研（子代理实测 GitHub/PyPI）证实这是开源界稀缺组合：三合一自动审计无现成先例，K-Dense palette_audit/socraticstatic 为最接近参考。
+- **契约反转（全链一致）**：审计 A3 从"morandi-compliant"改"on-palette (dopamine v3.0)"；`is_morandi`→`is_on_palette`（保留旧名别名，registered verdict 兼容）；`theme: modern` 从硬性禁用翻转为允许（高饱和不再与色板冲突，但 off-palette hex 仍拒）；self-check 契约变 C*≥30 + 白底可见性 ≥3 + 系列两两 CVD≥15；Layer 2 增 **cividis**（CVD 设计色图，调研采纳），多巴胺永不进连续色图（双轨制，全生态一致先例）。
+- **文档全链同步（14 文件）**：color-themes.md 重写为多巴胺 v3.0 唯一事实源（含三安全网章节、stroke 对比列、"非手选而是约束搜索"的诚实说明）；unified-plotting SKILL、figure-quality/complexity-contract、venue-checklists、discipline-writing、paper-writing/compile、README×2、AGENT_GUIDE、SKILL.md、INSTALL.md 全部 morandi→dopamine；leakage_scan class E 同步禁"dopamine palette"泄露进图题。
+- **端到端验证**：真实 matplotlib 管线渲染 → A3 PASS（"all saturated colors on-palette (dopamine v3.0)"）→ strict exit 0；验证图入 `docs/assets/`（dopamine-palette-demo.png / dopamine-cvd-grid.png 四行 CVD 模拟网格 / dopamine-grayscale.png 灰度打印模拟）。
+- **测试**：+7 多巴胺基础设施回归（CVD 模拟正确性、红绿经典碰撞可检出、8 色板过双网、可见性分层、self-check、cividis 在列）；**371/371 全绿**。
+
+### Top-12 主体（可验证证据链 + 运行时防御）
 
 - **B5（本轮审计最重发现，定性为 kernel 强制）**：`security_scan` 从"phasegraph 声明但主循环从不消费"变成真正嵌入 6b/6c 边界——src/ 与 experiments/ 下任何 agent-authored 脚本静态扫描不过 → 边界拒绝提交（不写 boundary_committed）。README"门即代码"的卖点自此对实验链诚实。
 - **A2 fantasy-prevention 五门**：自称"最重要质量门"却只有 prose；`scripts/fantasy_gate.py` 从既有机器产物（PROOF_AUDIT/CITATION_AUDIT/FALSIFICATION_RECORD/domain-signature/RESULT）确定性评估 5 门，FANTASY/MOSTLY_FANTASY 阻断 paper-writing 并写 fantasy-log.md；证据不足**保守放行**（单门失败≠fantasy）；挂 Phase 12。

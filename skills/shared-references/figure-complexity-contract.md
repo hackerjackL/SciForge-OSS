@@ -98,7 +98,7 @@ After the audit reports problems, revisions must be **localized**; rewriting the
 ### 5.1 d2 icon conventions
 
 - Size: `viewBox="0 0 64 64"` (square icons); node `width/height` left automatic in d2; `style.font-size` ≥20px next to the icon
-- Coloring: Morandi tokens only (`sciforge_style.TOKENS`); stroke `#6E675F`(ink-soft) 1.5–2px, body fill `#EDE9E2`/token, accent details use the component's semantic color
+- Coloring: design tokens only (`sciforge_style.TOKENS`); stroke `#4D4D4D`(ink-soft) 1.5–2px, body fill `#F4F1EC`(surface)/token, accent details use the component's semantic color
 - Structure: 5–15 primitives, ≥2 tones, must have one "recognizable detail" (the database's elliptical top, the neuron's synapse dots, the gear's teeth)
 - Reference: `icon: ./icons/db.svg` (relative to the spec's directory)
 
@@ -130,12 +130,12 @@ After the audit reports problems, revisions must be **localized**; rewriting the
 ### 5.3 Asymptote / isometric SVG
 
 - Asy: component = ≥3 primitives + ≥2 tones; mechanical parts add hatch lines (`hatch`), fluids add gradients (`axialshade`)
-- **Isometric 3D style figures (lightweight alternative to Blender/renderers)**: use pure SVG for 2:1 isometric projection (iso(x,y,z) = ((x−y)·cos30°, (x+y)/2 − z)), drawing in depth-sorted order via the painter's algorithm; solid = top face + two visible side faces; side faces overlay translucent ink (10%/20%) on the token color to create light and shade, and the SVG source remains 100% Morandi-compliant (audit passes); paired with callout leader annotations (dashed leader + dot anchor + label), a ground grid plate, and particle-flow accents. Suited to mechanism schematics and system structure diagrams — achieving a "3D feel" without introducing 3D rendering dependencies.
+- **Isometric 3D style figures (lightweight alternative to Blender/renderers)**: use pure SVG for 2:1 isometric projection (iso(x,y,z) = ((x−y)·cos30°, (x+y)/2 − z)), drawing in depth-sorted order via the painter's algorithm; solid = top face + two visible side faces; side faces overlay translucent ink (10%/20%) on the token color to create light and shade, and the SVG source remains 100% palette-compliant (audit passes); paired with callout leader annotations (dashed leader + dot anchor + label), a ground grid plate, and particle-flow accents. Suited to mechanism schematics and system structure diagrams — achieving a "3D feel" without introducing 3D rendering dependencies.
 
 ### 5.4 Background and branding discipline
 
-- **The background of all figure types is pure white `#FFFFFF`** (data plots, architecture diagrams, methodology diagrams, mechanism diagrams — all of them), blending seamlessly with the white paper of the paper; Morandi is used only for component/series/fill colors. For data plots, override `figure.facecolor`/`axes.facecolor` after `apply_matplotlib_style()`; SVG figures place `<rect fill="#FFFFFF">` underneath.
-- **The figure is a paper illustration, not a tool poster**: internal brands/tool names/palette codenames (SciForge, unified renderer, morandi, figure-lab paths, renderer version numbers, etc.) are prohibited anywhere inside the figure. Audit layer A9 scans figure sources and forcibly blocks them; the title bar carries only the figure's academic content, and tool information stays in the caption and body text.
+- **The background of all figure types is pure white `#FFFFFF`** (data plots, architecture diagrams, methodology diagrams, mechanism diagrams — all of them), blending seamlessly with the white paper of the paper; The dopamine palette is used only for component/series/fill colors. For data plots, override `figure.facecolor`/`axes.facecolor` after `apply_matplotlib_style()`; SVG figures place `<rect fill="#FFFFFF">` underneath.
+- **The figure is a paper illustration, not a tool poster**: internal brands/tool names/palette codenames (SciForge, unified renderer, morandi, dopamine, figure-lab paths, renderer version numbers, etc.) are prohibited anywhere inside the figure. Audit layer A9 scans figure sources and forcibly blocks them; the title bar carries only the figure's academic content, and tool information stays in the caption and body text.
 
 ### 5.5 Runtime Icon Vocabulary Protocol (Runtime Icon Vocabulary — raising the visual ceiling, not checked into the repo)
 
@@ -154,7 +154,7 @@ After the audit reports problems, revisions must be **localized**; rewriting the
 
 **Mandatory workflow (four steps, none may be skipped)**:
 1. **Fetch**: download the SVG from a whitelisted source to `figures/<name>/icons/<icon>.svg`, accessing it via proxy (mihomo 8099); **a failed fetch does not block** — fall back to agent hand-drawing (§5.1 methodology)
-2. **Recolor**: the icon must pass through `sciforge_style.recolor_icon()` (`python -c "from sciforge_style import recolor_icon; ..."`) — mapped to Morandi series colors by L* lightness order, neutrals preserved; original-color icons that were not recolored will be blocked by the A3 audit if they enter a figure
+2. **Recolor**: the icon must pass through `sciforge_style.recolor_icon()` (`python -c "from sciforge_style import recolor_icon; ..."`) — mapped to dopamine series colors by L* lightness order, neutrals preserved; original-color icons that were not recolored will be blocked by the A3 audit if they enter a figure
 3. **Reference**: d2 uses `icon: ./icons/<icon>.svg`; hand-crafted SVG embeds via `<image>` or inline `<g>` (inline preferred, keeping a single auditable file)
 4. **Record**: append a line `icon: <name> ← <source URL> (<license>)` to the figure's `revision_log.md`; attribution for CC-BY/Font Awesome icons is written into the LaTeX acknowledgments or supplementary materials as the license requires
 
@@ -255,7 +255,7 @@ A paper's figures are a **reasonable mix of composite figures and single figures
 1. Panel count → default grid: 2 panels 1×2, 3–4 panels 2×2, 5–6 panels 2×3 or 3×2, 7–9 panels 3×3
 2. Panels in the same row align to equal height (row height is that of the tallest panel in the row; short panels are vertically centered); uniform spacing (gap), margins on all four sides
 3. Background pure white; no divider lines between panels (Nature convention); separation by spacing alone
-4. Panel style unified: same font family/font size/line width/Morandi series color order; panels each doing their own thing is prohibited
+4. Panel style unified: same font family/font size/line width/dopamine series color order; panels each doing their own thing is prohibited
 
 ### 7.3 Caption (mandatory)
 

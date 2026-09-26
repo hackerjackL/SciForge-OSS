@@ -34,7 +34,7 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic, runtime
 ### Meta-Skills
 - `/idea-discovery` — MCTS-enhanced research idea generation
 - `/universal-retrieval` — literature retrieval + 3-layer anti-hallucination citation verification
-- `/unified-plotting` — publication-grade figure rendering (morandi palette)
+- `/unified-plotting` — publication-grade figure rendering (dopamine palette, CVD-verified)
 - `/dynamic-sandbox` — lightweight numerical verification sandbox (Python/NumPy)
 - `/dynamic-tooling` — dynamic tool authoring and registration
 - `/domain-learner` — auto-learn domain properties from the literature

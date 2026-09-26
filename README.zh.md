@@ -58,7 +58,7 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 | **Dynamic Sandbox** | 计算引擎 | 运行任意 Python/Julia 科学计算（NumPy/SciPy/SymPy）——无 GPU 训练，仅数值 sanity check |
 | **Dynamic Tooling** | 工具工厂 | 运行时发现工具不足时，动态编写并注册临时工具 |
 | **Universal Retrieval** | 文献检索 | 多源学术搜索（arXiv/S2/CrossRef/PubMed/Web/OpenAlex）+ 3 层防幻觉验证 |
-| **Unified Plotting** | 图表渲染 | 结构化数据 → 出版级矢量图（SVG/PDF）；莫兰迪色系（Layer 1）+ viridis/magma 数据热图（Layer 2） |
+| **Unified Plotting** | 图表渲染 | 结构化数据 → 出版级矢量图（SVG/PDF）；多巴胺色系（Layer 1，色盲可辨校验的高饱和盘）+ viridis/magma/cividis 数据热图（Layer 2） |
 
 ## Runtime Kernel（v1.5.0）
 
@@ -288,7 +288,7 @@ Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
 Phase  8: /logic-verification — 6 维度逻辑一致性审计
 Phase  9: /invariant-check — INV-G1 问题锚点冻结验证
 Phase 10: /result-to-claim — 3 保真度 claim 门控
-Phase 11: /unified-plotting — 学术图表（可选，莫兰迪色系 + Layer 2）
+Phase 11: /unified-plotting — 学术图表（可选，多巴胺色系 + Layer 2）
 Phase 12: /paper-writing — elsarticle 单模板写作
 Phase 13: /paper-compile — LaTeX 零警告零报错编译
 Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺
@@ -349,7 +349,7 @@ SciForge-OSS/
 │   │   ├── dynamic-sandbox/SKILL.md        ← 计算沙盒（数值 sanity check，无 GPU）
 │   │   ├── dynamic-tooling/SKILL.md        ← 工具制造
 │   │   ├── universal-retrieval/SKILL.md    ← 学术检索 + 3 层防幻觉（6 源）
-│   │   ├── unified-plotting/SKILL.md       ← 矢量图表渲染（莫兰迪 + Layer 2 数据热图）
+│   │   ├── unified-plotting/SKILL.md       ← 矢量图表渲染（多巴胺 + Layer 2 数据热图）
 │   │   ├── idea-discovery/SKILL.md         ← [DAG] 多视角创意 + MCTS 迭代
 │   │   ├── novelty-check/SKILL.md          ← [DAG] 新颖性验证+淘汰
 │   │   ├── domain-learner/SKILL.md         ← 从文献学习领域签名（唯一写入方）
@@ -386,7 +386,7 @@ SciForge-OSS/
 │       ├── venue-checklists.md            ← 单一通用 pre-submission checklist
 │       ├── discipline-context.md          ← OSS 全领域契约（无学科分支）
 │       ├── discipline-writing.md          ← 通用 section-by-section 写作指南
-│       ├── color-themes.md                ← 莫兰迪（Layer 1）+ viridis/magma（Layer 2）
+│       ├── color-themes.md                ← 多巴胺（Layer 1）+ viridis/magma/cividis（Layer 2）
 │       ├── writing-principles.md           ← 学术写作风格指南
 │       ├── output-manifest.md + output-versioning.md ← 产物结构 + 版本化
 │       ├── reviewer-independence.md + reviewer-routing.md + review-tracing.md ← 跨模型评审契约
@@ -396,7 +396,7 @@ SciForge-OSS/
 ├── scripts/
 │   ├── plotting/                          ← 绘图工具链（单一入口）
 │   │   ├── render_figure.py               ← 统一渲染器——12 引擎、一条链路、内嵌审计
-│   │   ├── sciforge_style.py              ← 莫兰迪设计 token（单一事实源）
+│   │   ├── sciforge_style.py              ← 多巴胺设计 token（单一事实源）
 │   │   ├── figure_audit.py                ← A1–A10 Nature 级审计（内嵌）
 │   │   └── INSTALL.md                     ← 三平台复刻手册
 │   ├── validate_verdicts.py               ← verdict JSON schema 校验器（纯 stdlib）
@@ -513,7 +513,7 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 出版级图表由**唯一入口** `scripts/plotting/render_figure.py` 产出（管线 Phase 11），**12 引擎收敛一条链路**（禁止并行工具）：matplotlib（数据图）、d2、graphviz、TikZ、Asymptote、Typst、diagrams、blockdiag 家族、mermaid、pikchr、手工装配 SVG、**composite 组图引擎**（Nature 风格 (a)(b)(c)… 面板编号，面板数硬上限 9，SCI 一区组版规范）。
 
 - **双产出**：矢量 PDF（LaTeX 嵌入）+ SVG（agent 审阅/编辑）
-- **内嵌 Nature 级审计（A1–A10）**：可读性下限、莫兰迪色板（C* ≤ 25 数值校验）、16:9 默认、复杂度下限（图标密度/边密度）、视觉丰富度、**品牌泄露守卫**（图是论文插图，不是工具海报）、**文字零重叠**（附精确偏移修正建议）
+- **内嵌 Nature 级审计（A1–A10）**：可读性下限、多巴胺色板（C* ≥ 30 + 两两色盲 ΔE ≥ 15 数值校验）、16:9 默认、复杂度下限（图标密度/边密度）、视觉丰富度、**品牌泄露守卫**（图是论文插图，不是工具海报）、**文字零重叠**（附精确偏移修正建议）
 - **两级视觉审阅**：具备原生视觉的宿主 agent 按 9 项清单自审 PNG（零外部 API——宿主自身的视觉能力就是审阅者）；纯文本宿主降级机械审计
 - **期刊宽度预设**：`--width-preset nature-single|aaai-double|...`（14 种版面）
 - **跨平台**：Linux / macOS / Windows——字体按平台自动发现、无机器专属路径；见 [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)

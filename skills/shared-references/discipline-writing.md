@@ -135,7 +135,7 @@ For pure theory problems (no experiments, no numerical verification), use this s
 | Property | Rule |
 |----------|------|
 | Format | Vector PDF preferred; SVG acceptable when AI-direct-generated |
-| Palette | **Morandi** house palette for categorical/semantic colors (see `color-themes.md` Layer 1) |
+| Palette | **Dopamine** house palette for categorical/semantic colors (see `color-themes.md` Layer 1; CVD-verified) |
 | Data-encoding colormaps | viridis / magma / plasma for continuous scalar fields (see `color-themes.md` Layer 2) — **never** jet / rainbow / hsv |
 | Caption | Self-contained: "Figure N. What + key takeaway. (a) subpanel label. Parameters: ..." |
 | Reference | `\cref{fig:label}` (cleveref loaded in unified template) — never hardcoded "Figure 3" |
@@ -210,4 +210,4 @@ The agent applies these conventions at runtime based on the problem's domain —
 - [`venue-profiles.md`](venue-profiles.md) — the single elsarticle template spec (no venue families)
 - [`writing-principles.md`](writing-principles.md) — general academic writing style (universal, copied from main SciForge)
 - [`citation-discipline.md`](citation-discipline.md) — 3-layer anti-hallucination citation verification
-- [`color-themes.md`](color-themes.md) — morandi palette + Layer 2 data-encoding colormaps
+- [`color-themes.md`](color-themes.md) — dopamine palette + Layer 2 data-encoding colormaps

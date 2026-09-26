@@ -47,12 +47,12 @@ The orchestrator reads `signature.evidence_type` + `signature.reasoning_paradigm
 | evidence_type | paradigm | intensity | figure types | color compliance | data heatmap |
 |--------------|----------|-----------|--------------|------------------|--------------|
 | `derivational` | formal | **SKIPPED** (NOT_APPLICABLE) | — | — | — |
-| `correlational` / `causal_inference` | empirical | **STANDARD** | line/scatter/bar/heatmap + identification-diagram (DiD/RDD schematic) | Morandi (mandatory) | Layer 2 (mandatory for primary outcome) |
-| `experimental` | empirical | **INTENSIFIED** | STANDARD + forest-plot (effect-size meta) + CONSORT flow diagram + dose-response | Morandi (mandatory) | Layer 2 (mandatory) + per-subgroup |
-| `simulational` | empirical | **STANDARD** + regime-map | line/scatter/heatmap + parameter-regime-map + stability-basin | Morandi (mandatory) | Layer 2 (mandatory) + regime overlay |
-| `interpretive` | interpretive | **REPLACED** → concept-map | concept-map (argument structure) + timeline (if historical) + quote-network | Morandi (mandatory) | NOT_APPLICABLE (no quantitative data heatmap) |
+| `correlational` / `causal_inference` | empirical | **STANDARD** | line/scatter/bar/heatmap + identification-diagram (DiD/RDD schematic) | Dopamine (mandatory) | Layer 2 (mandatory for primary outcome) |
+| `experimental` | empirical | **INTENSIFIED** | STANDARD + forest-plot (effect-size meta) + CONSORT flow diagram + dose-response | Dopamine (mandatory) | Layer 2 (mandatory) + per-subgroup |
+| `simulational` | empirical | **STANDARD** + regime-map | line/scatter/heatmap + parameter-regime-map + stability-basin | Dopamine (mandatory) | Layer 2 (mandatory) + regime overlay |
+| `interpretive` | interpretive | **REPLACED** → concept-map | concept-map (argument structure) + timeline (if historical) + quote-network | Dopamine (mandatory) | NOT_APPLICABLE (no quantitative data heatmap) |
 
-**Phase 11 REPLACED caveat (interpretive only)**: `/unified-plotting` runs in `concept-map_mode` — outputs a Mermaid/Graphviz argument-structure diagram instead of quantitative figures. The color theme (Morandi) still applies. Layer 2 data heatmap is `NOT_APPLICABLE`.
+**Phase 11 REPLACED caveat (interpretive only)**: `/unified-plotting` runs in `concept-map_mode` — outputs a Mermaid/Graphviz argument-structure diagram instead of quantitative figures. The color theme (dopamine) still applies. Layer 2 data heatmap is `NOT_APPLICABLE`.
 
 ## Override Application Protocol
 
@@ -111,7 +111,7 @@ Step 7: Log the override in .sciforge/PIPELINE_STATUS.md (transparency — the i
     "phase_11": {
       "intensity": "SKIPPED|STANDARD|INTENSIFIED|REPLACED",
       "figure_types": ["list"],
-      "color_compliance": "Morandi|NOT_APPLICABLE",
+      "color_compliance": "dopamine-palette|NOT_APPLICABLE",
       "data_heatmap": "Layer2|NOT_APPLICABLE|per_subgroup"
     }
   }

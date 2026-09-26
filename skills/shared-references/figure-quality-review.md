@@ -53,7 +53,7 @@ into `revision_log.md`.
    a dark fill with dark ink? All sizes perceptibly ≥ Nature floor at the
    PNG's native resolution?
 6. **Color discipline**: does any element look MORE saturated than the
-   rest (a smuggled non-morandi color the sanitizer can't catch, e.g. a
+   rest (a smuggled off-palette color the sanitizer can't catch, e.g. a
    named color or rgb() triple)? Any two elements that should be
    distinguished but look identical?
 7. **Icon quality**: do icons read at thumbnail size, or are any

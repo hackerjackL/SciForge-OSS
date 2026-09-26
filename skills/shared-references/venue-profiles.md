@@ -4,7 +4,7 @@
 >
 > **Scope boundary (explicit — what is NOT our job)**: OSS produces a **content-complete, citation-verified, logic-verified, code-reproducible** preprint-grade manuscript. The following are **the human senior researcher's responsibility, NOT ours** — OSS deliberately does not constrain them:
 > - **Journal template / `.cls` selection** (Nature/PRL/IEEE/ACM/Cell) — the human swaps to the target journal's class at submission time; OSS gives them clean elsarticle source to port.
-> - **Figure palette micro-tuning** (the single morandi+viridis house style is fixed; the human can recolor at submission).
+> - **Figure palette micro-tuning** (the single dopamine+viridis house style is fixed; the human can recolor at submission).
 > - **Page-limit strict conformance** (OSS targets 8-15 flexible; the human trims to the venue's exact limit).
 > - **Anonymization / double-blind** (OSS outputs are researcher-facing; the human anonymizes if the venue requires).
 > - **IRB / ethics / human-subjects / animal-subjects** approval statements.
@@ -117,5 +117,5 @@ If a run needs a convention not in the unified template (e.g., a specific theore
 
 - [`writing-principles.md`](writing-principles.md) — academic writing style guide (universal)
 - [`citation-discipline.md`](citation-discipline.md) — 3-layer anti-hallucination citation verification protocol
-- [`color-themes.md`](color-themes.md) — morandi palette + Layer 2 data-encoding colormaps
+- [`color-themes.md`](color-themes.md) — dopamine palette + Layer 2 data-encoding colormaps
 - [`assurance-contract.md`](assurance-contract.md) — PASS/WARN/FAIL/ERROR verdict schema

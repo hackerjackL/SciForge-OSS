@@ -99,7 +99,7 @@ def test_a3_saturated_off_palette_hex_fails():
 
 
 def test_a3_morandi_only_svg_passes():
-    svg = '<svg><rect fill="#8AA1BC"/><rect fill="#97A98D"/>' \
+    svg = f'<svg><rect fill="{st.TOKENS["blue"]}"/><rect fill="{st.TOKENS["orange"]}"/>' \
           '<rect fill="#FFFFFF"/><rect fill="#000000"/></svg>'
     rep = fa.Report()
     fa.audit_palette_svg(svg, rep)

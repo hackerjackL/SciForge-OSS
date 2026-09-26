@@ -55,10 +55,10 @@ Apply this checklist to every OSS paper draft, regardless of the problem it addr
 - [ ] Theorem environments from unified template: `theorem`/`proposition`/`lemma`/`corollary`/`definition`/`assumption`/`remark`
 - [ ] Every `\cite{key}` resolves to a verified `references.bib` entry
 
-### 3.3 Figure checklist (universal — morandi palette)
+### 3.3 Figure checklist (universal — dopamine palette v3.0)
 
 - [ ] Every figure is vector (PDF) or SVG (when AI-direct-generated) — never raster PNG for publication
-- [ ] Categorical/semantic colors use **morandi** house palette (see `color-themes.md` Layer 1, chroma C* ≤ 25)
+- [ ] Categorical/semantic colors use the **dopamine** house palette (see `color-themes.md` Layer 1: C* ≥ 30, CVD ΔE ≥ 15, marker-encoded)
 - [ ] Continuous scalar fields use **viridis / magma / plasma** (see `color-themes.md` Layer 2) — never jet / rainbow / hsv
 - [ ] Every figure caption is self-contained: "Figure N. What + key takeaway. (a) subpanel. Parameters: ..."
 - [ ] Every figure preserves its render script + input data (see `output-versioning.md`)
@@ -134,5 +134,5 @@ If the human user **later** wants to submit the OSS output to a specific journal
 - [`venue-profiles.md`](venue-profiles.md) — the single elsarticle template spec (no venue families)
 - [`discipline-writing.md`](discipline-writing.md) — universal section-by-section writing guide
 - [`citation-discipline.md`](citation-discipline.md) — 3-layer anti-hallucination citation verification protocol
-- [`color-themes.md`](color-themes.md) — morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2)
+- [`color-themes.md`](color-themes.md) — dopamine palette (Layer 1) + viridis/magma/cividis data colormaps (Layer 2)
 - [`assurance-contract.md`](assurance-contract.md) — PASS/WARN/FAIL/ERROR verdict schema

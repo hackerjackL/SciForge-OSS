@@ -140,7 +140,7 @@ After successful compilation, verify the output:
 - All figures from `figures/` are referenced in the paper text.
 
 **Visual review (automated):** If the compiled PDF exists, read it directly to check visual presentation:
-- Figure quality: readable labels, legible text, distinguishable colors (morandi palette — see `color-themes.md`).
+- Figure quality: readable labels, legible text, distinguishable colors (dopamine palette — see `color-themes.md`).
 - Layout: no orphaned section headers, no awkward page breaks.
 - Figures appear near their first text reference (not pages away).
 - Tables: aligned columns, consistent decimal precision.
@@ -191,7 +191,7 @@ python scripts/check_figure_embedding.py paper/ --min-figures <budget> --require
 `--require-renderer` (v1.4.0) additionally FAILs if any figure was NOT produced by the
 unified renderer — i.e. flat hand-written `figures/*.pdf`, or a `figures/<id>/` dir
 lacking `figure_audit.json` + `latex_include.tex`. This closes the bypass where a model
-hand-writes matplotlib and skips the Nature audit / morandi palette / print floors.
+hand-writes matplotlib and skips the Nature audit / dopamine palette / print floors.
 
 - It counts `\begin{figure}` environments across `paper/main.tex` + `sections/*.tex`
   and cross-checks that **every** `figures/**/*.pdf` on disk is referenced by an
@@ -283,7 +283,7 @@ All OSS outputs use the unified `elsarticle` template:
 - **If LaTeX is not installed**, provide clear installation instructions rather than failing silently.
 - **Font embedding is critical** — submission venues reject PDFs with non-embedded fonts.
 - **Figure verification** — ALL figures in `figures/` must be referenced in the paper text. Unreferenced figures are a structural issue.
-- **Figure format** — vector PDF preferred; SVG acceptable when AI-direct-generated (see `color-themes.md` for morandi palette contract).
+- **Figure format** — vector PDF preferred; SVG acceptable when AI-direct-generated (see `color-themes.md` for the dopamine palette contract).
 
 ## Output Shape
 

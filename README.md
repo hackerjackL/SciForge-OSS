@@ -58,7 +58,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 | **Dynamic Sandbox** | Compute engine | Run arbitrary Python/Julia scientific computation (NumPy/SciPy/SymPy) — numerical sanity check |
 | **Dynamic Tooling** | Tool factory | When tools are insufficient at runtime, dynamically write and register temporary tools |
 | **Universal Retrieval** | Literature search | Multi-source academic search (arXiv/S2/CrossRef/PubMed/Web/OpenAlex) + 3-layer anti-hallucination verification |
-| **Unified Plotting** | Figure rendering | Structured data → publication-quality vector figures (PDF+SVG); Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) |
+| **Unified Plotting** | Figure rendering | Structured data → publication-quality vector figures (PDF+SVG); dopamine palette (Layer 1, CVD-verified high-saturation) + viridis/magma/cividis data colormaps (Layer 2) |
 
 ## Runtime kernel (v1.5.0)
 
@@ -334,7 +334,7 @@ SciForge-OSS/
 ├── scripts/
 │   ├── plotting/                    # figure toolchain (single entry point)
 │   │   ├── render_figure.py         # unified renderer — 12 engines, one pipeline, embedded audit
-│   │   ├── sciforge_style.py        # morandi design tokens (single source of truth)
+│   │   ├── sciforge_style.py        # dopamine design tokens (single source of truth)
 │   │   ├── figure_audit.py          # A1–A10 Nature-level audit (embedded)
 │   │   └── INSTALL.md               # cross-platform replication manual
 │   ├── validate_verdicts.py         # verdict JSON schema validator (stdlib-only)
@@ -384,7 +384,7 @@ SciForge-OSS/
 │       ├── citation-discipline.md   # 3-layer anti-hallucination
 │       ├── writing-principles.md    # academic writing + per-domain style contract
 │       ├── discipline-writing.md    # universal section-by-section guide
-│       ├── color-themes.md          # Morandi (Layer 1) + viridis/magma (Layer 2)
+│       ├── color-themes.md          # Dopamine (Layer 1) + viridis/magma/cividis (Layer 2)
 │       ├── venue-profiles.md        # single elsarticle template spec
 │       ├── multi-fidelity-evaluation.md  # universal Low/Mid/High
 │       ├── effort-contract.md       # lite/balanced/max/beast
@@ -501,7 +501,7 @@ Each problem's `verification_type` (a canonical token: `theory-only` | `computat
 Publication-grade figures are produced by ONE unified entry point — `scripts/plotting/render_figure.py` (Phase 11 of the pipeline), with **12 engines behind a single chain** (never parallel tools): matplotlib (data), d2, graphviz, TikZ, Asymptote, Typst, diagrams, blockdiag-family, mermaid, pikchr, hand-assembled SVG, and the **composite multi-panel engine** (Nature-style (a)(b)(c)… panel figures, panel cap 9, SCI Q1 composition rules).
 
 - **Dual output**: vector PDF (LaTeX embed) + 300 DPI PNG (agent review)
-- **Embedded Nature-level audit (A1–A10)**: readability floors, morandi palette (C* ≤ 25 numerically validated), 16:9 default, complexity floors (icon density / edge density), visual richness, **brand-leak guard** (figures are paper figures, never tool posters), **zero text overlap** with actionable fix suggestions
+- **Embedded Nature-level audit (A1–A10)**: readability floors, dopamine palette (C* ≥ 30 + pairwise CVD ΔE ≥ 15 numerically validated), 16:9 default, complexity floors (icon density / edge density), visual richness, **brand-leak guard** (figures are paper figures, never tool posters), **zero text overlap** with actionable fix suggestions
 - **Two-tier visual review**: vision-capable host agents self-review the PNG against a 9-item checklist (no external API — the host's native vision is the reviewer); text-only hosts degrade to the mechanical audit
 - **Journal column-width presets**: `--width-preset nature-single|aaai-double|...` (14 venues)
 - **Cross-platform**: Linux / macOS / Windows — fonts auto-discovered per platform, no machine-specific paths; see [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)

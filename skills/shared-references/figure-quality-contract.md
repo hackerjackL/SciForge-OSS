@@ -59,7 +59,7 @@ Figures must meet Nature/Science readability floors. The old standards (axis lab
 
 All floors are **at final embedded scale** (v2.2 print contract): render at the physical
 width the figure will occupy so these are what the reader sees. Text is **pure black on
-pure white** (single refined-morandi style for series fills).
+pure white** (single refined-dopamine style for series fills).
 
 | Element | Minimum (print floor, v2.2) | Pre-v2.2 floor | Rationale |
 |---------|------------------------|---------------|-----------|
@@ -101,11 +101,11 @@ The old unified-plotting handled architecture/workflow diagrams via "JSON-spec d
 **Why d2 is primary (not mermaid-cli/drawio)**: mermaid-cli (`mmdc`) renders via headless Chromium (puppeteer) — a heavy, fragile dependency that fails on headless servers without a display server. drawio-desktop is a GUI app, not headless-friendly. **d2** and **graphviz/dot** are both headless-native, install cleanly, and produce vector SVG → PDF+SVG via `rsvg-convert` with no browser/chromium needed. For an AI-scientist pipeline that runs on servers, headless-native tools are mandatory. (If a human later wants to hand-edit a diagram in drawio-desktop's GUI, they can import the d2/dot-produced SVG — but the pipeline itself uses headless tools only.)
 
 **d2 pipeline steps (v3.5 — single unified entry point)**:
-1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com); use morandi tokens for explicit styles
-2. Render through ONE tool only — `scripts/plotting/render_figure.py spec.d2 --out figures/<name>/ --label <name> --caption "..." --strict`. Internally it performs: morandi preamble injection → d2 layout (dagre auto; elk for >20 nodes, Liberation Sans fonts via `--font-*`) → deterministic palette sanitization (engine-injected theme colors remapped to tokens) → SVG deliverable + PDF derivation (`rsvg-convert`, inkscape fallback) → `latex_include.tex` → embedded Nature-level audit (`figure_audit.json`)
+1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com); use dopamine tokens for explicit styles
+2. Render through ONE tool only — `scripts/plotting/render_figure.py spec.d2 --out figures/<name>/ --label <name> --caption "..." --strict`. Internally it performs: design-system preamble injection → d2 layout (dagre auto; elk for >20 nodes, Liberation Sans fonts via `--font-*`) → deterministic palette sanitization (engine-injected theme colors remapped to tokens) → SVG deliverable + PDF derivation (`rsvg-convert`, inkscape fallback) → `latex_include.tex` → embedded Nature-level audit (`figure_audit.json`)
 3. Check the audit verdict; FAIL ⇒ fix spec, re-render. Never invoke raw `d2`/`dot`/`rsvg-convert` in parallel — the unified CLI is the ONLY diagram entry point in the pipeline
 
-**d2 styling**: apply the morandi palette via d2's style blocks or rely on the injected preamble (fills `#EDE9E2`, strokes `#6E675F`, ink text `#3A3733`, node font 22px). The embedded audit checks d2 output identically to Python output.
+**d2 styling**: apply the design palette via d2's style blocks or rely on the injected preamble (fills `#F4F1EC`, strokes `#4D4D4D`, ink text `#000000`, node font 22px). The embedded audit checks d2 output identically to Python output.
 
 **Fallback if d2 unavailable**: `render_figure.py spec.dot` (graphviz engine, same CLI, same audit). AI-direct SVG is the LAST resort, only for ≤ 4 node trivial diagrams (delivered via `--engine svg` so audit still applies).
 
@@ -123,7 +123,7 @@ Figures in humanities/arts papers (history timelines, textual-analysis flow, her
 | Comparative structure map | d2 (graph) | d2 → PDF+SVG |
 | Concept relation map | d2 OR AI-direct SVG (≤4 nodes) | d2 → PDF+SVG |
 
-**No humanities-specific deviation**: the 16:9 default, dual output, Nature-level readability, and morandi palette apply identically. A humanities figure is NOT an excuse for lower quality — a timeline diagram in a history paper must meet the same readability floor as a physics result curve.
+**No humanities-specific deviation**: the 16:9 default, dual output, Nature-level readability, and dopamine palette apply identically. A humanities figure is NOT an excuse for lower quality — a timeline diagram in a history paper must meet the same readability floor as a physics result curve.
 
 ---
 
@@ -146,7 +146,7 @@ When a tool produces SVG (d2, graphviz, AI-direct, inkscape), the derivation of 
 | Tool | Role | Install |
 |------|------|---------|
 | **`scripts/plotting/render_figure.py`** | **SINGLE unified entry point for all figures** (d2/graphviz/tikz/asy/typst/diagrams/blockdiag/SVG → dual output → embedded audit) | in-repo, stdlib only (+PIL for DPI stamp) |
-| `scripts/plotting/sciforge_style.py` | Morandi design tokens — single source of truth (validated C* ≤ 25, contrast ≥ 4.5); `apply_matplotlib_style()` loads SciencePlots `science` base under house overrides | in-repo |
+| `scripts/plotting/sciforge_style.py` | Dopamine design tokens — single source of truth (validated C* ≥ 30 + pairwise CVD ΔE ≥ 15 + contrast net); `apply_matplotlib_style()` loads SciencePlots `science` base under house overrides | in-repo |
 | `matplotlib` + `SciencePlots` | Data plots (line/scatter/bar/heatmap/3D) — journal-grade geometry + house palette/fonts | pip (aliyun mirror) |
 | `d2` | Complex architecture/flow/topology diagrams (invoked ONLY via render_figure.py) | d2 install script |
 | `graphviz` (`dot`) | Fallback graph layout (via render_figure.py) | apt: `graphviz` |
@@ -178,7 +178,7 @@ The unified CLI auto-detects what is installed and routes accordingly (d2 prefer
 
 ## 9. See Also
 
-- [`color-themes.md`](color-themes.md) — morandi palette (Layer 1) + viridis/magma (Layer 2)
+- [`color-themes.md`](color-themes.md) — dopamine palette (Layer 1) + viridis/magma/cividis (Layer 2)
 - [`figure-complexity-contract.md`](figure-complexity-contract.md) — complexity & aesthetics floors (component richness / wiring governance / hand-drawn-icon methodology / composite-figure conventions)
 - [`figure-quality-review.md`](figure-quality-review.md) — two-tier visual review protocol (agent-native visual self-review + optional external advisor; text-only hosts degrade to the mechanical audit)
 - [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — consumer of this contract

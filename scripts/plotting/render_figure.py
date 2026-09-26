@@ -2,7 +2,7 @@
 """SciForge-OSS unified figure renderer — one CLI for all engines.
 
 Renders a figure SOURCE to the mandatory deliverable pair (output.pdf
-for LaTeX + output.svg for viewing/editing), enforcing the morandi design system
+for LaTeX + output.svg for viewing/editing), enforcing the dopamine design system
 (`sciforge_style.py`).  Supported sources:
 
   d2        spec.d2        -> [preamble inject] -> d2 (dagre/elk) -> svg -> pdf+svg
@@ -106,7 +106,7 @@ def extract_colors(text: str) -> set[str]:
 
 
 def palette_check(text: str, src_name: str, svg: bool = False) -> list[str]:
-    """Return violations: colors present that are not morandi-compliant.
+    """Return violations: colors present that are not design-token compliant.
 
     Covers #hex, TeX {HTML}{...} and asy rgb() literals (extract_colors).
     White-lists: pure white/black/none and near-neutrals are allowed (frame
@@ -182,7 +182,7 @@ def render_tikz(src: Path, out_pdf: Path, out_svg: Path, dpi: int,
         tex = ("\\documentclass[tikz,border=8pt]{standalone}\n"
                "\\usepackage{tikz,tikz-cd}\n\\begin{document}\n"
                + tex + "\n\\end{document}\n")
-    # morandi palette for tikz — generated from the LIVE design tokens so
+    # palette for tikz — generated from the LIVE design tokens so
     # the injected colors can never drift from sciforge_style (v5.3 fix:
     # the previously hardcoded v2.0 hexes diverged from the v2.1 tokens
     # and failed the A3 palette audit on every tikz render).
@@ -712,7 +712,7 @@ def svg_deliver(svg: Path, out_pdf: Path, out_svg: Path,
     """v4.0 deliverables: SVG (viewing/editing) + PDF (LaTeX) — no PNG.
 
     Deterministic palette sanitization BEFORE delivery: engine-injected
-    theme colors (d2/graphviz defaults) are remapped to morandi tokens."""
+    theme colors (d2/graphviz defaults) are remapped to design tokens."""
     text = svg.read_text(encoding="utf-8")
     text, n = st.sanitize_palette(text)
     if n:
@@ -754,7 +754,7 @@ def pdf_to_svg(pdf: Path, out_svg: Path, log: list) -> None:
 
 class PaletteError(RuntimeError):
     def __init__(self, violations: list[str]):
-        super().__init__("morandi palette violations:\n" + "\n".join(violations))
+        super().__init__("palette violations:\n" + "\n".join(violations))
         self.violations = violations
 
 
@@ -935,7 +935,7 @@ def main() -> int:
                          "include width in mm and writes width_preset.txt "
                          "so the audit width floor adapts")
     ap.add_argument("--no-preamble", action="store_true",
-                    help="skip morandi preamble injection (d2)")
+                    help="skip design-system preamble injection (d2)")
     ap.add_argument("--caption", default=None)
     ap.add_argument("--label", default=None)
     ap.add_argument("--strict", action="store_true",

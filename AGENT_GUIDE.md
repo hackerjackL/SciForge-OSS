@@ -38,7 +38,7 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 | **Orchestrator** | `/auto-pipeline` | Single entry — 21-phase DAG research loop on one problem (v2.9 + Phase 5b EG) |
 | **Meta-skill** | `/idea-discovery` | Generate + pre-screen 8-12 idea candidates via MCTS (4 rounds) |
 | **Meta-skill** | `/universal-retrieval` | Literature survey + 3-layer anti-hallucination citation verification |
-| **Meta-skill** | `/unified-plotting` | Render publication-quality figures (morandi palette + Layer 2 data colormaps) |
+| **Meta-skill** | `/unified-plotting` | Render publication-quality figures (dopamine palette + Layer 2 data colormaps) |
 | **Meta-skill** | `/dynamic-sandbox` | Lightweight numerical sanity checks (Python/numpy, no GPU) |
 | **Meta-skill** | `/dynamic-tooling` | On-the-fly tooling for the sandbox |
 | **Meta-skill** | `/domain-learner` | Learns the domain signature from literature (sole writer, v2.8) |
@@ -83,7 +83,7 @@ Phase  7: /leakage-audit — Type I logic leaks + Type IV escape audit
 Phase  8: /logic-verification — 6-dim logical consistency audit
 Phase  9: /invariant-check — INV-G1 problem-anchor freeze verification
 Phase 10: /result-to-claim — 3-fidelity claim gate
-Phase 11: /unified-plotting — academic figures (optional, morandi palette + Layer 2)
+Phase 11: /unified-plotting — academic figures (optional, dopamine palette + Layer 2)
 Phase 12: /paper-writing — single elsarticle template writing
 Phase 13: /paper-compile — LaTeX compile with zero warnings, zero errors
 Phase 14: /auto-review-loop — cross-model review + kill-argument anti-self-deception
@@ -136,7 +136,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | `venue-checklists.md` | **Single** universal pre-submission checklist (no per-venue lists) | OSS rewritten (discipline-agnostic) |
 | `discipline-context.md` | OSS single-row (`general`) discipline contract | OSS rewritten (no 4-level fallback) |
 | `discipline-writing.md` | Universal section-by-section writing guide (no per-discipline guides) | OSS rewritten (discipline-agnostic) |
-| `color-themes.md` | Morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2) | Carried from OSS (already discipline-agnostic) |
+| `color-themes.md` | Dopamine palette v3.0 (Layer 1, CVD-verified) + viridis/magma/cividis (Layer 2) | Carried from OSS (already discipline-agnostic) |
 | `artifact-registry.md` + `output-protocol.md` | Artifact contracts + the single-authority workspace tree (.sciforge/verdicts/ unified) | OSS v5.2/v5.3 governance |
 | `schemas/` + `scripts/validate_verdicts.py` | JSON Schemas + validator for every machine-readable verdict | OSS v5.3 (schema enforcement) |
 | `verification-routing.md` | experiment-first / theory-only / hybrid routing contract | OSS v5.0 |
@@ -164,7 +164,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | **Experiments** | Full empirical pipeline (GPU training, benchmark binding, SOTA gate) | **Toy + Full experiments** — toy foreground gate, full background dispatch [v2.0] |
 | **Verification paths** | Implicit — assumes code/experiment available | Explicit — four selectable paths: theory-only / computational / theory+experiment / qualitative |
 | **Problem source** | N/A | No bundled problem index — the human user supplies the research question (Q-id) per run |
-| **Figures** | Python pipeline mandatory (matplotlib/seaborn) | Python pipeline for data plots; AI-direct SVG allowed for simple diagrams (morandi palette still enforced) |
+| **Figures** | Python pipeline mandatory (matplotlib/seaborn) | Python pipeline for data plots; AI-direct SVG allowed for simple diagrams (dopamine palette still enforced) |
 | **Fidelity ladder** | 5-fidelity (text / symbolic / minimal / empirical / full) | 3-fidelity (symbolic / numerical / qualitative) — no empirical, no full |
 | **Invariants** | INV-E1~E5 (econ) + INV-C1~C4 (cs-ml) + INV-P1~P5 (physics) + INV-G1 (general) | INV-G1 only (PROBLEM_ANCHOR_FREEZE) — universal |
 | **Leakage audit** | Type I + II + III + IV (with 14-class econ / 14-class cs-ml / 10-class physics pitfall checklists) | Type I (universal) + Type IV (universalized beyond physics) — Type II/III NOT_APPLICABLE |

@@ -301,7 +301,7 @@ Phase  9: /invariant-check — INV-G1 problem-anchor freeze verification        
 Phase 10: /result-to-claim — 3-fidelity claim gate                     ← new
      │  (symbolic / numerical / qualitative; primary result requires ≥ numerical)
      │
-Phase 11: /unified-plotting — academic figures (optional, Morandi palette + Layer 2)
+Phase 11: /unified-plotting — academic figures (optional, dopamine palette + Layer 2)
      │
 Phase 12: /paper-writing — single-template writing (elsarticle)
      │
@@ -395,7 +395,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 8 | 6-dimension logic audit PASS (zero FATAL/CRITICAL) | FATAL/CRITICAL fall back to Phase 6 (max 3 rounds); **FATAL = experimental data contradicts derivation conclusions → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
 | 9 | INV-G1 Q-id frozen + referenced in the current artifacts | FAIL → re-anchor the Q-id (Phase 0) |
 | 10 | At least 1 primary result reaches ≥ numerical fidelity | qualitative-only → reframe as conjecture; numerical missing → fall back to Phase 6 |
-| 11 | (optional) figures follow the Morandi palette + Layer 2 data heatmaps | Palette violation → regenerate; non-data figures not enforced |
+| 11 | (optional) figures follow the dopamine palette + Layer 2 data heatmaps | Palette violation → regenerate; non-data figures not enforced |
 | 12 | Paper non-empty + unified elsarticle template + all citations come from the verified list | If empty fall back to Phase 1; template violation falls back to Phase 12 |
 | 13 | LaTeX compiles zero-warning zero-error (submission grade) | Anti-deadloop ladder: 3 attempts per-warning → BLOCKED + reason_code |
 | 14 | Cross-model review score ≥ 6/10 + kill-argument anti-self-deception PASS | Score < 6 falls back to Phase 6 (max 4 rounds); anti-self-deception FAIL falls back to Phase 10; **kill-argument holds (claim refuted by its own experiments) → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |

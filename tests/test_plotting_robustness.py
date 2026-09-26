@@ -271,7 +271,7 @@ def test_hex2rgb_roundtrips_normalized_forms(raw, rgb):
 def test_controls_6digit_behavior_unchanged():
     v = rf.palette_check('<rect fill="#FF0000"/>', "s.svg")
     assert len(v) == 1 and "#FF0000" in v[0]
-    assert rf.palette_check('<rect fill="#8AA1BC"/>', "s.svg") == []
+    assert rf.palette_check(f'<rect fill="{st.TOKENS["blue"]}"/>', "s.svg") == []
     assert rf.palette_check('<rect fill="#fff"/>', "s.svg") == []  # neutral
     out, n = st.sanitize_palette('<svg><rect fill="#3366FF"/></svg>')
     assert n == 1

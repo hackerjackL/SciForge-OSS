@@ -161,7 +161,7 @@ https_proxy=http://127.0.0.1:8099 curl -sL -o /tmp/typst.tar.xz \
 
 ## 7. Runtime Icon Vocabulary (Contract §5.5)
 
-The icon asset library is **not distributed with the repository**; at runtime the agent fetches professional icons from whitelisted sources (bioicons.com for biomedical, Tabler/Lucide/Feather for general tech, Font Awesome Free, d2 bundled), and they are mandatorily recolored to the Morandi palette via `sciforge_style.recolor_icon()` before use, with sources and licenses recorded in the figure's `revision_log.md`. On fetch failure it falls back to agent hand-drawing, without blocking the pipeline. Networks in China connect through the mihomo proxy (8099).
+The icon asset library is **not distributed with the repository**; at runtime the agent fetches professional icons from whitelisted sources (bioicons.com for biomedical, Tabler/Lucide/Feather for general tech, Font Awesome Free, d2 bundled), and they are mandatorily recolored to the dopamine palette via `sciforge_style.recolor_icon()` before use, with sources and licenses recorded in the figure's `revision_log.md`. On fetch failure it falls back to agent hand-drawing, without blocking the pipeline. Networks in China connect through the mihomo proxy (8099).
 
 ## 8. Verification Checklist (check item by item after installation)
 

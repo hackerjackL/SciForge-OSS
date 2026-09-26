@@ -15,7 +15,8 @@ Audit layers (Nature-level):
                     composite_meta.json says output.pdf embeds rasterized
                     panels (vector-faithful assembly is composite.tex)
   A3 palette      — every saturated color in the SVG/tex/dot source is a
-                    morandi token (C* <= 25 enforced by construction)
+                    design token (dopamine v3.0, C* >= 30 + CVD-verified by
+                    construction; off-palette vivid colors are remapped)
   A4 typography   — SVG text physical size >= Nature floor
                     (rsvg maps 1px = 0.75pt, verified empirically);
                     font family is TeX Gyre / Liberation / DejaVu
@@ -231,7 +232,7 @@ def audit_palette_svg(svg_text: str, rep: Report) -> None:
     bad, seen = [], set()
     # 3-/6-/8-digit hex (HEX_COLOR_RE): rsvg/inkscape render shorthand and
     # alpha-suffixed forms too, so they are normalized to #RRGGBB before
-    # the morandi gate — otherwise saturated colors bypassed the audit (F10)
+    # the palette gate — otherwise off-palette colors bypassed the audit (F10)
     for h in sorted(set(st.HEX_COLOR_RE.findall(svg_text))):
         norm = st.normalize_hex(h)
         if norm in seen:
@@ -246,7 +247,7 @@ def audit_palette_svg(svg_text: str, rep: Report) -> None:
     if bad:
         rep.add("A3", "FAIL", "off-palette colors: " + ", ".join(bad))
     else:
-        rep.add("A3", "PASS", "all saturated colors morandi-compliant")
+        rep.add("A3", "PASS", "all saturated colors on-palette (dopamine v3.0)")
 
 
 def audit_source_text(text: str, rep: Report) -> None:
@@ -273,7 +274,7 @@ def audit_source_text(text: str, rep: Report) -> None:
     if bad:
         rep.add("A3", "FAIL", "off-palette colors in source: " + ", ".join(bad))
     else:
-        rep.add("A3", "PASS", "source colors morandi-compliant")
+        rep.add("A3", "PASS", "source colors on-palette (dopamine v3.0)")
     # declared font sizes (tex \fontsize, asy fontsize, typst font-size)
     sizes = []
     for pat in (r"\\fontsize\{([\d.]+)\}", r"fontsize\(([\d.]+)pt\)",
@@ -474,7 +475,7 @@ def audit_richness(figdir: Path, rep: Report) -> None:
 BRAND_BLOCKLIST = (
     r"sciforge", r"sci[- ]?forge", r"atomcode", r"autofigure",
     r"unified renderer", r"unified-renderer", r"figure-lab",
-    r"morandi", r"pipeline skill", r"render_figure", r"v\d\.\d renderer",
+    r"morandi", r"dopamine palette", r"pipeline skill", r"render_figure", r"v\d\.\d renderer",
 )
 
 

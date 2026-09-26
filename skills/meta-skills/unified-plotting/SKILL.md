@@ -1,19 +1,19 @@
 ---
 name: unified-plotting
 version: 1.6.0
-description: "Render publication-quality vector figures (PDF+SVG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Morandi palette + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.5 UNIFIED SINGLE-ENTRY RENDERER: all diagram engines (d2/graphviz/tikz/SVG) consolidated behind one tool `scripts/plotting/render_figure.py` with embedded Nature-level audit. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
+description: "Render publication-quality vector figures (PDF+SVG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Dopamine palette (v3.0, CVD-verified high-saturation) + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.5 UNIFIED SINGLE-ENTRY RENDERER: all diagram engines (d2/graphviz/tikz/SVG) consolidated behind one tool `scripts/plotting/render_figure.py` with embedded Nature-level audit. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
 ---
 
-# Unified Plotting (SciForge-OSS — Merged figure-spec + paper-figure, Morandi-Enforced)
+# Unified Plotting (SciForge-OSS — Merged figure-spec + paper-figure, Dopamine-Enforced v3.0)
 
 ## Quick Reference
 
 - **Purpose**: Render publication-quality vector figures from structured data or JSON specs
 - **Input**: Data (JSON/matrix) or a chart description
 - **Output**: **PDF + SVG dual output** (PDF for LaTeX compile, SVG for agent viewing/editing) + render script + `figure_audit.json`
-- **Key**: 12 chart types (incl. 4 theoretical); morandi palette enforced (single source of truth `scripts/plotting/sciforge_style.py`); data plots via the Python pipeline, complex diagrams via the **unified render tool**; **16:9 landscape default**; **Nature-level readability**; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) (format) and [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md) (complexity and aesthetics floor)
+- **Key**: 12 chart types (incl. 4 theoretical); dopamine palette enforced (single source of truth `scripts/plotting/sciforge_style.py`); data plots via the Python pipeline, complex diagrams via the **unified render tool**; **16:9 landscape default**; **Nature-level readability**; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) (format) and [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md) (complexity and aesthetics floor)
 
 > **v3.5 single entry point tool (UNIFIED SINGLE-ENTRY RENDERER)**: all declarative diagrams (d2 / graphviz / tikz / AI-direct SVG) are produced through **one** CLI only; parallel multi-tool runs or bypassing are forbidden:
 >
@@ -23,9 +23,9 @@ role: figure-renderer-and-spec-generator
 >     --caption "..." --strict
 > ```
 >
-> The tool automatically completes internally: morandi preamble injection (d2) → engine render (d2 auto-selects dagre/elk) → deterministic sanitization of engine-leaked colors → SVG→PDF+SVG dual output → LaTeX include snippet → embedded Nature-level audit (`figure_audit.json`, verdict PASS/WARN/FAIL; under `--strict`, FAIL exits with code 4). Data plots still go through the Python pipeline (reproducibility requirement) but must call `apply_matplotlib_style()` at the top of the script to apply the unified theme. See [`scripts/plotting/INSTALL.md`](../../../scripts/plotting/INSTALL.md) for dependency installation; environment self-check: `python scripts/plotting/render_figure.py --doctor`.
+> The tool automatically completes internally: design-system preamble injection (d2) → engine render (d2 auto-selects dagre/elk) → deterministic sanitization of engine-leaked colors → SVG→PDF+SVG dual output → LaTeX include snippet → embedded Nature-level audit (`figure_audit.json`, verdict PASS/WARN/FAIL; under `--strict`, FAIL exits with code 4). Data plots still go through the Python pipeline (reproducibility requirement) but must call `apply_matplotlib_style()` at the top of the script to apply the unified theme. See [`scripts/plotting/INSTALL.md`](../../../scripts/plotting/INSTALL.md) for dependency installation; environment self-check: `python scripts/plotting/render_figure.py --doctor`.
 >
-> **v3.7 three enhancements**: (1) **Journal width presets** `--width-preset nature-single|nature-double|aaai-single|...` (14 layouts; the LaTeX include automatically uses the physical width in mm, and the audit's width floor adapts automatically; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1.5); (2) **Runtime icon vocabulary** — professional icons can be fetched at runtime from whitelisted open-source libraries (bioicons/Tabler/Lucide/Feather/Font Awesome Free), mandatorily recolored to morandi via `sciforge_style.recolor_icon()` before use, with the source license recorded in `revision_log.md` (contract §5.5; on fetch failure, fall back to hand-drawn icons — non-blocking); (3) **Audit auto-fix suggestions** — the `suggested_fixes` field of `figure_audit.json` outputs precise offset coordinates for text overlaps ("move label X down by Npx"); apply them one by one per contract §4.6 scoped revision.
+> **v3.7 three enhancements**: (1) **Journal width presets** `--width-preset nature-single|nature-double|aaai-single|...` (14 layouts; the LaTeX include automatically uses the physical width in mm, and the audit's width floor adapts automatically; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1.5); (2) **Runtime icon vocabulary** — professional icons can be fetched at runtime from whitelisted open-source libraries (bioicons/Tabler/Lucide/Feather/Font Awesome Free), mandatorily recolored to the dopamine palette via `sciforge_style.recolor_icon()` before use, with the source license recorded in `revision_log.md` (contract §5.5; on fetch failure, fall back to hand-drawn icons — non-blocking); (3) **Audit auto-fix suggestions** — the `suggested_fixes` field of `figure_audit.json` outputs precise offset coordinates for text overlaps ("move label X down by Npx"); apply them one by one per contract §4.6 scoped revision.
 >
 > **v3.8 composite figure engine (Composite — SCI Zone-1 norm, contract §7)**: multi-panel composite figures (4/6/N panels) are assembled via the single entry point `render_figure.py xxx.composite.json`: panels (PDF/PNG) → grid layout → **(a)(b)(c)… bold panel labels** (reserved strip above each panel, never covering content) → dual output + audit. **Composition decisions follow Nature/Science/Cell logic**: compose by narrative unit (only panels belonging to the same argument/experiment chain share one figure), panel count **hard cap 9** (beyond it the renderer rejects outright — split the figure or move panels to supplementary material — the "everything-in-one-pot" anti-pattern), single-panel figures remain equally legal, numbering adapts continuously to the panel count. Every panel must **independently** satisfy all audit and complexity rules — composite assembly cannot rescue low-quality panels. Data plots (curves/ablations/heatmaps, etc.) join composite figures as panels; when coexisting in one figure with schematic panels, the style must be unified (same font family / color sequence / line width).
 >
@@ -33,17 +33,17 @@ role: figure-renderer-and-spec-generator
 
 > **Agent-driven staged design workflow (borrows AutoFigure-Edit's staged assembly idea, MIT licensed; this skill has zero external API — the "model" is the agent itself, and users get it out of the box with their own Claude/Codex/AtomCode)**:
 > 1. **Skeleton**: extract the component list + data flow + grouping hierarchy from the methods-section text; write the layout skeleton first (containers/rows-columns/edges), do not rush to draw
-> 2. **Fill**: pick the engine by content type — architecture/flow via d2 or diagrams/blockdiag (professional icon sets / swimlanes), mechanism detail via tikz, geometry/schematics via asy, fast iteration via typst, Visio-grade precision figures via hand-assembled SVG (orthogonal rounded-corner routing), data via matplotlib; fill every component with morandi token styles
+> 2. **Fill**: pick the engine by content type — architecture/flow via d2 or diagrams/blockdiag (professional icon sets / swimlanes), mechanism detail via tikz, geometry/schematics via asy, fast iteration via typst, Visio-grade precision figures via hand-assembled SVG (orthogonal rounded-corner routing), data via matplotlib; fill every component with dopamine token styles
 > 3. **Assemble**: render everything through the single entry point `render_figure.py` (preamble injection, palette sanitization, dual output, LaTeX snippet — all completed in one step)
 > 4. **Review**: the mechanical layer reads the `figure_audit.json` verdict and `suggested_fixes`; on FAIL, apply local fixes item by item using the precise coordinates in suggested_fixes (contract §4.6 scoped revision, one issue class per pass), then re-render. **Visual layer** (v3.9): a host agent with native vision must open `output.svg`, self-review item by item against the 9-item checklist in figure-quality-review.md, and record into `revision_log.md`; a text-only host records skipped-text-only and delivers per the mechanical audit. Manual pixel patching of PNG/SVG is forbidden
 >
 > **Complexity hard constraint (v3.6 — anti-"elementary-school-level" figures, applies to all domains)**: every figure with 5+ nodes must satisfy [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md): ≥60% of components use **self-drawn icons** (d2 `icon:`; the agent writes the SVG on the fly and saves it alongside the figure into `figures/<name>/icons/`) or TikZ `\pic` self-drawn components; edges must consolidate into container-level buses (arrow rain forbidden, edge density ≤1.6); at least two grouping levels; text discipline (≤3 lines / ≤4 words). Below the floor = the figure is not finished yet — keep iterating. Audit layer A7 mechanically checks icon count and edge density. First judge the figure's **structural role** (structure/flow/mechanism/network/hierarchy/temporal/spatial/data) per contract §0.5 to pick the engine — the domain only determines component semantics, not the rules.
 
-> **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the morandi palette + Layer 2 data-encoding colormaps are universal contracts.
+> **Status**: Visual communication meta-skill — renders publication-quality figures from structured data OR deterministic JSON specs. **OSS merges main SciForge's `figure-spec`** (deterministic JSON → SVG for architecture/workflow/topology diagrams) **and `paper-figure`** (data plots: line/scatter/bar/heatmap/3D) **into this single skill**. **OSS is discipline-agnostic** — the dopamine palette + Layer 2 data-encoding colormaps are universal contracts.
 >
 > **v2.2 upgrades (figure-quality-contract)**: (1) **dual output** — every figure produces both PDF (for LaTeX compile, the only format embedded in the paper) AND SVG (for agent viewing/editing); default `format` is now `pdf+svg` (was `svg`). (2) **16:9 horizontal default** — Nature/Science wide-figure standard. (3) **Nature-level readability floor (v2.2 print floors, at final embedded scale)** — axis labels ≥16pt, ticks ≥13pt, legend ≥13pt, title ≥18pt, annotations ≥12pt. (4) **d2 pipeline for complex diagrams** — AI-direct SVG demoted to ≤4-node trivial only; 5+ node architecture/flow diagrams use d2 (auto-layout, proper typography) → SVG → PDF+SVG. (5) **humanities/arts figures** use the same pipeline (d2 timelines, flowcharts) — no quality deviation. See [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md).
 >
-> **Key OSS relaxation**: main SciForge enforces Python pipeline (matplotlib/seaborn) for all figures. OSS **allows AI-direct SVG generation** when the figure is simple enough (≤ 4 nodes — architecture diagrams, flow charts, topology) — the morandi palette contract is still enforced, but the Python pipeline is not mandatory for non-data figures. For **data plots** (line/scatter/bar/heatmap/3D), the Python pipeline remains mandatory (reproducibility requires preserved render script + input data).
+> **Key OSS relaxation**: main SciForge enforces Python pipeline (matplotlib/seaborn) for all figures. OSS **allows AI-direct SVG generation** when the figure is simple enough (≤ 4 nodes — architecture diagrams, flow charts, topology) — the dopamine palette contract is still enforced, but the Python pipeline is not mandatory for non-data figures. For **data plots** (line/scatter/bar/heatmap/3D), the Python pipeline remains mandatory (reproducibility requires preserved render script + input data).
 
 ## Use When
 
@@ -66,7 +66,7 @@ The non-negotiable goals:
 1. **Every DATA figure is reproducible** — render script + input data preserved (Python pipeline mandatory for data plots)
 2. **Every figure is vector** — SVG or PDF, never raster PNG unless explicitly requested
 3. **Every figure has a caption** — auto-generated from chart type + description
-4. **Every figure follows the morandi palette** (Layer 1) or Layer 2 data-encoding colormaps (for continuous scalar fields)
+4. **Every figure follows the dopamine palette** (Layer 1) or Layer 2 data-encoding colormaps (for continuous scalar fields)
 5. **No manual editing needed** — output is directly usable in the paper
 
 ## Supported Chart Types
@@ -117,19 +117,19 @@ The non-negotiable goals:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `format` | enum | `pdf+svg` | v2.2: default `pdf+svg` (was `svg`). PDF for LaTeX compile (only format embedded), SVG for agent viewing/editing. `svg` is intermediate-only. |
-| `theme` | enum | `academic` | `academic` (serif, restrained), `modern` (sans-serif, vivid — **NEVER use**, violates morandi), `monochrome` (grayscale, print-friendly) |
+| `theme` | enum | `academic` | `academic` (serif, restrained palette-first), `modern` (sans-serif, high-impact — permitted since v3.0 as it aligns with the dopamine palette), `monochrome` (grayscale, print-friendly) |
 | `width` | string | `8in` | Figure width (inches or cm) — v2.2: default raised for 16:9 wide figures |
 | `height` | string | `4.5in` | Figure height — v2.2: default set for 16:9 ratio (8:4.5 = 16:9) |
 | `aspect_ratio` | enum | `16:9` | v2.2: default `16:9` (Nature wide); `4:3`/`3:2`/`1:1` only when content demands (see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) §1) |
 | `dpi` | int | `300` | PNG rasterization resolution (composite panels / pdftoppm steps only) |
-| `color_scheme` | string | `morandi` | Palette — **default is `morandi`** (house default, chroma C* ≤ 25). See [`color-themes.md`](../../shared-references/color-themes.md). Switch to `colorblind-safe` only when the venue explicitly requires it OR the human user explicitly requests it. |
+| `color_scheme` | string | `dopamine` | Palette — **default is `dopamine`** (v3.0 house default, C* ≥ 30, CVD-verified ΔE ≥ 15, marker-encoded for grayscale). See [`color-themes.md`](../../shared-references/color-themes.md). The palette itself IS the colorblind-safe one (constraint-verified), so no venue-specific switch is needed; `monochrome` stays for print-only venues. |
 | `renderer` | enum | `auto` | `auto` (Python for data, d2 for diagrams, tikz-cd for commutative, AI-direct SVG ≤4 nodes only), `python`, `d2` (force d2 for diagrams), `graphviz` (force dot for graphs), `tikz` (LaTeX theoretical), `ai-direct` (force AI hand-written SVG — ≤4 nodes only, LAST resort) |
 
-**Hard prohibition on `theme: modern`**: the modern theme uses high-saturation Tailwind colors that violate the morandi chroma C* ≤ 25 principle. If the user requests `theme: modern`, override to `theme: academic` and log a warning.
+**`theme: modern` is permitted since v3.0** (reverses the pre-v3.0 morandi-era ban): the dopamine design system is itself high-saturation, so a sans-serif vivid theme no longer conflicts — it just must still draw its series colors from the design tokens (`is_on_palette`), not arbitrary Tailwind hexes. Off-palette vivid colors are still rejected/remapped at source. Text stays pure black regardless of theme.
 
-## Morandi Palette Contract (Layer 1 — Universal)
+## Dopamine Palette Contract (Layer 1 — Universal)
 
-All categorical/semantic colors use the **morandi** house palette. The single source of truth is `scripts/plotting/sciforge_style.py` (`TOKENS`); the table below mirrors it. See [`color-themes.md`](../../shared-references/color-themes.md) for semantic-role mappings and legacy aliases.
+All categorical/semantic colors use the **dopamine** house palette (v3.0; CVD-verified, high-saturation). The single source of truth is `scripts/plotting/sciforge_style.py` (`TOKENS`); the table below mirrors it. See [`color-themes.md`](../../shared-references/color-themes.md) for semantic-role mappings and legacy aliases.
 
 | Token | Hex | C* | Use |
 |-------|-----|----|-----|
@@ -148,11 +148,13 @@ All categorical/semantic colors use the **morandi** house palette. The single so
 | moss | `#A5AB91` | 14.4 | ablation-1 |
 | clay | `#C2A193` | 15.5 | negative / degradation |
 
-**NEVER use**: Tailwind high-saturation (`#2563EB` / `#10B981` / `#7C3AED` / `#EA580C`), Material Design blue (`#1565C0` / `#0D47A1`), matplotlib defaults (`tab10` / `Set2`), jet / rainbow / hsv. These violate the morandi chroma C* ≤ 25 principle. The renderer rejects them at source level; engine-injected theme colors in SVG output are deterministically remapped to tokens (`sanitize_palette`) before delivery.
+**NEVER use**: off-palette hexes — Tailwind blues (`#2563EB`), Material (`#1565C0` / `#0D47A1`), matplotlib defaults (`tab10` / `Set2`), jet / rainbow / hsv. The v3.0 rule is NOT a saturation cap (that was the retired morandi C* ≤ 25): it is an **on-palette** rule — every categorical color must be a design token that passed the CVD + contrast nets. Arbitrary vivid colors are rejected at source; engine-injected theme colors in SVG output are deterministically remapped to tokens (`sanitize_palette`) before delivery.
+
+**Usage constraint (v3.0, from the dopamine contrast audit)**: the lightest tokens (`gold` #FFBF00 contrast 1.7, `blue` 2.7, `orange` 2.9 on white) are **fill-only** — they carry a `stroke_for()` dark outline (all outlines ≥ 5.1 contrast) and must not be used as thin lines or small markers alone. Line plots and point series draw in tokens with L* ≤ 62 (`violet`, `teal`, `red`, `crimson`) or rely on their outline. `palette_visibility()` in sciforge_style encodes this split.
 
 ## Layer 2 — Data-Encoding Colormaps (Continuous Scalar Fields)
 
-For **continuous scalar fields** (heatmaps, 3D surfaces, contour plots, correlation matrices), use perceptually-uniform colormaps — NOT morandi. See [`color-themes.md`](../../shared-references/color-themes.md) Layer 2 for the full contract.
+For **continuous scalar fields** (heatmaps, 3D surfaces, contour plots, correlation matrices), use perceptually-uniform colormaps — NEVER the categorical dopamine palette. See [`color-themes.md`](../../shared-references/color-themes.md) Layer 2 for the full contract.
 
 | Discipline (OSS — always `general`) | Colormap | Why |
 |--------------------------------------|----------|-----|
@@ -163,7 +165,7 @@ For **continuous scalar fields** (heatmaps, 3D surfaces, contour plots, correlat
 
 **NEVER use**: `jet`, `rainbow`, `hsv`, `coolwarm`, `bwr` — they create artificial visual boundaries and are not perceptually uniform.
 
-**The two-layer rule**: morandi (Layer 1) for categorical/semantic colors (series, groups, annotations); viridis/magma/plasma (Layer 2) for continuous scalar fields (heatmaps, surfaces). Never mix — a heatmap with morandi colors is wrong (morandi is not perceptually uniform); a line chart with viridis colors is wrong (viridis is for continuous fields, not categorical series).
+**The two-layer rule**: dopamine (Layer 1) for categorical/semantic colors (series, groups, annotations); viridis/magma/cividis (Layer 2) for continuous scalar fields (heatmaps, surfaces). Never mix — a heatmap with categorical colors is wrong (they are not perceptually uniform); a line chart with viridis colors is wrong (viridis is for continuous fields, not categorical series).
 
 ## Workflow
 
@@ -203,7 +205,7 @@ Based on `renderer` config (default `auto`) — v3.5 routing per [`figure-qualit
 
 Write the complete Python render script (`render.py`):
 1. Import matplotlib, numpy, and other required libraries
-2. Set theme from config (fonts, colors, grid style) — **enforce morandi palette**
+2. Set theme from config (fonts, colors, grid style) — **enforce the dopamine palette**
 3. Read data from `input_data.json`
 4. Render the specified chart type
 5. Apply labels, title, legend, and annotations
@@ -219,7 +221,7 @@ Write the complete Python render script (`render.py`):
 - **Marker size**: ≥ 7pt
 - **Experiment-plot aesthetic (v2.3, mirrors the 640.png reference)**: use the `sciforge_style` helpers — `series_style(i)` for distinct (color,marker) per series; `add_error_band(ax,x,mean,std,color)` to shade ±std/CI whenever ≥2 seeds exist (a single line with no band looks cheap); `legend_top(ax)` for a frameless horizontal legend ABOVE the axes; `set_xscale("log")` when the x variable spans orders of magnitude; keep only subtle horizontal gridlines (the style default) and drop top/right spines. Prefer line+band over a bare 2-bar chart.
 - Legend must not overlap data
-- `theme: academic` uses morandi palette (NEVER tab10/Set2/matplotlib defaults)
+- every theme uses the dopamine design tokens (NEVER tab10/Set2/arbitrary Tailwind hexes)
 - For continuous scalar fields (heatmap/surface/contour), use viridis/magma/plasma (NEVER jet/rainbow/hsv)
 - No interactive elements
 - No text clipped at figure edges; ≥ 2pt gap between subpanels
@@ -228,7 +230,7 @@ Write the complete Python render script (`render.py`):
 
 For architecture/workflow/topology/concept-map/dependency-graph/humanities-timeline diagrams with 5+ nodes, use **d2** through the single unified CLI:
 
-1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com). Use morandi tokens for any explicit fills (the renderer injects a morandi preamble for everything you leave unstyled):
+1. Write `spec.d2` (d2's declarative DSL — see https://d2lang.com). Use dopamine tokens for any explicit fills (the renderer injects a design-system preamble for everything you leave unstyled):
 ```d2
 direction: right
 Input: {shape: rectangle; style.fill: "#EDE9E2"; style.stroke: "#6E675F"}
@@ -244,7 +246,7 @@ python scripts/plotting/render_figure.py spec.d2 \
     --caption "..." --strict
 ```
 3. Check the printed `[audit: PASS|WARN|FAIL]` verdict (also written to `figure_audit.json`). FAIL means re-fix the spec and re-render — do not deliver.
-4. **Morandi enforcement**: all `style.fill`/`style.stroke` in the `.d2` spec MUST be morandi tokens — the renderer rejects off-palette specs (exit 2). Engine-injected theme colors are deterministically remapped to tokens before delivery.
+4. **Palette enforcement**: all `style.fill`/`style.stroke` in the `.d2` spec MUST be design tokens — the renderer rejects off-palette specs (exit 2). Engine-injected theme colors are deterministically remapped to tokens before delivery.
 5. The CLI preserves `spec.d2` + `intermediate.svg` + `render.log` in the figure dir as the reproducible source (equivalent to `render.py` for data plots).
 
 **d2 readability**: the injected preamble sets node font-size 22px / edge 18px (≈12.7pt/10.4pt physical at 16:9 embed width — above the Nature floor) and Liberation Sans (Helvetica-metric) via d2's `--font-*` flags. The audit verifies physical text size ≥ the diagram-node floor (14pt).
@@ -263,7 +265,7 @@ Hand-write a minimal SVG only when the diagram has ≤ 4 nodes and no auto-layou
 </svg>
 ```
 
-**Morandi enforcement**: all `fill` and `stroke` colors in the SVG MUST be morandi tokens (Layer 1). The agent must NOT use Tailwind/Material/matplotlib-default colors; the unified CLI audits the SVG and rejects off-palette hexes (exit 2).
+**Palette enforcement**: all `fill` and `stroke` colors in the SVG MUST be design tokens (Layer 1). The agent must NOT use arbitrary Tailwind/Material/matplotlib-default colors; the unified CLI audits the SVG and rejects off-palette hexes (exit 2).
 
 **Preserved spec**: run the SVG through `render_figure.py source.svg --engine svg` so the source, `intermediate.svg`, and audit report are preserved beside `output.pdf`/`output.svg`.
 
@@ -272,17 +274,17 @@ Hand-write a minimal SVG only when the diagram has ≤ 4 nodes and no auto-layou
 Method/architecture overview figures must reach the quality of a top-venue
 Figure 1 (reference: numbered-stage, icon-rich, nested-container overview). A
 two-box diagram is a FAIL of the richness bar. Compose with:
-1. **3-4 numbered stages** left→right: circular number badge (morandi fill, black
+1. **3-4 numbered stages** left→right: circular number badge (dopamine fill, black
    numeral) + bold stage title.
 2. **Semantic color-block containers** per stage; use **nested rounded rectangles**
-   to show hierarchy/ladders (e.g. T0⊂T1…); each block a morandi surface token.
+   to show hierarchy/ladders (e.g. T0⊂T1…); each block a surface design token.
 3. **Icon vocabulary** (table / scatter-cloud / network / document / robot / gauge /
    clock / target): pull CC0 icons at runtime (bioicons/Tabler/Lucide) and recolor via
-   `sciforge_style.recolor_icon()`, or hand-draw simple glyphs in morandi.
+   `sciforge_style.recolor_icon()`, or hand-draw simple glyphs in the palette.
 4. **Metric glyphs panel** (gauge/clock/target rows) for build/query cost & accuracy.
 5. **Dashed callout box** for the headline numbers; **single-trunk flow arrows** with
    ≤1 crossing (dense → `--layout elk`).
-6. Black text on pure white; all fills morandi; deliver via `--engine svg` (or
+6. Black text on pure white; all fills on-palette; deliver via `--engine svg` (or
    `diagrams`) so dual output + audit apply. The A7/A8 audits then verify icon/depth
    richness; a flat boxes-only overview WARNs and must be upgraded.
 
@@ -295,7 +297,7 @@ Execute the render (Python subprocess for data plots; unified CLI for diagrams):
 4. Validate output (the unified CLI does this internally; data plots must be checked the same way):
    - `output.pdf` + `output.svg` exist, non-empty, valid magic bytes
    - SVG viewBox width ≥ 1200px (or the --width-preset floor) — vector, dpi-free
-   - **Color audit**: every saturated color is a morandi token (C* ≤ 25) or a Layer-2 colormap — the CLI's embedded audit writes `figure_audit.json` with verdict PASS/WARN/FAIL
+   - **Color audit**: every saturated color is a design token (dopamine v3.0: C* ≥ 30, CVD ΔE ≥ 15 pairwise, contrast-net) or a Layer-2 colormap — the CLI's embedded audit writes `figure_audit.json` with verdict PASS/WARN/FAIL
    - **Typography audit**: physical text size ≥ Nature floor (10pt diagram labels)
 5. Auto-generate caption from chart type + data description (the CLI writes `latex_include.tex` with the caption)
 
@@ -334,7 +336,7 @@ Append to `figures/FIGURE_INDEX.md`:
 - **Caption**: {auto-generated caption}
 - **Data/Source**: `figures/{figure_name}/input_data.json` (data) OR `spec.d2` (d2) OR `spec.md` (AI-direct)
 - **Script**: `figures/{figure_name}/render.py` (Python) OR `figures/{figure_name}/spec.d2` (d2) OR `source.md` (AI-direct)
-- **Palette**: morandi (Layer 1) / viridis (Layer 2)
+- **Palette**: dopamine (Layer 1, CVD-verified) / viridis·magma·cividis (Layer 2)
 - **Readability**: Nature print floor verified (axis ≥16pt, ticks ≥13pt)
 ```
 
@@ -378,7 +380,7 @@ Semantics: read the existing mirror (if present), upsert this figure's entry, re
 - **Dual output (PDF + SVG) is non-negotiable.** A figure with only one format is INCOMPLETE — re-render. PDF is the only format embedded in LaTeX; PNG is for AI/human viewing.
 - **16:9 horizontal is the default.** A non-16:9 figure requires an explicit `aspect_ratio` override + documented reason.
 - **Nature readability floor is enforced.** The Step 4 audit rejects any figure with text below the floor (axis <12pt, ticks <10pt, legend <10pt). The old 10pt/8pt floor produced too-small text.
-- **Morandi palette is non-negotiable for categorical/semantic colors.** NEVER use Tailwind/Material/matplotlib-default/tab10/Set2 colors. The color audit in Step 4 rejects prohibited colors.
+- **The dopamine palette is non-negotiable for categorical/semantic colors** (v3.0). NEVER use off-palette Tailwind/Material/matplotlib-default/tab10/Set2 colors — vividness alone is not the test; membership in the CVD-verified design tokens is. The color audit in Step 4 rejects off-palette colors.
 - **Layer 2 colormaps (viridis/magma/plasma) are mandatory for continuous scalar fields.** NEVER use jet/rainbow/hsv/coolwarm/bwr.
 - **Python pipeline is mandatory for data plots.** Reproducibility requires preserved render script + input data. Do NOT AI-direct-generate a data plot (the numbers must come from the actual data, not AI memory).
 - **d2 is the preferred tool for complex diagrams (5+ nodes).** AI-direct SVG is demoted to ≤4-node trivial diagrams ONLY. For 5+ node architecture/flow/topology/humanities diagrams, d2 (or graphviz fallback) is mandatory — AI-direct SVG produces small-text, poor-layout, non-Nature figures. If d2 AND graphviz are both unavailable, BLOCK 5+ node diagrams (do not produce a low-quality AI-direct figure).
@@ -409,8 +411,8 @@ Semantics: read the existing mirror (if present), upsert this figure's entry, re
 **Architecture-diagram mandate (v3.4)**: every paper's Methods/Architecture section MUST contain at least one d2 (or graphviz) pipeline/architecture diagram showing the method's components and data flow. A Methods section with only equations and text — no architecture diagram — is the strongest "thin paper / desk-reject-risk" signal. This is a HARD requirement: `figure_budget.architecture_diagram_present` must be `true` in `FIGURE_INDEX.md`, or `/paper-writing` Step 5 self-review emits `FAIL, reason_code: missing_architecture_diagram`.
 
 **How `/paper-writing` consumes this**: at Step 1 (Plan Structure), the agent reads this budget, plans which figures go in which section, writes the plan to `PAPER_PLAN.md`'s figure-budget row, then at Step 2 (Write Each Section) requests each planned figure from `/unified-plotting`. A section that ends up with fewer figures than its minimum is `WARN` unless the mode (e.g. `theory` with no Methods section) makes it not-applicable — in which case the minimum is recalculated per the mode's section set (see [`paper-modes.md`](../../shared-references/paper-modes.md) §3).
-- **Humanities/arts figures use the same pipeline and quality floor as STEM.** A history timeline, argument map, or hermeneutic diagram must meet the same Nature readability, 16:9 default, dual output, and morandi palette as a physics curve. No humanities quality deviation.
-- **No discipline-specific enforcement.** Do not reintroduce physics SI-units enforcement or cs-ml benchmark-plot conventions. The universal morandi + Layer 2 + dual-output + 16:9 contract applies to every problem.
+- **Humanities/arts figures use the same pipeline and quality floor as STEM.** A history timeline, argument map, or hermeneutic diagram must meet the same Nature readability, 16:9 default, dual output, and dopamine palette as a physics curve. No humanities quality deviation.
+- **No discipline-specific enforcement.** Do not reintroduce physics SI-units enforcement or cs-ml benchmark-plot conventions. The universal dopamine + Layer 2 + dual-output + 16:9 contract applies to every problem.
 - **`theme: modern` is prohibited.** Override to `theme: academic` and log a warning if requested.
 
 ## Output Shape
@@ -435,7 +437,7 @@ The final output is (v2.2 — dual output):
 
 ## See Also
 
-- [`../shared-references/color-themes.md`](../../shared-references/color-themes.md) — morandi palette (Layer 1) + viridis/magma data colormaps (Layer 2)
+- [`../shared-references/color-themes.md`](../../shared-references/color-themes.md) — dopamine palette (Layer 1, CVD-verified) + viridis/magma/cividis data colormaps (Layer 2)
 - [`../shared-references/writing-principles.md`](../../shared-references/writing-principles.md) — figure caption style
 - [`../shared-references/output-manifest.md`](../../shared-references/output-manifest.md) — product structure contract
 - [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract

@@ -1,16 +1,19 @@
 """SciForge-OSS unified figure design system (single source of truth).
 
-This module is the ONLY authoritative definition of the SciForge morandi
-design tokens.  The skill documents (color-themes.md, unified-plotting
+This module is the ONLY authoritative definition of the SciForge design
+tokens (v3.0 dopamine palette; formerly morandi).  The skill documents (color-themes.md, unified-plotting
 SKILL.md, figure-quality-contract.md) reference this file; any hex value
 written in prose is illustrative — the numbers here govern rendering and
 auditing.
 
-Design system (v2.0, numerically validated):
-- Layer 1 (categorical / semantic): morandi tones, every color C* <= 25
-  (CIELAB chroma) and ink-on-fill WCAG-AA contrast >= 4.5.
+Design system (v3.0, numerically validated):
+- Layer 1 (categorical / semantic): DOPAMINE tones — high-saturation (C* >= 30),
+  every pairwise combination validated for color-blindness distinguishability
+  (protan/deutan/tritan deltaE >= 15) via the CVD net below, and each series
+  token readable on the white canvas. Neutrals (ink/canvas/surfaces) keep the
+  classic black-on-white rule.
 - Layer 2 (continuous scalar fields): viridis / magma / plasma ONLY —
-  never morandi, never jet/rainbow/hsv.
+  never a categorical palette, never jet/rainbow/hsv.
 - Typography: TeX Gyre family (Termes=Times, Pagella=Palatino,
   Heros=Helvetica clones) so figures match LaTeX body text.
 - Nature readability floor: axis >= 12pt, ticks/legend >= 10pt,
@@ -28,7 +31,7 @@ import os
 import re
 from pathlib import Path
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 # One pattern for every #-hex color literal the SVG renderers accept:
 # 3-digit (#RGB shorthand), 6-digit (#RRGGBB) and 8-digit (#RRGGBBAA) forms.
@@ -56,56 +59,59 @@ def normalize_hex(h: str) -> str:
     return "#" + body
 
 # --------------------------------------------------------------------------
-# Layer 1 — morandi design tokens (all C* <= 25, validated)
-# v2.1 palette refinement: deeper, moodier, more editorial — tested
-# feedback round found v2.0 "not premium enough". Same validation gates.
+# Layer 1 — dopamine design tokens (v3.0: HIGH-SATURATION, CVD-verified)
+# The morandi system (C* <= 25) is retired; the design language is now a vivid
+# rainbow, but every series token passes two hard nets (see the CVD/grayscale
+# section below): distinguishable under protan/deutan/tritan AND readable on the
+# white canvas. Neutrals (ink / canvas / surfaces) stay black-on-white — the
+# text and ground rules did not change, only the categorical series palette.
 # --------------------------------------------------------------------------
 TOKENS: dict[str, str] = {
-    # ink & grounds (text, axes, backgrounds) — v2.2 classic black/white:
-    # every readable glyph and axis is pure black; strokes are neutral grey.
+    # ink & grounds (text, axes, backgrounds) — unchanged: classic black/white.
     "ink": "#000000",          # primary text / axes / arrows (pure black)
     "ink-soft": "#4D4D4D",     # secondary strokes / gridlines (neutral grey)
-    "canvas": "#FFFFFF",       # figure background — PURE WHITE (v2.1)
-    "surface": "#EDE9E2",      # default node fill / panel background
-    "surface-alt": "#E3DDD3",  # alternating container fill
-    # categorical series (ordered by visual priority)
-    "blue": "#8AA1BC",         # 1st series / hero method
-    "sage": "#97A98D",         # 2nd series / positive improvement
-    "mauve": "#B49CA1",        # 3rd series
-    "ochre": "#BCA27B",        # accent / highlight (max C* in palette)
-    "taupe": "#A99C8B",        # 4th series / baseline
-    "rose": "#D3B4B4",         # soft accent / annotations fill
-    "slate": "#8D9BAE",        # ablation-2
-    "moss": "#9BA384",         # ablation-1
-    "clay": "#B99585",         # negative / degradation
+    "canvas": "#FFFFFF",       # figure background — PURE WHITE
+    "surface": "#F4F1EC",      # default node fill / panel background (warm near-white)
+    "surface-alt": "#EAE5DC",  # alternating container fill
+    # categorical series — dopamine hues (ordered by visual priority). Validated
+    # with palette_distinguishability: min CVD ΔE = 15.0 over all 28 pairs, 0 fails.
+    "blue":    "#00A6FB",      # 1st series / hero method
+    "orange":  "#F3722C",      # 2nd series
+    "green":   "#06A77D",      # positive improvement
+    "red":     "#FF3B6B",      # 4th series / annotation
+    "teal":    "#118AB2",      # baseline
+    "violet":  "#8338EC",      # ablation
+    "gold":    "#FFBF00",      # accent / highlight
+    "crimson": "#D90429",      # negative / degradation
 }
 
 # Semantic roles consumed by paper figures (old role names preserved so
-# existing specs keep working — each maps onto a validated token).
+# existing specs keep working — each maps onto a validated dopamine token).
 SEMANTIC: dict[str, str] = {
     "hero": TOKENS["blue"],        # proposed method
-    "baseline": TOKENS["taupe"],   # comparison method
-    "positive": TOKENS["sage"],    # improvement
-    "negative": TOKENS["clay"],    # degradation
+    "baseline": TOKENS["teal"],    # comparison method
+    "positive": TOKENS["green"],   # improvement
+    "negative": TOKENS["crimson"], # degradation
     "neutral": TOKENS["surface"],  # background / reference
-    "ablation-1": TOKENS["moss"],
-    "ablation-2": TOKENS["slate"],
-    "accent": TOKENS["ochre"],
-    # slot-style aliases used by older unified-plotting specs
+    "ablation-1": TOKENS["orange"],
+    "ablation-2": TOKENS["violet"],
+    "accent": TOKENS["gold"],
+    # slot-style aliases used by older unified-plotting specs (retargeted to
+    # the dopamine palette; old morandi names resolve to the nearest vivid hue).
     "warm-grey": TOKENS["surface"],
     "dusty-blue": TOKENS["blue"],
-    "dusty-rose": TOKENS["rose"],
+    "dusty-rose": TOKENS["red"],
     "charcoal": TOKENS["ink"],
-    "muted-ochre": TOKENS["ochre"],
+    "muted-ochre": TOKENS["gold"],
 }
 
 SERIES_ORDER: list[str] = [
-    "blue", "sage", "mauve", "ochre", "taupe", "rose", "slate", "moss", "clay",
+    "blue", "orange", "green", "red", "teal", "violet", "gold", "crimson",
 ]
 SERIES_HEX: list[str] = [TOKENS[n] for n in SERIES_ORDER]
 
 # Layer 2 — continuous-field colormaps (matplotlib names)
-LAYER2_COLORMAPS = ("viridis", "magma", "plasma")
+LAYER2_COLORMAPS = ("viridis", "magma", "plasma", "cividis")  # cividis: CVD-designed (research-adopted v3.0)
 FORBIDDEN_COLORMAPS = ("jet", "rainbow", "hsv", "gist_rainbow", "coolwarm", "bwr")
 
 # --------------------------------------------------------------------------
@@ -135,7 +141,7 @@ LINEWIDTH = {"primary": 1.8, "secondary": 1.0, "diagram_stroke": 1.6}
 MARKER_SIZE_MIN = 7.0
 
 # Black on pure white is the only acceptable text/ground combination for a
-# scientific paper figure.  The morandi tokens remain the CATEGORICAL series
+# scientific paper figure.  The dopamine tokens remain the CATEGORICAL series
 # palette (fills / lines) but every glyph, tick and axis spine is black, and
 # the figure background is pure white — no off-white / grey science-style
 # grounds and no brown-grey ink (v2.2, eval feedback: "text is not black").
@@ -175,6 +181,20 @@ def figsize_panel(cols: int, aspect: float = 0.8) -> tuple[float, float]:
     return (w, w * aspect)
 
 # --------------------------------------------------------------------------
+# Visibility tiers (v3.0) — the contrast audit splits the dopamine series by
+# WCAG visibility on white: low-contrast light tokens (gold, orange, blue) are
+# FILL-only (their stroke_for() outline ≥ 5.1 carries the edge); LINE plots and
+# small markers must draw from tokens visible enough for thin geometry.
+# --------------------------------------------------------------------------
+def palette_visibility() -> dict[str, list[str]]:
+    """Split SERIES_ORDER into line-safe vs fill-only by white-canvas contrast."""
+    line_safe = [n for n in SERIES_ORDER if contrast(TOKENS[n], "#FFFFFF") >= 3.0]
+    fill_only = [n for n in SERIES_ORDER if contrast(TOKENS[n], "#FFFFFF") < 3.0]
+    return {"line_safe": line_safe, "fill_only": fill_only,
+            "line_strokes": [stroke_for(TOKENS[n]) for n in fill_only]}
+
+
+# --------------------------------------------------------------------------
 # Experiment-plot aesthetics (v2.3 — matches the 640.png reference: line+band
 # with per-series markers, top horizontal legend, log-x where warranted)
 # --------------------------------------------------------------------------
@@ -182,7 +202,7 @@ MARKER_CYCLE = ["o", "s", "^", "D", "v", "P", "X", "*"]
 
 def series_style(i: int) -> dict:
     """Consistent (color, marker) pair for series i so multi-line plots get
-    distinct markers like the reference, while colors stay on the morandi
+    distinct markers like the reference, while colors stay on the dopamine
     series cycle."""
     return {"color": SERIES_HEX[i % len(SERIES_HEX)],
             "marker": MARKER_CYCLE[i % len(MARKER_CYCLE)]}
@@ -321,6 +341,13 @@ def _srgb2lin(c: float) -> float:
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
 
+def _lin2srgb(v: float) -> float:
+    """Inverse gamma on a LINEAR 0-1 value (pair for the 0-1 linear space the
+    CVD matrices operate in; distinct from _srgb2lin which takes 0-255 bytes)."""
+    v = 0.0 if v < 0 else 1.0 if v > 1 else v
+    return 12.92 * v if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055
+
+
 def rgb2lab(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
     r, g, b = (_srgb2lin(c) for c in rgb)
     x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
@@ -356,16 +383,89 @@ def contrast(hex1: str, hex2: str) -> float:
     return (hi + 0.05) / (lo + 0.05)
 
 
+# --------------------------------------------------------------------------
+# Color-blindness + grayscale distinguishability (v3.0 — the safety net the
+# morandi system never had, and that a HIGH-SATURATION dopamine palette needs).
+# CVD simulation via the Viénot/Brettel linear-RGB approximation matrices
+# (no third-party dep; pure math like the Lab conversion above). Two categorical
+# colors are "distinguishable" only if they stay apart (CIE76 ΔE above a floor)
+# under normal vision AND each CVD type AND a grayscale print. This replaces
+# the old docstring claim "colorblind friendly" (asserted, never checked) with
+# an auditable gate — figure_audit A3 consumes it on the delivered palette.
+# --------------------------------------------------------------------------
+_CVD_MATRICES = {
+    "protanopia": ((0.152286, 1.052583, -0.204868),
+                   (0.114503, 0.782298, 0.103199),
+                   (-0.003882, -0.048119, 1.052)),
+    "deuteranopia": ((0.367322, 0.860646, -0.227968),
+                     (0.280085, 0.672501, 0.047413),
+                     (-0.011820, 0.042944, 0.968876)),
+    "tritanopia": ((1.255528, -0.076749, -0.178779),
+                   (0.078183, 0.930625, -0.008808),
+                   (0.004762, 0.691337, 0.303901)),
+}
+
+
+def _lin_rgb(hexcolor: str) -> tuple[float, float, float]:
+    return tuple(_srgb2lin(c) for c in hex2rgb(hexcolor))  # type: ignore[return-value]
+
+
+def _clip01(v: float) -> float:
+    return 0.0 if v < 0 else 1.0 if v > 1 else v
+
+
+def simulate_cvd(hexcolor: str, kind: str) -> str:
+    """Simulated #RRGGBB for a dichromat (protanopia/deuteranopia/tritanopia)."""
+    m = _CVD_MATRICES[kind]
+    r, g, b = _lin_rgb(hexcolor)
+    lin = [_clip01(m[i][0] * r + m[i][1] * g + m[i][2] * b) for i in range(3)]
+    return "#%02X%02X%02X" % tuple(int(round(_lin2srgb(v) * 255)) for v in lin)
+
+
+def lab_delta(hex1: str, hex2: str) -> float:
+    """CIE76 ΔE in Lab (screening-grade; a large floor catches true collisions)."""
+    a = rgb2lab(hex2rgb(hex1)); b = rgb2lab(hex2rgb(hex2))
+    return math.dist(a, b)
+
+
+def pair_distinguishable(hex1: str, hex2: str, min_delta: float = 15.0,
+                         min_gray_delta: float = 12.0) -> dict:
+    """ΔE under normal + each CVD + grayscale lightness gap. min_gray_delta
+    guards the pure-grayscale-print failure mode (two dopamine hues can be
+    identical in L* yet vivid in color — unreadable when printed B/W)."""
+    checks = {"normal": lab_delta(hex1, hex2)}
+    for kind in _CVD_MATRICES:
+        checks[kind] = lab_delta(simulate_cvd(hex1, kind), simulate_cvd(hex2, kind))
+    gray = abs(rgb2lab(hex2rgb(hex1))[0] - rgb2lab(hex2rgb(hex2))[0])
+    failed = [k for k, d in checks.items() if d < min_delta]
+    if gray < min_gray_delta:
+        failed.append("grayscale(L*)")
+    return {"ok": not failed, "deltaE": {k: round(d, 1) for k, d in checks.items()},
+            "gray_deltaL": round(gray, 1), "failed_modes": failed}
+
+
+def palette_distinguishability(hexcodes: list[str], min_delta: float = 15.0) -> dict:
+    """All pairwise checks; returns offending pairs (for the A3 gate + self-check)."""
+    bad = []
+    for i in range(len(hexcodes)):
+        for j in range(i + 1, len(hexcodes)):
+            r = pair_distinguishable(hexcodes[i], hexcodes[j], min_delta)
+            if not r["ok"]:
+                bad.append({"pair": [hexcodes[i], hexcodes[j]], **r})
+    return {"ok": not bad, "n_pairs": len(hexcodes) * (len(hexcodes) - 1) // 2,
+            "offenders": bad}
+
+
 def sanitize_palette(svg_text: str) -> tuple[str, int]:
     """Deterministically remap every off-palette hex color in an SVG to the
-    nearest morandi token by CIELAB L* (preserving light/dark ordering).
+    nearest design token by CIELAB L* (preserving light/dark ordering).
 
     Engine-injected theme colors (d2's default blues, graphviz defaults)
     are remapped here so the DELIVERED figure is always palette-compliant,
     regardless of tool version drift.  Author spec colors never reach this
     function off-palette — render_figure.py rejects them at source level.
     Recognizes 3-, 6- and 8-digit hex literals (HEX_COLOR_RE): shorthand
-    and alpha-suffixed forms are normalized to #RRGGBB for the morandi
+    and alpha-suffixed forms are normalized to #RRGGBB for the palette
     check, but the ORIGINAL textual form is remapped (fill="#F00" ->
     fill="<token>").  Returns (sanitized_text, n_replacements).
     """
@@ -400,7 +500,7 @@ def sanitize_palette(svg_text: str) -> tuple[str, int]:
 # Runtime icon vocabulary (contract §5.5): recolor third-party icons
 # --------------------------------------------------------------------------
 def recolor_icon(svg_text: str, mapping: dict | None = None) -> tuple[str, int]:
-    """Recolor an arbitrary icon SVG onto the morandi palette.
+    """Recolor an arbitrary icon SVG onto the design palette.
 
     Protocol (figure-complexity-contract §5.5): agents may fetch CC0/MIT
     icons at runtime (bioicons.com, Tabler, Lucide, Feather, ...) but the
@@ -473,9 +573,12 @@ def _rgb_dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
 
-def is_morandi(hexcolor: str, tol: float = 8.0) -> bool:
-    """True if hexcolor is a palette token OR the canonical stroke mix of
-    one (within Euclidean sRGB distance `tol` over the whole RGB triple)."""
+def is_on_palette(hexcolor: str, tol: float = 8.0) -> bool:
+    """True if hexcolor is a design token (any layer) OR the canonical stroke
+    mix of one (within Euclidean sRGB distance `tol` over the whole RGB triple).
+
+    Named for the palette it currently enforces (dopamine); the morandi alias
+    below keeps older callers/verdicts working across the v3.0 rename."""
     try:
         rgb = hex2rgb(hexcolor)
     except (ValueError, IndexError):
@@ -490,6 +593,11 @@ def is_morandi(hexcolor: str, tol: float = 8.0) -> bool:
             return True
     return False
 
+
+# v3.0 rename: the palette predicate is color-system-agnostic; keep the
+# historical names as thin aliases so audits/tests/verdicts keep resolving.
+is_dopamine = is_on_palette
+is_morandi = is_on_palette
 
 # --------------------------------------------------------------------------
 # matplotlib theme (Layer 1 enforcement for data plots)
@@ -528,7 +636,7 @@ def apply_matplotlib_style(style: str = "academic") -> None:
     stack = FONT_STACK_SERIF if style != "sans" else FONT_STACK_SANS
     # v2.2 print contract: black glyphs on pure white, rendered at the size
     # the figure will occupy in the paper (full textwidth default) so fonts
-    # read 1:1 after LaTeX embed.  Series colors stay morandi for fills/lines.
+    # read 1:1 after LaTeX embed.  Series colors stay dopamine for fills/lines.
     rc = {
         "font.family": "serif",
         "font.serif": stack,
@@ -578,16 +686,16 @@ def apply_matplotlib_style(style: str = "academic") -> None:
 
 
 # --------------------------------------------------------------------------
-# d2 morandi preamble (injected by render_figure.py)
+# d2 design-system preamble (injected by render_figure.py)
 # --------------------------------------------------------------------------
 def d2_preamble(direction: str | None = None) -> str:
-    """Canonical d2 header enforcing the morandi look & Nature typography.
+    """Canonical d2 header enforcing the dopamine look & Nature typography.
 
     Uses d2 glob selectors (`*` for shapes, `* -> *` for edges) so every
     element inherits the design system even when the spec omits styles.
     """
     lines = [
-        "# ---- SciForge-OSS morandi preamble (auto-injected; do not edit) ----",
+        "# ---- SciForge-OSS design-system preamble (auto-injected; do not edit) ----",
     ]
     if direction:
         lines.append(f"direction: {direction}")
@@ -613,21 +721,33 @@ def d2_preamble(direction: str | None = None) -> str:
 
 
 if __name__ == "__main__":
-    # self-check: validate every token against the contract
+    # self-check: validate every token against the v3.0 dopamine contract
     bad = []
     for name, h in TOKENS.items():
         c = chroma(h)
-        if name not in ("ink", "ink-soft", "canvas") and c > 25:
-            bad.append(f"{name} {h} C*={c:.1f} > 25")
         if name not in ("ink", "ink-soft", "canvas", "surface", "surface-alt"):
-            ct = contrast(TOKENS["ink"], h)
-            if ct < 4.5:
-                bad.append(f"{name} {h} contrast={ct:.2f} < 4.5")
+            if c < 30.0:
+                bad.append(f"{name} {h} C*={c:.1f} < 30 (not vivid enough)")
+            # series token must be visible on the white canvas (line or fill)
+            vis = max(contrast(h, "#FFFFFF"), contrast(h, "#000000"))
+            if vis < 3.0:
+                bad.append(f"{name} {h} canvas-visibility={vis:.2f} < 3.0")
+    # the categorical series must be mutually CVD-distinguishable (the dopamine net)
+    dv = palette_distinguishability(SERIES_HEX, min_delta=15.0)
+    for off in dv["offenders"]:
+        # grayscale is covered by the marker encoding (series_style), so only
+        # a genuine CVD failure is a contract violation here.
+        cvd = [m for m in off["failed_modes"] if m != "grayscale(L*)"]
+        if cvd:
+            bad.append(f"series pair {off['pair']} fails {cvd} "
+                       f"(deltaE={off['deltaE']})")
     if bad:
         print("PALETTE CONTRACT FAILURES:")
         print("\n".join(bad))
         raise SystemExit(1)
+    mn = min(min(r["deltaE"].values()) for r in (pair_distinguishable(a, b, 0, 0)
+           for a, b in __import__("itertools").combinations(SERIES_HEX, 2)))
     print(f"sciforge_style v{__version__}: {len(TOKENS)} tokens OK "
-          "(C*<=25, ink contrast>=4.5)")
+          f"(C*>=30, canvas-visibility>=3, min series CVD deltaE={mn:.1f})")
     print("d2 preamble preview:")
     print(d2_preamble("right")[:400])

@@ -219,7 +219,7 @@ The old binary `theory-only vs standard` branch in `discipline-writing.md` §1a/
 - [`venue-profiles.md`](venue-profiles.md) — single elsarticle template spec (skeleton, citation, submission-time)
 - [`discipline-writing.md`](discipline-writing.md) — universal section-by-section writing style
 - [`writing-principles.md`](writing-principles.md) — academic writing principles (mode-agnostic)
-- [`color-themes.md`](color-themes.md) — morandi palette + viridis/magma data colormaps
+- [`color-themes.md`](color-themes.md) — dopamine palette + viridis/magma/cividis data colormaps
 - [`citation-discipline.md`](citation-discipline.md) — 3-layer anti-hallucination citation verification
 - [`../support/paper-writing/SKILL.md`](../support/paper-writing/SKILL.md) — consumer of this selector
 - [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — passes verification_type + evidence_type downstream

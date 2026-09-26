@@ -185,7 +185,7 @@ vague ones; delete any sentence that does not advance the argument.
 ## Figure and table design
 
 - Vector graphics (PDF/SVG), not raster
-- Morandi palette (Layer 1) or viridis/magma data heatmaps (Layer 2)
+- Dopamine palette (Layer 1, CVD-verified) or viridis/magma data heatmaps (Layer 2)
 - Self-contained captions: Figure N. content + key takeaway + (a)(b) panel notes
 - Keep the rendering script + input data for every figure
 
@@ -204,5 +204,5 @@ vague ones; delete any sentence that does not advance the argument.
 - No undefined symbols
 - All citations exist in references.bib and are verified
 - No \cite{TODO}, \cite{forthcoming}
-- Morandi palette or Layer 2 data heatmap
+- Dopamine palette or Layer 2 data heatmap
 - Limitations stated honestly in the Discussion

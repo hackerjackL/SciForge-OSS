@@ -59,7 +59,7 @@ def _minimal_svg(width: int = 1600, height: int = 900,
      font-family="Liberation Sans, sans-serif">
   <rect x="0" y="0" width="{width}" height="{height}" fill="#FFFFFF"/>
   <rect x="200" y="250" width="420" height="220" rx="8"
-        fill="#EDE9E2" stroke="{st.TOKENS["ink-soft"]}" stroke-width="2"/>
+        fill="{st.TOKENS['surface']}" stroke="{st.TOKENS["ink-soft"]}" stroke-width="2"/>
 {body}
 {extra}
 </svg>
