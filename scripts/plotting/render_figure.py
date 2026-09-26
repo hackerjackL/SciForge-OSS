@@ -164,7 +164,7 @@ def render_d2(src: Path, out_pdf: Path, out_svg: Path, layout: str,
 
 def render_method(src: Path, out_pdf: Path, out_svg: Path, layout: str,
                   pad: int, dpi: int, log: list, keep_svg: Path | None = None) -> None:
-    """Declarative method-figure recipes (v1.6.1) — the layout-locked pipeline/
+    """Declarative method-figure recipes (v1.6.0) — the layout-locked pipeline/
     architecture path. A `.method.json` spec names a template (L1..L5) and fills
     stage/module/edge TEXT; method_recipes emits a COMPLETE, self-styled d2
     source (classes + locked geometry), so it renders with NO preamble injection
@@ -237,7 +237,7 @@ def render_python(src: Path, outdir: Path, dpi: int, log: list) -> None:
     derives output.svg via pdf_to_svg, then adds latex_include.tex + the
     embedded audit, keeping data plots on the same single-entry contract.
 
-    NOTE (v1.6.1): for NEW figures prefer the declarative `recipe` engine —
+    NOTE (v1.6.0): for NEW figures prefer the declarative `recipe` engine —
     render.py grants full matplotlib freedom (legend/ticks/layout) which is the
     toolchain-unity failure the recipe system removes. render.py stays supported
     for reproducibility of existing figures and for genuinely custom plots the
@@ -251,7 +251,7 @@ def render_python(src: Path, outdir: Path, dpi: int, log: list) -> None:
 
 
 def render_recipe(src: Path, outdir: Path, dpi: int, log: list) -> None:
-    """Declarative publication recipes (v1.6.1) — the layout-locked data-plot path.
+    """Declarative publication recipes (v1.6.0) — the layout-locked data-plot path.
 
     A `.recipe.json` spec supplies DATA + LABELS + a small enum of semantic
     choices; figure_recipes fixes geometry, fonts, dopamine palette, legend,
@@ -961,7 +961,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="SciForge unified figure renderer")
     ap.add_argument("source", nargs="?", help="spec.d2 / spec.dot / spec.tex / "
                     "source.svg / spec.asy / spec.typ / render.py / spec.diag / "
-                    "spec.recipe.json (declarative data plots, v1.6.1)")
+                    "spec.recipe.json (declarative data plots, v1.6.0)")
     ap.add_argument("--doctor", action="store_true",
                     help="check the figure toolchain environment and exit")
     ap.add_argument("--out", default=None, help="output dir (default: beside source)")

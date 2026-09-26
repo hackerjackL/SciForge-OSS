@@ -193,7 +193,7 @@ claude                  # 或 codex / cursor / trae
 
 skill 本身是纯 Markdown，但完整跑通（图渲染 / 文献检索 / LaTeX 编译 / 实验执行）需要以下可选工具。`sciforge tools-check` 检查缺失项，`sciforge tools-install` 一键安装。Python 侧集中在仓库根目录一个文件：`pip install -r requirements.txt`（core: matplotlib/numpy/Pillow；recommended: SciencePlots）。跨平台"武器库"总表（d2/texlive/rsvg… 逐系统命令）见 [scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)。
 
-> 📊 **绘图工具链**：所有图（数据图、架构/流程/机制/组图——全领域通用）都通过唯一入口 `scripts/plotting/render_figure.py` 产出（12 引擎：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG / composite 组图——单一链路，禁止并行工具；PDF+SVG 双产出 + 内嵌 Nature 级审计）。**跨平台：Linux / macOS / Windows 均支持**（Windows 推荐 WSL2；字体按平台自动发现，无机器专属路径）。完整依赖清单、逐系统安装命令、国内镜像、字体与不采用工具评估：**[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**。环境自检：`python scripts/plotting/render_figure.py --doctor`。
+> 📊 **绘图工具链**：所有图（数据图、架构/流程/机制/组图——全领域通用）都通过唯一入口 `scripts/plotting/render_figure.py` 产出（15 引擎（含声明式 recipe 与方法图模板引擎）：matplotlib / d2 / graphviz / tikz / asymptote / typst / diagrams / blockdiag 家族 / mermaid / pikchr / 手工装配 SVG / composite 组图——单一链路，禁止并行工具；PDF+SVG 双产出 + 内嵌 Nature 级审计）。**跨平台：Linux / macOS / Windows 均支持**（Windows 推荐 WSL2；字体按平台自动发现，无机器专属路径）。完整依赖清单、逐系统安装命令、国内镜像、字体与不采用工具评估：**[scripts/plotting/INSTALL.md](scripts/plotting/INSTALL.md)**。环境自检：`python scripts/plotting/render_figure.py --doctor`。
 
 | 工具 | 用途 | 安装 | 必需性 |
 |------|------|------|--------|
@@ -395,7 +395,7 @@ SciForge-OSS/
 │       └ ... (其他通用契约)
 ├── scripts/
 │   ├── plotting/                          ← 绘图工具链（单一入口）
-│   │   ├── render_figure.py               ← 统一渲染器——12 引擎、一条链路、内嵌审计
+│   │   ├── render_figure.py               ← 统一渲染器——15 引擎（含声明式 recipe 与方法图模板引擎）、一条链路、内嵌审计
 │   │   ├── sciforge_style.py              ← 多巴胺设计 token（单一事实源）
 │   │   ├── figure_audit.py                ← A1–A10 Nature 级审计（内嵌）
 │   │   └── INSTALL.md                     ← 三平台复刻手册
@@ -510,7 +510,7 @@ SciForge-OSS 不限定任何学科领域。以下仅为示例，而非限制：
 
 ## 绘图工具链
 
-出版级图表由**唯一入口** `scripts/plotting/render_figure.py` 产出（管线 Phase 11），**12 引擎收敛一条链路**（禁止并行工具）：matplotlib（数据图）、d2、graphviz、TikZ、Asymptote、Typst、diagrams、blockdiag 家族、mermaid、pikchr、手工装配 SVG、**composite 组图引擎**（Nature 风格 (a)(b)(c)… 面板编号，面板数硬上限 9，SCI 一区组版规范）。
+出版级图表由**唯一入口** `scripts/plotting/render_figure.py` 产出（管线 Phase 11），**15 引擎（含声明式 recipe 与方法图模板引擎）收敛一条链路**（禁止并行工具）：matplotlib（数据图）、d2、graphviz、TikZ、Asymptote、Typst、diagrams、blockdiag 家族、mermaid、pikchr、手工装配 SVG、**composite 组图引擎**（Nature 风格 (a)(b)(c)… 面板编号，面板数硬上限 9，SCI 一区组版规范）。
 
 - **双产出**：矢量 PDF（LaTeX 嵌入）+ SVG（agent 审阅/编辑）
 - **内嵌 Nature 级审计（A1–A10）**：可读性下限、多巴胺色板（C* ≥ 30 + 两两色盲 ΔE ≥ 15 数值校验）、16:9 默认、复杂度下限（图标密度/边密度）、视觉丰富度、**品牌泄露守卫**（图是论文插图，不是工具海报）、**文字零重叠**（附精确偏移修正建议）

@@ -11,7 +11,7 @@ Skill-driven research runtime (v1.5.0): Skill Library (pure Markdown, `skills/`)
 3. Negative-result discipline: only `polarity: positive` claims enter contributions/abstract; failures go to Limitations or trigger KILL-or-PIVOT. Never package a failure as a contribution.
 4. SCI body voice (writing-principles §0.6): zero apologies, zero defensive framing in body text; hedges only as bounded regime statements; Limitations = regime ledger, not confession. `leakage_scan.py` class K enforces this.
 5. Every citation passes 3-layer verification (arXiv + CrossRef + Semantic Scholar) — zero fabricated references.
-6. Figures only via `scripts/plotting/render_figure.py` (12 engines, Nature A1–A10 audit).
+6. Figures only via `scripts/plotting/render_figure.py` (15 engines incl. declarative recipes, Nature A1–A10 audit).
 7. 3-round fallback cap per failure type; then BLOCKED + surface to the human.
 
 ## Key paths

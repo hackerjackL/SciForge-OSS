@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SciForge method-figure recipes — declarative pipeline/architecture diagrams (v1.6.1).
+"""SciForge method-figure recipes — declarative pipeline/architecture diagrams (v1.6.0).
 
 WHY: the d2/tikz spec path let the model improvise layout, so method figures
 oscillated between "publication-grade" and "boxes-and-arrows soup". Research

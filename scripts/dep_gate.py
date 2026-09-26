@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dependency gate (v1.6.1) — "the model cannot use whatever it wants."
+"""Dependency gate (v1.6.0) — "the model cannot use whatever it wants."
 
 The toolchain-unity promise is hollow if agent-authored code imports anything it
 likes: an unlisted package silently breaks reproducibility on another machine,

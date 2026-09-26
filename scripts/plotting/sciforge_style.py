@@ -200,7 +200,7 @@ def palette_visibility() -> dict[str, list[str]]:
 # --------------------------------------------------------------------------
 MARKER_CYCLE = ["o", "s", "^", "D", "v", "P", "X", "*"]
 
-# v1.6.1 single source of truth for series color ORDER. The default matplotlib
+# v1.6.0 single source of truth for series color ORDER. The default matplotlib
 # prop_cycle AND series_style() both draw from this, so a naive ax.plot and an
 # explicit series_style(0) agree. Ordering is by canvas visibility: the 5
 # line-safe tokens (contrast >= 3 on white) come first so the 1st/2nd series of

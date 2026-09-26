@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SciForge figure recipes — declarative, layout-locked publication plots (v1.6.1).
+"""SciForge figure recipes — declarative, layout-locked publication plots (v1.6.0).
 
 WHY: the render.py path let the model freely choose legend position, tick style,
 band vs bar, label sizes — every figure drifted from every other. A recipe
@@ -171,10 +171,11 @@ def _heatmap(spec, outdir):
     cbar.ax.tick_params(labelsize=st.NATURE_FLOOR["tick_label"])
     cbar.set_ticks([]) if spec.get("bare_cbar") else None
     if spec.get("cell_values"):
+        mid = (float(np.nanmin(data)) + float(np.nanmax(data))) / 2
         for (r, c, v) in spec["cell_values"]:
             ax.text(c, r, str(v), ha="center", va="center",
                     fontsize=st.NATURE_FLOOR["annotation"],
-                    color="#FFFFFF" if v > (data.min() + data.max()) / 2 else "#000000")
+                    color="#FFFFFF" if float(data[r][c]) > mid else "#000000")
     if spec.get("x_labels"):
         ax.set_xticks(range(len(data[0]))); ax.set_xticklabels(spec["x_labels"],
                                                                fontsize=st.NATURE_FLOOR["tick_label"])

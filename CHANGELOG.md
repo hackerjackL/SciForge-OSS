@@ -2,9 +2,22 @@
 
 ## [1.6.0] - 2026-09-26 定版：可验证证据链 + 运行时防御（第三轮，Top-12 清单落地）
 
-> 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的**。候选池分析见 `ANALYSIS_V1.6.md`（五路开源调研收敛信号 + 本地承诺兑现审计）。本轮全部改动带回归测试；371/371 绿，ci_check PASS。
+> 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的**。候选池分析见 `ANALYSIS_V1.6.md`（五路开源调研收敛信号 + 本地承诺兑现审计）。本轮全部改动带回归测试；380/380 绿，ci_check PASS。
 
-### 追加：图系统深度优化（多巴胺色板 v3.0 — 用户指令"图的颜色/工具链/skill 深度找开源项目，色系统一多巴胺"）
+### 追加：图系统深度优化（工具链强制统一 + 依赖治理 — 用户指令"图还得继续深度优化，工具链必须高度统一，依赖必须清晰，不能模型想用什么用什么"）
+
+> 对标开源实测：proplot(停更勿依赖)/mplhep(命名 style 机制)/SciencePlots(nature.mplstyle)/K-Dense scientific-visualization(palette_audit)/cathrynlavery·diagram-design(42k★ 复杂度预算+6 连接线规则)/PaperBanana zone 策略/opentikz edit_contract/thesis-figure-skill layout-by-construction。论文级 d2 模板仓库不存在——该缺口由本系统填补。
+
+- **数据配方引擎 `figure_recipes.py`**（声明式，布局零自由度）：`.recipe.json` 只填数据+标签，几何/字号/图例/色板/误差语义全锁。7 配方：line-comparison（误差带+stat 自动标注）、bar-grouped（误差棒+零基线）、scatter-fit（OLS+r 标注）、heatmap（Layer-2 强制，jet 拒绝，单元格反色）、hist-dist、forest-plot（CI 触须+合并菱形）、panel-grid（(a)(b)(c) 内嵌字母+**图级共享 legend**+markerscale）。统一入口 auto-detect `.recipe.json`，审计/latex_include 管线不变。
+- **方法图引擎 `method_recipes.py`**（L1→L5 从简到繁阶梯）：`.method.json` 填阶段/模块文本，d2 源码确定性生成——方向/圆角/线宽/多巴胺色板（focus≤2 色+zone tint）/虚线=辅助约定/Legend 框/≤4 词节点预算全锁。5 级：L1 线性、L2 分支+循环、L3 容器+图例+callout 引导线、L4 宏-微 inset、L5 分带架构。engine=method 接入统一入口（elk 布局，inject=False 避免 preamble 双重注入）。
+- **prop_cycle 可见性排序修复**（panel 色漂移根因）：`series_style(0)` 与默认色循环现共用单一 `cycle_hex()`（line-safe 5 色在前、fill-only 3 色在后），naive `ax.plot` 首色从对比 2.68 变 3.07——五线零配置全可读。
+- **依赖治理 `dependencies.json` + `dep_gate.py`**："想用什么用什么"在结构上不可能：清单为 import 唯一事实源（tier 镜像 requirements.txt），dep_gate AST 扫 src/ + figures/**/render.py 每个 import root，未声明即 FAIL（stdlib 经 `sys.stdlib_module_names` 自动放行，`always_forbidden` 优先）。与 security_scan（行为：网络/凭证/破坏性）+ SEC-106（pip）正交互补 = 供应链+白名单+行为三件套。挂 6b/6c 边界。
+- **审计抓真 bug 的元证据**：方法阶梯开发中 A4 字号地板抓出 4 个 d2 真缺陷（`//` 注释渲染成 16px 文本、class/glob 字号不传播到边标签、保留字 legend+全局边样式画伪连线、容器重引用丢 class），每个先 FAIL 后修，strict 5/5 才放行——"门即代码"的运作方式。
+- **画廊与水平分析**：`docs/FIGURE-GALLERY.md`（逐图诚实评级：5 数据配方 4 出版级/1 可改进；L3 方法图为最高样张，L5 最弱）+ `docs/assets/figure-ladder-gallery.png` 联系表 + 3 张多巴胺验证图。
+- **测试**：+13 回归（recipe 渲染/未知配方拒绝/jet 拒绝/共享图例内省/色序单源守卫；dep_gate 未声明 FAIL/声明+stdlib PASS/无码 SKIP）。**380/371→380 全绿**，ci_check PASS。
+- 版本口径统一：本轮全部并入 **1.6.0**（用户定版策略：不另起 1.6.1）；"12 引擎"表述更新为"15 引擎（含声明式 recipe 与方法图模板）"。
+
+### 追加：图系统第一轮（多巴胺色板 v3.0 — 用户指令"图的颜色/工具链/skill 深度找开源项目，色系统一多巴胺"）
 
 - **色板性质变更**：Layer 1 莫兰迪（C*≤25）退役，换 **多巴胺高饱和色板**（8 系列：blue #00A6FB / orange #F3722C / green #06A77D / red #FF3B6B / teal #118AB2 / violet #8338EC / gold #FFBF00 / crimson #D90429）。**不是拍脑袋选色**：经约束搜索（29 色高饱和池 × CVD 双网）锁定——全部 28 对组合在 protan/deutan/tritan 三型模拟下 min ΔE = 15.0、零失败；9 色被证明物理不可行（第 9 色必破 ΔE≥15），故系列循环止于 8 色，9+ 由 marker+明度双编码延展。
 - **双安全网（新增基础设施，`sciforge_style.py`）**：`simulate_cvd`（Viénot/Brettel 线性 RGB 近似矩阵，纯 stdlib）+ `pair_distinguishable`/`palette_distinguishability`（CIE76 ΔE 三型+灰度）+ `palette_visibility`（line-safe vs fill-only 分层——gold/blue/orange 对比度 <3 只准做填充且必配 ≥5.1 对比描边，`stroke_for` 兜底）。调研（子代理实测 GitHub/PyPI）证实这是开源界稀缺组合：三合一自动审计无现成先例，K-Dense palette_audit/socraticstatic 为最接近参考。

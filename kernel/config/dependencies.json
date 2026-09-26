@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "comment": "Dependency contract (v1.6.1) — the SINGLE source of truth for what agent-authored code (src/ experiments, figures/**/render.py) may import. The model cannot use whatever it wants: dep_gate.py fails any import whose root is not listed here. Tiers mirror requirements.txt. Adding a dependency = edit requirements.txt AND this manifest (one PR, both gates). stdlib is always allowed (auto-detected, not enumerated).",
+  "comment": "Dependency contract (v1.6.0) — the SINGLE source of truth for what agent-authored code (src/ experiments, figures/**/render.py) may import. The model cannot use whatever it wants: dep_gate.py fails any import whose root is not listed here. Tiers mirror requirements.txt. Adding a dependency = edit requirements.txt AND this manifest (one PR, both gates). stdlib is always allowed (auto-detected, not enumerated).",
   "python": {
     "core": [
       "numpy", "scipy", "pandas", "matplotlib", "PIL", "sympy",

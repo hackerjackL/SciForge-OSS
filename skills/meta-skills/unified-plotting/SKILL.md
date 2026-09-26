@@ -13,7 +13,7 @@ role: figure-renderer-and-spec-generator
 - **Purpose**: Render publication-quality vector figures from structured data or JSON specs
 - **Input**: Data (JSON/matrix) or a chart description
 - **Output**: **PDF + SVG dual output** (PDF for LaTeX compile, SVG for agent viewing/editing) + render script + `figure_audit.json`
-- **Key**: 12 chart types (incl. 4 theoretical); dopamine palette enforced (single source of truth `scripts/plotting/sciforge_style.py`); data plots via the Python pipeline, complex diagrams via the **unified render tool**; **16:9 landscape default**; **Nature-level readability**; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) (format) and [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md) (complexity and aesthetics floor)
+- **Key**: 15 engines incl. declarative recipe (data) + method-template (L1-L5) paths; dopamine palette enforced (single source of truth `scripts/plotting/sciforge_style.py`); data plots via the Python pipeline, complex diagrams via the **unified render tool**; **16:9 landscape default**; **Nature-level readability**; see [`figure-quality-contract.md`](../../shared-references/figure-quality-contract.md) (format) and [`figure-complexity-contract.md`](../../shared-references/figure-complexity-contract.md) (complexity and aesthetics floor)
 
 > **v3.5 single entry point tool (UNIFIED SINGLE-ENTRY RENDERER)**: all declarative diagrams (d2 / graphviz / tikz / AI-direct SVG) are produced through **one** CLI only; parallel multi-tool runs or bypassing are forbidden:
 >

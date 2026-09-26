@@ -498,7 +498,7 @@ Each problem's `verification_type` (a canonical token: `theory-only` | `computat
 
 ## Figure toolchain
 
-Publication-grade figures are produced by ONE unified entry point — `scripts/plotting/render_figure.py` (Phase 11 of the pipeline), with **12 engines behind a single chain** (never parallel tools): matplotlib (data), d2, graphviz, TikZ, Asymptote, Typst, diagrams, blockdiag-family, mermaid, pikchr, hand-assembled SVG, and the **composite multi-panel engine** (Nature-style (a)(b)(c)… panel figures, panel cap 9, SCI Q1 composition rules).
+Publication-grade figures are produced by ONE unified entry point — `scripts/plotting/render_figure.py` (Phase 11 of the pipeline), with **15 engines behind a single chain (incl. declarative recipe + method-template engines)** (never parallel tools): matplotlib (data), d2, graphviz, TikZ, Asymptote, Typst, diagrams, blockdiag-family, mermaid, pikchr, hand-assembled SVG, and the **composite multi-panel engine** (Nature-style (a)(b)(c)… panel figures, panel cap 9, SCI Q1 composition rules).
 
 - **Dual output**: vector PDF (LaTeX embed) + 300 DPI PNG (agent review)
 - **Embedded Nature-level audit (A1–A10)**: readability floors, dopamine palette (C* ≥ 30 + pairwise CVD ΔE ≥ 15 numerically validated), 16:9 default, complexity floors (icon density / edge density), visual richness, **brand-leak guard** (figures are paper figures, never tool posters), **zero text overlap** with actionable fix suggestions
