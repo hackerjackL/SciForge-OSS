@@ -1089,3 +1089,54 @@ def test_external_wait_overlap_not_double_counted(tmp_path: Path):
     # checkpoint opens at -100s, host opens at -90s; merge overlapping -> not ~190s
     w = external_wait_seconds(tmp_path)
     assert 95 <= w <= 110, w
+
+
+# ---------------- v1.6 A1: TDAL 4-dim joint confidence computed by the kernel ----------------
+
+def _tdal_ws(tmp_path: Path, *, fill):
+    import subprocess
+    v = tmp_path / ".sciforge" / "verdicts"; v.mkdir(parents=True)
+    rl = tmp_path / ".sciforge" / "refine-logs"; rl.mkdir(parents=True)
+    (v / "VERIFICATION_ROUTING.json").write_text(json.dumps(
+        {"schema_version": "1.0", "route": "experiment-first", "reason": "t",
+         "verification_type": "computational", "evidence_type": "empirical", "na_verdicts": []}))
+    fill(v, rl)
+    return tmp_path
+
+def _full_grounding(v, rl):
+    (v / "PROOF_AUDIT.json").write_text(json.dumps({"verdict": "PASS"}))
+    (v / "LOGIC_VERIFICATION.json").write_text(json.dumps({"verdict": "PASS"}))
+    (rl / "FALSIFICATION_RECORD.json").write_text(json.dumps({"overall_outcome": "SURVIVE"}))
+    (v / "CITATION_AUDIT.json").write_text(json.dumps({"verdict": "PASS", "details": {
+        "total_entries": 4, "counts": {"KEEP": 4}}}))
+    (rl / "domain-signature.json").write_text(json.dumps({"learning_confidence": 0.85}))
+    (rl / "data-availability-report.json").write_text(json.dumps({"overall_score": 0.9}))
+    d = v.parent.parent / "experiments" / "full"; d.mkdir(parents=True)
+    (d / "RESULT.json").write_text(json.dumps({"status": "PASS"}))
+
+def test_tdal_grounded_run_missing_data_validation_caps_moderate(tmp_path: Path):
+    import subprocess, sys
+    ws = _tdal_ws(tmp_path, fill=_full_grounding)
+    r = subprocess.run([sys.executable, "scripts/tdal_compute.py", str(ws), "--json"],
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
+    doc = json.loads(r.stdout)["tdal"]
+    # no theory-only, no deep Ouroboros call -> theory_data_validation neutral + missing
+    # contract floor: missing_inputs non-empty caps STRONG -> MODERATE
+    assert "theory_data_validation" in doc["missing_inputs"], doc
+    assert doc["verdict"] == "MODERATE" and 0.5 <= doc["joint"] < 0.7, doc
+    assert doc["dims"]["literature_support"] > 0.9
+    assert doc["dims"]["data_availability"] == 0.75  # 0.5*0.9 + 0.3*1.0
+
+def test_tdal_any_dim_zero_forces_low_verdict(tmp_path: Path):
+    import subprocess, sys
+    def empty(v, rl):
+        (v / "CITATION_AUDIT.json").write_text(json.dumps({"verdict": "FAIL", "details": {
+            "total_entries": 0, "counts": {}}}))  # L=0 floor
+    ws = _tdal_ws(tmp_path, fill=empty)
+    r = subprocess.run([sys.executable, "scripts/tdal_compute.py", str(ws), "--json"],
+                       capture_output=True, text=True, timeout=60)
+    doc = json.loads(r.stdout)["tdal"]
+    assert doc["dims"]["literature_support"] == 0.0
+    assert doc["joint"] == 0.0 and doc["verdict"] == "UNSUPPORTED", doc
+    assert "literature_search" in doc["missing_inputs"]
