@@ -123,6 +123,29 @@ class Kernel:
         except Exception:
             pass
 
+    def check_deepen_freeze(self) -> dict:
+        """mode=deepen: core claim / contributions / method identity are FROZEN.
+        A deepen run that proposes a different method/claim is drift -> BLOCKED
+        (reason_code: deepen_frozen_violation). The thesis hash is locked at start
+        the same way INV-G1 locks the Q-id."""
+        frozen = self.ws / ".sciforge" / "verdicts" / "DEEPEN_FREEZE.json"
+        if not frozen.exists():
+            return {"ok": True, "note": "no deepen freeze declared"}
+        try:
+            d = json.loads(frozen.read_text())
+        except json.JSONDecodeError:
+            return {"ok": False, "reason_code": "deepen_freeze_unreadable"}
+        from .state import sha256_file
+        for rel in d.get("frozen_files", []):
+            f = self.ws / rel
+            if not f.exists():
+                return {"ok": False, "reason_code": "deepen_frozen_violation",
+                        "detail": f"frozen file deleted: {rel}"}
+            if sha256_file(f) != d["hashes"].get(rel):
+                return {"ok": False, "reason_code": "deepen_frozen_violation",
+                        "detail": f"frozen file mutated: {rel}"}
+        return {"ok": True, "frozen": d.get("frozen_files", [])}
+
     def _round_count(self, loopback_id: str) -> int:
         return sum(1 for e in self.log.replay()
                    if e["kind"] == "loopback" and e["payload"].get("id") == loopback_id)
@@ -133,20 +156,20 @@ class Kernel:
     # ---------------- start / resume ----------------
     def start(self, run_id: str, problem: str, effort: str = "balanced",
               host: str | None = None, test_mode: bool = False,
-              human_skip: bool = False) -> None:
-        mode = recover(self.log, self.rs, self.ws)
-        if mode == "wait":
+              human_skip: bool = False, mode: str = "full") -> None:
+        recov = recover(self.log, self.rs, self.ws)
+        if recov == "wait":
             raise DispatchError("another kernel process holds this workspace")
-        if mode == "completed":
+        if recov == "completed":
             raise DispatchError(f"run already {self.rs.status}; use a fresh workspace")
-        if mode in ("fresh", "stale"):
+        if recov in ("fresh", "stale"):
             rs = self.rs  # reuse bound instance (EventLog/Approvals share self.ws)
             rs.data = {}
             RunState.open_workspace(self.ws, run_id, problem)  # dirs + guard
             rs.data.update({"schema_version": "2.0", "run_id": run_id,
                             "problem_id": run_id, "problem": problem, "effort": effort,
                             "host": host or "manual",
-                            "flags": {"test_mode": test_mode, "human_skip": human_skip},
+                            "flags": {"test_mode": test_mode, "human_skip": human_skip, "mode": mode},
                             "created_at": time.time()})
             rs.status = "running"
             rs.update(phase="0", next_action="freeze problem anchor")
