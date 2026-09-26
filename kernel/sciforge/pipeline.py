@@ -271,11 +271,17 @@ class Kernel:
             self.log.emit(pid, "routed_skip", {"route": route})
             return Verdict("NOT_APPLICABLE", notes=f"phase {pid} N/A on {route} route")
 
-        # Phase 14: if a model gateway is configured, run the cross-model review
-        # panel in-process (S20/S21) and write the machine verdicts. In host
-        # mode we fall through to the host dispatch (manual/claude/codex).
-        if pid == "14" and not self.providers().host_mode:
-            return self._native_review()
+        # Phase 14 (BUG-7 fix): native review runs ONLY when the kernel can
+        # actually reach a model provider. A manual/codex host writes
+        # REVIEW_STATE.json itself via the bundle protocol; forcing the native
+        # panel under a key-less config produced REVIEW_FAILED + L10 loopbacks
+        # that rewound the whole chain for no scientific reason.
+        if pid == "14" and self.rs.data.get("host") != "manual":
+            try:
+                if not self.providers().host_mode:
+                    return self._native_review()
+            except Exception:
+                pass  # unusable provider config => fall through to host dispatch
 
         b = self.budget
         bundle = bundle_mod.build(self.ws, ph, b)

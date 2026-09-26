@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/PAPER_COMPILE.schema.json",
+  "title": "PAPER_COMPILE.json - LaTeX compile verdict (host-written)",
+  "description": "Produced by the paper-compile skill at Phase 13. Registered so validate_verdicts --strict accepts it (BUG-6 fix).",
+  "type": "object",
+  "required": ["verdict", "zero_warnings", "zero_errors", "generated_at"],
+  "properties": {
+    "verdict": {"type": "string", "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"]},
+    "zero_warnings": {"type": "boolean"},
+    "zero_errors": {"type": "boolean"},
+    "pdf_path": {"type": "string"},
+    "compile_attempts": {"type": "integer", "minimum": 0},
+    "notes": {"type": "string"},
+    "generated_at": {"type": "string"}
+  }
+}

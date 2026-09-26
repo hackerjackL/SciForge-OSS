@@ -71,9 +71,22 @@ class Providers:
         for r in self.roles.values():
             if isinstance(r, dict) and os.environ.get("SCIFORGE_MODEL"):
                 r["model"] = os.environ["SCIFORGE_MODEL"]
-        # host mode: no providers configured AND no gateway env -> the host agent
-        # (claude/codex) does the LLM work; the kernel only tracks cost if host reports it.
-        self.host_mode = not self.backends and not base
+        # host mode (BUG-7 fix): no providers configured, OR the configured
+        # backends are declared-but-unusable (no key env, no gateway) -> the host
+        # agent (claude/codex/manual) does the LLM work. A shipped providers.json
+        # must NOT force non-host mode when credentials are absent.
+        # A backend counts as usable ONLY when a gateway is exported or its key
+        # env var actually holds a credential. A declared keyless backend (ollama
+        # local) does NOT flip the system out of host_mode on its own — otherwise
+        # the shipped providers.json would force non-host mode on every key-less box.
+        usable = bool(base)
+        if not usable:
+            for be in self.backends.values():
+                key_env = be.get("api_key_env", "") if isinstance(be, dict) else ""
+                if key_env and os.environ.get(key_env):
+                    usable = True
+                    break
+        self.host_mode = (not self.backends) or (not usable)
 
     def model_for(self, role: str) -> dict:
         entry = self.roles.get(role) or self.roles.get("default") or {}

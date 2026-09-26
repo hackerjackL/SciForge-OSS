@@ -583,3 +583,60 @@ def test_bug4_verdict_field_presence_and_experiments_search(tmp_path: Path):
     r3 = _check(tmp_path, {"check": "verdict_field", "path": "STATUS.json",
                            "field": "budget_floor.satisfied"}, "6c")
     assert r3["status"] == "PASS"
+
+
+def test_bug5_figure_gates_uses_paper_dir(tmp_path: Path):
+    """BUG-5: check_figure_embedding's first arg is paper_dir (must contain main.tex),
+    not the workspace root; figures default to paper_dir/../figures."""
+    from sciforge.gates import figure_gates
+    (tmp_path / "paper").mkdir()
+    (tmp_path / "figures" / "f1").mkdir(parents=True)
+    (tmp_path / "paper" / "main.tex").write_text(
+        "\\documentclass{elsarticle}\n\\begin{document}\n"
+        "\\begin{figure}\\includegraphics{figures/f1/output}\n\\caption{x}\\end{figure}\n"
+        "\\input{figures/f1/latex_include}\n\\end{document}\n")
+    (tmp_path / "figures" / "f1" / "output.pdf").write_bytes(b"%PDF-1.4 fake")
+    (tmp_path / "figures" / "f1" / "figure_audit.json").write_text('{"verdict":"PASS"}')
+    (tmp_path / "figures" / "f1" / "latex_include.tex").write_text(
+        "\\includegraphics{figures/f1/output}")
+    g = figure_gates(tmp_path)
+    # even if the embedding check FAILS on content, the gate must NOT fail with
+    # "no main.tex in <ws>" — it must be looking at paper/main.tex
+    assert "no main.tex" not in str(g.get("output", "")), g
+
+
+def test_bug6_quality_gate_and_compile_registered(tmp_path: Path):
+    """BUG-6: QUALITY_GATE.json / PAPER_COMPILE.json in .sciforge/verdicts/ must
+    validate (not WARN-unregistered) under --strict."""
+    import subprocess
+    vd = tmp_path / ".sciforge" / "verdicts"
+    vd.mkdir(parents=True)
+    (vd / "QUALITY_GATE.json").write_text(json.dumps({
+        "verdict": "PASS", "stagnation": "PASS", "quality_floor": "PASS",
+        "self_deception": "PASS", "overall": "PASS",
+        "generated_at": "2026-09-26T00:00:00Z"}))
+    (vd / "PAPER_COMPILE.json").write_text(json.dumps({
+        "verdict": "PASS", "zero_warnings": True, "zero_errors": True,
+        "generated_at": "2026-09-26T00:00:00Z"}))
+    p = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "validate_verdicts.py"),
+                        str(vd), "--strict"], capture_output=True, text=True)
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert "QUALITY_GATE.json" in p.stdout and "PASS" in p.stdout
+
+
+def test_bug7_keyless_providers_force_host_mode():
+    """BUG-7: shipped providers.json with no usable credentials must still be
+    host_mode — a manual/key-less run must not take the native review path."""
+    import os
+    from sciforge.providers import Providers
+    # simulate key-less: clear gateway + api keys
+    old = {k: os.environ.pop(k, None) for k in
+           ("ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "OPENAI_API_KEY")}
+    try:
+        p = Providers()  # loads the real shipped providers.json
+        assert p.host_mode is True, ("shipped providers.json must be host_mode "
+                                     "when no credentials exist")
+    finally:
+        for k, v in old.items():
+            if v is not None:
+                os.environ[k] = v

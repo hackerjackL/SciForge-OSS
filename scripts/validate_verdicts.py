@@ -143,6 +143,8 @@ REGISTRY = {
         "schema": "FAIRNESS.schema.json",
         "audit_family": True,
     },
+    "QUALITY_GATE.json": {"schema": "QUALITY_GATE.schema.json"},
+    "PAPER_COMPILE.json": {"schema": "PAPER_COMPILE.schema.json"},
 }
 
 # Hash artifacts: single-line lowercase sha256 hex (no schema file).

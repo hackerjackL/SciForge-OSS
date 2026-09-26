@@ -1,23 +1,67 @@
 {
   "backends": {
-    "anthropic": {"base_url": "https://api.anthropic.com", "api_key_env": "ANTHROPIC_API_KEY"},
-    "openai": {"base_url": "https://api.openai.com/v1", "api_key_env": "OPENAI_API_KEY"},
-    "ollama": {"base_url": "http://127.0.0.1:11434/v1", "api_key_env": ""}
+    "anthropic": {
+      "base_url": "https://api.anthropic.com",
+      "api_key_env": "ANTHROPIC_API_KEY"
+    },
+    "openai": {
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    "ollama": {
+      "base_url": "http://127.0.0.1:11434/v1",
+      "api_key_env": ""
+    }
   },
   "roles": {
-    "default":     {"backend": "anthropic", "model": "claude-opus-4-8"},
-    "ideation":    {"backend": "anthropic", "model": "claude-opus-4-8"},
-    "reasoning":   {"backend": "anthropic", "model": "claude-opus-4-8"},
-    "grading":     {"backend": "anthropic", "model": "claude-opus-4-8"},
-    "review":      {"backend": "anthropic", "model": "claude-opus-4-8"},
-    "adjudication":{"backend": "anthropic", "model": "claude-opus-4-8"},
-    "retrieval":   {"backend": "anthropic", "model": "claude-sonnet-4-6"},
-    "coding":      {"backend": "anthropic", "model": "claude-sonnet-4-6"},
-    "writing":     {"backend": "anthropic", "model": "claude-sonnet-4-6"}
+    "default": {
+      "backend": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    "ideation": {
+      "backend": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    "reasoning": {
+      "backend": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    "grading": {
+      "backend": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    "review": {
+      "backend": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    "adjudication": {
+      "backend": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    "retrieval": {
+      "backend": "anthropic",
+      "model": "claude-sonnet-4-6"
+    },
+    "coding": {
+      "backend": "anthropic",
+      "model": "claude-sonnet-4-6"
+    },
+    "writing": {
+      "backend": "anthropic",
+      "model": "claude-sonnet-4-6"
+    }
   },
   "pricing_usd_per_mtok": {
-    "claude-opus-4-8": {"input": 15.0, "output": 75.0, "cache_read": 1.5},
-    "claude-sonnet-4-6": {"input": 3.0, "output": 15.0, "cache_read": 0.3}
+    "claude-opus-4-8": {
+      "input": 15.0,
+      "output": 75.0,
+      "cache_read": 1.5
+    },
+    "claude-sonnet-4-6": {
+      "input": 3.0,
+      "output": 15.0,
+      "cache_read": 0.3
+    }
   },
   "comment": "host mode: leave roles empty to delegate all LLM work to the host agent (claude -p / codex). This file makes direct-API mode available when ANTHROPIC_API_KEY is set. In Claude Code environments prefer --host claude (zero extra key, real cost accounting via total_cost_usd)."
 }

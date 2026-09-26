@@ -55,7 +55,10 @@ def security_scan_script(script_path: Path) -> dict:
 
 
 def figure_gates(ws: Path) -> dict:
-    p = run_py("scripts/check_figure_embedding.py", [str(ws), "--require-renderer"])
+    # BUG-5 workaround: the script's first arg is paper_dir (must contain main.tex),
+    # not the workspace root; figures live at ws/figures in the canonical layout.
+    p = run_py("scripts/check_figure_embedding.py",
+               [str(ws / "paper"), "--require-renderer", "--figures-dir", str(ws / "figures")])
     return {"gate": "figures_embedded_via_renderer", "status": "PASS" if p.returncode == 0 else "FAIL",
             "exit": p.returncode, "output": (p.stdout + p.stderr)[-4000:]}
 

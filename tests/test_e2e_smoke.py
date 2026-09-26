@@ -92,6 +92,8 @@ EXPECTED_VERDICT_FILES = frozenset({
     "FIGURE_AUDITS.json",
     "EVALUATION_REVIEW.json",
     "FAIRNESS.json",
+    "QUALITY_GATE.json",
+    "PAPER_COMPILE.json",
     "PROBLEM_HASH.txt",
     "REGISTRY_HASH.txt",
 })

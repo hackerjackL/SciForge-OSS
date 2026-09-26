@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sciforge/schemas/QUALITY_GATE.schema.json",
+  "title": "QUALITY_GATE.json - pre-writing quality gate verdict (host-written)",
+  "description": "Produced by the quality-gate skill at the Phase 12 boundary. Registered so validate_verdicts --strict accepts it in .sciforge/verdicts/ (BUG-6 fix: unregistered gate markers made phases 12/13 un-completable).",
+  "type": "object",
+  "required": ["verdict", "overall", "generated_at"],
+  "properties": {
+    "verdict": {"type": "string", "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"]},
+    "stagnation": {"type": "string", "enum": ["PASS", "WARN", "FAIL", "N_A"]},
+    "quality_floor": {"type": "string", "enum": ["PASS", "WARN", "FAIL", "N_A"]},
+    "self_deception": {"type": "string", "enum": ["PASS", "WARN", "FAIL", "N_A"]},
+    "overall": {"type": "string", "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE", "BLOCKED", "ERROR"]},
+    "notes": {"type": "string"},
+    "generated_at": {"type": "string"}
+  }
+}
