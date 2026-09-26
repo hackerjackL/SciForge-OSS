@@ -170,7 +170,8 @@
       "gate": {
         "check": "verdict_field",
         "path": "RESULT.json",
-        "field": "status"
+        "field": "status",
+        "value": "PASS"
       },
       "loopback": {
         "id": "L5",
@@ -193,7 +194,8 @@
       "gate": {
         "check": "verdict_field",
         "path": "STATUS.json",
-        "field": "budget_floor.satisfied"
+        "field": "budget_floor.satisfied",
+        "value": true
       },
       "loopback": {
         "id": "L7",

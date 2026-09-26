@@ -545,3 +545,41 @@ def test_verified_proofs_only_pass_results(tmp_path: Path):
     arts = [v["artifact"] for v in lessons["verified_proofs"]]
     assert any("toy" in a for a in arts)
     assert not any("bad" in a for a in arts)
+
+
+# ---------------- BUG regressions from the DEMO-RK4 closed loop ----------------
+
+def test_bug3_nested_domain_signature_routing(tmp_path: Path):
+    """BUG-3: evidence_type lives under domain_profile (skill schema), not top level.
+    Routing must read the nested field or it silently degrades to theory-only."""
+    k = Kernel(tmp_path)
+    k.start("B3", "x", "lite", host="manual")
+    (tmp_path / ".sciforge" / "refine-logs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / ".sciforge" / "refine-logs" / "domain-signature.json").write_text(json.dumps({
+        "domain_profile": {"evidence_type": "computational"},
+        "methodology_profile": {"suggested_verification_type": "computational"}}))
+    v = k._route()
+    rt = json.loads((tmp_path / ".sciforge" / "verdicts" /
+                     "VERIFICATION_ROUTING.json").read_text())
+    assert rt["evidence_type"] == "computational", rt
+    assert rt["route"] == "experiment-first", rt
+
+
+def test_bug4_verdict_field_presence_and_experiments_search(tmp_path: Path):
+    """BUG-4: gates naming a field with no value assert truthiness (never == None);
+    RESULT.json is found under experiments/** per the skill contract."""
+    from sciforge.gates import check as _check
+    (tmp_path / "experiments" / "toy").mkdir(parents=True)
+    rfile = tmp_path / "experiments" / "toy" / "RESULT.json"
+    rfile.write_text(json.dumps({"status": "PASS", "metrics": {"err": 1e-6}}))
+    g = {"check": "verdict_field", "path": "RESULT.json", "field": "status"}
+    r = _check(tmp_path, g, "6b")
+    assert r["status"] == "PASS" and r["actual"] == "PASS"
+    rfile.write_text(json.dumps({"status": "FAIL"}))
+    assert _check(tmp_path, g, "6b")["status"] == "FAIL"
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "STATUS.json").write_text(
+        json.dumps({"budget_floor": {"satisfied": True}}))
+    r3 = _check(tmp_path, {"check": "verdict_field", "path": "STATUS.json",
+                           "field": "budget_floor.satisfied"}, "6c")
+    assert r3["status"] == "PASS"

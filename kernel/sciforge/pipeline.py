@@ -553,10 +553,26 @@ class Kernel:
                                "FINAL_PROPOSAL.json").read_text())
         except Exception:
             pass
-        vt = (idea or {}).get("verification_type") or (sig or {}).get("suggested_verification_type")
+        # BUG-3 (DEMO-RK4): domain-signature.json nests evidence_type under
+        # domain_profile and the verification hint under methodology_profile —
+        # reading the top level silently produced "unknown" and could mis-route.
+        def _dig(d, *keys, default=""):
+            cur = d or {}
+            for k in keys:
+                if not isinstance(cur, dict) or k not in cur:
+                    return default
+                cur = cur[k]
+            return cur if isinstance(cur, str) else default
+        ev = ((sig or {}).get("evidence_type")
+              or _dig(sig, "domain_profile", "evidence_type")
+              or _dig(sig, "domain_profile", "evidence_norm"))
+        vt = ((idea or {}).get("verification_type")
+              or _dig(sig, "methodology_profile", "suggested_verification_type")
+              or (sig or {}).get("suggested_verification_type"))
         if not vt:
-            ev = (sig or {}).get("evidence_type", "")
-            vt = {"computational": "computational", "empirical": "theory+experiment"}.get(ev, "theory-only")
+            vt = {"computational": "computational", "empirical": "theory+experiment",
+                  "formal": "theory-only", "observational": "qualitative",
+                  "qualitative": "qualitative"}.get(ev, "theory-only")
         route = {"theory-only": "theory-only", "qualitative": "theory-only",
                  "computational": "experiment-first",
                  "theory+experiment": "hybrid"}.get(vt, "experiment-first")
@@ -566,8 +582,8 @@ class Kernel:
         vp = self.ws / ".sciforge" / "verdicts"
         vp.mkdir(parents=True, exist_ok=True)
         (vp / "VERIFICATION_ROUTING.json").write_text(json.dumps({
-            "schema_version": "1.0", "route": route, "evidence_type": (sig or {}).get("evidence_type", "unknown"),
-            "verification_type": vt, "reason": f"kernel deterministic routing from {vt}",
+            "schema_version": "1.0", "route": route, "evidence_type": ev or "unknown",
+            "verification_type": vt, "reason": f"kernel deterministic routing from {vt} (ev={ev})",
             "na_verdicts": na}, indent=2))
         self.log.emit("6", "routed", {"route": route, "na_verdicts": na})
         return Verdict("PASS", artifacts=[".sciforge/verdicts/VERIFICATION_ROUTING.json"])

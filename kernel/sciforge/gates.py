@@ -79,7 +79,7 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
         target = ws / gate["path"]
         return {"gate": f"file:{gate['path']}", "status": "PASS" if target.exists() else "FAIL"}
     if kind == "verdict_field":
-        # search workspace flat verdicts + stage dirs for the named verdict file
+        # search workspace flat verdicts + stage dirs + experiments/** for the file
         cand = _find_verdict(ws, gate["path"])
         if cand is None:
             return {"gate": gate["path"], "status": "FAIL", "note": "missing verdict file"}
@@ -88,9 +88,16 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
         except json.JSONDecodeError:
             return {"gate": gate["path"], "status": "FAIL", "note": "unparseable verdict"}
         val = _get_path(data, gate["field"])
-        op, want = gate.get("op", "=="), gate.get("value")
+        op = gate.get("op", "==")
+        want = gate.get("value", "__ABSENT__")
         if val is None:
             return {"gate": gate["path"], "status": "FAIL", "note": f"field {gate['field']} absent"}
+        if want == "__ABSENT__":
+            # BUG-4 (DEMO-RK4): a gate that names a field but no value asserts
+            # *presence-and-truthiness*, never `== None` (which can never PASS).
+            passed = bool(val) and val not in (False, "FAIL", "BLOCKED", "ERROR")
+            return {"gate": gate["path"], "status": "PASS" if passed else "FAIL",
+                    "actual": val, "required": "truthy (no value declared)"}
         passed = _cmp(val, op, want) if op != "==" else val == want
         return {"gate": gate["path"], "status": "PASS" if passed else "FAIL",
                 "actual": val, "required": f"{op} {want}"}
@@ -187,11 +194,19 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
 
 
 def _find_verdict(ws: Path, rel: str) -> Path | None:
-    """Verdict files may sit flat in .sciforge/verdicts/ (registered) or stage dirs."""
-    for base in (ws / ".sciforge" / "verdicts", ws / "results", ws / "paper", ws / "logs"):
-        p = base / rel.split("/")[-1]
+    """Verdict files may sit flat in .sciforge/verdicts/ (registered), stage dirs,
+    or — per experiment-execution SKILL.md — anywhere under experiments/**/."""
+    name = rel.split("/")[-1]
+    for base in (ws / ".sciforge" / "verdicts", ws / "results", ws / "paper",
+                 ws / "logs", ws / "experiments"):
+        if not base.exists():
+            continue
+        p = base / name
         if p.exists():
             return p
+        if base.name == "experiments":  # recursive: experiments/toy/RESULT.json
+            for hit in sorted(base.rglob(name)):
+                return hit
     return None
 
 
