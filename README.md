@@ -99,6 +99,27 @@ sciforge submit --workspace ./runs evo_123456   # human-authorized merge, full C
 sciforge daily  --workspace ./runs              # plain-text digest (print/push anywhere)
 ```
 
+## Deepen mode & SCI body voice (v1.5.0 wave 2)
+
+- **`mode=deepen`** — the third first-class mode: raise an existing paper's evidential
+  depth and **experimental fairness** WITHOUT touching its innovation structure
+  (claim/contributions/method identity are frozen; violating them is `BLOCKED`).
+  The fairness checklist (identical compute budget, frozen data splits, seed policy,
+  hyperparameter budget parity, metric identity, effect size + CI everywhere,
+  multiple-comparison control) is machine-checked by `scripts/fairness_gate.py` →
+  registered `FAIRNESS.json` (22nd verdict).
+- **SCI body voice** (`writing-principles §0.6`) — the manuscript body is written for
+  the reader of the science: **zero apologies, zero defensive framing**; hedges are
+  legal only as bounded regime statements; Limitations is a regime ledger, not a
+  confession. Enforced by `leakage_scan.py` class K (machine-checked, zero tolerance
+  in body sections).
+- **DeepMind pattern fusion** (`docs/DEEPMIND_FUSION.md`) — cascading multi-evaluator
+  evolution (AlphaEvolve), generate-verify-reinforce (AlphaProof), active-learning
+  retrain (GNoME), neuro-symbolic split (AlphaGeometry).
+- **Claude Code seamless**: the package installs a thin `sciforge` skill adapter
+  (`~/.claude/skills/sciforge/`) + `CLAUDE.md` project memory — invoke `/sciforge` or
+  `/auto-pipeline` directly inside Claude Code.
+
 ## Installation
 
 > **v1.4.0**: literature-first gap chain (ideas anchor to mined literature gaps), evidence-norm domain learning, `.sciforge/` two-tier workspace with RUNSTATE long-horizon resume and routing-aware N/A verdicts. Pure Skill package + optional toolchain. The skills themselves are pure Markdown that any Markdown-capable AI agent can consume directly; fully running through (figures / literature / compile / experiments) needs the optional toolchain, see "Toolchain (optional but recommended)" below.

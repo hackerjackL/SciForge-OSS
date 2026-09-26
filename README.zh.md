@@ -100,6 +100,13 @@ sciforge daily  --workspace ./runs              # 纯文本日报（可推送任
 ```
 
 
+## Deepen 模式与 SCI 正文语域（v1.5.0 波次二）
+
+- **`mode=deepen`** —— 第三种一等模式：在**不改创新点结构**（claim/贡献/方法身份冻结，违反=BLOCKED）的前提下，深度优化已有论文的**证据深度与实验公平性**（"刷 SOTA 但不调参"）。公平性清单（同算力预算、冻结数据划分、种子策略、超参预算对等、指标定义一致、效应量+CI 入表、多重比较校正）由 `scripts/fairness_gate.py` 机器检查 → 注册 verdict `FAIRNESS.json`（第 22 个）。
+- **SCI 正文语域**（writing-principles §0.6）—— 正文面向科学读者而非审稿人：**零道歉、零防御**；hedge 仅允许带界的精确语句；Limitations 是 regime 账本不是忏悔。`leakage_scan.py` class K 机器强制（正文段零容忍）。
+- **DeepMind 模式融合**（docs/DEEPMIND_FUSION.md）—— 级联多评估器进化（AlphaEvolve）、生成-验证-强化（AlphaProof）、主动学习回流（GNoME）、神经-符号分工（AlphaGeometry）。
+- **Claude Code 无缝接入**：安装轻量 `sciforge` skill 适配器（`~/.claude/skills/sciforge/`）+ `CLAUDE.md` 项目记忆——在 Claude Code 内直接 `/sciforge` 或 `/auto-pipeline`。
+
 ## 安装指南
 
 > **v1.4.0**：文献先行 gap 链（idea 锚定文献空白）、证据门槛领域学习、`.sciforge/` 双层工作区（RUNSTATE 长续航恢复 + 路由感知 N/A verdict）。纯 Skill 包 + 可选工具链。skill 本身是纯 Markdown，任何能读 Markdown 的 AI agent 直接消费；但完整跑通（图/文献/编译/实验）需要可选工具链，见下文「工具链（可选但推荐）」。
