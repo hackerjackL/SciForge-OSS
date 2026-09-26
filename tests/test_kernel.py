@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import pytest
@@ -1044,3 +1045,47 @@ def test_invcheck_detects_anchor_tampering(tmp_path: Path):
     assert v.v == "FAIL", v.notes
     doc = json.loads((tmp_path / ".sciforge" / "verdicts" / "INVARIANT_CHECK.json").read_text())
     assert doc["overall_verdict"] == "FAIL"
+
+
+# ---------------- v1.6 dual timer: external wait excluded from wall budget ----------------
+
+def test_external_wait_approval_excluded(tmp_path: Path):
+    """A requested checkpoint that is still open counts as external wait; the
+    kernel's wall_clock_seconds must subtract it (SciDis beginExternalWait)."""
+    from sciforge.approvals import Approvals, external_wait_seconds, accrue, init_budget
+    from sciforge.pipeline import PhaseGraph
+    k = Kernel(tmp_path)
+    k.start("DT1", "x", "lite", host="manual")
+    init_budget(tmp_path, "DT1", "lite", PhaseGraph().limits)
+    # real request (writes the record + emits checkpoint_requested)
+    k.appr.request("idea-pick", "3", {"digest": "x"}, k.rs)
+    # backdate the OPEN event 10 min — the event log is the only clock
+    lines = (tmp_path / ".sciforge" / "events.ndjson").read_text().splitlines()
+    ev = json.loads(lines[-1]); ev["ts"] -= 600; lines[-1] = json.dumps(ev)
+    (tmp_path / ".sciforge" / "events.ndjson").write_text("\n".join(lines) + "\n")
+    w = external_wait_seconds(tmp_path)
+    assert w > 550, w
+    d = accrue(tmp_path, phase="3")
+    assert d["external_wait_seconds"] > 550
+    # decide closes it: after clearing, the wait stops growing (still counted)
+    k.appr.decide("idea-pick", True, "t", k.rs)
+    w2 = external_wait_seconds(tmp_path)
+    assert 550 < w2 < 660  # bounded at close, not open-ended
+
+def test_external_wait_overlap_not_double_counted(tmp_path: Path):
+    from sciforge.approvals import external_wait_seconds
+    k = Kernel(tmp_path)
+    k.start("DT2", "x", "lite", host="manual")
+    t0 = time.time() - 100
+    k.appr.request("idea-pick", "3", {}, k.rs)
+    k.log.emit("6c", "host_dispatched", {"pid": 999, "bin": "claude"})  # nested waits
+    lines = (tmp_path / ".sciforge" / "events.ndjson").read_text().splitlines()
+    # backdate the two OPEN events (requested line and dispatched line)
+    idx = [i for i, ln in enumerate(lines) if json.loads(ln)["kind"] in
+           ("checkpoint_requested", "host_dispatched")]
+    for j, i in enumerate(idx):
+        ev = json.loads(lines[i]); ev["ts"] = t0 + 10 * j; lines[i] = json.dumps(ev)
+    (tmp_path / ".sciforge" / "events.ndjson").write_text("\n".join(lines) + "\n")
+    # checkpoint opens at -100s, host opens at -90s; merge overlapping -> not ~190s
+    w = external_wait_seconds(tmp_path)
+    assert 95 <= w <= 110, w

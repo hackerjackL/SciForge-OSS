@@ -747,8 +747,7 @@ class Kernel:
                 "verdict": v.v, "artifacts": v.artifacts, "notes": v.notes,
                 "cost_usd": v.cost_usd, "reason_code": v.reason_code}, indent=2))
             payload = self._checkpoint_payload(ck, pid)
-            self.appr.request(ck, pid, payload, self.rs)
-            self.log.emit(pid, "checkpoint_requested", {"checkpoint": ck})
+            self.appr.request(ck, pid, payload, self.rs)  # emits checkpoint_requested
             self.rs.write()
             return {"status": "blocked_checkpoint", "pending": [ck],
                     "hint": "run `sciforge approve` or rerun with human_skip=true"}

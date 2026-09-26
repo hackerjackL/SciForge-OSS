@@ -28,6 +28,15 @@ class Approvals:
         self.log = self.ws / ".sciforge" / "APPROVAL_LOG.txt"
         self.dir.mkdir(parents=True, exist_ok=True)
 
+    def _emit_cleared(self, checkpoint: str, phase: str) -> None:
+        """Close the external-wait timer for this checkpoint in the event log so
+        the dual-timer does not keep counting a decision already made."""
+        try:
+            from .state import EventLog
+            EventLog(self.ws).emit(phase, "checkpoint_cleared", {"checkpoint": checkpoint})
+        except Exception:
+            pass
+
     def request(self, checkpoint: str, phase: str, payload: dict, rs: RunState) -> dict:
         rec = {"checkpoint": checkpoint, "phase": phase, "requested_at": time.time(),
                "status": "PENDING", "payload": payload}
@@ -36,6 +45,12 @@ class Approvals:
         rs.status = "paused_checkpoint"
         rs.update(pending=[checkpoint])
         rs.write()
+        # open the external-wait timer in the same transaction that blocks the run
+        try:
+            from .state import EventLog
+            EventLog(self.ws).emit(phase, "checkpoint_requested", {"checkpoint": checkpoint})
+        except Exception:
+            pass
         return rec
 
     def decide(self, checkpoint: str, approved: bool, decided_by: str,
@@ -55,6 +70,7 @@ class Approvals:
                 lf.write(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} "
                          f"checkpoint={checkpoint} decision={'APPROVE' if approved else 'DENY'} "
                          f"by={decided_by} phase={rec['phase']} note={note}\n")
+            self._emit_cleared(checkpoint, rec["phase"])  # stop the wait timer
             pend = [r["checkpoint"] for r in self.pending_records() if r["checkpoint"] != checkpoint]
             rs.update(pending=pend)
             if not pend:
@@ -108,6 +124,55 @@ def init_budget(ws: Path, run_id: str, effort: str, limits: dict) -> dict:
     return data
 
 
+def external_wait_seconds(ws: Path, now: float | None = None) -> float:
+    """Dual-timer accounting (C-5 / v1.6): time spent waiting OUTSIDE the
+    pipeline's own compute must not consume the run's wall-clock budget. Two
+    wait classes, both derived from events.ndjson so a mid-wait crash can't
+    leak an open timer (the interval is reconstructed from the log, not from
+    mutable state):
+
+      - human approval: checkpoint_requested -> checkpoint_cleared (by name)
+      - host-agent execution: host_dispatched -> host_result|host_timeout (by phase)
+
+    An open interval counts up to `now` (still legitimately waiting). Overlaps
+    are merged (nested begins don't double-count)."""
+    now = now or time.time()
+    from .state import EventLog
+    spans: list[tuple[float, float | None, str]] = []  # (open_ts, close_ts, key)
+    open_by_key: dict[str, float] = {}
+    for e in EventLog(ws).replay():
+        k, ph, pl = e["kind"], e.get("phase", ""), e.get("payload", {})
+        if k == "checkpoint_requested":
+            open_by_key[f"ck:{pl.get('checkpoint')}"] = e["ts"]
+        elif k == "checkpoint_cleared":
+            key = f"ck:{pl.get('checkpoint')}"
+            if key in open_by_key:
+                spans.append((open_by_key.pop(key), e["ts"], key))
+        elif k == "host_dispatched":
+            open_by_key[f"h:{ph}"] = e["ts"]
+        elif k in ("host_result", "host_timeout"):
+            key = f"h:{ph}"
+            if key in open_by_key:
+                spans.append((open_by_key.pop(key), e["ts"], key))
+    for key, t in open_by_key.items():  # still waiting now
+        spans.append((t, None, key))
+    if not spans:
+        return 0.0
+    # true merge of overlapping intervals (a checkpoint held open *while* a host
+    # agent also runs is ONE wall-clock span, not two summed waits)
+    ivs = sorted((s, e if e is not None else now) for s, e, _ in spans)
+    total = 0.0
+    cs, ce = ivs[0]
+    for s, e in ivs[1:]:
+        if s <= ce:                 # overlaps/abuts the current block
+            ce = max(ce, e)
+        else:
+            total += max(0.0, ce - cs)
+            cs, ce = s, e
+    total += max(0.0, ce - cs)
+    return total
+
+
 def accrue(ws: Path, *, phase: str, cost_usd: float | None = None,
            duration_s: float | None = None, pivot: bool = False, ba: bool = False) -> dict:
     """Boundary accounting (anti-gaming: kernel writes from the clock, never self-report)."""
@@ -117,7 +182,10 @@ def accrue(ws: Path, *, phase: str, cost_usd: float | None = None,
     d = json.loads(p.read_text())
     import calendar
     started = calendar.timegm(time.strptime(d["started_at"], "%Y-%m-%dT%H:%M:%SZ"))
-    d["wall_clock_seconds"] = int(time.time() - started)
+    raw_wall = int(time.time() - started)
+    wait = external_wait_seconds(ws)          # subtracted from the compute budget
+    d["external_wait_seconds"] = int(wait)
+    d["wall_clock_seconds"] = max(0, raw_wall - int(wait))
     if cost_usd is not None:
         d["api_cost_usd"] = round(max(0.0, d["api_cost_usd"] + cost_usd), 4)  # monotone
     if duration_s is not None:
