@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.6.0] - 2026-09-26 定版：可验证证据链 + 运行时防御（第三轮，Top-12 清单落地）
+
+> 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的**。候选池分析见 `ANALYSIS_V1.6.md`（五路开源调研收敛信号 + 本地承诺兑现审计）。本轮全部改动带回归测试；367/367 绿，ci_check PASS。
+
+- **B5（本轮审计最重发现，定性为 kernel 强制）**：`security_scan` 从"phasegraph 声明但主循环从不消费"变成真正嵌入 6b/6c 边界——src/ 与 experiments/ 下任何 agent-authored 脚本静态扫描不过 → 边界拒绝提交（不写 boundary_committed）。README"门即代码"的卖点自此对实验链诚实。
+- **A2 fantasy-prevention 五门**：自称"最重要质量门"却只有 prose；`scripts/fantasy_gate.py` 从既有机器产物（PROOF_AUDIT/CITATION_AUDIT/FALSIFICATION_RECORD/domain-signature/RESULT）确定性评估 5 门，FANTASY/MOSTLY_FANTASY 阻断 paper-writing 并写 fantasy-log.md；证据不足**保守放行**（单门失败≠fantasy）；挂 Phase 12。
+- **A1 TDAL 四维联合置信**：v2.8 锁定的 T×D×A×L 公式首次被执行——`scripts/tdal_compute.py` 纯读机器产物，floor 规则齐备（dim=0→WEAK、missing_inputs→封顶 MODERATE、no-literature→UNSUPPORTED），fixture 实跑复现契约 worked example（STRONG 被 theory_data_validation 缺失正确压到 MODERATE）。
+- **A0 kernel 生产欠债**：Phase 9 INVARIANT_CHECK 改 kernel-native（hash 比对+Q-id 下游扫描，产出过严格校验器的 registered JSON，篡改锚点可被检出）；KILL/PIVOT/BA 路由事实记入 `results/KILL_DECISIONS.jsonl` 决策账本。
+- **可验证公平性两件套**：`arb_verify.py`（python-flint Arb 认证区间——声明值必须是可复算包含的 ball，point-value 时代结束，挂 Phase 10）；`citation_support.py`（第 4 层核查：量化句无 \cite 无自引 → FAIL、bib 孤儿 → FAIL；确定性结构半，LLM 蕴含半留 SCIFORGE_LLM_SUPPORT，挂 Phase 15）。
+- **A3 SMOKE 门 kernel 化**：Step 5.0 的"埋没小节"故障类（Q-SGD-BS-GAP 全实验没跑冒烟）由 `smoke_gate.py` 在 6c 边界强制——缺 .SMOKE.json 的 dispatch 不再有效。
+- **运行时防御层（C-5 收敛靶点）**：`sanitize.py` 权威标签消毒（bundle 注入防御 + drift 自检，外部内容中的 `<system-reminder>` 变惰性文本且留 integrity 警告）；`limiter.py` 键控限速 + 429 全局冷却（Retry-After 保留，本会话亲历 Google 免费档 25万 tok/min 教训直接成设计；manifest 在 `kernel/config/ratelimits.json`）；providers 调用前 pacing、429 上报冷却。
+- **双计时器（C-5）**：人工审批等待与宿主 agent 执行时长从 wall-clock 预算扣除（`external_wait_seconds` 从 events.ndjson 重建、区间真合并、崩溃安全），RUN_BUDGET 新增 `external_wait_seconds` 审计字段——"等人/等宿主"不再烧 run 预算。
+- **工程**：requirements kernel 段升级（python-flint 入门槛、codecarbon/psutil 可选）；`.venv`/网关运行于 Python 3.14.7（338→367 全绿）；`bin/sciforge.js` 解释器探测 3.14 优先；verifier 脚本解释器探测（B1，Xcode-shim 免疫）。
+- **记档未做（诚实）**：GEPA 变异引擎（MIT vendor 待做）、EvoScientist AutoSkills 蒸馏（与 HITL 原则半冲突，仅提案化）、S2 滚雪球检索、codecarbon 能耗账、Lean 门接口预留、AIDE 树搜索灰度、AutoDL ssh 后端（用户决定暂缓）。
+
 ## [1.5.0] - 2026-09-26 波次二收官：闭环 demo 实测 + 8 个 kernel bug 修复（S58–S60 定版）
 
 ### 闭环 demo（DEMO-RK4，子代理加载本项目全链实测）

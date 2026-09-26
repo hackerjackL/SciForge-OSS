@@ -1140,3 +1140,20 @@ def test_tdal_any_dim_zero_forces_low_verdict(tmp_path: Path):
     assert doc["dims"]["literature_support"] == 0.0
     assert doc["joint"] == 0.0 and doc["verdict"] == "UNSUPPORTED", doc
     assert "literature_search" in doc["missing_inputs"]
+
+
+
+def test_kill_decision_ledger_records_routing_facts(tmp_path: Path):
+    """apply_loopback must append a decision-level record for kernel routing
+    (A0 kill side)."""
+    k = Kernel(tmp_path)
+    k.start("KDL", "x", "lite", host="manual")
+    from sciforge.pipeline import Verdict
+    # fire the L1 loopback (phase 2.5 WEAKENED/FAIL -> phase 2)
+    v = Verdict("FAIL", notes="counterexample found")
+    target = k.apply_loopback("2.5", v)
+    assert target == "2"
+    kl = tmp_path / "results" / "KILL_DECISIONS.jsonl"
+    assert kl.exists(), "routing decision not recorded"
+    rec = json.loads(kl.read_text().splitlines()[-1])
+    assert rec["loopback"] == "L1" and rec["to"] == "2" and rec["trigger_verdict"] == "FAIL"

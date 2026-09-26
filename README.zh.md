@@ -3,14 +3,14 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
 
 > **AI for Scientist Anything** — Skill 驱动的通用科研运行时：**Skill 库（纯 Markdown）+ Runtime Kernel（代码强制控制循环）+ RSI 进化层**。
 >
-> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**：**"做什么"留在 Markdown，"如何强制"进入代码**。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
+> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**，v1.6.0 进一步把证据变成**可验证**（实验安全扫描 kernel 强制、TDAL 联合置信、反幻想五门、Arb 认证区间、句级引用归因、SMOKE 门、注入消毒、限速器、双计时器）：**"做什么"留在 Markdown，"如何强制"进入代码**。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
 >
 > 两种用法：**(A) 纯 skill**（任意 agent 内 `/auto-pipeline "问题"`）——与从前一致；**(B) skill + kernel**（`sciforge run --workspace … --host claude`）——管线再也不能静默跳过门、进程死了能续、且每一轮都变得更强（RSI）。
 >

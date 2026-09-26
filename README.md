@@ -3,14 +3,14 @@
 > **[English](README.md)** | **[中文](README.zh.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
 
 > **AI for Scientist Anything** — a Skill-driven universal research runtime: **Skill Library (pure Markdown) + Runtime Kernel (code-enforced control loop) + RSI evolution layer**.
 >
-> The knowledge layer keeps its spirit: **the skills are pure Markdown** — no IDE-specific syntax, consumable by any agent that can read files (Claude Code, Cursor, Trae, Codex…). The 1.5.0 change is the split: **what to do stays in Markdown; how it is enforced moves into code**. The optional `kernel/` (Python ≥3.10, stdlib-only) runs the 21-phase DAG as a real state machine with event-sourced resume, mechanical gates, human checkpoints as code, multi-backend providers, a cross-model review panel, and a recursive skill-library evolution loop. **No UI** — headless CLI (`sciforge run …`) or host-agent mode.
+> The knowledge layer keeps its spirit: **the skills are pure Markdown** — no IDE-specific syntax, consumable by any agent that can read files (Claude Code, Cursor, Trae, Codex…). The 1.5.0 change is the split, and v1.6.0 hardens it into a verifiable evidence chain (kernel-enforced experiment security scan, TDAL joint confidence, fantasy 5-gate, Arb certified intervals, sentence-level citation support, SMOKE gate, injection sanitizer, rate limiter, dual-timer): **what to do stays in Markdown; how it is enforced moves into code**. The optional `kernel/` (Python ≥3.10, stdlib-only) runs the 21-phase DAG as a real state machine with event-sourced resume, mechanical gates, human checkpoints as code, multi-backend providers, a cross-model review panel, and a recursive skill-library evolution loop. **No UI** — headless CLI (`sciforge run …`) or host-agent mode.
 >
 > Two ways to use: **(A) skills-only** (inside any AI agent: `/auto-pipeline "problem"`) — unchanged from before; **(B) skills + kernel** (`sciforge run --workspace … --host claude`) — the pipeline can no longer silently skip a gate, survives process death, and gets measurably better with every run (RSI).
 >
@@ -73,6 +73,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 | **Providers** | role-tiered multi-backend routing (Anthropic/OpenAI-compatible/Ollama; env gateway honored) with real token accounting into `RUN_BUDGET.json` |
 | **Hosts** | `--host claude` (Claude Code CLI, reports `total_cost_usd`), `--host codex`, or `manual` bundle protocol (any agent drives via `.sciforge/host/*.done.json`) |
 | **Experiments** | sandbox-gated dispatch (Seatbelt on macOS, bubblewrap on Linux), worker pool, background nohup + STATUS.json aggregation, device planning (CUDA/ROCm/NPU/MPS/CPU via `detect_device.py`) |
+| **Verifiable evidence (v1.6)** | security_scan enforced at 6b/6c · TDAL joint (tdal_compute.py) · fantasy 5-gate · Arb certified intervals · sentence-level citation support · SMOKE gate · injection sanitizer · rate limiter + 429 cooldown · dual-timer |
 | **Daemon** | `sciforge serve` — headless queue + loopback HTTP (:4510) for overnight server runs; no GUI anywhere |
 
 ```bash

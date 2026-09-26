@@ -485,6 +485,23 @@ class Kernel:
             self.log.emit(pid, "failure_evidence_present", {"file": str(ev)})
         target = lb["target"]
         self.log.emit(pid, "loopback", {"id": lb["id"], "target": target, "round": used + 1})
+        # A0: the KILL/PIVOT/BA ROUTING FACTS are the kernel's own decisions —
+        # recorded append-only so "which kill fired when, budget left" survives
+        # session death and is auditable (the full-argument KILL_ARGUMENT.json
+        # stays the kill-argument skill's registered artifact; this ledger is
+        # decision-level provenance, results/ marker pattern).
+        try:
+            (self.ws / "results").mkdir(exist_ok=True)
+            with open(self.ws / "results" / "KILL_DECISIONS.jsonl", "a") as lf:
+                lf.write(json.dumps({
+                    "ts": time.time(), "loopback": lb["id"], "from_phase": pid,
+                    "to": target, "round": used + 1, "trigger_verdict": v.v,
+                    "reason_code": v.reason_code, "notes": v.notes[:400],
+                    "budget_left": (lb.get("budget", -1) - (used + 1))
+                                   if lb.get("budget", -1) >= 0 else None,
+                }, ensure_ascii=False) + "\n")
+        except OSError:
+            pass
         return target
 
     # ---------------- native phases ----------------
