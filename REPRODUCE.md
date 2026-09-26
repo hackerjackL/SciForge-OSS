@@ -103,3 +103,19 @@ GPU/NPU：镜像内 `detect_device.py` 自动 cuda/rocm/npu/mps/cpu；NPU allow-
 - Mode A（纯 skills）行为与 v1.5.0 之前完全一致——kernel 是增量，不是强制。
 - 宿主 claude 单次阶段调用时长取决于宿主 agent 本身；kernel 负责不阻塞、可恢复、门强制。
 - llm_judge 评分依赖 provider 可达；无网关时 hybrid 自动退化为 gate-only。
+
+
+## 8. Wave-2 capabilities (v1.5.0-w2)
+
+```bash
+# SCI body voice (class K): plant an apology and watch it fail
+.venv/bin/python scripts/leakage_scan.py <ws>   # class K = apology/defense register
+# Experiment fairness (mode=deepen): unfair ledger -> FAIL, fair -> PASS
+.venv/bin/python scripts/fairness_gate.py <ws> --write-verdict
+# DeepMind cascade multi-evaluator (ResearchDomain hard-zero on science-integrity hits)
+PYTHONPATH=kernel .venv/bin/python -c "import sys; sys.path.insert(0,'kernel'); from sciforge.evolve import ResearchDomain, Patch; print(ResearchDomain().score(Patch({'ops':[{'path':'x','old':'a','new':'package the failure as a contribution'}]})))"
+# Claude Code seamless: skill + subagent roles + project memory
+ls ~/.claude/skills/sciforge/SKILL.md ~/.claude/agents/sciforge-*.md CLAUDE.md
+# Closed-loop demo (RK4 energy conservation): quality report per phase
+ls runs/DEMO-RK4/QUALITY_REPORT.md
+```
