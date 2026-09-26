@@ -277,11 +277,17 @@
       "name": "result-to-claim",
       "skill": "skills/support/result-to-claim/SKILL.md",
       "mode": "MUST",
-      "gate": {
-        "check": "file",
-        "path": ".sciforge/audits/CLAIMS_FROM_RESULTS.md"
-      },
-      "next": "11"
+      "next": "11",
+      "gates": [
+        {
+          "check": "file",
+          "path": ".sciforge/audits/CLAIMS_FROM_RESULTS.md"
+        },
+        {
+          "check": "command",
+          "cmd": "arb_verify"
+        }
+      ]
     },
     {
       "id": "11",
@@ -363,11 +369,17 @@
       "name": "citation-audit",
       "skill": "skills/support/citation-audit/SKILL.md",
       "mode": "MUST",
-      "gate": {
-        "check": "command",
-        "cmd": "citation_audit"
-      },
-      "next": "15.5"
+      "next": "15.5",
+      "gates": [
+        {
+          "check": "command",
+          "cmd": "citation_audit"
+        },
+        {
+          "check": "command",
+          "cmd": "citation_support"
+        }
+      ]
     },
     {
       "id": "15.5",

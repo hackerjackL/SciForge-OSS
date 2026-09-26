@@ -126,6 +126,14 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             return {"gate": "INV-G1", "status": "FAIL", "note": str(e)}
     if kind == "command":
         name = gate["cmd"]
+        if name == "citation_support":
+            p = run_py("scripts/citation_support.py", [str(ws), "--write-verdict"])
+            return {"gate": "citation_support", "status": "PASS" if p.returncode == 0 else "FAIL",
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
+        if name == "arb_verify":
+            p = run_py("scripts/arb_verify.py", [str(ws)])
+            return {"gate": "arb_verify", "status": "PASS" if p.returncode == 0 else "FAIL",
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-1500:]}
         if name == "smoke_gate":
             p = run_py("scripts/smoke_gate.py", [str(ws)])
             return {"gate": "smoke_gate", "status": "PASS" if p.returncode == 0 else "FAIL",

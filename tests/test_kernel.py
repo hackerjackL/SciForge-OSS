@@ -898,3 +898,70 @@ def test_smoke_gate_passes_with_real_smoke(tmp_path: Path):
 def test_smoke_gate_skip_before_dispatch(tmp_path: Path):
     r = gates.check(tmp_path, {"check": "command", "cmd": "smoke_gate"}, "6c")
     assert r["status"] == "PASS", r  # no full/ dir => exit 0 SKIP semantics
+
+
+# ---------------- v1.6 Arb certified-interval gate ----------------
+
+def _arb_ws(tmp_path: Path, claims) -> Path:
+    (tmp_path / "experiments" / "toy").mkdir(parents=True)
+    (tmp_path / "experiments" / "toy" / "RESULT.json").write_text(
+        json.dumps({"status": "PASS", "arb_claims": claims}))
+    return tmp_path
+
+def test_arb_gate_certified_claim_passes(tmp_path: Path):
+    rj = _arb_ws(tmp_path, [{"name": "third", "lo": "0.33", "hi": "0.34",
+                             "recompute": "arb(1)/arb(3)"}])
+    r = gates.check(rj, {"check": "command", "cmd": "arb_verify"}, "10")
+    assert r["status"] == "PASS", r
+
+def test_arb_gate_uncertified_claim_fails(tmp_path: Path):
+    rj = _arb_ws(tmp_path, [{"name": "third", "lo": "0.99", "hi": "0.999",
+                             "recompute": "arb(1)/arb(3)"}])
+    r = gates.check(rj, {"check": "command", "cmd": "arb_verify"}, "10")
+    assert r["status"] == "FAIL", r
+    assert "uncertified" in r["output"], r
+
+def test_arb_gate_skip_without_claims(tmp_path: Path):
+    (tmp_path / "experiments" / "toy").mkdir(parents=True)
+    (tmp_path / "experiments" / "toy" / "RESULT.json").write_text(
+        json.dumps({"status": "PASS"}))
+    r = gates.check(tmp_path, {"check": "command", "cmd": "arb_verify"}, "10")
+    assert r["status"] == "PASS", r  # SKIP semantics exit 0
+
+
+# ---------------- v1.6 sentence-level citation-support gate (4th layer) ----------------
+
+def _cs_ws(tmp_path: Path, tex: str) -> Path:
+    (tmp_path / "paper").mkdir()
+    (tmp_path / "paper" / "main.tex").write_text(tex)
+    return tmp_path
+
+def test_citation_support_passes_attributed_claims(tmp_path: Path):
+    ws = _cs_ws(tmp_path, r"""\begin{document}
+Prior work reports a 12.5\% gain \cite{smith2023}. Our method outperforms it by 0.8 nats
+(Table~\ref{tab:main}). \end{document}""")
+    (ws / "paper" / "references.bib").write_text("@article{smith2023, title=T}\n")
+    r = gates.check(ws, {"check": "command", "cmd": "citation_support"}, "15")
+    assert r["status"] == "PASS", r
+
+def test_citation_support_fails_unattributed_number(tmp_path: Path):
+    ws = _cs_ws(tmp_path, r"""\begin{document}
+The loss drops by 2.4 nats on average across all seeds. \end{document}""")
+    r = gates.check(ws, {"check": "command", "cmd": "citation_support"}, "15")
+    assert r["status"] == "FAIL", r
+    assert "quantitative claim" in r["output"], r
+
+def test_citation_support_fails_orphan_reference(tmp_path: Path):
+    ws = _cs_ws(tmp_path, r"\begin{document}Nothing numeric here. \end{document}")
+    (ws / "paper" / "references.bib").write_text(
+        "@article{used2023, title=A}\n@article{dead2021, title=B}\n")
+    # cite only one of the two -> the other is orphan
+    (ws / "paper" / "main.tex").write_text(
+        r"\begin{document}See \cite{used2023}. Nothing else.\end{document}")
+    r = gates.check(ws, {"check": "command", "cmd": "citation_support"}, "15")
+    assert r["status"] == "FAIL", r
+    assert "dead2021" in r["output"], r
+
+def test_citation_support_skip_without_paper(tmp_path: Path):
+    r = gates.check(tmp_path, {"check": "command", "cmd": "citation_support"}, "15")
+    assert r["status"] == "PASS", r  # SKIP exit 0
