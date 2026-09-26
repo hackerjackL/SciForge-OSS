@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "comment": "Keyed rate limits for outbound sources (kernel/sciforge/limiter.py). A key with no entry here is unlimited. min_interval_s = polite spacing; default_retry_after_s = assumed backoff when upstream 429 has no Retry-After; max_cooldown_s = clamp on honor-the-upstream wait. Sources with hard courtesy limits (arXiv 1req/3s) and gateway models observed 429-ing at free-tier token/min caps get an entry; everything else is pass-through.",
+  "limits": {
+    "arxiv":       {"min_interval_s": 3.0,  "default_retry_after_s": 30,  "max_cooldown_s": 120},
+    "crossref":    {"min_interval_s": 0.5,  "default_retry_after_s": 20,  "max_cooldown_s": 120},
+    "s2":          {"min_interval_s": 1.0,  "default_retry_after_s": 30,  "max_cooldown_s": 180},
+    "openalex":    {"min_interval_s": 0.2,  "default_retry_after_s": 20,  "max_cooldown_s": 120},
+    "pubmed":      {"min_interval_s": 0.4,  "default_retry_after_s": 20,  "max_cooldown_s": 120},
+    "gemini-3.8-flash":   {"min_interval_s": 1.5, "default_retry_after_s": 45, "max_cooldown_s": 90},
+    "gemini-3.5-flash":   {"min_interval_s": 1.5, "default_retry_after_s": 45, "max_cooldown_s": 90},
+    "gemini-3.1-pro-preview": {"min_interval_s": 3.0, "default_retry_after_s": 60, "max_cooldown_s": 120}
+  }
+}

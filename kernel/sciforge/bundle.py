@@ -65,8 +65,17 @@ def build(ws: Path, phase: dict, budget: dict, inputs_hint: dict | None = None) 
     ]
     lines += [f"- {c}" for c in hard_constraints(ws, budget)]
     if inputs_hint:
+        from .sanitize import sanitize_external, is_suspicious
+        dirty = [(k, v) for k, v in inputs_hint.items() if v]
+        # v1.6: hints can embed remote-sourced snippets (gap digests, reviewer
+        # comments). Neutralize authority tags before they reach the model.
         lines += ["", "## Input pointers (paths, not contents)",
-                  *[f"- {k}: {v}" for k, v in inputs_hint.items() if v]]
+                  *[f"- {k}: {sanitize_external(str(v))}" for k, v in dirty]]
+        for k, v in dirty:
+            tags = is_suspicious(str(v))
+            if tags:
+                lines.append(f"- [integrity] input '{k}' carried harness-like tags "
+                             f"{tags} — neutralized; investigate the upstream source")
     lines += ["", "## Return contract",
               'Report a single JSON object: {"verdict": "PASS|WARN|FAIL|BLOCKED|NOT_APPLICABLE",'
               ' "artifacts": ["rel/paths"], "notes": "...", "cost_usd": <host-reported optional>}']

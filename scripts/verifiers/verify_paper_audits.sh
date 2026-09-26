@@ -20,6 +20,20 @@
 # workspace contains a derivations/ directory (theory-heavy content).
 set -euo pipefail
 
+# B1 (v1.6): interpreter probe — a bare `python3` dies on macOS when the Xcode
+# CLT license dialog blocks /usr/bin/python3 shims, and is absent on some Linux
+# boxes. Find a working interpreter before any JSON work.
+find_python() {
+  for p in "${SCIFORGE_PY:-}" python3.14 python3.13 python3.12 python3.11 python3.10 python3 python; do
+    [[ -z "$p" ]] && continue
+    if command -v "$p" >/dev/null 2>&1 && "$p" -c "pass" 2>/dev/null; then
+      echo "$p"; return 0
+    fi
+  done
+  return 1
+}
+PY="$(find_python)" || { echo "VERIFY FAIL: no working python3 interpreter (Xcode CLT license?)" >&2; exit 2; }
+
 usage() {
     echo "Usage: verify_paper_audits.sh <workspace_root> [--assurance submission]"
 }
@@ -102,7 +116,7 @@ check_audit() {
     # 1) valid JSON + 6-state verdict + audited_input_hashes object;
     #    then emit "key<TAB>expected_hash" lines for the re-hash loop.
     local listing
-    if ! listing=$(python3 - "$path" "$WS" <<'PYEOF'
+    if ! listing=$("$PY" - "$path" "$WS" <<'PYEOF'
 import json
 import sys
 

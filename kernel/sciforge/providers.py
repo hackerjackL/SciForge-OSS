@@ -21,6 +21,8 @@ import time
 import urllib.error
 import urllib.request
 
+from . import limiter as _limiter
+
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "providers.json")
 
 # Role tiers: which role does which kind of work (phase roles from auto-pipeline).
@@ -121,8 +123,14 @@ class Providers:
             raise ProviderError(f"backend {backend_name}: set {key_env or 'ANTHROPIC_API_KEY'}")
         last_err: Exception | None = None
         schema = json_schema  # gateways lacking forced tool_choice => degrade to plain JSON ask
+        key_limited = model.lower()
+        lim = _limiter.limiter()
         for attempt in range(retries + 1):
             try:
+                try:
+                    lim.acquire(key_limited, timeout_s=120)
+                except TimeoutError as te:
+                    raise ProviderError(f"rate-limit queue: {te}") from te
                 text, usage = self._raw_call(backend_name, base, key, model, system, prompt,
                                               max_tokens, temperature, schema)
                 rec = CallRecord(role=role, backend=backend_name, model=model,
@@ -137,6 +145,14 @@ class Providers:
                 return text, rec
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as e:
                 last_err = e
+                if isinstance(e, urllib.error.HTTPError) and e.code == 429:
+                    # upstream told us to back off -> global cooldown for this key
+                    ra = None
+                    try:
+                        ra = float(e.headers.get("retry-after", "")) or None
+                    except (ValueError, AttributeError):
+                        ra = None
+                    lim.report_upstream_429(key_limited, retry_after_s=ra)
                 if isinstance(e, urllib.error.HTTPError) and e.code in (400, 422) and schema is not None:
                     # gateway rejected forced tool_choice / response_format: degrade
                     # to plain-prompt JSON (instructed in the prompt tail) and retry once
