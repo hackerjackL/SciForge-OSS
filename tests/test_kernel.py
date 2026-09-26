@@ -640,3 +640,30 @@ def test_bug7_keyless_providers_force_host_mode():
         for k, v in old.items():
             if v is not None:
                 os.environ[k] = v
+
+
+def test_bug8_native_review_state_schema_valid(tmp_path: Path, monkeypatch):
+    """BUG-8: _native_review's REVIEW_STATE.json must validate against the
+    registered schema (response_class = array of objects, never bare strings)."""
+    import subprocess
+    from sciforge.review import adjudicate
+    k = Kernel(tmp_path)
+    k.start("B8", "x", "lite", host="manual")
+    # stub providers so the panel runs without a gateway
+    class StubP:
+        host_mode = False
+        def complete(self, role, system, prompt, **kw):
+            class U:
+                def as_dict(self):
+                    return {}
+            return ('{"scores": {"main_experiment_logic": 6}, "overall": 6.5, '
+                    '"fatal": ["claim X unsupported"], "kill_arguments": [], "summary": "s"}', U())
+    monkeypatch.setattr(k, "providers", lambda: StubP())
+    k.rs.data["current_phase"] = "14"
+    v = k._native_review()
+    assert v.v in ("PASS", "WARN", "FAIL")
+    import subprocess as _sp
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "validate_verdicts.py"),
+                 str(tmp_path / ".sciforge" / "verdicts"), "--strict"],
+                capture_output=True, text=True)
+    assert "REVIEW_STATE.json" in p.stdout and "PASS" in p.stdout.split("REVIEW_STATE.json")[1][:40], p.stdout[-800:]

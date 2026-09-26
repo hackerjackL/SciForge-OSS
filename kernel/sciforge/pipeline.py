@@ -510,12 +510,26 @@ class Kernel:
             json.dumps(panel, indent=2, ensure_ascii=False))
         rs_verdict = ("ready" if panel["verdict"] == "ACCEPT" else
                       "almost" if panel["verdict"] == "ADJUDICATE_REQUIRED" else "not_ready")
+        # BUG-8 (DEMO-RK4): response_class MUST be an array of objects
+        # ({concern, response_class, resolution}) per REVIEW_STATE.schema.json —
+        # a bare string array poisons the verdict dir and fails every later
+        # validate_verdicts --strict boundary.
+        resp = []
+        for fb in (panel.get("fatal") or [])[:6]:
+            resp.append({"concern": str(fb)[:200],
+                         "response_class": "experiment_redesign",
+                         "resolution": "panel fatal flagged; routed to revise loop"})
+        if not resp:
+            resp = [{"concern": "panel round complete",
+                     "response_class": "wording",
+                     "resolution": "no fatal flags in this round"}]
         rs = {"round": 1, "threadId": self.rs.data.get("run_id", ""),
               "status": "completed", "difficulty": "medium",
               "last_score": panel.get("overall") or 0, "last_verdict": rs_verdict,
               "pending_derivations": [],
               "timestamp": _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime()),
-              "response_class": ["panel"],
+              "response_class": resp,
+              "round_invalid": False,
               "panel_source": "kernel/sciforge/review.py (S20 cross-model)"}
         (self.ws / ".sciforge" / "verdicts" / "REVIEW_STATE.json").write_text(
             json.dumps(rs, indent=2, ensure_ascii=False))
