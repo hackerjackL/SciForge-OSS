@@ -110,6 +110,19 @@ class Kernel:
         except Exception:
             return None
 
+    def _declare_na(self, filename: str) -> None:
+        """Append a legitimately-skipped verdict file to VERIFICATION_ROUTING.na_verdicts."""
+        rp = self.ws / ".sciforge" / "verdicts" / "VERIFICATION_ROUTING.json"
+        try:
+            d = json.loads(rp.read_text())
+            na = d.get("na_verdicts", [])
+            if filename not in na:
+                na.append(filename)
+                d["na_verdicts"] = na
+                rp.write_text(json.dumps(d, indent=2))
+        except Exception:
+            pass
+
     def _round_count(self, loopback_id: str) -> int:
         return sum(1 for e in self.log.replay()
                    if e["kind"] == "loopback" and e["payload"].get("id") == loopback_id)
@@ -159,9 +172,18 @@ class Kernel:
         """Gate check then, only on PASS, commit boundary atomically."""
         ph = self.graph.phases[pid]
         results = []
-        # phase-specific gate(s): support "gates": [..] or single "gate"
-        for g in ph.get("gates", [ph["gate"]] if ph.get("gate") else []):
-            results.append(gates_mod.check(self.ws, g, pid))
+        # NOT_APPLICABLE (routing skip) legitimately never produces the phase's
+        # artifacts — its file gates are vacuous; extend na_verdicts instead
+        # (output-protocol: declared skips, never silent absences).
+        # na_verdicts uses registered artifact names (output-protocol.md §5;
+        # validate_verdicts WARNs on unregistered names — RESULT.json/STATUS.json
+        # are live experiment records in experiments/, not verdicts).
+        if v.v == "NOT_APPLICABLE":
+            for art in ph.get("na_on_skip", []):
+                self._declare_na(art)
+        else:
+            for g in ph.get("gates", [ph["gate"]] if ph.get("gate") else []):
+                results.append(gates_mod.check(self.ws, g, pid))
         # every boundary: registered verdicts validation (strict from phase 5)
         strict = _ord(ph) >= 5
         results.append(gates_mod.validate_verdicts(self.ws, strict=strict))
@@ -217,6 +239,15 @@ class Kernel:
         if ph.get("kernel_native"):
             return self._native(pid, ph)
 
+        # Routing-aware skip (orchestrator phase-mode table, v5.0): phases that
+        # declare skip_on_route SKIP under that route — no dispatch, no gate
+        # demand (theory-only legitimately never produces RESULT.json/STATUS.json).
+        # 6a is MUST on theory-only (primary verification) and declares no skip.
+        route = (self.routing() or {}).get("route")
+        if route and route in ph.get("skip_on_route", []):
+            self.log.emit(pid, "routed_skip", {"route": route})
+            return Verdict("NOT_APPLICABLE", notes=f"phase {pid} N/A on {route} route")
+
         # Phase 14: if a model gateway is configured, run the cross-model review
         # panel in-process (S20/S21) and write the machine verdicts. In host
         # mode we fall through to the host dispatch (manual/claude/codex).
@@ -269,6 +300,16 @@ class Kernel:
                 job.unlink()
                 return Verdict("ERROR", notes=f"corrupt job file for {pid}")
             alive = _child_alive(int(meta["pid"]))
+            cap = int(os.environ.get("SCIFORGE_HOST_PHASE_TIMEOUT", "7200"))
+            if alive and time.time() - meta.get("started_at", 0) > cap:
+                try:
+                    os.kill(int(meta["pid"]), 9)  # stuck child (observed: claude
+                except ProcessLookupError:       # wrote an error line then hung)
+                    pass
+                job.unlink()
+                self.log.emit(pid, "host_timeout", {"pid": meta["pid"], "cap_s": cap})
+                return Verdict("ERROR", reason_code=f"host_timeout:{pid}",
+                               notes=f"{meta.get('bin')} exceeded {cap}s on phase {pid}; killed")
             if alive:
                 self.log.emit(pid, "host_running", {"pid": meta["pid"], "since": meta["started_at"]})
                 return Verdict("BLOCKED", reason_code=f"await_host:{pid}",

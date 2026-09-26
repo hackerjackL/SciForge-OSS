@@ -178,7 +178,11 @@
         "target": "5-or-2",
         "budget": 2
       },
-      "next": "6c"
+      "next": "6c",
+      "na_on_skip": [],
+      "skip_on_route": [
+        "theory-only"
+      ]
     },
     {
       "id": "6c",
@@ -198,7 +202,15 @@
         "budget": 2,
         "shared": "ba"
       },
-      "next": "7"
+      "next": "7",
+      "na_on_skip": [
+        "BUDGET_FLOOR.json",
+        "EXPERIMENT_MATRIX.json",
+        "EVALUATION_PROTOCOL.json"
+      ],
+      "skip_on_route": [
+        "theory-only"
+      ]
     },
     {
       "id": "7",

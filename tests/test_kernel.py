@@ -280,6 +280,52 @@ def test_host_bg_dead_no_output(tmp_path: Path):
     assert v.v == "ERROR"
 
 
+def test_host_bg_timeout_kills_stuck_child(tmp_path: Path, monkeypatch):
+    """A live child past SCIFORGE_HOST_PHASE_TIMEOUT is killed + ERROR (observed:
+    claude wrote an error line then hung forever — the loop must not spin)."""
+    import os, json, subprocess, time
+    child = subprocess.Popen(["sleep", "300"])
+    hostdir = tmp_path / ".sciforge" / "host"; hostdir.mkdir(parents=True)
+    (hostdir / "1a.job.json").write_text(json.dumps(
+        {"pid": child.pid, "bin": "claude", "started_at": 0, "phase": "1a"}))
+    monkeypatch.setenv("SCIFORGE_HOST_PHASE_TIMEOUT", "1")
+    k = Kernel(tmp_path)
+    k.start("H4", "x", "lite", host="claude")
+    bundle = tmp_path / "b.md"; bundle.write_text("x")
+    v = k._dispatch_host_bg("1a", k.graph.phases["1a"], bundle)
+    assert v.v == "ERROR" and "host_timeout" in (v.reason_code or "")
+    assert not (hostdir / "1a.job.json").exists()  # job dropped => next poll relaunches
+    child.wait(timeout=5)  # killed (negative returncode) — not leaked
+
+
+def test_routing_theory_only_skips_experiment(tmp_path: Path):
+    """theory-only route => 6b/6c return NOT_APPLICABLE (skip the experiment gate);
+    the run must not demand RESULT.json/STATUS.json that the route never produces."""
+    k = Kernel(tmp_path)
+    k.start("R1", "pure math", "lite", host="manual")
+    from pathlib import Path as P
+    vp = tmp_path / ".sciforge" / "verdicts"
+    vp.mkdir(parents=True, exist_ok=True)
+    (vp / "VERIFICATION_ROUTING.json").write_text(json.dumps(
+        {"route": "theory-only", "evidence_type": "formal",
+         "verification_type": "theory-only", "na_verdicts": ["BUDGET_FLOOR.json",
+         "FIGURE_AUDITS.json", "EXPERIMENT_MATRIX.json", "EVALUATION_PROTOCOL.json"]}))
+    for pid in ("6b", "6c"):
+        v = k.run_phase(pid)
+        assert v.v == "NOT_APPLICABLE", (pid, v.v)
+    # NOT_APPLICABLE must not demand the phase's file gate (RESULT.json /
+    # STATUS.json); boundary may still fail on the empty-workspace
+    # validate_verdicts — that's correct gate behavior, not a routing-skip bug.
+    committed = k.commit_boundary("6b", k.run_phase("6b"))
+    failed_gates = [str(r.get("gate", "")) for r in committed.get("failed", [])]
+    assert not any("RESULT" in g or "STATUS" in g for g in failed_gates), failed_gates
+    # declared skips land in na_verdicts (6c registered artifacts), never silent absences
+    k.commit_boundary("6c", k.run_phase("6c"))
+    na = json.loads((tmp_path / ".sciforge" / "verdicts" /
+                     "VERIFICATION_ROUTING.json").read_text())["na_verdicts"]
+    assert "BUDGET_FLOOR.json" in na and "EXPERIMENT_MATRIX.json" in na
+
+
 # ---------------- skills frozen (S14) ----------------
 
 def test_skill_stage_freeze_verify(tmp_path: Path):
