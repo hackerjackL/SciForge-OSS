@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.0] - 2026-09-26 波次二（SCI 语域 + 实验公平 + DeepMind 融合 + Claude Code 无缝）
+
+### v1.5.0-w2：30 项深度优化续（git 多提交，版本号不变，收 1.5.0）
+- **SCI 正文语域硬门（S31/S32）**：writing-principles §0.6 新增——正文零道歉零防御（apology/defense register 全禁）、hedge 只允许带界（range/N/CI/regime）的精确语句、Limitations=regime ledger 不是忏悔、stance-first 段落序（禁 apology sandwich）。`leakage_scan.py` class K 机器检测（正文/摘要/方法/结果/讨论零容忍；实测植入 "Unfortunately…we apologize" 2 命中 FAIL）。
+- **mode=deepen（S33-S38）**：第三种一等模式——**不改创新点结构**的深度优化（"刷 SOTA 但不调参"）：核心 claim/贡献/方法身份冻结（违反=BLOCKED），DEEPEN_PLAN 只做证据深度（功效/消融阶梯/稳健性 battery/多重比较校正/效应量+CI 入表）与**实验公平性**（同算力预算/同数据划分锁/同种子策略/同超参预算/同指标定义）。`FAIRNESS.json` 注册为第 22 个 verdict + `scripts/fairness_gate.py` 硬门（不公 FAIL/公平 PASS 均实测），挂在 15.5 publishability 前。
+- **DeepMind 顶级项目融合（S39-S46）**：调研 AlphaEvolve/AlphaProof/AlphaGeometry/AlphaTensor/GNoME/GraphCast（docs/DEEPMIND_FUSION.md）。落地：**级联多评估器**（便宜 CI/golden 门→科学诚信正则 ResearchDomain→LLM judge 最后；硬零层永不进 judge——削弱负结果纪律/审计门/INV-G1 的 patch 直接 0 分）、**生成-验证-强化闭环**（LESSONS.json `verified_proofs`：仅 status=PASS 结果进入下轮先验）、**主动学习回流**（`retrain_from_results` 回流 domain-signature）。
+- **Claude Code 无缝集成（S47-S53）**：`~/.claude/skills/sciforge/` 轻量适配器（pointer-load 到仓库 orchestrator，单一事实源）+ `CLAUDE.md` 项目记忆（硬规则/kernel verdict 契约/路径/gotcha）。skill 已被 Claude Code 识别为可调用条目。
+- **测试**：325/325 全绿（含 FAIRNESS fixture + theory-only 5-N/A 算术修正）。
+
 ## [1.5.0] - 2026-09-26 (定版追加：Runtime Kernel + RSI 进化，性质变更)
 
 ### v1.5.0 定版：从"纯 Skill 包"跃迁为"Skill 驱动的研究运行时"（30 项超级重构，S01–S30）
