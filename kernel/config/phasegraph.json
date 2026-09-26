@@ -334,7 +334,7 @@
         {
           "check": "verdict_field",
           "path": "REVIEW_STATE.json",
-          "field": "score",
+          "field": "last_score",
           "op": ">=",
           "value": 6
         }
