@@ -8,18 +8,21 @@
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
 
-> **AI for Scientist Anything** — 纯 Skill 驱动的通用科学智能框架。
+> **AI for Scientist Anything** — Skill 驱动的通用科研运行时：**Skill 库（纯 Markdown）+ Runtime Kernel（代码强制控制循环）+ RSI 进化层**。
 >
-> 继承 SciForge 的纯 skill 驱动精神：**没有 `.py` 脚本，没有 bash 代码块，没有 IDE 专属语法**。
-> 任何能读 Markdown 的 AI agent（Claude Code、Cursor、Trae 等）都能消费这些 skill。
+> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**：**"做什么"留在 Markdown，"如何强制"进入代码**。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
 >
-> SciForge-OSS 是**全自动科研 skill**，不是解题基准：人类提供一个研究问题（任意领域），管线从想法发现到投稿级论文端到端自主跑完。
+> 两种用法：**(A) 纯 skill**（任意 agent 内 `/auto-pipeline "问题"`）——与从前一致；**(B) skill + kernel**（`sciforge run --workspace … --host claude`）——管线再也不能静默跳过门、进程死了能续、且每一轮都变得更强（RSI）。
+>
+> SciForge 是**全自动科研系统**，不是解题基准：人类提供一个研究问题（任意领域），管线从想法发现到投稿级论文端到端自主跑完。
 
 ---
 
 ## 目录
 
 - [这是什么](#这是什么)
+- [Runtime Kernel（v1.5.0）](#runtime-kernelv150)
+- [RSI：skill 库自我进化](#rsiskill-库自我进化)
 - [安装指南](#安装指南)
 - [架构：DAG 驱动的科研闭环](#架构dag-驱动的科研闭环)
 - [快速开始](#快速开始)
@@ -56,6 +59,46 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 | **Dynamic Tooling** | 工具工厂 | 运行时发现工具不足时，动态编写并注册临时工具 |
 | **Universal Retrieval** | 文献检索 | 多源学术搜索（arXiv/S2/CrossRef/PubMed/Web/OpenAlex）+ 3 层防幻觉验证 |
 | **Unified Plotting** | 图表渲染 | 结构化数据 → 出版级矢量图（SVG/PDF）；莫兰迪色系（Layer 1）+ viridis/magma 数据热图（Layer 2） |
+
+## Runtime Kernel（v1.5.0）
+
+`kernel/` 是 skill 库的**代码控制面**（Python ≥3.10，仅标准库——唯一的额外 pip 依赖是 pytest）。skill 依旧是**方法**的唯一来源；kernel 是**控制**所在：
+
+| 能力 | 机制 |
+|---|---|
+| **状态机** | `kernel/config/phasegraph.json` 把 21-phase DAG、回路预算（L1–L13）、按相门编码为可执行配置——编排循环由代码驱动，而非 prose |
+| **事件溯源续跑** | `.sciforge/events.ndjson`（追加式）+ `RUNSTATE.json`；进程死亡经 stale lockfile 检出，**从精确边界重放续跑**（macOS kill -9 实测通过） |
+| **门嵌入控制流** | 每个边界以代码强制跑 `validate_verdicts.py --strict`、`security_scan.py`、`gap_gate.py`、`check_figure_embedding.py --require-renderer`、`leakage_scan.py`；门不过则无法推进——审计再也无法被静默跳过 |
+| **HITL 数据化** | 检查点 = `paused_checkpoint` + 审批记录 + `APPROVAL_LOG.txt`；用 `sciforge approve/deny` 决策，或 `--human-skip` / `--test-mode` 委托 |
+| **provider 层** | 按角色分档多后端路由（Anthropic/OpenAI 兼容/Ollama；网关 env 生效），真实 token 记账入 `RUN_BUDGET.json` |
+| **宿主适配** | `--host claude`（Claude Code CLI，回传 `total_cost_usd`）、`--host codex`，或 `manual` bundle 协议（任意 agent 经 `.sciforge/host/*.done.json` 驱动） |
+| **实验执行** | 沙箱门控派发（macOS Seatbelt / Linux bubblewrap）、worker 池、后台 nohup + STATUS.json 聚合、设备规划（CUDA/ROCm/NPU/MPS/CPU 经 `detect_device.py`） |
+| **daemon** | `sciforge serve`——headless 队列 + loopback HTTP（:4510），服务器过夜运行；**任何环节无 GUI** |
+
+```bash
+sciforge run --workspace ./runs/Q001 --problem "你的问题" --host claude --loop
+sciforge status  --workspace ./runs/Q001
+sciforge resume  --workspace ./runs/Q001 --loop    # 崩溃后：重放事件，续跑
+sciforge approve --workspace ./runs/Q001 idea-pick # 人工检查点
+sciforge doctor                                    # 环境自检
+```
+
+## RSI：skill 库自我进化
+
+完成的 run 会产出信号（回路计数、门拒绝、`LESSONS.json`、事件日志）。`sciforge evolve` 把它们转成 **SKILL.md patch 候选**，用真正的优化器搜索最优——PUCT 树或 MAP-Elites 多岛——每个候选用**混合门**打分：机械 CI/schema/golden 回归（失败即硬零）+ 冻结 rubric 的 LLM judge（提供判别力）。防线取自 openJiuwen/ScienceDiscovery 与 AI-Scientist v2，均已实测：
+
+- **三分片** rollout/gate/**held-out test**——报出的提升不可能被搜索过程自己灌水
+- **probe 预检**——区分不了好/坏 patch 的评分器，在预算花出去之前就被拒绝
+- **评分器冻结**——候选永远碰不到 `tests/`、`schemas/`、校验器或 rubric 本身
+- **冻结 + 扩展区**——staged skill 包只读（`0444` + package hash）；进化产物落在 `skill-extensions/`
+- **人工合入**——`sciforge submit` 只有在**全量 `ci_check` 门**通过后才把胜出 patch 落库；合入后校验失败会**自动回滚**（第一轮进化现场触发过）
+
+```bash
+sciforge evolve --workspace ./runs --proposes ./patches.json --budget 8 --algorithm puct
+sciforge submit --workspace ./runs evo_123456   # 人工授权合入，全量 CI 门
+sciforge daily  --workspace ./runs              # 纯文本日报（可推送任意渠道）
+```
+
 
 ## 安装指南
 
@@ -288,6 +331,12 @@ AI agent 读取 `AGENT_GUIDE.md` 后，直接调用：
 SciForge-OSS/
 ├── AGENT_GUIDE.md                          ← AI agent 入口（从这里开始读）
 ├── README.md                               ← 人类阅读
+├── bin/sciforge.js                         ← CLI（init/tools-check/run/resume/approve/evolve/serve…→kernel）
+├── kernel/                                 ← v1.5.0 runtime kernel（Python ≥3.10 纯 stdlib 控制面）
+│   ├── config/phasegraph.json              ← 21-phase DAG 可执行配置（回路/门/预算）
+│   ├── config/providers.json               ← 角色分档多后端路由
+│   ├── config/evolve.json                  ← RSI 门阵列（CI + schema + golden）
+│   └── sciforge/                           ← 状态机 pipeline · events state · gates · approvals · execution · providers · review 跨模型审稿 · evolve PUCT+MAP-Elites · skills_pack 冻结包 · daemon · golden · cli
 ├── skills/
 │   ├── meta-skills/                        ← 8 个元技能
 │   │   ├── dynamic-sandbox/SKILL.md        ← 计算沙盒（数值 sanity check，无 GPU）
