@@ -595,9 +595,22 @@ def _rgb_dist(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
 
+def derived_colors() -> list[str]:
+    """Canonical DERIVED colors: deterministic pure functions of tokens, so they
+    are on-palette *by construction* (the audit accepts them without a whitelist
+    entry per use). Two families:
+      - zone tints:  mix(token, white, 0.85)  — 15% fill backgrounds (method
+        recipes' PaperBanana zone strategy)
+      - strokes:     stroke_for(token)        — 45% toward ink outlines
+    """
+    return [mix(t, "#FFFFFF", 0.85) for t in TOKENS.values()] + \
+           [stroke_for(t) for t in TOKENS.values()]
+
+
 def is_on_palette(hexcolor: str, tol: float = 8.0) -> bool:
-    """True if hexcolor is a design token (any layer) OR the canonical stroke
-    mix of one (within Euclidean sRGB distance `tol` over the whole RGB triple).
+    """True if hexcolor is a design token (any layer), the canonical stroke
+    mix, or a zone tint of one (within Euclidean sRGB distance `tol` over the
+    whole RGB triple).
 
     Named for the palette it currently enforces (dopamine); the morandi alias
     below keeps older callers/verdicts working across the v3.0 rename."""
@@ -606,7 +619,7 @@ def is_on_palette(hexcolor: str, tol: float = 8.0) -> bool:
     except (ValueError, IndexError):
         return False
     pool = list(TOKENS.values()) + list(SEMANTIC.values())
-    pool += [stroke_for(t) for t in TOKENS.values()]
+    pool += derived_colors()
     pool += [TOKENS["canvas"], "#FFFFFF", "#ffffff", "none"]
     for p in pool:
         if p == "none":

@@ -162,6 +162,29 @@ def render_d2(src: Path, out_pdf: Path, out_svg: Path, layout: str,
                 f.unlink()
 
 
+def render_method(src: Path, out_pdf: Path, out_svg: Path, layout: str,
+                  pad: int, dpi: int, log: list, keep_svg: Path | None = None) -> None:
+    """Declarative method-figure recipes (v1.6.1) — the layout-locked pipeline/
+    architecture path. A `.method.json` spec names a template (L1..L5) and fills
+    stage/module/edge TEXT; method_recipes emits a COMPLETE, self-styled d2
+    source (classes + locked geometry), so it renders with NO preamble injection
+    (the preamble would duplicate `direction` and override the classes). The
+    d2 source is written alongside the figure for reproducibility/inspection.
+    """
+    import method_recipes
+    spec = json.loads(src.read_text(encoding="utf-8"))
+    d2src = method_recipes.build_d2(spec)
+    (out_pdf.parent / "spec.method.d2").write_text(d2src, encoding="utf-8")
+    log.append(f"# method template={spec.get('template')} -> spec.method.d2")
+    tmp = out_pdf.parent / "_method.d2"
+    tmp.write_text(d2src, encoding="utf-8")
+    try:
+        render_d2(tmp, out_pdf, out_svg, layout or "dagre", pad, dpi,
+                  inject=False, log=log, keep_svg=keep_svg)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 def render_graphviz(src: Path, out_pdf: Path, out_svg: Path, layout: str,
                     dpi: int, log: list, keep_svg: Path | None = None) -> None:
     spec = src.read_text(encoding="utf-8")
@@ -946,7 +969,7 @@ def main() -> int:
     ap.add_argument("--engine",
                     choices=["d2", "graphviz", "tikz", "svg", "asy",
                              "typst", "diagrams", "blockdiag", "mermaid",
-                             "pikchr", "composite", "python", "recipe", "auto"],
+                             "pikchr", "composite", "python", "recipe", "method", "auto"],
                     default="auto")
     ap.add_argument("--layout", default=None,
                     help="d2: dagre|elk|tala  /  graphviz: dot|neato|fdp|...")
@@ -988,6 +1011,8 @@ def main() -> int:
             engine = "composite"
         elif src.name.endswith(".recipe.json"):
             engine = "recipe"
+        elif src.name.endswith(".method.json"):
+            engine = "method"
         elif engine is None and src.name.endswith("_diagr.py"):
             engine = "diagrams"
         if engine is None:
@@ -1019,6 +1044,9 @@ def main() -> int:
         elif engine == "recipe":
             outdir.mkdir(parents=True, exist_ok=True)
             render_recipe(src, outdir, args.dpi, log)
+        elif engine == "method":
+            render_method(src, out_pdf, out_svg, args.layout or "elk",
+                          args.pad, args.dpi, log, keep_svg)
         elif engine == "tikz":
             render_tikz(src, out_pdf, out_svg, args.dpi, log)
         elif engine == "asy":
