@@ -6,6 +6,17 @@
 
 ---
 
+## Two consumption modes (v1.5.0)
+
+This guide is the entry for **Mode A**. Since v1.5.0 the repo splits *knowledge* (Markdown, this guide) from *control* (code, `kernel/`):
+
+| Mode | Who runs the loop | How you (the agent) participate | Guarantees |
+|------|------------------|--------------------------------|------------|
+| **A — skills-only (host agent)** | **You** read this guide + the phase `SKILL.md`s and execute `/auto-pipeline` turn by turn | Full autonomy; you are the orchestrator | gates are advisory (you self-run `scripts/*`) — the original behavior |
+| **B — runtime kernel** | `kernel/` Python state machine (`sciforge run --host claude\|codex`) dispatches you **per phase** | You receive a pointer-load bundle (`.sciforge/refine-logs/phase_<id>.bundle.md`) and return a JSON verdict; the kernel enforces every gate and refuses to advance past a failure | mechanical gates, event-sourced resume, HITL as code, real token cost |
+
+In Mode B you never have to remember the contracts — the kernel recites the hard constraints into your bundle at every boundary, runs the validators, and blocks bad transitions. Everything below still describes the DAG semantics you execute in either mode.
+
 ## Quick Start
 
 ### Solve one problem

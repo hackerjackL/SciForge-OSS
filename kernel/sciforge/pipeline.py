@@ -248,9 +248,13 @@ class Kernel:
         cmd = ["claude", "-p", prompt, "--output-format", "json",
                "--allowedTools", "Read,Write,Edit,Bash(python3:*),Bash(python:*)",
                "--add-dir", str(self.ws)]
-        model = os.environ.get("SCIFORGE_MODEL")
-        if model:
-            cmd += ["--model", model]
+        # claude CLI accepts only its own aliases (sonnet/opus/…); a gateway model
+        # id like ANTHROPIC_MODEL="qwen…[1m]" is NOT a valid --model value and the
+        # host claude already resolves its backend via its own config. Pass
+        # --model only for an explicit SCIFORGE_HOST_MODEL override.
+        host_model = os.environ.get("SCIFORGE_HOST_MODEL")
+        if host_model:
+            cmd += ["--model", host_model]
         return cmd, "claude"
 
     def _dispatch_host_bg(self, pid, ph, bundle: Path) -> Verdict:
@@ -677,17 +681,27 @@ def _json_candidates(raw: str):
 
 
 def _first_json(raw: str) -> str:
-    """First balanced JSON object — claude --output-format json writes one line;
-    merged stderr noise may precede it."""
-    i = raw.find("{")
-    if i < 0:
-        return raw
-    depth = 0
-    for j in range(i, len(raw)):
-        if raw[j] == "{":
-            depth += 1
-        elif raw[j] == "}":
-            depth -= 1
-            if depth == 0:
-                return raw[i:j + 1]
-    return raw[i:]
+    """Result-bearing JSON object from host stdout. claude -p --output-format json
+    writes one line, but a leading error may dump other JSON first (observed:
+    {"model":...,"query_source":"sdk"} noise before the real envelope), so prefer
+    objects carrying "type":"result" / "result" / "verdict", fall back to first."""
+    objs = []
+    i = 0
+    while i < len(raw):
+        if raw[i] == "{":
+            depth = 0
+            for j in range(i, len(raw)):
+                if raw[j] == "{":
+                    depth += 1
+                elif raw[j] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        objs.append(raw[i:j + 1])
+                        i = j
+                        break
+        i += 1
+    for o in objs:
+        if '"type":"result"' in o or '"type": "result"' in o or '"result"' in o \
+           or '"verdict"' in o:
+            return o
+    return objs[0] if objs else raw

@@ -3,16 +3,16 @@ name: sciforge-oss
 type: skill-package
 role: ai-scientist-framework
 version: 1.5.0
-description: "SciForge-OSS — pure-Skill-driven domain-agnostic automated research framework: any scientific idea → one submission-ready SCI paper. 21-phase DAG single-question loop (idea-discovery → theory-derivation → experiments → logic/leakage audits → paper-writing → compile → cross-model review → citation-audit). v3.4 adds: human_skip=true production-grade checkpoint skipping, per-section figure budget + composite grouping (Composite/Group), LaTeX pipeline leakage scrub gate (8-class regex), Reproducibility + Data Availability statements, domain-expert blind-spot review (BLINDSPOT_CHECK.json), full-code smoke gate (.SMOKE.json), proxy auto-mount + async dataset download. v5.3 adds: verdict schema enforcement (verdicts/ + JSON Schemas + validator), global run-budget ledger (RUN_BUDGET.json), experiment security gate before dispatch, human checkpoint on KILL decisions, true-vector composite figures, /rebuttal skill. v6.0 (1.3.0) adds: literature-first gap chain (broad-wave GAP_REPORT.md + gap-anchored ideation + targeted retrieval waves), evidence_norm domain learning, .sciforge/ two-tier workspace (hidden state layer + delivery layer) with lazy materialization, RUNSTATE long-horizon resume contract, routing-aware N/A verdicts for theory-only/humanities runs, budget-underuse guard. 25 sub-skills; the orchestrator chains them via use_skill. Invoke /sciforge-oss or /auto-pipeline to run the full pipeline."
+description: "SciForge — Skill-driven universal research runtime (v1.5.0). Knowledge layer unchanged: pure-Markdown Skill Library (21-phase DAG, 25 sub-skills, 31+ contracts, any scientific idea → submission-ready SCI paper). v1.5.0 adds the split: *what to do* stays in Markdown; *how it is enforced* moves into the optional kernel/ (Python >= 3.10, stdlib-only): code state machine (phasegraph.json), event-sourced resume (kill -9 recoverable), mechanical gates in the control flow (validate_verdicts/security_scan/gap_gate/leakage_scan figure+compile gates — silent gate-skipping is structurally impossible), HITL checkpoints as data, role-tiered providers with real token accounting, sandbox experiment dispatch (Seatbelt/bwrap), worker pool, cross-model review panel with adjudication, headless serve daemon — and the RSI evolution layer (PUCT + MAP-Elites search over SKILL.md patches, three-shard held-out scoring, pre-flight probe, scorer freeze, human merge through full CI with auto-rollback). Two modes: A) skills-only — any Markdown agent runs /auto-pipeline as before; B) skills+kernel — sciforge run --host claude|codex. Absorbs openJiuwen/ScienceDiscovery + AI-Scientist v2 + EvoScientist + DeepScientist + STORM lessons. Headless-first: macOS/Linux, Docker included, no UI anywhere."
 entry: skills/orchestrator/auto-pipeline/SKILL.md
 license: PolyForm-Noncommercial-1.0.0
-tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
+tags: [ai-scientist, research, latex, open-science, discipline-agnostic, runtime-kernel, rsi, auto-research]
 ---
 
-# SciForge-OSS — AI for Scientist Anything
+# SciForge — AI for Scientist Anything
 
-> **A pure-Skill-driven general scientific-intelligence framework**. No `.py` scripts, no bash code blocks, no IDE-specific syntax.
-> Any AI agent that can read Markdown (Claude Code, Cursor, Trae, etc.) can consume these skills.
+> **A Skill-driven universal research runtime**: Skill Library (pure Markdown) + Runtime Kernel (`kernel/`, code-enforced control) + RSI evolution layer.
+> The skills keep the original spirit — no IDE-specific syntax, any Markdown-capable agent (Claude Code, Cursor, Trae, Codex…) consumes them directly via `/auto-pipeline`. The kernel is the optional control plane that makes gate-skipping impossible, crash-recovery automatic, cost real, and the skill library self-improving. See [README](README.md) "Runtime kernel" + "RSI" sections and `EVOLUTION_PLAN.md`.
 >
 > **Scope (v1.4.0, honest)**: the *method* is domain-agnostic; the *capability envelope* is **code-runnable science** — anything executable as code/data/literature on a machine or GPU cluster (numerical/symbolic sim, ML/stats, causal inference, web-search-augmented humanities). Domains whose core evidence needs proprietary/GUI-bound solvers (commercial CFD, COMSOL, optical bench software) or wet-lab hardware are out of scope **unless** reducible to a scriptable pipeline. See README "Scope & capability boundary".
 
@@ -24,6 +24,7 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic]
 | **Meta-Skills** | 8 | general meta-skills: idea-discovery, universal-retrieval, unified-plotting, dynamic-sandbox, dynamic-tooling, domain-learner, domain-signature, novelty-check |
 | **Support Skills** | 16 | support skills: paper-writing, paper-compile, quality-gate, auto-review-loop, theory-derivation, **experiment-execution**, logic-verification, result-to-claim, leakage-audit, citation-audit, invariant-check, kill-argument, method-registry, adversarial-falsification, publishability-score, **rebuttal** |
 | **Shared References** | 31+ | shared config: skill-config, assurance-contract, effort-contract, color-themes, venue-profiles, **engineering-grounding-contract**, etc. |
+| **Runtime Kernel (v1.5.0)** | 18 modules | `kernel/sciforge/`: pipeline (state machine) · state (events+RUNSTATE) · gates · approvals · execution · providers · review · evolve (PUCT/MAP-Elites) · propose · skills_pack · litcache · proxy · memory · golden · daemon · bundle · cli; configs in `kernel/config/` |
 
 ## Included Sub-Skills
 
