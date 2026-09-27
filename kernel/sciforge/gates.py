@@ -64,12 +64,20 @@ def figure_gates(ws: Path) -> dict:
 
 
 def wrap_up_gates(ws: Path) -> dict:
+    # v1.7: ScientistTwo completeness audit (§3.7) — reward-hacking scan +
+    # method↔code parity. SKIP only when no experiment claims exist to audit.
+    p = run_py("scripts/s2_audit.py", [str(ws), "--quiet"])
+    s2_status = "SKIP" if "s2_audit SKIP" in (p.stdout + p.stderr) else \
+                ("PASS" if p.returncode == 0 else "FAIL")
     checks = {
         "verdicts_complete": validate_verdicts(ws, strict=True, require_complete=True),
         "pipeline_audit": {"gate": "sciforge_audit",
                            **({"status": "PASS"} if not (ws / ".sciforge").exists() else
                               {"status": "SKIP", "note": "audit CLI invocation deferred to host"})},
         "figures": figure_gates(ws),
+        "s2_completeness_audit": {"gate": "s2_audit", "status": s2_status,
+                                  "exit": p.returncode,
+                                  "output": (p.stdout + p.stderr)[-2000:]},
     }
     ok = all(c["status"] in ("PASS", "SKIP") for c in checks.values())
     return {"gate": "wrap_up", "status": "PASS" if ok else "FAIL", "checks": checks}
@@ -146,6 +154,22 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             p = run_py("scripts/smoke_gate.py", [str(ws)])
             return {"gate": "smoke_gate", "status": "PASS" if p.returncode == 0 else "FAIL",
                     "exit": p.returncode, "output": (p.stdout + p.stderr)[-1500:]}
+        if name == "s2_ladder":
+            # v1.7 ScientistTwo §3.2: subset→full ladder + 3-state critic at 6c
+            p = run_py("scripts/s2_ladder_gate.py", [str(ws)])
+            out = p.stdout + p.stderr
+            status = "SKIP" if "s2_ladder SKIP" in out else \
+                     ("PASS" if p.returncode == 0 else "FAIL")
+            return {"gate": "s2_ladder", "status": status,
+                    "exit": p.returncode, "output": out[-1500:]}
+        if name == "s2_ablation":
+            # v1.7 ScientistTwo §3.4: 5-6 ablation plans + strict AblCritic at 10
+            p = run_py("scripts/s2_ablation_gate.py", [str(ws)])
+            out = p.stdout + p.stderr
+            status = "SKIP" if "s2_ablation SKIP" in out else \
+                     ("PASS" if p.returncode == 0 else "FAIL")
+            return {"gate": "s2_ablation", "status": status,
+                    "exit": p.returncode, "output": out[-1500:]}
         if name == "gap_gate":
             p = run_py("scripts/gap_gate.py", [str(ws)])
             return {"gate": "gap_gate", "status": "PASS" if p.returncode == 0 else "FAIL",

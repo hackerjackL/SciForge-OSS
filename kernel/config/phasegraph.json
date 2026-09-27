@@ -235,6 +235,10 @@
         {
           "check": "command",
           "cmd": "dep_gate"
+        },
+        {
+          "check": "command",
+          "cmd": "s2_ladder"
         }
       ]
     },
@@ -296,6 +300,10 @@
         {
           "check": "command",
           "cmd": "arb_verify"
+        },
+        {
+          "check": "command",
+          "cmd": "s2_ablation"
         }
       ]
     },

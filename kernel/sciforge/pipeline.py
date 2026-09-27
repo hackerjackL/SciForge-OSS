@@ -484,7 +484,21 @@ class Kernel:
         if ev.exists():
             self.log.emit(pid, "failure_evidence_present", {"file": str(ev)})
         target = lb["target"]
-        self.log.emit(pid, "loopback", {"id": lb["id"], "target": target, "round": used + 1})
+        # v1.7 S2 exploration guarantee: idea-regeneration loopbacks carry the
+        # highest-ranked NEVER-EXPLORED seed id (ScientistTwo §3.3 — each
+        # evolution round force-mixes an unexplored seed so the loop cannot
+        # collapse onto whatever worked once). Recorded, so the re-entered
+        # phase consumes it as evidence rather than re-deriving old ideas.
+        exploration_seed = None
+        if str(target) in ("2", "3", "5", "5-or-2", "2-or-5"):
+            try:
+                from .s2 import ideas as ideas_mod
+                exploration_seed = ideas_mod.next_exploration_seed(self.ws)
+            except Exception:
+                exploration_seed = None
+        self.log.emit(pid, "loopback", {"id": lb["id"], "target": target,
+                                        "round": used + 1,
+                                        "exploration_seed": exploration_seed})
         # A0: the KILL/PIVOT/BA ROUTING FACTS are the kernel's own decisions —
         # recorded append-only so "which kill fired when, budget left" survives
         # session death and is auditable (the full-argument KILL_ARGUMENT.json
@@ -497,6 +511,7 @@ class Kernel:
                     "ts": time.time(), "loopback": lb["id"], "from_phase": pid,
                     "to": target, "round": used + 1, "trigger_verdict": v.v,
                     "reason_code": v.reason_code, "notes": v.notes[:400],
+                    "exploration_seed": exploration_seed,
                     "budget_left": (lb.get("budget", -1) - (used + 1))
                                    if lb.get("budget", -1) >= 0 else None,
                 }, ensure_ascii=False) + "\n")
@@ -522,6 +537,35 @@ class Kernel:
         if panel.get("adjudication_needed"):
             adj = review_mod.adjudicate_cross(self.providers(), panel, text, ctext)
             panel["adjudication"] = adj
+        # v1.7 S2 review loop: anchor-calibrated score + ScientistTwo's
+        # score<8 rebuttal trigger + Meta-Review {ACCEPT|REFINE}. The kernel
+        # owns thresholds/caps so "score below bar => real supplementary
+        # experiments, <=2 rounds" cannot be talked past in prose.
+        from .s2 import calibration as cal_mod
+        from .s2 import reviewloop
+        raw_score = panel.get("overall")
+        cal_score, cal_doc = cal_mod.calibrate(self.ws, raw_score)
+        panel["overall_raw"] = raw_score
+        if cal_doc:
+            panel["overall_calibrated"] = cal_score
+            panel["calibration"] = {"usable": cal_doc.get("usable"),
+                                    "n": cal_doc.get("n"), "a": cal_doc.get("a"),
+                                    "b": cal_doc.get("b")}
+        score = cal_score if cal_score is not None else raw_score
+        thr = reviewloop.threshold()
+        panel["rebuttal_threshold"] = thr
+        panel["rebuttal_required"] = reviewloop.needs_rebuttal(score, thr)
+        prior_plan = reviewloop.load_plan(self.ws)
+        rounds_done = int(prior_plan.get("round", 0)) if prior_plan else 0
+        if panel["rebuttal_required"] and rounds_done < reviewloop.MAX_REBUTTAL_ROUNDS:
+            plan = reviewloop.seed_rebuttal_plan(panel, score,
+                                                 round_no=rounds_done + 1, thr=thr)
+            reviewloop.write_plan(self.ws, plan)
+            panel["rebuttal_plan"] = {"round": plan["round"],
+                                      "tasks": len(plan["tasks"]),
+                                      "path": str(reviewloop.PLAN_REL)}
+        panel["meta_review"] = reviewloop.meta_review(
+            score, panel, rebuttal_rounds=rounds_done, thr=thr)
         (self.ws / ".sciforge" / "audits").mkdir(parents=True, exist_ok=True)
         (self.ws / ".sciforge" / "audits" / "REVIEW_PANEL.json").write_text(
             json.dumps(panel, indent=2, ensure_ascii=False))
@@ -542,11 +586,15 @@ class Kernel:
                      "resolution": "no fatal flags in this round"}]
         rs = {"round": 1, "threadId": self.rs.data.get("run_id", ""),
               "status": "completed", "difficulty": "medium",
-              "last_score": panel.get("overall") or 0, "last_verdict": rs_verdict,
+              "last_score": score if score is not None else (panel.get("overall") or 0),
+              "last_verdict": rs_verdict,
               "pending_derivations": [],
               "timestamp": _t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime()),
               "response_class": resp,
               "round_invalid": False,
+              "rebuttal_required": panel.get("rebuttal_required", False),
+              "rebuttal_threshold": panel.get("rebuttal_threshold"),
+              "meta_review": panel.get("meta_review"),
               "panel_source": "kernel/sciforge/review.py (S20 cross-model)"}
         (self.ws / ".sciforge" / "verdicts" / "REVIEW_STATE.json").write_text(
             json.dumps(rs, indent=2, ensure_ascii=False))
