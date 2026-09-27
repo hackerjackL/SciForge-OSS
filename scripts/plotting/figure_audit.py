@@ -944,6 +944,214 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
                                "canvas/cards/wiring/labels into named layers")
 
 
+# ---------------- A11 panel alignment (figure-layout-contract.md §5) ----------------
+# Mirrors the nature-skills audit_panel_alignment contract: shared edges,
+# widths, heights and repeated gutters of comparable panels must agree within
+# 1.5 pt at final physical size. Asymmetric heroes / insets are exempted only
+# through a recorded reason — never by weakening the global tolerance.
+
+
+def audit_panel_alignment(figdir: Path, rep: Report) -> None:
+    """A11: consume panel_layout.json emitted by figure_recipes / composite."""
+    manifest_path = figdir / "panel_layout.json"
+    if not manifest_path.is_file():
+        # composite path: synthesize from composite_meta.json panel rects if present
+        meta = figdir / "composite_meta.json"
+        if meta.is_file():
+            try:
+                m = json.loads(meta.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                rep.add("A11", "WARN", "composite_meta.json unreadable — alignment NOT AUDITABLE")
+                return
+            panels = []
+            for i, pnl in enumerate(m.get("panels", m.get("cells", []))):
+                rect = pnl.get("bbox_pt") or pnl.get("rect") or pnl.get("bbox")
+                if not rect:
+                    continue
+                if isinstance(rect, dict):
+                    bbox = [float(rect.get(k, 0)) for k in ("left", "bottom", "right", "top")]
+                else:
+                    bbox = [float(v) for v in rect[:4]]
+                panels.append({"id": pnl.get("id", f"p{i}"), "bbox_pt": bbox})
+            if len(panels) < 2:
+                rep.add("A11", "PASS", "fewer than 2 comparable panels — alignment gate n/a")
+                return
+            manifest = {"panels": panels, "figure": m.get("figure", {}),
+                        "tolerance_pt": 1.5,
+                        "exemptions": m.get("exemptions", [])}
+        else:
+            rep.add("A11", "PASS",
+                    "no multi-panel manifest — alignment gate n/a (single-panel figure)")
+            return
+    else:
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            rep.add("A11", "FAIL", f"panel_layout.json unreadable: {exc}")
+            return
+
+    raw_panels = manifest.get("panels") or []
+    panels = []
+    for raw in raw_panels:
+        try:
+            bb = raw.get("bbox_pt")
+            if isinstance(bb, dict):
+                bbox = [float(bb[k]) for k in ("left", "bottom", "right", "top")]
+            else:
+                bbox = [float(v) for v in bb]
+            if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
+                raise ValueError("non-positive extent")
+            panels.append({"id": str(raw.get("id", f"p{len(panels)}")),
+                           "bbox_pt": bbox})
+        except (TypeError, ValueError, KeyError):
+            rep.add("A11", "FAIL", f"panel {raw.get('id','?')} has invalid bbox_pt")
+            return
+    if len(panels) < 2:
+        rep.add("A11", "PASS", "fewer than 2 comparable panels — alignment gate n/a")
+        return
+
+    tol = float(manifest.get("tolerance_pt", 1.5))
+    exempt_ids: set[str] = set()
+    for ex in manifest.get("exemptions") or []:
+        for pid in ex.get("panels", []) if isinstance(ex, dict) else []:
+            exempt_ids.add(str(pid))
+    comparable = [p for p in panels if p["id"] not in exempt_ids]
+
+    # group by equal row (shared vertical band) and equal column spans
+    def _key_row(p):
+        b = p["bbox_pt"]
+        return round(b[1], 0), round(b[3], 0)  # bottom/top band
+    def _key_col(p):
+        b = p["bbox_pt"]
+        return round(b[0], 0), round(b[2], 0)
+
+    problems = []
+    from collections import defaultdict
+
+    def _cluster(values, tol):
+        """Greedy 1-D clustering of edge coordinates within tol."""
+        clusters = []
+        for v in sorted(values):
+            if clusters and abs(v - clusters[-1][0]) <= tol:
+                clusters[-1].append(v)
+            else:
+                clusters.append([v])
+        return [sum(c) / len(c) for c in clusters], clusters
+
+    # Row bands = panels sharing a vertical band (top AND bottom within tol).
+    # Equal-grid layouts require every row of equal-span panels to share widths;
+    # unequal-height archetypes (triptych rows, schematic-led hero band) compare
+    # ONLY inside a band — global height equality is not a requirement.
+    rows = defaultdict(list)
+    cols = defaultdict(list)
+    for pnl in comparable:
+        b = pnl["bbox_pt"]
+        rows[(round(b[1], 0), round(b[3], 0))].append(pnl)
+        cols[(round(b[0], 0), round(b[2], 0))].append(pnl)
+
+    # refine: merge row bands whose centers are within tol (same physical row)
+    def _band_key(band_axis):
+        keys = sorted(rows.keys()) if band_axis == "row" else sorted(cols.keys())
+        merged = []
+        for k in keys:
+            if merged and abs(k[0] - merged[-1][0]) <= tol and abs(k[1] - merged[-1][1]) <= tol:
+                merged[-1] = (merged[-1][0], merged[-1][1])  # keep, group below
+                merged.append(k)  # mark for grouping
+            else:
+                merged.append(k)
+        return keys
+
+    # group row-bands by proximity of (bottom, top)
+    row_groups = defaultdict(list)
+    for k, members in rows.items():
+        row_groups[k].extend(members)
+    # merge nearby bands
+    merged_rows = []
+    for k in sorted(row_groups):
+        placed = False
+        for g in merged_rows:
+            if abs(g["key"][0] - k[0]) <= tol * 2 and abs(g["key"][1] - k[1]) <= tol * 2:
+                g["members"].extend(row_groups[k]); placed = True; break
+        if not placed:
+            merged_rows.append({"key": k, "members": list(row_groups[k])})
+
+    for g in merged_rows:
+        members = g["members"]
+        if len(members) < 2:
+            continue
+        # equal-span panels in one row must share width AND horizontal edges
+        widths = [m["bbox_pt"][2] - m["bbox_pt"][0] for m in members]
+        if max(widths) - min(widths) > tol:
+            problems.append(f"row {g['key']}: width spread "
+                            f"{max(widths)-min(widths):.2f}pt > {tol}pt "
+                            f"(equal-span row must share plot width)")
+        tops = [m["bbox_pt"][3] for m in members]
+        bots = [m["bbox_pt"][1] for m in members]
+        if max(tops) - min(tops) > tol or max(bots) - min(bots) > tol:
+            problems.append(f"row {g['key']}: horizontal edges drift "
+                            f"{max(tops)-min(tops):.2f}/{max(bots)-min(bots):.2f}pt")
+        members_sorted = sorted(members, key=lambda m: m["bbox_pt"][0])
+        gutters = [members_sorted[i+1]["bbox_pt"][0] - members_sorted[i]["bbox_pt"][2]
+                   for i in range(len(members_sorted) - 1)]
+        if gutters and max(gutters) - min(gutters) > tol:
+            problems.append(f"row {g['key']}: horizontal gutter spread "
+                            f"{max(gutters)-min(gutters):.2f}pt > {tol}pt")
+
+    # column bands: same logic on the other axis (heights + vertical gutters)
+    col_groups = defaultdict(list)
+    for k, members in cols.items():
+        col_groups[k].extend(members)
+    merged_cols = []
+    for k in sorted(col_groups):
+        placed = False
+        for g in merged_cols:
+            if abs(g["key"][0] - k[0]) <= tol * 2 and abs(g["key"][1] - k[1]) <= tol * 2:
+                g["members"].extend(col_groups[k]); placed = True; break
+        if not placed:
+            merged_cols.append({"key": k, "members": list(col_groups[k])})
+    # Column bands: shared left/right edges are already enforced by band
+    # clustering. Equal HEIGHTS down a column is only a requirement for
+    # equal-span grids — structured unequal-span designs (clinical-triptych
+    # height_ratios, schematic-led hero band) intentionally differ and are
+    # governed by the row-band check instead (contract §5: "an intentional
+    # unequal-width design requires a recorded exemption", not a global
+    # tolerance weakening).
+    if manifest.get("layout_preset", "equal-grid") == "equal-grid":
+        for g in merged_cols:
+            members = g["members"]
+            if len(members) < 2:
+                continue
+            heights = [m["bbox_pt"][3] - m["bbox_pt"][1] for m in members]
+            if max(heights) - min(heights) > tol:
+                problems.append(f"col {g['key']}: height spread "
+                                f"{max(heights)-min(heights):.2f}pt > {tol}pt")
+            members_sorted = sorted(members, key=lambda m: m["bbox_pt"][1])
+            gutters = [members_sorted[i+1]["bbox_pt"][1] - members_sorted[i]["bbox_pt"][3]
+                       for i in range(len(members_sorted) - 1)]
+            if gutters and max(gutters) - min(gutters) > tol:
+                problems.append(f"col {g['key']}: vertical gutter spread "
+                                f"{max(gutters)-min(gutters):.2f}pt > {tol}pt")
+
+    # equal-grid preset: ALSO require global width equality across all panels
+    if manifest.get("layout_preset") == "equal-grid" and len(comparable) >= 2:
+        widths = [p["bbox_pt"][2] - p["bbox_pt"][0] for p in comparable]
+        if max(widths) - min(widths) > tol:
+            problems.append(f"equal-grid: global width spread "
+                            f"{max(widths)-min(widths):.2f}pt > {tol}pt")
+
+    if problems:
+        rep.add("A11", "FAIL",
+                f"panel alignment FIX BEFORE DELIVERY ({len(problems)}): "
+                + "; ".join(problems[:4]))
+    else:
+        note = ""
+        if exempt_ids:
+            note = f" ({len(exempt_ids)} exempted: {sorted(exempt_ids)[:4]})"
+        rep.add("A11", "PASS",
+                f"panel alignment ok within {tol}pt across "
+                f"{len(comparable)} comparable panels{note}")
+
+
 def audit_figure(figdir: Path) -> Report:
     figdir = Path(figdir)
     rep = Report()
@@ -973,6 +1181,7 @@ def audit_figure(figdir: Path) -> Report:
     audit_complexity(figdir, rep)
     audit_richness(figdir, rep)
     audit_brand_leak(figdir, rep)
+    audit_panel_alignment(figdir, rep)
     svg = figdir / "intermediate.svg"
     if not svg.is_file():
         svg = next(iter(figdir.glob("source*.svg")), None)

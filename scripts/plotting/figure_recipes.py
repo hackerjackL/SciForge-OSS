@@ -217,6 +217,10 @@ def _forest(spec, outdir):
                    color=sty["color"], edgecolor=st.stroke_for(sty["color"]), zorder=3)
     if spec.get("pooled"):
         p = spec["pooled"]
+        if not isinstance(p, dict) or not {"effect", "lo", "hi"} <= set(p):
+            raise ValueError(
+                "forest-plot 'pooled' must be an object {effect, lo, hi} — "
+                "a boolean is not a pooled estimate (figure-layout-contract §2)")
         y = -1
         ax.plot([p["lo"], p["hi"]], [y, y], color=st.TOKENS["crimson"], lw=st.LINEWIDTH["primary"])
         w = (p["hi"] - p["lo"]) / 2
@@ -231,39 +235,223 @@ def _forest(spec, outdir):
     _finish(fig, ax, spec, outdir)
 
 
+# ---- page-archetype layout presets (figure-layout-contract.md §3) ----
+# Each preset locks GridSpec geometry + subplots_adjust; the model fills content only.
+# height_ratios / width_ratios come from the Nature-2026 corpus patterns.
+# Geometry notes (tuned against docs/assets/layout-archetype-gallery v2 collisions):
+#   hspace must absorb (x-label of this row) + (panel letter of next row);
+#   wspace must absorb (y-label of left panel) + (panel letter of right panel);
+#   bottom margin is computed at render time from the figure-level legend rows.
+LAYOUTS = {
+    # equal grid spans: comparable panels must share width/height/gutter (A11)
+    "equal-grid":       {"gs": None, "hspace": 1.10, "wspace": 0.55,
+                         "aspect": 0.78},
+    # P12 / Archetype 3.1: schematic hero 45-60% height + quieter quant row
+    # hero x-label + quant-row panel letters need a tall gap between the bands
+    "schematic-led":    {"gs": (2, 4), "height_ratios": [2.0, 1.15],
+                         "hspace": 0.85, "wspace": 0.70,
+                         "hero_span": (0, slice(0, 4)), "hero_frac": (0.45, 0.60),
+                         "aspect": 0.72},
+    # P15 / Archetype 3.2: one conceptually central panel dominates
+    "asymmetric-hero":  {"gs": (2, 4), "height_ratios": [1.0, 1.0],
+                         "hspace": 1.00, "wspace": 0.70,
+                         "hero_span": (slice(0, 2), 3),
+                         "aspect": 0.70},
+    # P14 / Archetype 3.4: longitudinal -> forest -> summary, shared legend above
+    "clinical-triptych": {"gs": (3, 3), "height_ratios": [1.0, 1.35, 0.8],
+                          "hspace": 1.15, "wspace": 0.75,
+                          "aspect": 0.95},
+}
+DEFAULT_LAYOUT = "equal-grid"
+
+
+def _write_panel_manifest(fig, axes, spec, outdir):
+    """Emit panel_layout.json (schema of nature-skills audit_panel_alignment).
+
+    figure_audit.py A11 consumes this to enforce the 1.5 pt shared-edge /
+    width / height / gutter tolerance. Comparable groups are inferred from
+    equal grid spans; asymmetric heroes are recorded as exemptions.
+    """
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    inv = fig.dpi_scale_trans.inverted()
+    panels = []
+    for i, ax in enumerate(axes):
+        if not ax.axison and not ax.get_children():
+            continue
+        bb = ax.get_window_extent(renderer=r).transformed(inv)
+        # convert inches -> pt (1 in = 72 pt)
+        panels.append({
+            "id": f"p{i}",
+            "bbox_pt": {"left": round(bb.x0 * 72, 2), "bottom": round(bb.y0 * 72, 2),
+                        "right": round(bb.x1 * 72, 2), "top": round(bb.y1 * 72, 2)},
+        })
+    layout_name = spec.get("layout", DEFAULT_LAYOUT)
+    manifest = {
+        "schema_version": 1,
+        "figure": {
+            "width_pt": round(fig.get_figwidth() * 72, 2),
+            "height_pt": round(fig.get_figheight() * 72, 2),
+        },
+        "panels": panels,
+        "layout_preset": layout_name,
+        "tolerance_pt": 1.5,
+    }
+    if layout_name != "equal-grid":
+        # Only the hero panel is exempt (it intentionally spans unequal grid
+        # cells). Every other panel stays comparable so A11 still enforces the
+        # 1.5pt shared-edge/gutter tolerance inside its row/column band —
+        # never weaken the global tolerance to hide one intentional exception
+        # (figure-layout-contract.md §5).
+        hero_idx = 0
+        for i, pn in enumerate(spec.get("panels", [])):
+            if isinstance(pn, dict) and pn.get("hero"):
+                hero_idx = i
+                break
+        else:
+            if layout_name == "asymmetric-hero":
+                hero_idx = len(panels) - 1  # hero axes is appended last
+        if panels and hero_idx < len(panels):
+            manifest["exemptions"] = [{
+                "reason": f"layout preset '{layout_name}' hero panel intentionally "
+                          f"spans unequal grid cells (figure-layout-contract.md §3)",
+                "panels": [panels[hero_idx]["id"]],
+            }]
+    (outdir / "panel_layout.json").write_text(
+        json.dumps(manifest, indent=2), encoding="utf-8")
+
+
 @recipe("panel-grid")
 def _panel(spec, outdir):
-    """Compose sub-recipes: {"panels":[{"recipe":...,...},...], "cols":2}.
-    Each panel gets (a)(b)(c); one shared theme; sizes fixed by cols."""
+    """Compose sub-recipes into a page archetype.
+
+    spec: {"panels":[{"recipe":...,...},...], "cols":2,
+           "layout": "equal-grid|schematic-led|asymmetric-hero|clinical-triptych"}
+    Each panel gets a/b/c; one shared theme; geometry locked by the layout
+    preset (figure-layout-contract.md §3/§4), not by the model.
+    """
     panels = spec["panels"]
+    layout_name = spec.get("layout", DEFAULT_LAYOUT)
+    if layout_name not in LAYOUTS:
+        raise ValueError(f"unknown layout '{layout_name}'; available: {sorted(LAYOUTS)}")
+    L = LAYOUTS[layout_name]
     cols = spec.get("cols", min(len(panels), 2))
-    rows = (len(panels) + cols - 1) // cols
     st.apply_matplotlib_style()
-    fig, axes = plt.subplots(rows, cols, figsize=st.figsize_full(aspect=0.62 * rows / cols))
-    axes = np.atleast_1d(axes).ravel()
-    letters = "abcdefgh"
+
+    # Estimate the figure-level legend footprint BEFORE any axes exist:
+    # gridspec positions its own axes, so the bottom band must be passed to
+    # add_gridspec — a later fig.subplots_adjust() does NOT move them
+    # (this was the bug that jammed schematic-led's quant row into the hero).
+    est_handles = sum(max(1, len(p.get("series", []))) for p in panels
+                      if isinstance(p, dict))
+    ncol_est = min(max(est_handles, 1), 4)
+    legend_rows_est = (est_handles + ncol_est - 1) // ncol_est if est_handles else 0
+    if spec.get("legend", True) is False:
+        legend_rows_est = 0
+    xlabel_band = 0.115
+    bottom = 0.03 + xlabel_band + legend_rows_est * 0.065 if legend_rows_est else 0.03 + xlabel_band
+
+    # ---- build axes slots from the locked layout preset ----
+    if L["gs"] is None:
+        rows = (len(panels) + cols - 1) // cols
+        fig, axes = plt.subplots(rows, cols,
+                                 figsize=st.figsize_full(aspect=L.get("aspect", 0.72)))
+        axes = np.atleast_1d(axes).ravel()
+        fig.subplots_adjust(hspace=L["hspace"], wspace=L["wspace"],
+                            top=0.92, bottom=bottom, left=0.10, right=0.98)
+        slots = list(axes)                       # one slot per panel, in order
+        hero_slot = None
+    else:
+        rows, gcols = L["gs"]
+        fig = plt.figure(figsize=st.figsize_full(aspect=L.get("aspect", 0.72)))
+        gs = fig.add_gridspec(rows, gcols, height_ratios=L.get("height_ratios"),
+                              hspace=L["hspace"], wspace=L["wspace"],
+                              top=0.92, bottom=bottom, left=0.09, right=0.98)
+        hero_span = L.get("hero_span")
+        covered = set()
+        if hero_span is not None:
+            hr, hc = hero_span
+            r_rng = range(rows) if isinstance(hr, slice) else [hr]
+            c_rng = range(gcols) if isinstance(hc, slice) else [hc]
+            covered = {rr * gcols + cc for rr in r_rng for cc in c_rng}
+        # free slots first (row-major), hero slot last — content order below
+        slots = []
+        for r in range(rows):
+            for c in range(gcols):
+                idx = r * gcols + c
+                if idx in covered:
+                    continue
+                slots.append(fig.add_subplot(gs[r, c]))
+        hero_slot = fig.add_subplot(gs[hero_span[0], hero_span[1]]) if hero_span else None
+
+    # ---- assign panels to slots: hero-marked panel takes the hero slot ----
+    hero_flag = next((i for i, pn in enumerate(panels) if pn.get("hero")), None)
+    assignments = []          # (panel_idx, axes) in spec order
+    free = list(slots)
+    for i in range(len(panels)):
+        if hero_slot is not None and i == hero_flag:
+            assignments.append((i, hero_slot))
+        elif free:
+            assignments.append((i, free.pop(0)))
+    for ax in free:           # unused grid cells
+        ax.axis("off")
+
+    letters = "abcdefghijklmnopqrstuvwxyz"  # panel hard-cap is 9 (contract §8)
     # Nature multi-panel convention: ONE figure-level legend, not per-panel
     # legends (per-panel legend_top collides with panel letters and the row
     # above's x-labels in a grid). Panels render legend-less; handles merge.
     seen, handles, labels = set(), [], []
-    for i, (p, ax) in enumerate(zip(panels, axes)):
-        p = dict(p); p.setdefault("size", "panel2" if cols == 2 else "panel3")
-        p["panel_label"] = letters[i]
+    hero_flag = next((j for j, pn in enumerate(panels) if pn.get("hero")), None)
+    for i, ax in assignments:
+        p = dict(panels[i])
+        p.setdefault("size", "panel2" if cols == 2 else "panel3")
+        p["panel_label"] = None       # drawn at figure level below (Nature §3.6)
         p["legend"] = False
+        is_support = L.get("hero_span") is not None and i != hero_flag
+        if is_support:
+            # Contract §3.1/§3.2: support panels are quieter than the hero.
+            # Drop their axis labels (pattern P3) — the shared legend / hero
+            # labels carry the semantics — and use the §6 point-scale type
+            # (6-8pt) instead of the single-panel NATURE_FLOOR, which is 2-3x
+            # too large for a half-column cell.
+            p["x_label"] = ""
+            p["y_label"] = ""
+            p["quiet"] = True
+        else:
+            p["x_label_pad"] = 2       # keep hero xlabel clear of the next row
         _render_to_ax(p, ax)
+        if is_support:
+            # belt-and-braces: clear whatever the sub-recipe set
+            ax.set_xlabel(""); ax.set_ylabel("")
+            ax.tick_params(labelsize=st.NATURE_FLOOR["tick_label"] * 0.55)
         for h, lab in zip(*ax.get_legend_handles_labels()):
             if lab not in seen:
                 seen.add(lab); handles.append(h); labels.append(lab)
-    for ax in axes[len(panels):]:
-        ax.axis("off")
-    fig.subplots_adjust(hspace=0.72, wspace=0.42, top=0.96, bottom=0.17 if handles else 0.11)
+
+    # ---- panel labels: small bold lowercase, top-left OUTSIDE each axes ----
+    # Nature §3.6: never large badges, never riding on data/labels.
+    for i, ax in assignments:
+        ax.text(0.025, 0.965, letters[i], transform=ax.transAxes,
+                fontsize=st.NATURE_FLOOR.get("panel_label", 9),
+                fontweight="bold", ha="left", va="top",
+                zorder=10,
+                bbox=dict(boxstyle="square,pad=0.15", facecolor="white",
+                          edgecolor="none", alpha=0.85))
+
+    # ---- figure-level legend in the band reserved above ----
     if handles and spec.get("legend", True):
+        n_handles = len(handles)
+        ncol = min(n_handles, 4)
         fig.legend(handles, labels, loc="lower center",
-                   bbox_to_anchor=(0.5, 0.0), ncol=min(len(handles), 4),
+                   bbox_to_anchor=(0.5, 0.0),
+                   ncol=ncol,
                    frameon=False, fontsize=st.NATURE_FLOOR["legend"],
-                   markerscale=0.6)  # scatter handles otherwise dwarf the text
+                   markerscale=0.55, borderaxespad=0.1,
+                   columnspacing=1.5, handlelength=1.6)
     fig.savefig(outdir / "output.pdf")
+    _write_panel_manifest(fig, [ax for _, ax in assignments], spec, outdir)
     plt.close(fig)
+
 
 
 def _render_to_ax(spec, ax):
@@ -310,7 +498,12 @@ def _render_to_ax(spec, ax):
     else:
         raise ValueError(f"panel-grid sub-recipe must be one of "
                          f"line-comparison/bar-grouped/scatter-fit/hist-dist, got {kind}")
-    ax.set_xlabel(spec.get("x_label", "")); ax.set_ylabel(spec.get("y_label", ""))
+    quiet = spec.get("quiet", False)
+    fs_ax = st.NATURE_FLOOR["axis_label"] * (0.5 if quiet else 1.0)
+    fs_tk = st.NATURE_FLOOR["tick_label"] * (0.55 if quiet else 1.0)
+    ax.set_xlabel(spec.get("x_label", ""), fontsize=fs_ax)
+    ax.set_ylabel(spec.get("y_label", ""), fontsize=fs_ax)
+    ax.tick_params(labelsize=fs_tk)
     if spec.get("log_y"):
         ax.set_yscale("log")
     if spec.get("legend", True) and ax.get_legend_handles_labels()[0]:

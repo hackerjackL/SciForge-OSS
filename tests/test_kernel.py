@@ -856,6 +856,9 @@ def test_limiter_manifest_default_unlimited():
 def test_providers_reports_429_cooldown(monkeypatch):
     """A 429 from the backend triggers a global cooldown for that model key."""
     from sciforge import providers
+    # key gate fires before _raw_call: a dummy key is required to reach the
+    # 429 path at all (the test drives _raw_call directly, no network)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
     prov = providers.Providers(config={"backends": {"anthropic": {"base_url": "http://x", "api_key_env": ""}},
                                        "roles": {"grading": {"backend": "anthropic", "model": "m1"}}})
     import urllib.error

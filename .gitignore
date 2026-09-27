@@ -47,6 +47,10 @@ review-stage/
 derivations/
 paper/
 figures/
+# demo corpus SOURCE specs are first-class (publication-grade fixtures);
+# their rendered outputs are reproducible and stay out of the tree
+!demos/figures/
+demos/rendered/
 literature/
 methods/
 audit_report/

@@ -8,6 +8,7 @@ in the CHAR_WIDTH_ESTIMATES width model.
 
 from __future__ import annotations
 
+import json as _json
 import pytest
 
 import figure_audit as fa
@@ -360,3 +361,88 @@ def test_audit_figure_never_crashes_on_empty_dir(tmp_path):
     rep = fa.audit_figure(tmp_path)
     assert rep.verdict() == "FAIL"               # missing deliverables
     assert rep.to_json()["checks"]               # but checks were produced
+
+# ---------------- A11 panel alignment (figure-layout-contract §5) ----------------
+
+def _manifest(panels, exemptions=None, layout="equal-grid"):
+    return {
+        "schema_version": 1,
+        "figure": {"width_pt": 520.0, "height_pt": 360.0},
+        "panels": panels,
+        "layout_preset": layout,
+        "tolerance_pt": 1.5,
+        "exemptions": exemptions or [],
+    }
+
+
+def _panel(pid, x0, y0, w, h):
+    return {"id": pid,
+            "bbox_pt": {"left": x0, "bottom": y0,
+                        "right": x0 + w, "top": y0 + h}}
+
+
+def test_a11_passes_on_aligned_row(tmp_path):
+    # two equal-span panels in one row: same width/height, 20pt gutter
+    (tmp_path / "panel_layout.json").write_text(_json.dumps(_manifest([
+        _panel("p0", 40, 120, 200, 140),
+        _panel("p1", 260, 120, 200, 140),
+    ])))
+    rep = fa.Report()
+    fa.audit_panel_alignment(tmp_path, rep)
+    a11 = [c for c in rep.to_json()["checks"] if c["layer"] == "A11"]
+    assert a11 and a11[0]["status"] == "PASS", a11
+
+
+def test_a11_fails_on_width_drift_beyond_tolerance(tmp_path):
+    # 30pt width drift >> 1.5pt tolerance -> FIX BEFORE DELIVERY
+    (tmp_path / "panel_layout.json").write_text(_json.dumps(_manifest([
+        _panel("p0", 40, 120, 200, 140),
+        _panel("p1", 260, 120, 230, 140),
+    ])))
+    rep = fa.Report()
+    fa.audit_panel_alignment(tmp_path, rep)
+    a11 = [c for c in rep.to_json()["checks"] if c["layer"] == "A11"]
+    assert a11 and a11[0]["status"] == "FAIL"
+    assert "width spread" in a11[0]["msg"]
+
+
+def test_a11_hero_exemption_does_not_weaken_global_tolerance(tmp_path):
+    # hero (p3) intentionally unequal; p0/p1 drift must still FAIL
+    (tmp_path / "panel_layout.json").write_text(_json.dumps(_manifest([
+        _panel("p0", 40, 40, 200, 100),
+        _panel("p1", 260, 40, 230, 100),      # 30pt drift, NOT exempt
+        _panel("p3", 40, 180, 420, 140),      # hero, exempt
+    ], exemptions=[{"reason": "hero spans unequal cells", "panels": ["p3"]}],
+        layout="asymmetric-hero")))
+    rep = fa.Report()
+    fa.audit_panel_alignment(tmp_path, rep)
+    a11 = [c for c in rep.to_json()["checks"] if c["layer"] == "A11"]
+    assert a11 and a11[0]["status"] == "FAIL", (
+        "exempting the hero must not hide a sibling's width drift")
+    assert "width spread" in a11[0]["msg"]
+
+
+def test_a11_unequal_height_rows_ok_under_triptych_preset(tmp_path):
+    # clinical-triptych height_ratios make rows intentionally unequal in height;
+    # equal heights down a column are only required for equal-grid
+    (tmp_path / "panel_layout.json").write_text(_json.dumps(_manifest([
+        _panel("p0", 40, 240, 130, 80),
+        _panel("p1", 190, 240, 130, 80),
+        _panel("p2", 40, 120, 130, 100),
+        _panel("p3", 190, 120, 130, 100),
+    ], layout="clinical-triptych")))
+    rep = fa.Report()
+    fa.audit_panel_alignment(tmp_path, rep)
+    a11 = [c for c in rep.to_json()["checks"] if c["layer"] == "A11"]
+    assert a11 and a11[0]["status"] == "PASS", a11
+
+
+def test_a11_single_panel_is_not_auditable_but_passes(tmp_path):
+    (tmp_path / "panel_layout.json").write_text(_json.dumps(_manifest([
+        _panel("p0", 40, 40, 300, 200),
+    ])))
+    rep = fa.Report()
+    fa.audit_panel_alignment(tmp_path, rep)
+    a11 = [c for c in rep.to_json()["checks"] if c["layer"] == "A11"]
+    assert a11 and a11[0]["status"] == "PASS"
+    assert "n/a" in a11[0]["msg"]

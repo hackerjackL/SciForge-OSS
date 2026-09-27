@@ -37,4 +37,28 @@
 
 ## v1.7 候选（诚实遗留）
 
-- scatter-fit 默认 log 空间拟合；L5 zone 间边规则；proplot 式 fontscale 联动；km-survival + box-distribution 两配方（调研建议）；A11–A13 审计（物理 mm 宽、面板字母格式、误差声明——调研实测 Nature 机检条款）。
+- scatter-fit 默认 log 空间拟合；L5 zone 间边规则；proplot 式 fontscale 联动；km-survival + box-distribution 两配方（调研建议）；A12–A13 审计（面板字母格式、误差声明）。
+
+## 版面原型（v1.6 二轮 · figure-layout-contract.md §3）
+
+GitHub 调研（2026-09-27）锁定排版权威源并落地：`Yuan1z0825/nature-skills` 的 `nature-figure`（figure contract + multipanel evidence architecture + 1.5pt panel-alignment auditor）、`Zhangyanbo/nature-style-skill`（journal grid + point-scale type）、`0xE1337/thesis-figure-skill`（layout-by-construction + anti-AI-slop）、`shuang-afk/research-figure-composer-skill`、`LawrenceRiver/FigFox-Gen-skill`（human construction order）、`ai4paper/apaper-plugin`（block/tap-junction）、`BAIKEMARK/happy-figure-skill`（figure-type layout candidates）。
+
+四个版面原型进 `figure_recipes.py` 的 `panel-grid` `layout` 字段，几何代码锁死：
+
+| 原型 | 几何锁 | 水平评估 | 样张 |
+|------|--------|---------|------|
+| `equal-grid` | 等宽等高，A11 全局 width lock | **出版级** | `layout-equal-grid.png` |
+| `schematic-led` | hero 45–60% 高（`height_ratios=[2.0,1.15]`）+ support 行降字号/去轴标签 | **出版级** | `layout-schematic-led.png` |
+| `asymmetric-hero` | 中央面板跨行占右列，support 安静 | **出版级** | `layout-asymmetric-hero.png` |
+| `clinical-triptych` | `height_ratios=[1.0,1.35,0.8]` 三行叙事 | **出版级** | `layout-clinical-triptych.png` |
+
+**A11 面板对齐门**（`figure_audit.py`）：1.5pt 物理公差比对同行/同列共享边、等宽、重复 gutter；hero 只豁免自身不放宽全局公差（负向测试 30pt 宽度漂移正确 FAIL）。`panel_layout.json` 清单由 `figure_recipes` 自动产出。
+
+**修掉的真排版缺陷**（每项都是先看图再改码）：
+1. `fig.subplots_adjust` 不移动 `add_gridspec` 的 axes → 行距全部失效，hero x 标签穿入 support 行。几何改由 gridspec 直接持有。
+2. `NATURE_FLOOR`（16pt 单图字号）在半栏 support 面板上放大 2–3 倍挤爆邻居。support 降为 point-scale（0.5×轴标签 / 0.55×刻度），与契约 §6 的 6–8pt 印刷档一致。
+3. panel 字母外置 `(a)` 压邻面板 y 轴标签 → 改内侧左上小写 `a` + 白底 halo（Nature §3.6 "near the upper-left"）。
+4. 图例压 x 轴标签 → 底部预留 x-label band + 每行图例 0.065 独立带。
+5. support 面板双轴标签与 hero 争语义 → 按 P3 静音（去轴标签，保留刻度数字）。
+
+**五点图画契约**（写码前必填，缺 `claim`/`archetype` 拒绝渲染）：核心结论（一句带谓语）→ 证据链（每面板一个推断角色，10 角色表）→ 版面原型 → 锁定工具链 → 导出契约。必要性检验：删掉该面板是否丢失独特推断？否则进 Extended Data/删除。

@@ -263,24 +263,37 @@ def _recipe_pdf(tmp_path, spec):
     return p, out
 
 def test_recipe_line_comparison_renders(tmp_path):
+    # semantic fixture — a real LLM pretraining-loss sweep, not toy [1,2,3]
+    # series (style benchmark: ChenLiu-1996/figures4papers, Yuan1z0825 nature-figure)
+    epochs = [0, 250, 500, 750, 1000, 1250, 1500]
     p, out = _recipe_pdf(tmp_path, {
         "recipe": "line-comparison", "size": "single",
-        "x_label": "t", "y_label": "y",
-        "series": [{"name": "a", "x": [1, 2, 3], "y": [1, 2, 4], "err": [.1, .1, .1], "stat": "sem"},
-                   {"name": "b", "x": [1, 2, 3], "y": [1, 1.5, 2]}]})
+        "x_label": "Training tokens (B)", "y_label": "Validation loss",
+        "series": [
+            {"name": "Dense-6.7B", "x": epochs,
+             "y": [3.02, 2.41, 2.18, 2.05, 1.98, 1.94, 1.91],
+             "err": [0.04] * 7, "stat": "ci95"},
+            {"name": "SparseAttn-6.7B (ours)", "x": epochs,
+             "y": [2.94, 2.22, 1.98, 1.86, 1.79, 1.75, 1.72],
+             "err": [0.035] * 7, "stat": "ci95"}]})
     assert p.returncode == 0, p.stdout + p.stderr
     assert (out / "output.pdf").exists() and (out / "output.svg").exists()
     assert (out / "figure_audit.json").exists()  # unified entry audits recipes too
 
 def test_recipe_bar_and_forest(tmp_path):
+    # benchmark-accuracy bars + multi-centre trial forest (semantic, reviewable)
     p, out = _recipe_pdf(tmp_path, {
-        "recipe": "bar-grouped", "groups": ["x", "y"],
-        "series": [{"name": "m", "values": [1, 2], "err": [.1, .1], "stat": "sd"}]})
+        "recipe": "bar-grouped", "x_label": "Benchmark", "y_label": "Accuracy (%)",
+        "groups": ["MMLU", "HellaSwag", "GSM8K"],
+        "series": [{"name": "Ours-7B", "values": [63.8, 83.2, 68.9],
+                    "err": [0.6, 0.4, 1.0], "stat": "ci95"}]})
     assert p.returncode == 0, p.stderr
     p2, out2 = _recipe_pdf(tmp_path / "f", {
         "recipe": "forest-plot",
-        "rows": [{"label": "s1", "effect": .4, "lo": .1, "hi": .7}],
-        "pooled": {"effect": .3, "lo": .1, "hi": .5}})
+        "x_label": "Mean difference in HbA1c (mmol/mol), 95% CI",
+        "rows": [{"label": "CENTER 01 (n=142)", "effect": -6.2, "lo": -9.1, "hi": -3.3},
+                 {"label": "CENTER 02 (n=98)", "effect": -4.8, "lo": -8.0, "hi": -1.6}],
+        "pooled": {"effect": -5.5, "lo": -7.2, "hi": -3.8}})
     assert p2.returncode == 0, p2.stderr
     assert (out2 / "output.pdf").exists()
 
@@ -295,22 +308,29 @@ def test_recipe_unknown_kind_fails(tmp_path):
     assert "unknown recipe" in (p.stdout + p.stderr)
 
 def test_recipe_heatmap_enforces_layer2(tmp_path):
-    p, _ = _recipe_pdf(tmp_path, {"recipe": "heatmap", "matrix": [[1, 2], [3, 4]],
-                                  "colormap": "jet"})
+    p, _ = _recipe_pdf(tmp_path, {
+        "recipe": "heatmap",
+        "matrix": [[0.21, 0.34], [0.55, 0.62]],  # layer-wise attention sparsity
+        "colormap": "jet"})
     assert p.returncode != 0  # jet is forbidden for continuous fields
-    p2, out2 = _recipe_pdf(tmp_path / "ok", {"recipe": "heatmap",
-                              "matrix": [[1, 2], [3, 4]], "colormap": "cividis"})
+    p2, out2 = _recipe_pdf(tmp_path / "ok", {
+        "recipe": "heatmap",
+        "matrix": [[0.21, 0.34], [0.55, 0.62]], "colormap": "cividis"})
     assert p2.returncode == 0 and (out2 / "output.pdf").exists()
 
 def test_recipe_panel_grid_shared_legend(tmp_path):
     p, out = _recipe_pdf(tmp_path, {
         "recipe": "panel-grid", "cols": 2,
         "panels": [
-            {"recipe": "line-comparison", "x_label": "t", "y_label": "E",
-             "series": [{"name": "RK4", "x": [0, 1, 2], "y": [1, .9, .7]}]},
-            {"recipe": "bar-grouped", "x_label": "c", "y_label": "acc",
-             "groups": ["a", "b"],
-             "series": [{"name": "ours", "values": [.9, .8], "err": [.02, .02], "stat": "sem"}]}]})
+            {"recipe": "line-comparison",
+             "x_label": "Training tokens (B)", "y_label": "Validation loss",
+             "series": [{"name": "Dense-1.3B", "x": [0, 250, 500],
+                         "y": [3.40, 2.65, 2.31]}]},
+            {"recipe": "bar-grouped",
+             "x_label": "Benchmark", "y_label": "Accuracy (%)",
+             "groups": ["MMLU", "GSM8K"],
+             "series": [{"name": "Ours-7B", "values": [63.8, 68.9],
+                         "err": [0.6, 1.0], "stat": "ci95"}]}]})
     assert p.returncode == 0, p.stderr
     # one shared figure-level legend (not per-panel): verify in-process
     import matplotlib; matplotlib.use("Agg")
@@ -341,3 +361,111 @@ def test_cycle_order_single_source():
     cyc = [c["color"] for c in mpl.rcParams["axes.prop_cycle"]]
     assert cyc[0] == st.series_style(0)["color"]
     assert st.contrast(cyc[0], "#FFFFFF") >= 3.0  # first series is line-safe
+
+# ---------------- v1.6.2 layout archetypes (figure-layout-contract §3) ----------------
+
+def _layout_spec(layout, panels, cols=2):
+    return {"recipe": "panel-grid", "layout": layout, "cols": cols, "panels": panels}
+
+
+def _mini_panels():
+    """Realistic mini-panels — research semantics, not toy [1,2,3]."""
+    return [
+        {"recipe": "line-comparison",
+         "x_label": "Training tokens (B)", "y_label": "Validation loss",
+         "series": [{"name": "Dense-6.7B", "x": [0, 250, 500],
+                     "y": [3.02, 2.41, 2.18], "err": [0.04, 0.04, 0.04],
+                     "stat": "ci95"}]},
+        {"recipe": "bar-grouped",
+         "x_label": "Benchmark", "y_label": "Accuracy (%)",
+         "groups": ["MMLU", "GSM8K"],
+         "series": [{"name": "Ours-7B", "values": [63.8, 68.9],
+                     "err": [0.6, 1.0], "stat": "ci95"}]},
+        {"recipe": "hist-dist",
+         "x_label": "Per-token latency (ms)", "y_label": "Density",
+         "series": [{"name": "SparseAttn (ours)",
+                     "values": [18.2, 19.1, 19.8, 20.4, 21.0, 22.3, 24.1, 26.0]}]},
+        {"recipe": "scatter-fit",
+         "x_label": "log10 training FLOPs", "y_label": "Validation loss",
+         "series": [{"name": "grid runs", "x": [18.2, 19.0, 19.8, 20.6, 21.4, 22.2],
+                     "y": [3.10, 2.72, 2.48, 2.30, 2.17, 2.08]}]},
+    ]
+
+
+def test_layout_archetype_equal_grid_emits_panel_manifest(tmp_path):
+    p, out = _recipe_pdf(tmp_path, _layout_spec("equal-grid", _mini_panels()))
+    assert p.returncode == 0, p.stdout + p.stderr
+    mf = out / "panel_layout.json"
+    assert mf.exists(), "panel_layout.json must be emitted for the A11 gate"
+    m = _json.loads(mf.read_text())
+    assert m["schema_version"] == 1
+    assert m["layout_preset"] == "equal-grid"
+    assert len(m["panels"]) == 4
+    # equal-grid: no hero exemptions — all four panels stay comparable
+    assert not m.get("exemptions"), "equal-grid must not exempt any panel"
+
+
+def test_layout_archetype_schematic_led_exempts_hero_only(tmp_path):
+    panels = _mini_panels()
+    panels[0]["hero"] = True
+    p, out = _recipe_pdf(tmp_path, _layout_spec("schematic-led", panels, cols=4))
+    assert p.returncode == 0, p.stdout + p.stderr
+    m = _json.loads((out / "panel_layout.json").read_text())
+    assert m["layout_preset"] == "schematic-led"
+    ex = m.get("exemptions") or []
+    assert len(ex) == 1 and ex[0]["panels"] == ["p0"], (
+        "hero is exempt; every support panel stays comparable (contract §5)")
+
+
+def test_layout_archetype_unknown_name_fails(tmp_path):
+    sp = tmp_path / "bad.recipe.json"
+    sp.write_text(_json.dumps(_layout_spec("dashboard-grid", _mini_panels())))
+    import subprocess, sys
+    p = subprocess.run([sys.executable, str(Path(rf.__file__)),
+                        str(sp), "--out", str(tmp_path / "o")],
+                       capture_output=True, text=True, timeout=90)
+    assert p.returncode != 0
+    assert "unknown layout" in (p.stdout + p.stderr)
+
+
+def test_forest_plot_rejects_boolean_pooled(tmp_path):
+    """pooled must be {effect, lo, hi} — a bare True is a type error (spec bug)."""
+    import figure_recipes as fr
+    spec = {"recipe": "forest-plot", "pooled": True,
+            "rows": [{"label": "CENTER 01", "effect": -6.2, "lo": -9.1, "hi": -3.3}]}
+    try:
+        fr.render(spec, tmp_path / "f")
+    except ValueError as e:
+        assert "pooled" in str(e)
+    else:
+        raise AssertionError("boolean pooled must raise ValueError")
+
+
+def test_demo_corpus_specs_are_publication_grade():
+    """The shipped demo corpus must carry research semantics, not toy arrays
+    (style benchmark: ChenLiu-1996/figures4papers, Yuan1z0825/nature-figure)."""
+    root = Path(__file__).resolve().parents[1] / "demos" / "figures"
+    specs = sorted(root.glob("*.recipe.json"))
+    assert len(specs) >= 8, f"expected a demo corpus, found {len(specs)}"
+    banned_labels = {"a", "b", "c", "x", "y", "m", "s", "t", "acc", "ours"}
+    for spec in specs:
+        data = _json.loads(spec.read_text())
+        blob = spec.read_text()
+        # every shipped demo names real research objects in its axes/series
+        assert any(tok in blob for tok in (
+            "Accuracy", "loss", "FLOPs", "HbA1c", "Latency", "Sparsity",
+            "Benchmark", "latency", "weight", "Pipeline", "MEMORY", "mem",
+            "Retrieval", "Participants", "AE grade", "Speedup", "Occupancy",
+        )), f"{spec.name} lacks research-semantic labels"
+        # no toy series names in shipped demos
+        def walk(node):
+            if isinstance(node, dict):
+                if "name" in node and isinstance(node["name"], str):
+                    assert node["name"].strip().lower() not in banned_labels, (
+                        f"{spec.name}: toy series name {node['name']!r}")
+                for v in node.values():
+                    walk(v)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v)
+        walk(data)

@@ -4,6 +4,19 @@
 
 > 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的**。候选池分析见 `ANALYSIS_V1.6.md`（五路开源调研收敛信号 + 本地承诺兑现审计）。本轮全部改动带回归测试；380/380 绿，ci_check PASS。
 
+### 追加：图系统第三轮（排版宪法 + 论文级 demo 语料 — 用户指令"图的这种排版，还是得去找 nature skill 或者其他专门为论文开发的 skill plugins"）
+
+> 开源调研结论：扫 30+ 个 Nature/论文图 skill·plugin 仓库，排版权威源锁定 **`Yuan1z0825/nature-skills` 的 `nature-figure`**（唯一带机器可校验版面规范：1.5pt 面板对齐审计、碰撞审计、多面板证据架构）；其余为衍生/补充。全部吸收进 `figure-layout-contract.md`。
+
+- **排版宪法 `skills/shared-references/figure-layout-contract.md`**（277 行，v1.0）：五点图画契约（核心结论一句带谓语 / 证据链每面板一个推断角色 / 版面原型 / 锁定工具链 / 导出契约——缺 `claim`/`archetype` 拒绝渲染）、10 角色推断角色表、证据链原型（validation-envelope / scale-to-instance / discovery-sequence / capability-ladder）、4 个 Nature-2026 页原型几何锁、16 个布局 pattern、final-width-first 公式（`on_page_font_pt = font_pt × W_doc/W_fig` 必须=1）、人工建造顺序 + AI-slop 红名单。来源标注：nature-figure / Zhangyanbo/nature-style-skill / thesis-figure-skill / research-figure-composer / FigFox-Gen / apaper PRINCIPLES / happy-figure-skill。
+- **版面原型进配方引擎**：`figure_recipes` `panel-grid` 新增 `layout` 字段，4 原型几何代码锁死——`equal-grid`（等宽等高 + A11 全局 width lock）、`schematic-led`（hero 45–60% 高 `height_ratios=[2.0,1.15]` + support 降噪）、`asymmetric-hero`（中央面板跨行）、`clinical-triptych`（`height_ratios=[1.0,1.35,0.8]` 三行叙事）。每个原型输出 `panel_layout.json` 清单供审计消费。
+- **A11 面板对齐门（`figure_audit.py`）**：1.5pt 物理公差比对同行/同列共享边、等宽、重复 gutter；hero 只豁免自身、不放宽全局公差（负向测试：30pt 宽度漂移正确 FAIL，豁免 hero 时兄弟面板漂移仍 FAIL）；三联画行高不等是合法结构（仅 equal-grid 强制列等高）。`FIX BEFORE DELIVERY`/exit 1 阻断交付。
+- **修掉 5 个真排版缺陷**（看图→改码闭环）：(1) `fig.subplots_adjust` 不移动 `add_gridspec` 的 axes，行距全部失效——几何改由 gridspec 直接持有；(2) `NATURE_FLOOR` 16pt 单图字号在半栏 support 面板挤爆邻居——support 降为 point-scale（0.5×轴标签/0.55×刻度，对齐契约 §6 印刷 6–8pt）；(3) panel 字母外置 `(a)` 压邻面板 y 轴——改内侧左上小写 + 白底 halo；(4) 图例压 x 轴标签——底部独立预留带；(5) support 面板轴标签与 hero 争语义——P3 静音。
+- **论文级 demo 语料 `demos/figures/`（10 spec）**：取代玩具序列，对标 ChenLiu-1996/figures4papers 与 Yuan1z0825 nature-figure 样张语义——LLM 预训练损失 / 基准准确率 / scaling-law / 注意力稀疏图 / 延迟分布 / 三中心试验 forest / 四版面原型（真实量纲、命名方法、CI 语义、真实样本量）。回归测试 `test_demo_corpus_specs_are_publication_grade` 锁死"禁玩具序列名"（`a`/`b`/`ours` 裸名直接 FAIL）。
+- **forest-plot schema 加固**：`pooled` 必须是 `{effect,lo,hi}` 对象，布尔值直接 `ValueError`（此前 `True` 会把字典订阅打崩）。
+- **测试**：+11 回归（4 版面原型清单/hero 豁免语义/未知 layout 拒绝/pooled 类型守卫/demo 语料论文级断言；A11 对齐 PASS/漂移 FAIL/豁免不放水/三联画行高/单面板 n/a）；修复 `test_providers_reports_429_cooldown` 测试隔离缺陷（ANTHROPIC_API_KEY 门在 `_raw_call` 前拦下，429 路径从未走到——补 dummy key）。**390/390 全绿**。
+- 样张：`docs/assets/layout-*.png`（4 原型 + 画廊）、`docs/assets/demos/`（10 论文级样张）；分析并入 `docs/FIGURE-GALLERY.md`。
+
 ### 追加：图系统深度优化（工具链强制统一 + 依赖治理 — 用户指令"图还得继续深度优化，工具链必须高度统一，依赖必须清晰，不能模型想用什么用什么"）
 
 > 对标开源实测：proplot(停更勿依赖)/mplhep(命名 style 机制)/SciencePlots(nature.mplstyle)/K-Dense scientific-visualization(palette_audit)/cathrynlavery·diagram-design(42k★ 复杂度预算+6 连接线规则)/PaperBanana zone 策略/opentikz edit_contract/thesis-figure-skill layout-by-construction。论文级 d2 模板仓库不存在——该缺口由本系统填补。
