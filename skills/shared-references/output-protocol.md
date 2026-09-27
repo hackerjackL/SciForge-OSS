@@ -72,7 +72,8 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   ├── CLAIMS_FROM_RESULTS.md ← 3-fidelity claim gate narrative (result-to-claim)
 │   │   ├── FINAL_VERDICT.md / STAGNATION_REPORT.md / QUALITY_FLOOR_REPORT.md / SELF_DECEPTION_REPORT.md ← quality-gate reports
 │   │   ├── AUTO_REVIEW.md         ← cross-model review narrative (auto-review-loop)
-│   │   └── CITATION_AUDIT.md      ← 3-layer citation audit narrative (citation-audit)
+│   │   ├── CITATION_AUDIT.md      ← 3-layer citation audit narrative (citation-audit)
+│   │   ├── S2_LADDER.json / ABLATION_LEDGER.json / REBUTTAL_PLAN.json / CALIBRATION.json / AUDIT_TRAIL.json / IDEA_EVOLUTION.json / REVIEW_PANEL.json ← v1.7 ScientistTwo parity kernel-machine audits (gate-checked by scripts/s2_*.py; same unregistered class as REVIEW_PANEL.json — NOT verdicts, so validate_verdicts does not demand them)
 │   └── tmp/            ←   scratch space (rendering intermediates, debug scripts, download caches); whole directory deleted at wrap-up
 ├── refine-logs/        ← [VISIBLE — the research trail] decision artifacts (v1.4.0 boundary: research content is written into the open from the moment it is created, never hidden and transplanted later)
 │   ├── PROBLEM_ANALYSIS.md / phase bundles, domain-signature.json (+ hint)

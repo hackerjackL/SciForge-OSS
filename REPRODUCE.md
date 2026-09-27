@@ -94,8 +94,8 @@ GPU/NPU：镜像内 `detect_device.py` 自动 cuda/rocm/npu/mps/cpu；NPU allow-
 ## 7. 单元测试（全部机制）
 
 ```bash
-.venv/bin/python -m pytest tests/test_kernel.py -q     # kernel 23 项
-.venv/bin/python -m pytest tests/ -q                   # 全仓 338 项（macOS Python 3.14 实测全绿）
+.venv/bin/python -m pytest tests/test_kernel.py -q     # kernel 70 项
+.venv/bin/python -m pytest tests/ -q                   # 全仓 413 项（macOS Python 3.14 实测全绿）
 ```
 
 ## 已知边界（诚实）

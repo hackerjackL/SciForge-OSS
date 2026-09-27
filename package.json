@@ -1,7 +1,7 @@
 {
   "name": "@gewislab/sciforge-oss",
-  "version": "1.6.0",
-  "description": "Skill-driven universal AI Scientist framework v1.6 — Markdown skills (domain-agnostic method) + runtime kernel (code-enforced 21-phase control loop, event-sourced resume, mechanical gates, HITL approvals, RSI skill-library evolution). Hosts: Claude Code / Codex / manual CLI. Headless on Linux/macOS/Windows.",
+  "version": "1.7.0",
+  "description": "Skill-driven universal AI Scientist framework v1.7 — Markdown skills (domain-agnostic method) + runtime kernel (code-enforced 21-phase control loop, event-sourced resume, mechanical gates, HITL approvals, RSI skill-library evolution) + ScientistTwo parity layer (subset→full-set ladder gate, ablation ledger, score<8 rebuttal + meta-review, anchor calibration, completeness audit, CPU bench/s2demo). Hosts: Claude Code / Codex / manual CLI. Headless on Linux/macOS/Windows.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "keywords": [
@@ -36,6 +36,7 @@
     "CITATION.cff",
     "scripts/",
     "bin/",
+    "bench/",
     "tests/",
     "fixtures/"
   ],

@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 1.6.0
+version: 1.7.0
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
@@ -624,3 +624,5 @@ The skill auto-selects experiment templates based on `evidence_type`:
 - [`../meta-skills/dynamic-tooling/SKILL.md`](../../meta-skills/dynamic-tooling/SKILL.md) — used when experiment needs custom tools
 - [`../../shared-references/engineering-grounding-contract.md`](../../shared-references/engineering-grounding-contract.md) — EG axis informs experiment scope
 - [`../../shared-references/domain-adaptive-pipeline.md`](../../shared-references/domain-adaptive-pipeline.md) — evidence_type drives experiment template
+- [`../experiment-ladder/SKILL.md`](../experiment-ladder/SKILL.md) — v1.7: subset→full ladder + 3-state Critic companion (writes S2_LADDER.json, gated at 6c)
+- [`../../shared-references/s2-protocol.md`](../../shared-references/s2-protocol.md) — v1.7: ScientistTwo parity protocol (ladder/ablation/rebuttal)

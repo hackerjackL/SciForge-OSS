@@ -1,6 +1,6 @@
 ---
 name: auto-review-loop
-version: 1.6.0
+version: 1.7.0
 description: "Iterative self-review (review→fix→re-review) with role-switch + v3.2 Phase B.2 domain-expert blind-spot review (wired into explicit ordered chain A→B.1→B.2→C) + kill-argument anti-self-deception. v3.4 STOP CONDITION uses effective_score=min(Phase C raw, B.2 cap) — a fatal blind-spot caps at 5, blocks false 'ready'. Writes BLINDSPOT_CHECK.json. Phase 14. Invoke to improve the draft until score≥6 or MAX_ROUNDS."
 type: reference-skill
 role: autonomous-review-loop-orchestrator
@@ -217,6 +217,8 @@ Then extract structured fields:
 **LOOP-COMPLETION DISCIPLINE (v1.4.0 — anti-premature-surrender)**: one invocation of this skill covers the ENTIRE loop: rounds continue until the STOP CONDITION fires OR MAX_ROUNDS (default 4) is exhausted. Ending the loop after an early round with `effective_score < 6` while rounds remain is a CONTRACT VIOLATION (premature surrender — the CRUX shadow evaluation's agents declared "I'm done" with hours and budget still on the clock; the structural interceptor treats an under-budget `not_ready` finalization the same way: the next boundary or the eval gate rejects it). A low round score means FIX AND RE-REVIEW, not finalize.
 
 **STOP CONDITION**: If `effective_score >= 6` AND verdict contains "ready" or "almost" → stop loop, document final state. **v3.2 — `effective_score` not raw score**: the score used for the stop condition is the **min of (Phase C raw score, B.2 cap)**, NOT the raw Phase C score alone. A raw 7/10 that hides a fatal unresolved domain blind-spot (B.2 cap = 5) is `effective_score = 5` → does NOT stop, must fix the blind-spot first. This closes the gap where the generic Phase C review could declare "ready" while a fatal endogeneity / boundary-condition / straw-man failure (B.2) was never addressed.
+
+**S2 REBUTTAL BAR (v1.7.0 — ScientistTwo §3.5, [s2-protocol.md §4](../../shared-references/s2-protocol.md))**: crossing the boundary at `score ≥ 6` is the *floor*, not the target. The ScientistTwo bar is **8**: whenever the (anchor-calibrated) panel score is `< 8`, the kernel writes `.sciforge/audits/REBUTTAL_PLAN.json` — one supplementary task per panel fatal/kill-argument. The host MUST run those supplementary experiments for real and backfill the manuscript before re-review; **≤ 2 rebuttal rounds**, then `meta_review` decides {ACCEPT | REFINE}. Wording-only rebuttal = `round_invalid` (anti-shrinkage rule 3 applies). Threshold override: `SCIFORGE_REVIEW_THRESHOLD` (default 8.0).
 
 **Anti-Shrinkage Protocol (v5.1 — from CRUX shadow-evaluation failure mode #2)**:
 

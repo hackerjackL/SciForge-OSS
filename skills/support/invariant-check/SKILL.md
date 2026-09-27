@@ -1,6 +1,6 @@
 ---
 name: invariant-check
-version: 1.6.0
+version: 1.7.0
 description: "Verify INV-G1 problem-anchor freeze (Q-id referenced in every downstream artifact). Phase 9. Invoke before result-to-claim to ensure the question hasn't drifted."
 type: reference-skill
 role: phase-boundary-verifier

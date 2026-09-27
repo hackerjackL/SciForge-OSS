@@ -1,6 +1,6 @@
 ---
 name: auto-pipeline
-version: 1.6.0
+version: 1.7.0
 description: "SciForge-OSS autonomous 21-phase research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
@@ -389,18 +389,18 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 5 | Method registry built + hash lock + **forced human approval** | Ask the user to approve Section 3; the agent cannot self-approve |
 | 6 | SymPy derivation succeeds + step-by-step machine verification PASS | Fall back to Phase 1 (max 3 rounds) |
 | 6b | Toy experiment RESULT.json status=PASS + core_claim_validated=true | **v5.1**: FAIL → KILL-or-PIVOT decision (triggered only when significantly negative and reproducible on ≥2 seeds: PIVOT back to Phase 5 to re-register the method (budget ≤2) / KILL → kill argument → back to Phase 2 for a new idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
-| 6c | Full experiment DISPATCH.json generated + background process launch confirmed + **v5.1 budget_floor.satisfied** (route exploration ≥2 or veto evidence + 100% matrix + full seed quota + failure traces + completion_justification) | No background method available → BLOCKED; launch failure → 1 retry; theory-only → SKIP; budget_floor not satisfied → IN_PROGRESS (keep exploring; must not enter Phase 10) |
+| 6c | Full experiment DISPATCH.json generated + background process launch confirmed + **v5.1 budget_floor.satisfied** (route exploration ≥2 or veto evidence + 100% matrix + full seed quota + failure traces + completion_justification) + **v1.7 s2_ladder PASS** (`S2_LADDER.json`: subset→full ladder, Critic state GOOD, engineer rounds ≤2, strict full-set improvement — [s2-protocol.md §2](../../shared-references/s2-protocol.md)) | No background method available → BLOCKED; launch failure → 1 retry; theory-only → SKIP; budget_floor not satisfied → IN_PROGRESS (keep exploring; must not enter Phase 10); ladder missing/BAD/ENGINEER → write the ladder via [/experiment-ladder](../../support/experiment-ladder/SKILL.md) (gate rejects the boundary) |
 | 6c-BA | Full experiment complete and STATUS.json verdict=FAIL (toy previously PASSed) | **v2.2.1 BA**: fall back to Phase 2 to regenerate ideas (bounded 2 rounds) — see [idea-discovery BA mechanism](../../meta-skills/idea-discovery/SKILL.md) |
 | 7 | Type I has no CRITICAL + Type IV has no ESCAPE | CRITICAL → callback to Phase 5 (3-round cap); further failure escalates to BLOCKED + LOGIC_GAP_FUNDAMENTAL_ISSUE |
 | 8 | 6-dimension logic audit PASS (zero FATAL/CRITICAL) | FATAL/CRITICAL fall back to Phase 6 (max 3 rounds); **FATAL = experimental data contradicts derivation conclusions → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
 | 9 | INV-G1 Q-id frozen + referenced in the current artifacts | FAIL → re-anchor the Q-id (Phase 0) |
-| 10 | At least 1 primary result reaches ≥ numerical fidelity | qualitative-only → reframe as conjecture; numerical missing → fall back to Phase 6 |
+| 10 | At least 1 primary result reaches ≥ numerical fidelity + **v1.7 s2_ablation PASS** (`ABLATION_LEDGER.json`: 5–6 plans, AblCritic strict rule, monotone current_best — [s2-protocol.md §3](../../shared-references/s2-protocol.md)) | qualitative-only → reframe as conjecture; numerical missing → fall back to Phase 6; ledger missing/invalid → run [/ablation-planner](../../support/ablation-planner/SKILL.md) before any claim (gate rejects the boundary) |
 | 11 | (optional) figures follow the dopamine palette + Layer 2 data heatmaps | Palette violation → regenerate; non-data figures not enforced |
 | 12 | Paper non-empty + unified elsarticle template + all citations come from the verified list | If empty fall back to Phase 1; template violation falls back to Phase 12 |
 | 13 | LaTeX compiles zero-warning zero-error (submission grade) | Anti-deadloop ladder: 3 attempts per-warning → BLOCKED + reason_code |
-| 14 | Cross-model review score ≥ 6/10 + kill-argument anti-self-deception PASS | Score < 6 falls back to Phase 6 (max 4 rounds); anti-self-deception FAIL falls back to Phase 10; **kill-argument holds (claim refuted by its own experiments) → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
+| 14 | Cross-model review score ≥ 6/10 (boundary floor) + **v1.7 calibrated score ≥ 8 drives the ScientistTwo rebuttal loop** (score < 8 ⇒ `REBUTTAL_PLAN.json`, real supplementary experiments, ≤2 rounds, then Meta-Review {ACCEPT\|REFINE} — [s2-protocol.md §4](../../shared-references/s2-protocol.md)) + kill-argument anti-self-deception PASS | Score < 6 falls back to Phase 6 (max 4 rounds); score ∈ [6,8) ⇒ execute the rebuttal plan and re-review (wording-only = round_invalid); anti-self-deception FAIL falls back to Phase 10; **kill-argument holds (claim refuted by its own experiments) → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
 | 15 | All references pass the 3-layer anti-hallucination verification | Fail → delete fabricated references + fall back to Phase 4 and re-search |
-| 16 | Artifact archive complete | Missing artifact → fall back to the relevant phase |
+| 16 | Artifact archive complete + **v1.7 s2_completeness_audit PASS** (`AUDIT_TRAIL.json`: gain arithmetic + split discipline + method↔code parity ≥80% — [s2-protocol.md §6](../../shared-references/s2-protocol.md)) | Missing artifact → fall back to the relevant phase; audit FAIL → fix the arithmetic/split/parity defect (`scripts/s2_audit.py <ws>` names it) |
 
 ## Fallback Contract (Bounded 3 Rounds, Universal)
 
@@ -644,6 +644,9 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - [`../support/method-registry/SKILL.md`](../../support/method-registry/SKILL.md) — Phase 5
 - [`../support/theory-derivation/SKILL.md`](../../support/theory-derivation/SKILL.md) — Phase 6
 - [`../support/experiment-execution/SKILL.md`](../../support/experiment-execution/SKILL.md) — Phase 6b (toy) + Phase 6c (full+background) [v2.0]
+- [`../shared-references/s2-protocol.md`](../../shared-references/s2-protocol.md) — ScientistTwo parity layer: ladder / ablation / rebuttal+meta-review / calibration / audit [v1.7.0]
+- [`../support/experiment-ladder/SKILL.md`](../../support/experiment-ladder/SKILL.md) — Phase 6b/6c subset→full ladder + 3-state Critic (writes S2_LADDER.json) [v1.7.0]
+- [`../support/ablation-planner/SKILL.md`](../../support/ablation-planner/SKILL.md) — Phase 10 5–6 ablation plans + AblCritic (writes ABLATION_LEDGER.json) [v1.7.0]
 - [`../shared-references/background-dispatch-protocol.md`](../../shared-references/background-dispatch-protocol.md) — background dispatch protocol [v2.0]
 - [`../support/leakage-audit/SKILL.md`](../../support/leakage-audit/SKILL.md) — Phase 7
 - [`../support/logic-verification/SKILL.md`](../../support/logic-verification/SKILL.md) — Phase 8

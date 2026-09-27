@@ -39,6 +39,19 @@ This registry closes both gaps by being the **single, machine-checkable** list o
 | `paper/REBUTTAL_LETTER.md` (versioned write: timestamped copy + fixed-name copy) | paper/ | `/rebuttal` | User (submission to editor/venue), `/auto-review-loop` (context for next revision round) | Point-by-point structure per `rebuttal/SKILL.md`: quote → concession → evidence-backed response → manuscript change; every point carries a `response_class`; MUST NOT claim experiments absent from `.sciforge/verdicts/EXPERIMENT_MATRIX.json` / `EXPERIMENT_LOG.md` | none (advisory — human-reviewed deliverable) |
 | `AGENT_DOC.md` | project root | `/auto-pipeline` Phase 0 (and equivalent Phase 0 in other pipelines) | Every downstream phase (re-reads at phase entry to confirm config intact) | Discipline / venue / methodology / gate settings table | `/invariant-check` validates discipline-specific fields |
 
+### ScientistTwo parity artifacts (v1.7.0)
+
+> Kernel-machine audit JSON in `.sciforge/audits/` (same unregistered class as `REVIEW_PANEL.json` — NOT flat verdicts, so `validate_verdicts` never demands them; they are enforced by the `s2_*` boundary gates instead). Protocol: [`s2-protocol.md`](s2-protocol.md).
+
+| Artifact | Path | Producer | Consumers | Schema enforced by | Verifier |
+|---|---|---|---|---|---|
+| `.sciforge/audits/S2_LADDER.json` | .sciforge/audits/ | `/experiment-ladder` (host, phases 6b/6c) | `s2_ladder` gate (6c boundary), `/result-to-claim`, bench harness | `kernel/sciforge/s2/ladder.py` `validate()` (state machine, engineer cap ≤2, strict full-set improvement, gain arithmetic) | `scripts/s2_ladder_gate.py` — experiments present + invalid/missing ⇒ FAIL; no experiments ⇒ SKIP |
+| `.sciforge/audits/ABLATION_LEDGER.json` | .sciforge/audits/ | `/ablation-planner` (host, phase 10) | `s2_ablation` gate (phase-10 boundary), `/result-to-claim`, `/paper-writing` (ablation table) | `kernel/sciforge/s2/ablation.py` `validate()` (5–6 plans, AblCritic strict rule, monotone current_best) | `scripts/s2_ablation_gate.py` — experiments present + missing/invalid ⇒ FAIL; no experiments ⇒ SKIP |
+| `.sciforge/audits/REBUTTAL_PLAN.json` | .sciforge/audits/ | kernel `_native_review` (seed) + `/auto-review-loop`/`/rebuttal` (refine, execute) | `/auto-review-loop` (execute tasks before re-review), `meta_review` (round accounting) | `kernel/sciforge/s2/reviewloop.py` (`max_rounds=2`, threshold, task provenance) | `_native_review` writes it whenever calibrated score < 8; wording-only responses = `round_invalid` |
+| `.sciforge/audits/CALIBRATION.json` | .sciforge/audits/ | run setup (human/host records known-quality anchors) | `kernel/sciforge/s2/calibration.apply` inside `_native_review` → `overall_calibrated` | `calibration.fit()` OLS + `usable` flag (non-positive slope ⇒ identity fallback) | consumed at review time; malformed ⇒ raw score used (never a silent rescale) |
+| `.sciforge/audits/AUDIT_TRAIL.json` | .sciforge/audits/ | kernel `s2/audit.run_full_audit` (phase 16) | wrap-up gate `s2_completeness_audit`, human | `audit.py` (gain arithmetic, split discipline, method↔code parity ≥0.8) | `scripts/s2_audit.py` at wrap-up — FAIL blocks completion; SKIP only with no experiment claims |
+| `.sciforge/audits/IDEA_EVOLUTION.json` | .sciforge/audits/ | `/idea-discovery` (round ledger) + kernel loopback hook | `s2/ideas.next_exploration_seed` (attached to idea-regeneration loopback events) | `ideas.py` (`explored_ids` accumulate; `exploration_pool` must carry ≥1 unexplored id) | loopback event log + `KILL_DECISIONS.jsonl` carry `exploration_seed` |
+
 ### Shared backbone artifacts (all pipelines)
 
 | Artifact | Path | Producer | Consumers | Schema enforced by |

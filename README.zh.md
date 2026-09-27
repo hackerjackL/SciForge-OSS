@@ -3,14 +3,14 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.6.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.0-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
 
 > **AI for Scientist Anything** — Skill 驱动的通用科研运行时：**Skill 库（纯 Markdown）+ Runtime Kernel（代码强制控制循环）+ RSI 进化层**。
 >
-> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**，v1.6.0 进一步把证据变成**可验证**（实验安全扫描 kernel 强制、TDAL 联合置信、反幻想五门、Arb 认证区间、句级引用归因、SMOKE 门、注入消毒、限速器、双计时器）：**"做什么"留在 Markdown，"如何强制"进入代码**。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
+> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**，v1.6.0 进一步把证据变成**可验证**（实验安全扫描 kernel 强制、TDAL 联合置信、反幻想五门、Arb 认证区间、句级引用归因、SMOKE 门、注入消毒、限速器、双计时器）：**"做什么"留在 Markdown，"如何强制"进入代码**。v1.7.0 加入 **ScientistTwo 对标层**——把 Google arXiv:2609.19644 成绩背后的机制复刻为开源代码：Subset→Full-Set 实验阶梯 + 三态 Critic（6c 边界门）、5–6 计划消融账本 + 严格 AblCritic（相位 10 门）、score<8 rebuttal 闭环 ≤2 轮 + Meta-Review {ACCEPT|REFINE} + 锚点校准评审分、wrap-up 的 reward-hacking + 方法↔代码完整性审计、带探索保证的 idea evolution，以及同构的 CPU 级 `bench/s2demo` 子 bench。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
 >
 > 两种用法：**(A) 纯 skill**（任意 agent 内 `/auto-pipeline "问题"`）——与从前一致；**(B) skill + kernel**（`sciforge run --workspace … --host claude`）——管线再也不能静默跳过门、进程死了能续、且每一轮都变得更强（RSI）。
 >
@@ -73,6 +73,7 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 | **provider 层** | 按角色分档多后端路由（Anthropic/OpenAI 兼容/Ollama；网关 env 生效），真实 token 记账入 `RUN_BUDGET.json` |
 | **宿主适配** | `--host claude`（Claude Code CLI，回传 `total_cost_usd`）、`--host codex`，或 `manual` bundle 协议（任意 agent 经 `.sciforge/host/*.done.json` 驱动） |
 | **实验执行** | 沙箱门控派发（macOS Seatbelt / Linux bubblewrap）、worker 池、后台 nohup + STATUS.json 聚合、设备规划（CUDA/ROCm/NPU/MPS/CPU 经 `detect_device.py`） |
+| **ScientistTwo 对标（v1.7）** | `s2/` 包 + 边界门：Subset→Full-Set 阶梯与三态 Critic（`s2_ladder` @6c）· 5–6 消融计划与严格 AblCritic（`s2_ablation` @10）· score<8 rebuttal ≤2 轮 + Meta-Review {ACCEPT\|REFINE} · 锚点校准评审分 · reward-hacking + 方法↔代码对齐审计（`s2_audit` @wrap-up）· 探索保证 idea evolution · `bench/s2demo`（CPU、仅 numpy） |
 | **daemon** | `sciforge serve`——headless 队列 + loopback HTTP（:4510），服务器过夜运行；**任何环节无 GUI** |
 
 ```bash
@@ -420,6 +421,7 @@ SciForge-OSS/
 | **KILL 人类检查点** | 杀掉 idea 前默认暂停等人类确认（`human_skip=true` 或 `kill_checkpoint=false` 才全自动） |
 | **实验安全门** | agent 自写的全量实验脚本派发前先过 `scripts/security_scan.py`（凭证访问 / env 外泄 / 破坏性操作 / 未授权外发 → BLOCKED） |
 | **图契约** | 统一渲染器 + 内嵌 A1–A10 Nature 级审计；组图交付真矢量 LaTeX 装配（`composite.tex`），栅格预览被审计降级标注 |
+| **ScientistTwo 门（v1.7）** | `scripts/s2_ladder_gate.py` @6c（无严格全集提升不得晋级，engineer 轮 ≤2）· `scripts/s2_ablation_gate.py` @相位 10（5–6 计划、账本单调）· `scripts/s2_audit.py` @wrap-up（增益算术 + 划分纪律 + 方法↔代码对齐 ≥80%）——见 `skills/shared-references/s2-protocol.md` |
 | **仓库 CI** | `scripts/ci_check.py`（AtomGit Actions + pre-commit）：md 断链扫描、全仓版本一致性、plotting `--doctor`、全量 pytest（含 e2e 冒烟 fixture） |
 
 开发者快速自检：`python3 scripts/ci_check.py` · `python3 -m pytest tests/ -q` · `python3 scripts/plotting/render_figure.py --doctor`。

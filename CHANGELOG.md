@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.7.0] - 2026-09-27 定版：ScientistTwo 对标层（深度复刻 arXiv:2609.19644 + demo 子 bench）
+
+> 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的，v1.7 把 Google 的 ScientistTwo 复刻成开源代码**。动机：对标调研确认人家赢在"真题、真实验、真评审校准、真烧钱迭代"（86/107 顶会真题、+25.2% vs 人类 SOTA、ScholarPeer 91.9% 接收），恰是上轮体检的三大硬伤；他们的 harness 闭源 = 赛道开着。本轮把其**可迁移机制**逐一代码化进 21-phase DAG（不加相位、不破 21-phase 钉），全部带回归测试：**413/413 全绿，ci_check PASS**。协议事实源：`skills/shared-references/s2-protocol.md`；对标分析：`docs/SCIENTISTTWO_PARITY.md`。
+
+### S2 内核六模块（`kernel/sciforge/s2/`，stdlib-only，一门两用：门脚本与 bench 共用同一实现）
+
+- **`ladder.py` Subset→Full-Set 阶梯 + 三态 Critic**（他们 §3.2 的核心工程）：`decide()` = GOOD（严格更好）/ ENGINEER（持平，轮 ≤2）/ BAD（更差）；`validate()` 机器规则——GOOD 必须有全集 `verified:true` + 严格提升（平局不算赢）、`engineer_rounds≤2`（调参耗尽 = BLOCKED 而非静默晋级）、声明的 `relative_gain_pct` 与复算差 >0.15pp 即 reward-hacking 类失败、INV-G1 锚必须在。产物 `.sciforge/audits/S2_LADDER.json`。
+- **`ideas.py` seed 排序 + 探索保证**（§3.3）：`exploration_mix()` 每轮强制混入 ≥1 个未探索 seed，防进化循环坍缩到局部最优；**kernel 在 idea 再生 loopback（目标 2/3/5）上把最高优先级未探索 seed id 写进事件与 `KILL_DECISIONS.jsonl`**——探索保证从"给模型的指令"变成可重放的审计事实。
+- **`ablation.py` 消融账本 + AblCritic**（§3.4）：5–6 计划机械上下限（`SCIFORGE_ABLATION_MIN/MAX`）；`ablcritic()` 严格规则 = 新严格优于旧才 GOOD，否则 REFINE（保留旧状态）；`current_best` 单调性校验（回退/手改被检出）。
+- **`reviewloop.py` rebuttal 闭环 + Meta-Review**（§3.5/3.6）：双阈值纪律——相位 14 边界地板维持 6（L10 注册表不动），**ScientistTwo 接受线 8**（`SCIFORGE_REVIEW_THRESHOLD`，默认 8.0）——校准分 <8 即写 `REBUTTAL_PLAN.json`（每个 panel fatal/kill-argument 一个补充实验任务），≤2 轮、必须真跑真回填（wording-only = round_invalid）；`meta_review()` 出 {ACCEPT | PENDING_REBUTTAL | REFINE}，ACCEPT = 分数过线且零 fatal。
+- **`calibration.py` 锚点校准**（他们最狠的评审设计）：先给已知质量论文打分（reference_score）拟合 OLS `calibrated = clamp(a+b·raw, 0, 10)`；退化拟合（b≤0）回退恒等并标 `usable:false`——**校准不可用时绝不静默重标分数**。`_native_review` 消费，产出 `overall_calibrated` + `REVIEW_STATE.meta_review`。
+- **`audit.py` 完整性审计**（§3.7 我们缺的两半）：增益算术复算 + 划分纪律（有实验必须有 EVALUATION_PROTOCOL 的 held-out/split/seed 声明）+ **方法↔代码 token 对齐**（方法段 backticked/snake_case/camelCase token ≥80% 必须落地在 src/experiments 代码里，反向未提及函数仅记档）——"方法段描述不存在的机器"是 reward-hacking 的经典面。产物 `AUDIT_TRAIL.json`。
+
+### 边界门接线（phasegraph 不加相位，门即代码）
+
+- **`s2_ladder` @6c**（`scripts/s2_ladder_gate.py`）：有实验证据但无阶梯/状态非 GOOD/超工程师帽/全集非严格提升 ⇒ 边界拒绝；无实验（theory-only）⇒ SKIP（与 smoke_gate 同语义）。
+- **`s2_ablation` @相位 10**（`scripts/s2_ablation_gate.py`）：有实验证据但无消融账本/计划数出 5–6/决策违反严格规则/账本非单调 ⇒ 拒绝；无实验 ⇒ SKIP。声明即拒：**没跑消融就不能出 claim**。
+- **`s2_completeness_audit` @wrap-up**（`scripts/s2_audit.py` 并入 `wrap_up_gates`）：FAIL 阻断完成；SKIP 仅当不存在实验性主张。
+- 评审闭环接进 `pipeline._native_review`：panel → 锚点校准 → `rebuttal_required` → 种子 rebuttal 计划 → `meta_review` → `REVIEW_PANEL.json` + `REVIEW_STATE.json`（新增 `rebuttal_required`/`rebuttal_threshold`/`meta_review` 字段，schema additionalProperties 兼容）。
+
+### bench/s2demo —— 他们的 mold，我们的 CPU 子 bench（无 GPU/仅 Colab 可跑）
+
+- **4 个任务**（全部 numpy-only、seed 固定、离线秒级）：T1 同心环非线性分离（准确率↑，线性 logistic → RFF+logistic）、T2 季节预测（RMSE↓，季节 naive → 调和回归）、T3 各向异性聚类（纯度↑，球 k-means → 全协方差 GMM-EM）、T4 概率校准（ECE↓，部署锐化 T0=0.5 → 验证集温度缩放）。每个任务带结构化 briefing + 6 轴 rubric + **human_anchor=6.2**（复刻他们"先用人类中稿均分锚定量尺"）。
+- **`run.py` harness 直接 import 生产 `s2/ladder.py`**（与 6c 门同一实现，一个契约两个消费者）：subset→full 双段跑分、三态 critic、方向感知相对增益（他们的 +25.2% 口径）、`S2_LADDER.json` 与门同构输出；exit 0 = 全部 PROMOTED。实测 **4/4 PROMOTED**（T1 +177.8% / T2 +74.1% / T3 +6.7% / T4 +56.2%）。
+- 评测口径扩展路径：ARC-Bench / AutoResearchExam 接入留作下一步（本轮先建"他们的 mold"自留地）。
+
+### 知识层（Markdown 同步，27 sub-skills）
+
+- **`skills/shared-references/s2-protocol.md`**：机制↔实现↔门三方映射表 + 阶梯/消融/评审/校准/审计五份契约 + 硬规则复述（7 条）。
+- **新 support skills**：`/experiment-ladder`（6b/6c 配方，产出 S2_LADDER.json 自检命令齐全）、`/ablation-planner`（相位 10，5–6 计划 + 严格批评者 + 负结果纪律）。
+- **编排补丁**：auto-pipeline 质量门表 6c/10/14/16 四行升级 + See Also 三条；auto-review-loop 增 **S2 REBUTTAL BAR** 小节（6 是地板、8 是目标）；experiment-execution / idea-discovery See Also 指针；artifact-registry 新增 **ScientistTwo parity artifacts** 六行；output-protocol audits 树补 7 个 kernel-machine 文件名（与 REVIEW_PANEL.json 同类：unregistered、由 s2 门强制而非 validate_verdicts）。
+
+### 测试与版本
+
+- **`tests/test_s2.py` +23**：三态/工程师帽/平局不算赢/算术篡改检出/阶梯与消融门三态退出码/探索保证挂进 loopback 事件与 KILL_DECISIONS/阈值与 Meta-Review 全分支/校准退化恒等/审计三查/bench 4 任务全 PROMOTED（numpy 缺席则 skip）/`_native_review` 写 rebuttal+meta 集成两例。**413/413 全绿**；ci_check 全项 PASS。
+- 版本钉 1.5.0→**1.7.0**：package.json + CITATION + 双 README badge/正文 + 根 SKILL.md + 25 个 SKILL.md frontmatter；REPRODUCE 测试计数刷新（kernel 70 / 全仓 413）。
+
 ## [1.6.0] - 2026-09-26 定版：可验证证据链 + 运行时防御（第三轮，Top-12 清单落地）
 
 > 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的**。候选池分析见 `ANALYSIS_V1.6.md`（五路开源调研收敛信号 + 本地承诺兑现审计）。本轮全部改动带回归测试；380/380 绿，ci_check PASS。

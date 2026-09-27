@@ -1,6 +1,6 @@
 ---
 name: idea-discovery
-version: 1.6.0
+version: 1.7.0
 description: "Generate 8-12 candidate research ideas via MCTS over a DAG, with 6-axis pre-screen (novelty/feasibility/relevance/tractability/data-readiness/EG) and v6.0 gap anchoring (every promoted idea cites a gap-id from literature/GAP_REPORT.md). Phase 2. Invoke after domain signature is ready, before novelty-check."
 type: meta-skill
 role: research-idea-generation
@@ -292,3 +292,4 @@ The final output is:
 - [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract
 - [`../../support/method-registry/SKILL.md`](../../support/method-registry/SKILL.md) — consumes FINAL_PROPOSAL.md to build the method registry
 - [`../../support/theory-derivation/SKILL.md`](../../support/theory-derivation/SKILL.md) — consumes FINAL_PROPOSAL.md for the selected idea's framing
+- [`../shared-references/s2-protocol.md`](../../shared-references/s2-protocol.md) — v1.7: idea-evolution exploration guarantee (kernel attaches an unexplored seed id to every regeneration loopback)
