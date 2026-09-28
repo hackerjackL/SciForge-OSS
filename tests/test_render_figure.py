@@ -408,6 +408,36 @@ def test_recipe_bar_long_labels_fixture():
     plt.close(fig)
 
 
+def test_recipe_forest_grows_height_with_rows(tmp_path):
+    """ARC-Bench B07 Fig-3 finding: 14 forest rows in a fixed single-panel
+    height overlapped 13/14 y labels. Geometry must adapt to row count."""
+    import matplotlib; matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import unittest.mock as mock
+    import figure_recipes as fr
+    spec = {"recipe": "forest-plot", "x_label": "width",
+            "rows": [{"label": f"RXN{i:02d}  Subsystem Name", "effect": i,
+                      "lo": i - 0.5, "hi": i + 0.5} for i in range(14)],
+            "pooled": {"effect": 7, "lo": 6, "hi": 8}}
+    created = {}
+    real_subplots = plt.subplots
+    def spy(*a, **k):
+        f, ax = real_subplots(*a, **k)
+        created["fig"], created["ax"] = f, ax
+        return f, ax
+    with mock.patch.object(plt, "subplots", spy), \
+            mock.patch.object(plt, "close", lambda *a, **k: None):
+        fr.render(spec, tmp_path / "out")
+    fig, ax = created["fig"], created["ax"]
+    assert fig.get_figheight() >= 0.32 * 15  # grew with content
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    bbs = [t.get_window_extent(renderer=r) for t in ax.get_yticklabels() if t.get_text()]
+    assert all(bbs[i + 1].y1 <= bbs[i].y0 for i in range(len(bbs) - 1)), \
+        "forest y labels still collide"
+    plt.close(fig)
+
+
 def test_cycle_order_single_source():
     """series_style(0) == prop_cycle[0] (the panel color-drift bug guard)."""
     import sciforge_style as st

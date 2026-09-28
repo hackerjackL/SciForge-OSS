@@ -259,6 +259,14 @@ def _hist(spec, outdir):
 def _forest(spec, outdir):
     fig, ax = _fig(spec)
     rows = spec["rows"]  # [{label, effect, lo, hi}]
+    # Geometry adapts to content: the row count is model-supplied, so a fixed
+    # single-panel height guaranteed y-label collisions (the ARC-Bench B07
+    # Fig-3 finding: 14 rows in 2.625in -> 13/14 labels overlapped). Reserve
+    # ~0.32in per row (tick font + breathing room) and grow the figure.
+    n_rows = len(rows) + (1 if spec.get("pooled") else 0)
+    min_h = 0.32 * n_rows + 0.9  # + margins for xlabel band
+    if fig.get_figheight() < min_h:
+        fig.set_figheight(min_h)
     ys = np.arange(len(rows))[::-1]
     for y, r in zip(ys, rows):
         sty = st.series_style(0)
