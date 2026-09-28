@@ -3,7 +3,7 @@ name: ablation-planner
 description: "ScientistTwo §3.4 component ablation: planner emits 5–6 plans, AblCritic decides {GOOD|REFINE} under the strict 'new must strictly beat old' rule, ledger stays monotone. Phase 10 companion (before result-to-claim). Writes .sciforge/audits/ABLATION_LEDGER.json (kernel gate s2_ablation at the phase-10 boundary)."
 type: support-skill
 role: ablation-planner-critic
-version: 1.7.0
+version: 1.7.1
 ---
 
 # Ablation Planner (SciForge-OSS — Component Ablation + AblCritic)

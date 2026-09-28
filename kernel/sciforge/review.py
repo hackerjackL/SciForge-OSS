@@ -30,6 +30,17 @@ def _rubric_text() -> str:
     return "\n".join(f"- {name} (w={w}): {q}" for name, w, q in RUBRIC_AXES)
 
 
+# Anti-inflation anchors (v1.7.1, from PaperOrchestra autoraters): a self-
+# score outside the band discipline is invalid. The default honest paper lives
+# at 45-70; >85 requires per-axis evidence; "did everything right" caps at 84.
+BAND_RULES = (
+    "Scoring band discipline (anti-inflation): 45-70 is the DEFAULT band for "
+    "honest competent work; 71-84 solid (all headline claims traced + clear "
+    "positioning); >85 requires per-axis justification and a novel instrument "
+    "or surprising established result; a paper that merely 'did everything "
+    "right' caps at 84; verbosity never raises a score.")
+
+
 def review_paper(providers, paper_text: str, *, personas: list[dict] | None = None) -> dict:
     """Independent multi-model blind review. personas = [{id, role_model, bias}] ."""
     personas = personas or _default_personas(providers)
@@ -37,7 +48,7 @@ def review_paper(providers, paper_text: str, *, personas: list[dict] | None = No
     for p in personas:
         system = ("You are an independent senior reviewer. Do NOT soften; do not see other reviews.\n"
                   "Score each axis 0-10 against the frozen rubric, then a weighted overall.\n"
-                  + _rubric_text() +
+                  + _rubric_text() + "\n" + BAND_RULES +
                   f"\nYour reviewer lens: {p['bias']}")
         prompt = ("Manuscript to review:\n<<<BEGIN\n" + paper_text[:60000] + "\n<<<END\n"
                   "Reply ONLY JSON: {\"scores\": {axis: number}, \"overall\": number, "

@@ -3,14 +3,14 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.0-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.1-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
 
 > **AI for Scientist Anything** — Skill 驱动的通用科研运行时：**Skill 库（纯 Markdown）+ Runtime Kernel（代码强制控制循环）+ RSI 进化层**。
 >
-> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**，v1.6.0 进一步把证据变成**可验证**（实验安全扫描 kernel 强制、TDAL 联合置信、反幻想五门、Arb 认证区间、句级引用归因、SMOKE 门、注入消毒、限速器、双计时器）：**"做什么"留在 Markdown，"如何强制"进入代码**。v1.7.0 加入 **ScientistTwo 对标层**——把 Google arXiv:2609.19644 成绩背后的机制复刻为开源代码：Subset→Full-Set 实验阶梯 + 三态 Critic（6c 边界门）、5–6 计划消融账本 + 严格 AblCritic（相位 10 门）、score<8 rebuttal 闭环 ≤2 轮 + Meta-Review {ACCEPT|REFINE} + 锚点校准评审分、wrap-up 的 reward-hacking + 方法↔代码完整性审计、带探索保证的 idea evolution，以及同构的 CPU 级 `bench/s2demo` 子 bench。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
+> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**，v1.6.0 进一步把证据变成**可验证**（实验安全扫描 kernel 强制、TDAL 联合置信、反幻想五门、Arb 认证区间、句级引用归因、SMOKE 门、注入消毒、限速器、双计时器）：**"做什么"留在 Markdown，"如何强制"进入代码**。v1.7.0 加入 **ScientistTwo 对标层**——把 Google arXiv:2609.19644 成绩背后的机制复刻为开源代码：Subset→Full-Set 实验阶梯 + 三态 Critic（6c 边界门）、5–6 计划消融账本 + 严格 AblCritic（相位 10 门）、score<8 rebuttal 闭环 ≤2 轮 + Meta-Review {ACCEPT|REFINE} + 锚点校准评审分、wrap-up 的 reward-hacking + 方法↔代码完整性审计、带探索保证的 idea evolution，以及同构的 CPU 级 `bench/s2demo` 子 bench。v1.7.1 加入 **AAR 反 Goodhart 层**（移植 Anthropic arXiv:2608.28945 的模式）：实验边界的 fail-closed 预执行完整性监控（D1/D2/D3）、geomean 头条度量、results-free 预注册——外加图系统修复与实证版 S2 披露语态，全部由两轮五域 ARC-Bench 实测驱动。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
 >
 > 两种用法：**(A) 纯 skill**（任意 agent 内 `/auto-pipeline "问题"`）——与从前一致；**(B) skill + kernel**（`sciforge run --workspace … --host claude`）——管线再也不能静默跳过门、进程死了能续、且每一轮都变得更强（RSI）。
 >

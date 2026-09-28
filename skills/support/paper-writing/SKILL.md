@@ -1,6 +1,6 @@
 ---
 name: paper-writing
-version: 1.7.0
+version: 1.7.1
 description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (8-class regex, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer
@@ -159,7 +159,7 @@ Reference the frozen Q-id in the plan header (INV-G1 problem anchor freeze).
 
 ### Step 2: Write Each Section
 
-Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) for the universal section-by-section writing guide. Summary:
+Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) for the universal section-by-section writing guide, and obey [`paper-voice-contract.md`](../../shared-references/paper-voice-contract.md) (v1.7.1 — submission-grade prose discipline ported from Google's PaperOrchestra + the measured 86-paper S2 corpus): no beat/SOTA claim without a logged comparison, every number traces to an artifact, concurrent-work rule for post-cutoff citations, exhaustive cite-at-first-use (dataset/optimizer/metric/tool), captions describe the science not the pipeline and must match what the rendered image actually shows, error bars defined in-caption, negative-vocabulary delete-list, and the 45–70 default scoring band. Summary:
 
 **Title:**
 - Descriptive, not flashy
@@ -387,6 +387,7 @@ The final output is:
 
 - [`../shared-references/venue-profiles.md`](../../shared-references/venue-profiles.md) — the single elsarticle template spec (no venue families)
 - [`../shared-references/discipline-writing.md`](../../shared-references/discipline-writing.md) — universal section-by-section writing guide
+- [`../shared-references/paper-voice-contract.md`](../../shared-references/paper-voice-contract.md) — v1.7.1 submission-grade prose discipline (PaperOrchestra + 86-paper S2 corpus: claim tracing, caption discipline, negative-vocabulary list, anti-inflation bands)
 - [`../shared-references/writing-principles.md`](../../shared-references/writing-principles.md) — academic writing style (universal)
 - [`../shared-references/citation-discipline.md`](../../shared-references/citation-discipline.md) — 3-layer anti-hallucination citation verification
 - [`../shared-references/color-themes.md`](../../shared-references/color-themes.md) — dopamine palette (Layer 1, CVD-verified) + viridis/magma/cividis data colormaps (Layer 2)

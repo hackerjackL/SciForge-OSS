@@ -1,6 +1,6 @@
 ---
 name: unified-plotting
-version: 1.7.0
+version: 1.7.1
 description: "Render publication-quality vector figures (PDF+SVG) from data or JSON specs — 12 chart types incl. v3.4 Composite/Group (subfigure-grid, panel-2x2, inset-zoom), Dopamine palette (v3.0, CVD-verified high-saturation) + viridis/magma colormaps, 16:9 default, Nature readability floor. v3.5 UNIFIED SINGLE-ENTRY RENDERER: all diagram engines (d2/graphviz/tikz/SVG) consolidated behind one tool `scripts/plotting/render_figure.py` with embedded Nature-level audit. v3.4 Figure Budget Contract sets per-section minimums (Intro≥1, Methods≥1 architecture diagram MANDATORY, Results 2-4) consumed by paper-writing. Phase 11. Invoke when the paper needs figures."
 type: meta-skill
 role: figure-renderer-and-spec-generator
@@ -302,6 +302,7 @@ Execute the render (Python subprocess for data plots; unified CLI for diagrams):
    - **Color audit**: every saturated color is a design token (dopamine v3.0: C* ≥ 30, CVD ΔE ≥ 15 pairwise, contrast-net) or a Layer-2 colormap — the CLI's embedded audit writes `figure_audit.json` with verdict PASS/WARN/FAIL
    - **Typography audit**: physical text size ≥ Nature floor (10pt diagram labels)
 5. Auto-generate caption from chart type + data description (the CLI writes `latex_include.tex` with the caption)
+5b. **Caption discipline (v1.7.1 — PaperOrchestra plotting contract, [`paper-voice-contract.md`](../../shared-references/paper-voice-contract.md) §4)**: the caption is written AFTER the final render, never before (a caption describing a figure that since changed is a visual lie); it must match what the image ACTUALLY shows — re-open the rendered figure and delete any interpretive clause the pixels do not support; it must define every error bar/band (±1 SD? 95% CI? over seeds?); it must not contain the literal word "Figure"/"Table" (LaTeX supplies the number) nor markdown; and it describes the SCIENCE, never the pipeline (no palette/renderer/aspect mentions). Figures and tables sit before the Conclusion.
 
 ### Step 4.5: Visual Self-Review (v3.9 — mandatory for vision-capable agents)
 

@@ -65,3 +65,9 @@ KILL_ARGUMENT.html
 # eval harness (test scaffolding, not shipped)
 scripts/eval/
 .venv/
+
+# SciForge evaluation runs (ARC-Bench etc.) — test artifacts, never shipped
+runs/ARC-BENCH/
+runs/ARC-BENCH2/
+runs/EVAL-T1/
+bench/s2demo/results/

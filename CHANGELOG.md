@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.7.1] - 2026-09-28 定版：ARC-Bench 两代实测驱动修复 + AAR 反 Goodhart 融合
+
+> 版本主题：**第一轮 ARC-Bench 五域实测暴露的全部缺陷，逐一修到根因**。全部改动带回归测试；430/430 绿，ci_check PASS。
+
+### ARC-Bench 评测（runs/ 本地，永不入库）
+- 拉取 AIMING-Lab-UNC/ARC-Bench（55 课题 × 5 域，MIT）→ 五域各选一题（ML02/P01/Q02/B07/S01），两轮各 5 个 sciforge-experimenter 子 agent 端到端全链跑（skill 模式），产物在 `runs/ARC-BENCH{,2}/`（.gitignore 新增评测运行排除节，测试文件绝不进仓库）。
+- 两轮独立复核抓出并修复的全部缺陷见下。
+
+### 图系统修复（第一轮五篇论文全部命中的系统性缺陷）
+- **分类 x 刻度标签碰撞**（`a0ce827`）：所有 recipe 裸设 `set_xticklabels(groups)`，长标签（FBA/pFBA/loop、friedman1 low noise、DGP 名）在五篇论文主图里渲染成不可读粘连。`_finish`/`_panel` 尾部统一 post-layout 碰撞 fit：实测 renderer bbox，30→45→60→90° 阶梯旋转到清开（6px 最小间隙），竖排为底线（绝不回 0°）。B07/ML02 真实 spec 渲染 PNG 目检 + 2 回归测试。
+- **forest-plot 高度自适应**（`7c8e284`）：行数由模型供给但图高固定 → 14 行压成 13/14 标签重叠（B07 Fig3）。按行撑高（~0.32in/行）。
+- **d2 preamble 幽灵边**（`073c2ff`）：`(* -> *).style` 在 d2 v0.9.0 不是样式 glob 而是**连接补全算子**——8 节点链被物化成 65 条全互连毛线（Q02 架构图元凶）；`edges.style` 备选也造 ghost 节点。删除全局边块（palette 合规由 sanitize_palette 下游保证）。+2 回归测试（静态选择器 + d2 端到端边数守卫）。
+- 记档：A10 碰撞审计解析 SVG `<text>` 而 matplotlib 默认路径化文字——对 recipe 图失明（本轮缺陷全部漏检的根因）；fonttype=42 或栅格化碰撞检测留 v1.8。
+
+### 写作契约：S2 披露语态（用户批评"论文像工程报告、失败写成正文"）
+- 下载并量化分析 **ScientistTwo 全部 86 篇成稿**（arXiv:2609.19644 项目页，454MB）：99% 摘要 "We introduce X" 主角开场、0% 以证伪为头条、"fail" 33% 出现但 100% 指 prior art、自家弃案写成被超越基线（"outperforms our prior 4-module iteration (+1.65%)"）、中位 15 数字/摘要、95% 正面收口。分析存档 `docs/SCIENTISTTWO_DISCLOSURE_ANALYSIS.md`（`8a4ac16`）。
+- paper-writing rule 2b + 自检 12b 重写为**实证版**：区分方法失败（KILL 上游）vs 已确立归因 null（polarity positive，discovery voice）；弃案=过程证据；量化密度 ≥8 数字；正面收口。数据/CI/消融行全量保留——只换叙事主角，选择性报告仍被门禁止。
+- 二轮五篇摘要全部达标（本机 PDF 提取验证："We present…" 开场、零失败语态、28-60 数字、"ablations confirm" 收口）。
+
+### AAR 反 Goodhart 融合（`c72ea36`，用户指令"深度融合"）
+- 验证 Anthropic AAR（arXiv:2608.28945, YuehHanChen/automated_alignment_researcher）：alignment 训练循环、**无 LICENSE**、需 Linux+CUDA——搬代码不可行，移植其度量纪律为自家纯 Python（Mac/Linux/Windows 一致；用户澄清 GPU 三平台都是产品目标，Mac+Colab 仅当前测试环境）。
+- `s2/monitor.py`：pre-execution integrity 门（D1 禁自造 ground truth / D2 禁 eval 数据 / D3 禁大模型教师），fail-closed，接 6b/6c 边界 + CLI。
+- `s2/headline.py`：geomean closed-fraction 目标（任一腿打平→整体归零）+ capability-floor/regression CI 硬门。
+- experiment-execution Step 5.00b：integrity monitor + **results-free 预注册 mini-paper**（forward-looking voice，治 hindsight 叙事）+ held-out 双文件剥离。s2-protocol §9 文档化。
+- 顺手抓漏：B07 agent 自植 allowlist 于仓库根（skill 模式 agent 兼任 operator 的豁免漏洞）——归档至其工作区，kernel 门免疫（从不传 --allow），v1.8 修 host 侧检测。
+
+### 评测产物仓库卫生
+- `.gitignore` 新增评测运行排除节：`runs/ARC-BENCH*/`、`runs/EVAL-T1/`、`bench/s2demo/results/`——所有测试/评测产物永不入库（runs/DEMO-RK4 作为发布证据保留跟踪）。
+
 ## [1.7.0] - 2026-09-27 定版：ScientistTwo 对标层（深度复刻 arXiv:2609.19644 + demo 子 bench）
 
 > 版本主题：**v1.5 把契约变成门，v1.6 把证据变成可验证的，v1.7 把 Google 的 ScientistTwo 复刻成开源代码**。动机：对标调研确认人家赢在"真题、真实验、真评审校准、真烧钱迭代"（86/107 顶会真题、+25.2% vs 人类 SOTA、ScholarPeer 91.9% 接收），恰是上轮体检的三大硬伤；他们的 harness 闭源 = 赛道开着。本轮把其**可迁移机制**逐一代码化进 21-phase DAG（不加相位、不破 21-phase 钉），全部带回归测试：**413/413 全绿，ci_check PASS**。协议事实源：`skills/shared-references/s2-protocol.md`；对标分析：`docs/SCIENTISTTWO_PARITY.md`。
