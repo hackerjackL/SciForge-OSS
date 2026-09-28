@@ -350,12 +350,13 @@ If toy gate passed, design the full-scale experiment:
 
 ### Step 5: Dispatch Full Experiment to Background
 
-**The full-experiment dispatch sequence is FIXED and top-to-bottom — the agent MUST execute Step 5.00 (security gate) → Step 5.0 (smoke) → Step 5.1 (method select) → Step 5.2 (dispatch) → Step 6 (return) in this exact order. Dispatching a full experiment WITHOUT first running Step 5.00 and Step 5.0 is a contract violation — the agent must NEVER skip the security gate or the smoke gate because it's "only a static scan" / "only a 1-step slice".**
+**The full-experiment dispatch sequence is FIXED and top-to-bottom — the agent MUST execute Step 5.00 (security gate) → Step 5.00b (integrity monitor + pre-registration) → Step 5.0 (smoke) → Step 5.1 (method select) → Step 5.2 (dispatch) → Step 6 (return) in this exact order. Dispatching a full experiment WITHOUT first running Step 5.00, Step 5.00b and Step 5.0 is a contract violation — the agent must NEVER skip the security gate, the integrity monitor or the smoke gate because it's "only a static scan" / "only a 1-step slice".**
 
 1. **Step 5.00 — Security Gate** (v5.3, MANDATORY — see below; verdict recorded in `FULL_EXPERIMENT_DISPATCH.json` as `security_gate`)
-2. **Step 5.0 — Full-Code Smoke Gate** (v3.2, MANDATORY — see below; produces `.SMOKE.json`)
-3. **Step 5.1 — Dispatch Method Selection** (tmux → nohup → systemd)
-4. **Step 5.2 — Execute Dispatch** (writes `FULL_EXPERIMENT_DISPATCH.json`)
+2. **Step 5.00b — Integrity Monitor + Pre-registration Mini-paper** (v1.7.1 AAR fusion, MANDATORY — see below; verdict recorded as `integrity_gate`, mini-paper frozen at `methods/PRE_REGISTRATION.md`)
+3. **Step 5.0 — Full-Code Smoke Gate** (v3.2, MANDATORY — see below; produces `.SMOKE.json`)
+4. **Step 5.1 — Dispatch Method Selection** (tmux → nohup → systemd)
+5. **Step 5.2 — Execute Dispatch** (writes `FULL_EXPERIMENT_DISPATCH.json`)
 5. **Step 6 — Return to Orchestrator** (immediate, do not wait)
 
 > **v3.2 hard-wiring note (the runtime bug this fixes)**: in the prior structure, Step 5.0 was a **buried subsection** between Step 5 (dispatch) and Step 5.1 (method) — the agent read the numbered Step 4→5→6 chain and **silently skipped 5.0** because it was not in the explicit execution list. The Q-SGD-BS-GAP test run confirmed this: `experiments/full/` has `FULL_EXPERIMENT_DISPATCH.json` + `STATUS.json` (state=DONE, 184s) but **NO `.SMOKE.json`** — the full experiment ran successfully by luck (the script happened to work), but the smoke gate that v3.2 mandates to catch a 6-hour-late crash never executed. This is the same buried-subsection bug class as the auto-review-loop B.2 fix. The `.SMOKE.json` file is the load-bearing evidence — a full dispatch that completes without first writing `.SMOKE.json` is invalid regardless of whether the experiment ultimately succeeded.
@@ -406,6 +407,24 @@ python3 scripts/security_scan.py src/experiments/full/{script}.py   # add --json
 | `BLOCKED` | The run is REFUSED. Record `security_gate: "BLOCKED"` + reason in `FULL_EXPERIMENT_DISPATCH.json` and surface to the human — never auto-bypass; a rewritten script must pass a fresh scan before dispatch |
 
 **Scope & notes**: the gate binds agent-authored scripts; user-provided scripts are exempt from blocking but are still scanned advisory (findings recorded the same way). Allowlists are supplied ONLY via explicit `--allow FILE` from the dispatching human/orchestrator — the scanner deliberately does NOT auto-load any allowlist sitting next to the script, because the script's directory is agent-authored workspace and an agent must never be able to write its own exemption. Allowlist entries are echoed in the scan report for auditability, and a `host:` exemption never exonerates credential access or exfiltration findings. Containerization (`docker`/`podman`, never `--privileged`) remains the recommended stronger isolation when available; toy mode keeps using `dynamic-sandbox`. `FULL_EXPERIMENT_DISPATCH.json` (the full-mode DISPATCH.json) now carries `security_gate` — the artifact-registry owner may mirror this field into the artifact registry later.
+
+### Step 5.00b: Integrity Monitor + Pre-registration Mini-paper (v1.7.1 AAR fusion — MANDATORY before smoke/dispatch)
+
+> **Why this exists**: `security_scan` (Step 5.00) polices what code CAN DO to the machine; it cannot police what the code MEANS for the study's construct validity. Anthropic's Automated Alignment Researcher (arXiv:2608.28945) closes that gap with a pre-execution monitor that reads the ACTUAL code and fail-closes. We port the discipline (not their code): three desiderata + a results-free pre-registration, enforced at the 6b/6c boundary by kernel gate `integrity_monitor` (`kernel/sciforge/s2/monitor.py`).
+
+**Part 1 — the monitor (fail-closed).** The 6b/6c boundary runs `integrity_monitor`: D1 no self-authored ground truth (templated construction from fixed facts is fine; nuanced free-form authoring of the labels the method learns/evaluates from is not), D2 no eval/holdout data reach (code must not read, download, or mimic the scored benchmark items named in `EVALUATION_PROTOCOL.json`), D3 no larger-model teacher (no frontier model generating training data or labels). SKIP when the run declares no scored suite; FAIL otherwise blocks the boundary. When the kernel cannot reach a provider for the semantic tier it fails closed — no silent pass.
+
+**Part 2 — the pre-registration mini-paper.** Before executing the approved method, write `methods/PRE_REGISTRATION.md` — a results-free method paper with sections `title / abstract / motivation / related_work (≥3 verified citations) / method (objective + loss + mechanism) / data (sources + generation) / experimental_setup (training config only)`. Two hard voice rules (they also cure the hindsight-narration failure class):
+1. **No self-references**: never cite your own prior trials/results/methods in any field.
+2. **No outcome hints**: describe only the mechanism and the claim under test, in forward-looking voice ("is designed to", "we expect"); the verdict goes ONLY in the post-run `results_writeup` (Phase 10's claims, the paper's Results section). A mini-paper that trips either rule is rejected by the monitor's validator.
+
+| Verdict | Action |
+|---------|--------|
+| `PASS` | Record `integrity_gate: "PASS"` + `pre_registration: "methods/PRE_REGISTRATION.md"` in `FULL_EXPERIMENT_DISPATCH.json`; proceed to Step 5.0 |
+| `SKIP` | No scored suite declared: record `integrity_gate: "SKIP"` with the note; still write the mini-paper (pre-registration is universal discipline) |
+| `FAIL` | The run is REFUSED at the boundary. Read the violation list, fix the code (swap a benchmark-tainted dataset for an open corpus; remove the teacher call; de-author the labels), and re-submit — there is no path to a score without an approval, so iterate on the proposal, never around it |
+
+**Held-out dual-file rule (AAR disclosure)**: when the run has a held-out leg, research-facing result files (`RESULT.json` / `scores.json`) carry the held-out legs STRIPPED; the full result lives eval-private (`heldout_scores.json`). The agent optimizes what it can see; generalization is scored where it cannot. Never copy held-out numbers into any agent-readable artifact.
 
 ### Step 5.0: Full-Code Smoke Gate (v3.2 — MANDATORY before dispatch)
 

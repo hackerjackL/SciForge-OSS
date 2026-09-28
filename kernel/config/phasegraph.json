@@ -192,6 +192,10 @@
         {
           "check": "command",
           "cmd": "dep_gate"
+        },
+        {
+          "check": "command",
+          "cmd": "integrity_monitor"
         }
       ]
     },
@@ -235,6 +239,10 @@
         {
           "check": "command",
           "cmd": "dep_gate"
+        },
+        {
+          "check": "command",
+          "cmd": "integrity_monitor"
         },
         {
           "check": "command",

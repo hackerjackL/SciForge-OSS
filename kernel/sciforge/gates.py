@@ -170,6 +170,21 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
                      ("PASS" if p.returncode == 0 else "FAIL")
             return {"gate": "s2_ablation", "status": status,
                     "exit": p.returncode, "output": out[-1500:]}
+        if name == "integrity_monitor":
+            # v1.7.1 AAR fusion: pre-execution semantic integrity gate (D1/D2/D3,
+            # fail-closed LLM tier). SKIP when the run declares no scored suite.
+            from .s2 import monitor as mon_mod
+            prov = None
+            try:
+                from .providers import Providers
+                prov = Providers()
+            except Exception:
+                prov = None
+            status, doc = mon_mod.evaluate(ws, providers=prov)
+            return {"gate": "integrity_monitor", "status": status,
+                    "decision": doc.get("decision"),
+                    "violations": doc.get("violations", [])[:5],
+                    "output": json.dumps(doc)[:1500]}
         if name == "gap_gate":
             p = run_py("scripts/gap_gate.py", [str(ws)])
             return {"gate": "gap_gate", "status": "PASS" if p.returncode == 0 else "FAIL",

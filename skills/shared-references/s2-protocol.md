@@ -130,3 +130,37 @@ one contract with two consumers. See `bench/s2demo/README.md`.
 5. Score scale is anchored: calibrate on known-quality papers before judging.
 6. Stated gains must equal recomputed gains; method tokens must exist in code.
 7. Every idea-regeneration loopback carries an unexplored seed id.
+
+## 9. AAR-fused anti-Goodhart discipline (v1.7.1)
+
+Patterns ported from Anthropic's Automated Alignment Researcher
+(arXiv:2608.28945) — the harness is alignment-specific, GPU-bound, and
+unlicensed, so we port its *measurement discipline*, not its code:
+
+1. **Pre-execution integrity monitor** (`s2/monitor.py`, gate `integrity_monitor`
+   at 6b/6c): a monitor reads the ACTUAL experiment code, fail-closed, against
+   D1 (no self-authored ground truth), D2 (no eval/holdout data reach), D3 (no
+   larger-model teacher/distillation). Static `security_scan` stays the
+   capability tier; this is the semantic tier. SKIP when the run declares no
+   scored suite (most research runs).
+2. **Results-free pre-registration** (contract): before training/eval, the host
+   writes a mini-paper (title/abstract/motivation/related_work/method-with-loss/
+   data/setup) in forward-looking voice ONLY — no outcome hints, no self-
+   references — and binds it to the run id; the post-run `results_writeup` is
+   the ONLY field allowed to state outcomes. This is the structural cure for
+   hindsight narration (§ rule from the disclosure analysis).
+3. **Held-out dual-file disclosure** (bench/eval convention): research-facing
+   `scores.json` has held-out legs STRIPPED; the full result lives in an
+   eval-private `heldout_scores.json`. Agents optimize what they can see;
+   generalization is scored where they cannot.
+4. **Geometric-mean headline** (`s2/headline.py`): objective = geomean of
+   per-benchmark closed fractions, clamped [0,1] — ANY leg left at baseline
+   zeroes the headline; capability-floor and significant-regression CIs are
+   hard disqualifiers regardless of score. Balanced lifts beat spiky ones by
+   construction.
+5. **One iteration per turn + memory file**: each experiment iteration is
+   discrete (one method trained+evaluated+shared per turn); cross-turn state
+   lives in the agent memory file, never in assumed context.
+
+All five are pure-Python/contract level — identical semantics on macOS test
+boxes, Linux CUDA clusters, and Windows hosts; hardware changes nothing.

@@ -23,6 +23,8 @@ All modules are stdlib-only (the kernel contract); they are imported by
 gate scripts (scripts/s2_*_gate.py), by the review panel (review.py /
 pipeline._native_review) and by host skills through the bundles.
 """
-from . import ablation, audit, calibration, ideas, ladder, reviewloop  # noqa: F401
+from . import (ablation, audit, calibration, headline, ideas, ladder,  # noqa: F401
+               monitor, reviewloop)
 
-__all__ = ["ladder", "ideas", "ablation", "reviewloop", "calibration", "audit"]
+__all__ = ["ladder", "ideas", "ablation", "reviewloop", "calibration", "audit",
+           "monitor", "headline"]
