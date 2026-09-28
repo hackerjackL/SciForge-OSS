@@ -215,10 +215,12 @@ def test_d2_preamble_contains_tokens_and_selectors():
     p = st.d2_preamble("right")
     assert "direction: right" in p
     assert "*.style:" in p
-    assert "(* -> *).style:" in p
+    # global edge selector removed (v0.9.0 d2 makes it destructive — see
+    # test_d2_preamble_has_no_global_edge_selector); shape stroke carries ink-soft
+    assert "(* -> *)" not in p and "edges.style" not in p
     assert st.TOKENS["surface"] in p      # shape fill
     assert st.INK_TEXT in p               # v2.2: black text (font-color)
-    assert st.TOKENS["ink-soft"] in p     # edge stroke
+    assert st.TOKENS["ink-soft"] in p     # shape stroke
     assert str(st.D2_FONT_PX["node"]) in p
 
 
@@ -300,3 +302,40 @@ def test_style_self_check_passes():
 def test_layer2_includes_cividis():
     assert "cividis" in st.LAYER2_COLORMAPS  # CVD-designed continuous map (research-adopted)
     assert "jet" in st.FORBIDDEN_COLORMAPS
+
+
+def test_d2_preamble_has_no_global_edge_selector():
+    """ARC-Bench Q02 architecture-figure regression.
+
+    Both candidate global-edge syntaxes are destructive in d2 v0.9.0:
+    `(* -> *).style` materializes all-to-all edges (8-node chain -> 65
+    spaghetti paths) and `edges.style:` creates a ghost node named "edges".
+    The preamble must inject the shape glob only; edge palette compliance
+    comes from sanitize_palette downstream.
+    """
+    pre = st.d2_preamble()
+    assert "(* -> *)" not in pre, "global edge selector materializes all-to-all edges"
+    assert "edges.style" not in pre, "edges.style materializes a ghost 'edges' node"
+    assert "*.style:" in pre  # shape glob stays
+
+
+def test_d2_preamble_preserves_declared_edge_count():
+    """End-to-end guard (skipped without the d2 binary): a declared 8-edge
+    chain must render as exactly 8 connection paths with the preamble
+    injected — the ARC-Bench Q02 figure rendered 65."""
+    import shutil, subprocess, tempfile
+    from pathlib import Path
+    if shutil.which("d2") is None:
+        pytest.skip("d2 not installed")
+    spec = ("a: A; b: B; c: C; d: D; e: E; f: F; g: G; h: H\n"
+            "a -> b -> c -> d -> e -> f -> g -> h\n")
+    with tempfile.TemporaryDirectory() as td:
+        src = Path(td) / "chain.d2"
+        src.write_text(st.d2_preamble() + spec)
+        out = Path(td) / "chain.svg"
+        subprocess.run(["d2", "--layout", "dagre", str(src), str(out)],
+                       check=True, capture_output=True, timeout=60)
+        svg = out.read_text()
+        assert svg.count('class="connection') == 8, \
+            f"preamble must not add edges (got {svg.count(chr(34) + 'connection')})"
+        assert ">edges<" not in svg, "ghost 'edges' node appeared"

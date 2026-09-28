@@ -732,8 +732,15 @@ def apply_matplotlib_style(style: str = "academic") -> None:
 def d2_preamble(direction: str | None = None) -> str:
     """Canonical d2 header enforcing the dopamine look & Nature typography.
 
-    Uses d2 glob selectors (`*` for shapes, `* -> *` for edges) so every
-    element inherits the design system even when the spec omits styles.
+    Uses the d2 shape-glob selector (`*.style`) so every node inherits the
+    design system even when the spec omits styles. NO global-edge block is
+    injected — measured against d2 v0.9.0, both candidate syntaxes are
+    destructive: `(* -> *).style` is not a style glob but a
+    connection-completion selector (an 8-node chain rendered as 65
+    all-to-all spaghetti paths — the ARC-Bench Q02 architecture figure),
+    and `edges.style:` materializes a ghost node literally named "edges".
+    Edge palette compliance is guaranteed downstream by sanitize_palette
+    (SVG color remap), so the block is unnecessary.
     """
     lines = [
         "# ---- SciForge-OSS design-system preamble (auto-injected; do not edit) ----",
@@ -749,12 +756,6 @@ def d2_preamble(direction: str | None = None) -> str:
         f"  font-size: {D2_FONT_PX['node']}",
         "  border-radius: 6",
         "  bold: false",
-        "}",
-        "(* -> *).style: {",
-        f"  stroke: \"{TOKENS['ink-soft']}\"",
-        "  stroke-width: 2",
-        f"  font-color: \"{INK_TEXT}\"",
-        f"  font-size: {D2_FONT_PX['edge']}",
         "}",
         "# ---- end preamble; author spec follows ----",
     ]
