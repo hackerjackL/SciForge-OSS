@@ -89,12 +89,65 @@ def _finish(fig, ax, spec: Path | dict, outdir: Path):
     if spec.get("panel_label"):
         ax.text(-0.16, 1.08, f"({spec['panel_label']})", transform=ax.transAxes,
                 fontsize=st.NATURE_FLOOR["title"], fontweight="bold")
+    # categorical x-tick collision fix, run LAST (legend placed, figure laid
+    # out). No-op for numeric axes — the gap test never trips on them.
+    _fit_xticklabels(fig, ax)
     fig.savefig(outdir / "output.pdf")
     plt.close(fig)
 
 
 def _err_label(series, stat):
     return f"{series['name']} ({STAT_LABEL.get(stat, stat)})" if stat else series["name"]
+
+
+XTICK_MIN_GAP_PX = 6.0  # ~one character of breathing room at 150 dpi
+
+
+def _xticks_overlap(fig, ax):
+    """True when adjacent x-tick labels collide OR crowd horizontally.
+
+    Measured on the real renderer (adapts to label length / font / axis width).
+    A strict-overlap test (x1 > x0) is not enough: the ARC-Bench panel-grid case
+    had a 0.3px gap between FBA/pFBA/loop — technically disjoint, but it renders
+    as an unreadable smear once the figure is scaled into the two-column PDF.
+    So adjacent labels must keep at least XTICK_MIN_GAP_PX of clearance.
+    """
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    vis = [t for t in ax.get_xticklabels() if t.get_text()]
+    if len(vis) < 2:
+        return False
+    bbs = [t.get_window_extent(renderer=r) for t in vis]
+    return any(bbs[i + 1].x0 - bbs[i].x1 < XTICK_MIN_GAP_PX
+               for i in range(len(bbs) - 1))
+
+
+def _fit_xticklabels(fig, ax):
+    """Deterministic categorical x-tick fitting (ARC-Bench bar-figure fix).
+
+    Root cause of the v1.7 review finding: every recipe set category labels
+    with a bare ``set_xticklabels(groups)`` — when labels are long relative to
+    the axis width (``breast_cancer_pca6``, the DGP names, or FBA/pFBA/loop in
+    a narrow panel-grid cell) adjacent ticks collide horizontally and render as
+    an unreadable smear.
+
+    Fix at the toolchain layer (not per-figure): measure the real renderer
+    bounding boxes and, only for THIS axis (so a panel-grid's numeric neighbours
+    are untouched), rotate + right-align to clear the collision. Escalate the
+    angle (30 → 45 → 60 → 90) and keep the first that clears; if none clears,
+    stay vertical (90°) — vertical labels stack and can never overlap
+    horizontally, whereas resetting to 0° would reintroduce the smear.
+    """
+    if not _xticks_overlap(fig, ax):
+        return
+    for rot in (30, 45, 60, 90):
+        for t in ax.get_xticklabels():
+            t.set_rotation(rot)
+            t.set_ha("right" if rot < 90 else "center")
+        if not _xticks_overlap(fig, ax):
+            return
+    # even 90° reported overlap (only possible with absurdly long labels);
+    # keep it vertical — that is the minimum-collision layout.
 
 
 # ---------------- recipes ----------------
@@ -131,7 +184,7 @@ def _bar(spec, outdir):
                label=_err_label(s, s.get("stat")))
     ax.set_xticks(xs)
     ax.set_xticklabels(groups)
-    _finish(fig, ax, spec, outdir)
+    _finish(fig, ax, spec, outdir)   # _finish runs the collision fit post-layout
 
 
 @recipe("scatter-fit")
@@ -448,6 +501,13 @@ def _panel(spec, outdir):
                    frameon=False, fontsize=st.NATURE_FLOOR["legend"],
                    markerscale=0.55, borderaxespad=0.1,
                    columnspacing=1.5, handlelength=1.6)
+    # ---- categorical x-tick collision fix, AFTER the figure is fully laid
+    # out (legend band reserved, axes final). Mid-build measurement gave false
+    # negatives — the ARC-Bench panel-grid FBA/pFBA/loop smear rendered because
+    # the fit ran before fig.legend shifted the axes. Numeric axes never trip
+    # the gap test, so this is a no-op for line/scatter/hist panels.
+    for _i, ax in assignments:
+        _fit_xticklabels(fig, ax)
     fig.savefig(outdir / "output.pdf")
     _write_panel_manifest(fig, [ax for _, ax in assignments], spec, outdir)
     plt.close(fig)
@@ -477,6 +537,9 @@ def _render_to_ax(spec, ax):
                    edgecolor=st.stroke_for(sty["color"]), linewidth=0.8,
                    yerr=s.get("err"), capsize=3, label=_err_label(s, s.get("stat")))
         ax.set_xticks(xs); ax.set_xticklabels(groups)
+        # NOTE: the collision fit runs at the panel-grid tail (figure fully
+        # laid out) — measuring here (mid-build, legend band not yet reserved)
+        # gave false negatives. See _panel.
     elif kind == "scatter-fit":
         for i, s in enumerate(spec["series"]):
             sty = st.series_style(i)

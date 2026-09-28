@@ -353,6 +353,61 @@ def test_recipe_panel_grid_shared_legend(tmp_path):
     assert len(figs.legends) == 1, f"expected ONE shared legend, got {len(figs.legends)}"
     plt.close(figs)
 
+def test_recipe_bar_long_labels_do_not_overlap(tmp_path):
+    """ARC-Bench v1.7 review finding, locked as a regression.
+
+    Every recipe set categorical x-tick labels with a bare set_xticklabels
+    (groups) — long names (friedman1 low noise / FBA pFBA loop) rendered as an
+    unreadable horizontal smear in all five papers' main figures. The fix runs a
+    post-layout collision fit (rotate/verticalize until adjacent labels clear
+    XTICK_MIN_GAP_PX). This test renders the worst case and asserts the
+    produced figure's x-tick labels no longer collide.
+    """
+    import matplotlib; matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import unittest.mock as mock
+    import figure_recipes as fr
+    spec = {"recipe": "bar-grouped", "size": "single",
+            "x_label": "dataset (regime)", "y_label": "test RMSE",
+            "groups": ["friedman1 low noise", "friedman1 high noise", "diabetes"],
+            "series": [{"name": "Tree", "values": [2.88, 31.30, 64.64]},
+                       {"name": "Boosting", "values": [1.45, 30.35, 56.65]}]}
+    created = {}
+    real_subplots = plt.subplots
+    def spy(*a, **k):
+        f, ax = real_subplots(*a, **k)
+        created["fig"], created["ax"] = f, ax
+        return f, ax
+    with mock.patch.object(plt, "subplots", spy), \
+            mock.patch.object(plt, "close", lambda *a, **k: None):
+        fr.render(spec, tmp_path / "out")
+    fig, ax = created["fig"], created["ax"]
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    bbs = [t.get_window_extent(renderer=r) for t in ax.get_xticklabels() if t.get_text()]
+    gaps = [bbs[i + 1].x0 - bbs[i].x1 for i in range(len(bbs) - 1)]
+    assert all(g >= fr.XTICK_MIN_GAP_PX for g in gaps), (
+        f"x-tick labels still collide (gaps {gaps} < {fr.XTICK_MIN_GAP_PX}px): "
+        "the collision fit regressed")
+    plt.close(fig)
+
+
+def test_recipe_bar_long_labels_fixture():
+    """The fixture spec used by the overlap test must itself be a real
+    collision case (long labels in a single-width axis) — guards the test
+    from silently passing on a spec that never collided."""
+    import matplotlib; matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import figure_recipes as fr
+    st.apply_matplotlib_style()
+    fig, ax = plt.subplots(figsize=st.figsize_single())
+    groups = ["friedman1 low noise", "friedman1 high noise", "diabetes"]
+    ax.bar([0, 1, 2], [2.88, 31.30, 64.64])
+    ax.set_xticks([0, 1, 2]); ax.set_xticklabels(groups)
+    assert fr._xticks_overlap(fig, ax) is True  # pre-fit: must be a real collision
+    plt.close(fig)
+
+
 def test_cycle_order_single_source():
     """series_style(0) == prop_cycle[0] (the panel color-drift bug guard)."""
     import sciforge_style as st
