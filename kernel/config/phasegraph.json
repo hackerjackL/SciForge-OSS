@@ -430,6 +430,10 @@
         {
           "check": "command",
           "cmd": "fairness_gate"
+        },
+        {
+          "check": "command",
+          "cmd": "submission_ready"
         }
       ]
     },

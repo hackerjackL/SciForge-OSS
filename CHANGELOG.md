@@ -2,7 +2,7 @@
 
 ## [1.7.1] - 2026-09-28 定版：ARC-Bench 两代实测驱动修复 + AAR 反 Goodhart 融合
 
-> 版本主题：**第一轮 ARC-Bench 五域实测暴露的全部缺陷，逐一修到根因**。全部改动带回归测试；435/435 绿，ci_check PASS。
+> 版本主题：**第一轮 ARC-Bench 五域实测暴露的全部缺陷，逐一修到根因**。全部改动带回归测试；439/439 绿，ci_check PASS。
 
 ### ARC-Bench 评测（runs/ 本地，永不入库）
 - 拉取 AIMING-Lab-UNC/ARC-Bench（55 课题 × 5 域，MIT）→ 五域各选一题（ML02/P01/Q02/B07/S01），两轮各 5 个 sciforge-experimenter 子 agent 端到端全链跑（skill 模式），产物在 `runs/ARC-BENCH{,2}/`（.gitignore 新增评测运行排除节，测试文件绝不进仓库）。
@@ -39,6 +39,14 @@
 - **灵活 intake** `skills/support/intake-triage/`：任意输入组合（初稿/代码/数据/结果/日志/排版要求）→ INTAKE_MANIFEST（census/trust/phase_plan/user-request ledger/mode 建议）；inherit 只意味"以此为起点"，门照跑；COMSOL 仅 PINN 联合、湿实验/临床拒绝。
 - **scope 重声明**（README×2）：代码即科学全收（含用户兴趣域清单：AI/NLP/PINN/CV/大气污染/计量/统计/数学/光学传感器仿真/AI4Science/embodied AI/auto research/金融预测/智慧教育/RSI/LLM/边缘计算）；湿实验生物医学出局；COMSOL 定位接口/MCP 而非独立域。
 - flash 级（haiku）子代理真实 bench 验证：bench 两遍确定性 PASS、三门+新门在真实 run 上行为正确、误报修复与三档分级按预期；新门首战即抓真阳性（旧 run 的 compile.log 散落、.DS_Store、JMLR 缺 url、正文 "regime ledger"）。**435/435 绿，ci_check PASS**。
+
+### P1：SOTA 爬山闭环 + 失败记忆接线 + 完成声明门 + 二区可投门（版本仍 1.7.1）
+- **`kernel/sciforge/sota.py`**：给定冻结题目 + 声明 incumbent（`SOTA_TARGET.json`，哈希绑定）→ `sciforge sota next` 出变异提案（先验=跨 run 教训索引 + 探索保证 seed）→ 宿主执行 ladder+消融 → `sciforge sota record` 记 per-leg closed fraction，geomean 头条 + capability-floor/回归 CI 硬门使"赢"失效 → plateau/预算停。kernel 管账、宿主管科学；trainer 是 seam（CPU numpy 与 Linux CUDA LoRA 同循环）。
+- **失败记忆接线**：`memory.py` 从"写了没人读"变为消费者——CLI `sciforge memory build/query`（索引 35 条实测）、相位 2/6b bundle 注入 cross_run_priors、sota 驱动同索引。修索引质量：只嵌入人类可读字段（lesson/error/fix/note…），min_sim 0.3→0.12（hash-BoW 短文本真实相似度区间，0.3 地板实测零命中）。
+- **`completion_gate.py` @wrap-up**：S01 式虚假完成报告物理不可能——RUNSTATE 必须 completed、摘要文档声称的每个路径必须在磁盘、main.pdf 存在且 PDF magic 正确。构造说谎 fixture 实测 FAIL（3 项命中）。
+- **`submission_ready.py` @15.5**：二区可投标准机械化为四级 READY/MINOR_REV/MAJOR_REV/NOT_READY（硬项：verdicts 完整+s2 门电池+PDF≥4 页+DOI+leakage+claim_mode 一致；软项：摘要 150-300 词≥8 数字、标准章节序、附录独立 PDF、图≥7 且≥3 语法、评审≥6/校准≥8 或有 rebuttal、卫生）。MAJOR+ 阻断 15.5 边界，MINOR_REV 带披露通过（用户标准：至少小修后可投）。
+- 图页数统计修压缩 xref（/Count 优先）；摘要提取取最长候选（修 25 词误截）。
+- **438/438 绿，ci_check PASS**；docs/SCIENTISTTWO_PARITY.md 差距清单更新（真题已闭合、剩算力/第三方评审/真 GPU 训练三条外部依赖）。
 
 ## [1.7.0] - 2026-09-27 定版：ScientistTwo 对标层（深度复刻 arXiv:2609.19644 + demo 子 bench）
 

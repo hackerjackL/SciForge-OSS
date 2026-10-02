@@ -48,21 +48,42 @@ smoke_gate 的 SKIP 语义（theory-only 路由不受影响），S2 机器产物
 - 实测 4/4 PROMOTED（T1 +177.8% / T2 +74.1% / T3 +6.7% / T4 +56.2%），
   exit 0；报告含 subset/full 双段与每臂耗时。
 
-## 4. 尚未追平的差距（诚实清单）
+## 4. 已闭合与尚未追平的差距（v1.7.1 更新）
 
-1. **真题**：他们 107 个顶会已接收问题 + 官方 codebase；我们是合成 demo 任务。
-   下一步候选：ARC-Bench（55 话题 × 5 域、ML 域 CPU 可跑、带 rubric）→
-   AutoResearchExam（29 任务 Docker+hidden tests）。
-2. **量级**：86 篇成稿 vs 我们 1 篇全链 demo + 4 个 bench 任务。差距 = 算力 ×
-   迭代轮次，不是机制缺失。
-3. **评审校准的实证**：`CALIBRATION.json` 机制在，但还没有跑过"先给 N 篇已知
-   论文打分建映射"的实测批（需要评分数据）。
-4. **方法-代码比对的粒度**：他们声称逐行；我们是 token 级（≥80% 落地 + 反向清单），
-   结构等价、粒度更粗。
-5. **外部评审双通道**（ScholarPeer + Stanford Agentic Reviewer）：我们是自建面板 +
+**已闭合（两轮 ARC-Bench 实测）**：
+1. **真题**：ARC-Bench（AIMING-Lab-UNC，55 话题 × 5 域）已拉取并两代全量跑
+   （`runs/ARC-BENCH{,2,3}/`，本地不入库）：五域各一题 × 两轮 + v1.7.1 验证轮，
+   全部独立复核（门重跑 + PDF 逐页读 + 摘要语态量化）。
+2. **完成诚实性**：`completion_gate`（wrap-up）把 S01 式"报告声称完成但工作区
+   没有 PDF"变成物理不可能——声明的每个路径必须存在于磁盘。
+3. **写作标准**：86 篇 S2 语料量化分析 → voice contract（方法主角开场、
+   ≥8 数字、正面收口、弃案=过程证据）；二轮五篇摘要全部达标（本机 PDF 提取验证）。
+
+**尚未追平（诚实清单）**：
+1. **量级**：86 篇成稿 vs 我们 ~11 篇全链 run。差距 = 算力 × 迭代轮次，不是机制缺失。
+2. **评审校准的实证**：`CALIBRATION.json` 机制在，尚无"先给 N 篇已知论文打分建
+   映射"的实测批（需要评分数据）。
+3. **方法-代码比对粒度**：他们声称逐行；我们 token 级（≥80% + 反向清单）。
+4. **外部评审双通道**（ScholarPeer + Stanford Agentic Reviewer）：自建面板 +
    锚点校准，无第三方评审服务接入。
+5. **SOTA 真训练后端**：`sota.py` 爬山驱动与 trainer seam 已就位，但真 GPU
+   训练（LoRA/PEFT）尚未在集群上跑通一轮——CPU 测试环境只能爬合成/数值 SOTA。
 
-## 5. 一句话
+## 5. v1.7.1 深度优化（用户指令：约束分级 / 卫生 / 严格 DOI / 灵活 intake / 图高级化 / 二区可投）
 
-他们有引擎没开放，我们有门有引擎（本轮补齐）；**机制差距在 v1.7 归零，
-真题与算力差距用 bench 起步、靠 ARC 类外部标尺收敛**。
+- **约束三档** `--discipline strict|balanced|lean`：severity ∝ 后果 × 事后不可
+  检测性；lean 只留不可检测类硬门，cosmetic 类披露——强模型免负优化税。
+- **claim_mode 双模**：`sota`（核心必须赢，被证伪=上游 KILL，正文零失败叙事）/
+  `attribution`（null 即发现）；数据全保留，禁选择性报告。
+- **二区可投就绪门** `submission_ready.py` @15.5：READY / MINOR_REV / MAJOR_REV /
+  NOT_READY 四级（硬项：verdicts 完整 + s2 门电池 + PDF + DOI + leakage + claim
+  一致性；软项：摘要形状、章节序、附录独立、图预算/多样性、评审分、卫生）。
+- **SOTA 爬山 + 失败记忆**：`sota.py`（incumbent 复现 → 记忆播种变异 → geomean
+  closed-fraction + capability-floor/回归 CI → plateau 停）；`sciforge memory
+  build/query` 让 LESSONS.json 从"写了没人读"变成相位 2/6b 与爬山的可检索先验。
+- **严格 DOI / intake / 图 / 卫生 / 零内部话术**：见 CHANGELOG 1.7.1 增补节。
+
+## 6. 一句话
+
+他们有引擎没开放，我们有门有引擎还有**两轮真题实测**；机制差距 v1.7 归零、
+真题差距 v1.7.1 用 ARC-Bench 闭合一半，剩算力与第三方评审两条外部依赖。

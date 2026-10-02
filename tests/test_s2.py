@@ -534,3 +534,60 @@ def test_doi_gate_structure(tmp_path: Path):
     p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "doi_gate.py"),
                  str(tmp_path), "--offline"], capture_output=True, text=True)
     assert p.returncode == 2 and "missing DOI" in p.stdout
+
+
+# ---------------- v1.7.1 P1: completion gate, sota driver, memory wiring ----------------
+
+def test_completion_gate_catches_lying_report(tmp_path: Path):
+    import subprocess as _sp
+    (tmp_path / ".sciforge" / "verdicts").mkdir(parents=True)
+    (tmp_path / ".sciforge" / "RUNSTATE.json").write_text(
+        json.dumps({"status": "running", "current_phase": "10"}))
+    (tmp_path / ".sciforge" / "verdicts" / "PIPELINE_VERDICT_SUMMARY.md").write_text(
+        "All phases complete. Paper at paper/main.pdf (18 pages).")
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "completion_gate.py"),
+                 str(tmp_path)], capture_output=True, text=True)
+    assert p.returncode == 2 and "missing on disk" in p.stdout
+
+
+def test_sota_driver_promotes_and_plateaus(tmp_path: Path):
+    from sciforge import sota
+    (tmp_path / ".sciforge" / "verdicts").mkdir(parents=True)
+    (tmp_path / ".sciforge" / "verdicts" / "SOTA_TARGET.json").write_text(json.dumps({
+        "problem": "t", "direction": "maximize",
+        "benchmarks": [{"name": "acc", "baseline": 0.36, "optimum": 1.0}],
+        "budget": {"max_iterations": 4, "plateau_rounds": 2}}))
+    r1 = sota.record_iteration(tmp_path, "v1", {"acc": {"score": 0.9, "ci": [0.88, 0.92]}})
+    assert r1["promoted"] and r1["closed"]["acc"] > 0.8
+    r2 = sota.record_iteration(tmp_path, "v2", {"acc": {"score": 0.5, "ci": [0.48, 0.52]}})
+    assert not r2["promoted"]
+    st = sota.status(tmp_path)
+    assert st["plateau"] == 1 and st["best"]["variant"] == "v1"
+    # regression gate: significant drop invalidates even a positive headline leg
+    r3 = sota.record_iteration(tmp_path, "v3",
+                               {"acc": {"score": 0.2, "ci": [0.19, 0.21]}})
+    assert not r3["valid"] and any("regression_gate" in x for x in r3["invalid_reasons"])
+
+
+def test_memory_index_uses_readable_fields(tmp_path: Path):
+    from sciforge import memory as mem
+    run = tmp_path / "R1"
+    (run / "output").mkdir(parents=True)
+    (run / "output" / "LESSONS.json").write_text(json.dumps({
+        "run_id": "R1",
+        "code_errors": [{"error": "take_along_axis axis bug on (m,1,n)",
+                         "fix": "squeeze before indexing",
+                         "lesson": "smoke gate catches shape defects"}]}))
+    n = mem.build_index(tmp_path, tmp_path / "idx.jsonl")
+    assert n == 1
+    hits = mem.query(tmp_path / "idx.jsonl", "shape defect caught by smoke gate", k=1)
+    assert hits and "smoke gate" in hits[0]["text"]
+
+
+def test_submission_ready_tiering(tmp_path: Path):
+    import subprocess as _sp
+    # minimal NOT_READY: no pdf, no verdicts
+    (tmp_path / ".sciforge").mkdir()
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "submission_ready.py"),
+                 str(tmp_path)], capture_output=True, text=True)
+    assert p.returncode == 2 and "NOT_READY" in p.stdout

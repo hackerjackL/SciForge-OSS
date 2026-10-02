@@ -76,13 +76,20 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 | **Experiments** | sandbox-gated dispatch (Seatbelt on macOS, bubblewrap on Linux), worker pool, background nohup + STATUS.json aggregation, device planning (CUDA/ROCm/NPU/MPS/CPU via `detect_device.py`) |
 | **Verifiable evidence (v1.6)** | security_scan enforced at 6b/6c · TDAL joint (tdal_compute.py) · fantasy 5-gate · Arb certified intervals · sentence-level citation support · SMOKE gate · injection sanitizer · rate limiter + 429 cooldown · dual-timer |
 | **ScientistTwo parity (v1.7)** | `s2/` package + gates: subset→full ladder & 3-state Critic (`s2_ladder` @6c) · 5–6 ablation plans & strict AblCritic (`s2_ablation` @10) · score<8 rebuttal ≤2 rounds + Meta-Review {ACCEPT\|REFINE} · anchor-calibrated panel scores · reward-hacking + method↔code parity audit (`s2_audit` @wrap-up) · exploration-guaranteed idea evolution · `bench/s2demo` (CPU, numpy-only) |
+| **SOTA hill-climb + failure memory (v1.7.1)** | `sota.py` driver: declared incumbent → variant proposals seeded by the cross-run lesson index (`sciforge memory build/query`) → per-iteration geomean closed-fraction headline with capability-floor & regression-CI invalidation → plateau/budget stop. `completion_gate` makes S01-class lying reports physically impossible at wrap-up; `submission_ready` tiers the manuscript READY / MINOR_REV / MAJOR_REV / NOT_READY against the Zone-2 bar |
+| **Constraint tiers (v1.7.1)** | `--discipline strict|balanced|lean`: severity ∝ consequence × post-hoc undetectability. lean keeps only fabrication/leakage/ladder/integrity/citation/compile-ERROR hard; cosmetic checks (warnings, page bands, counts) disclose instead of looping back — no negative-optimization tax on strong models |
 | **Daemon** | `sciforge serve` — headless queue + loopback HTTP (:4510) for overnight server runs; no GUI anywhere |
 
 ```bash
 sciforge run --workspace ./runs/Q001 --problem "your question" --host claude --loop
+sciforge run --workspace ./runs/Q001 --problem "..." --discipline lean \
+             --claim-mode sota                     # strong-model host + SOTA target
 sciforge status --workspace ./runs/Q001
 sciforge resume --workspace ./runs/Q001 --loop     # after crash: replays events, continues
 sciforge approve --workspace ./runs/Q001 idea-pick # human checkpoint
+sciforge memory build && sciforge memory query "bootstrap coverage heavy tails" -k 5
+sciforge sota next --workspace ./runs/Q001         # hill-climb: next variant proposal
+sciforge sota record --workspace ./runs/Q001 --variant v2 --legs legs.json
 sciforge doctor                                    # environment self-check
 ```
 

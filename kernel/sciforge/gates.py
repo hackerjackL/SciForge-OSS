@@ -115,6 +115,11 @@ def wrap_up_gates(ws: Path) -> dict:
     h = run_py("scripts/workspace_hygiene.py", [str(ws)])
     hy_status = "SKIP" if "hygiene SKIP" in (h.stdout + h.stderr) else \
                 ("PASS" if h.returncode == 0 else "FAIL")
+    # v1.7.1: the S01-class lie (a final report claiming completion the
+    # workspace does not contain) is now physically impossible at wrap-up.
+    c = run_py("scripts/completion_gate.py", [str(ws)])
+    c_status = "SKIP" if "completion_gate SKIP" in (c.stdout + c.stderr) else \
+               ("PASS" if c.returncode == 0 else "FAIL")
     checks = {
         "verdicts_complete": validate_verdicts(ws, strict=True, require_complete=True),
         "pipeline_audit": {"gate": "sciforge_audit",
@@ -127,6 +132,9 @@ def wrap_up_gates(ws: Path) -> dict:
         "workspace_hygiene": {"gate": "workspace_hygiene", "status": hy_status,
                               "exit": h.returncode,
                               "output": (h.stdout + h.stderr)[-2000:]},
+        "completion_truth": {"gate": "completion_gate", "status": c_status,
+                             "exit": c.returncode,
+                             "output": (c.stdout + c.stderr)[-2000:]},
     }
     ok = all(c["status"] in ("PASS", "SKIP") for c in checks.values())
     return {"gate": "wrap_up", "status": "PASS" if ok else "FAIL", "checks": checks}
@@ -190,6 +198,15 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
         if name == "citation_support":
             p = run_py("scripts/citation_support.py", [str(ws), "--write-verdict"])
             return {"gate": "citation_support", "status": "PASS" if p.returncode == 0 else "FAIL",
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
+        if name == "submission_ready":
+            # v1.7.1: the Zone-2 bar as a tier (READY/MINOR_REV/MAJOR_REV/
+            # NOT_READY); MAJOR+ blocks the 15.5 boundary, MINOR_REV passes
+            # with disclosure (the user bar is "minor-revision submittable").
+            p = run_py("scripts/submission_ready.py", [str(ws), "--write-verdict"])
+            status = "PASS" if p.returncode == 0 else \
+                     ("WARN" if p.returncode == 1 else "FAIL")
+            return {"gate": "submission_ready", "status": status,
                     "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
         if name == "workspace_hygiene":
             # v1.7.1: the run must read like a GitHub repo (no stray logs/json,

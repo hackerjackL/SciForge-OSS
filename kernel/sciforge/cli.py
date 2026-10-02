@@ -114,6 +114,24 @@ def main(argv=None) -> int:
     p_px.add_argument("--write", type=Path, default=None,
                        help="write discovery result JSON to this path")
 
+    # v1.7.1: cross-run failure memory (lessons were written but never consumed)
+    p_mem = sub.add_parser("memory", help="cross-run lesson index (build/query)")
+    p_mem.add_argument("what", choices=["build", "query"])
+    p_mem.add_argument("--archive", type=Path, default=None,
+                       help="runs archive root (default: <repo>/runs)")
+    p_mem.add_argument("text", nargs="?", default="",
+                       help="query text (for `memory query`)")
+    p_mem.add_argument("-k", type=int, default=8)
+
+    # v1.7.1: SOTA hill-climb driver (claim_mode=sota loop bookkeeping)
+    p_sota = sub.add_parser("sota", help="SOTA hill-climb driver (incumbent vs variants)")
+    p_sota.add_argument("what", choices=["status", "next", "record"])
+    p_sota.add_argument("--workspace", type=Path, required=True)
+    p_sota.add_argument("--variant", default=None, help="variant id (record)")
+    p_sota.add_argument("--legs", type=Path, default=None,
+                        help="JSON {bench: {score, ci:[lo,hi]}} (record)")
+    p_sota.add_argument("--note", default="")
+
     a = ap.parse_args(argv)
 
     if a.cmd == "run":
@@ -171,6 +189,34 @@ def main(argv=None) -> int:
     if a.cmd == "proxy":
         from .proxy import discover
         print(json.dumps(discover(write_to=a.write), indent=2))
+        return 0
+    if a.cmd == "memory":
+        from . import memory as mem
+        if a.what == "build":
+            archive = a.archive or (Path(__file__).resolve().parents[2] / "runs")
+            out = archive / "LESSONS_INDEX.jsonl"
+            n = mem.build_index(archive, out)
+            print(json.dumps({"indexed": n, "index": str(out)}))
+        else:
+            idx = (a.archive / "LESSONS_INDEX.jsonl") if a.archive \
+                else mem.default_index_path()
+            hits = mem.query(idx, a.text, k=a.k)
+            print(json.dumps(hits, indent=2, ensure_ascii=False))
+        return 0
+    if a.cmd == "sota":
+        from . import sota
+        if a.what == "status":
+            print(json.dumps(sota.status(a.workspace), indent=2, ensure_ascii=False))
+        elif a.what == "next":
+            k = Kernel(a.workspace)
+            print(json.dumps(sota.next_variant(
+                a.workspace, k.rs.data.get("problem", "")), indent=2,
+                ensure_ascii=False))
+        else:
+            legs = json.loads(Path(a.legs).read_text()) if a.legs else {}
+            rec = sota.record_iteration(a.workspace, a.variant or "unnamed",
+                                        legs, note=a.note)
+            print(json.dumps(rec, indent=2, ensure_ascii=False))
         return 0
     return 2
 

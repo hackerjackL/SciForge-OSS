@@ -293,7 +293,23 @@ class Kernel:
                 pass  # unusable provider config => fall through to host dispatch
 
         b = self.budget
-        bundle = bundle_mod.build(self.ws, ph, b)
+        # v1.7.1: ideation/toy phases receive the cross-run failure memory as
+        # pointer hints (lessons were written since v1.4.0 but never consumed;
+        # the sota driver and phase 2/6b now both read the same index).
+        hints = None
+        if pid in ("2", "6b"):
+            try:
+                from . import memory as mem_mod
+                idx = mem_mod.default_index_path()
+                if idx.exists():
+                    hits = mem_mod.query(idx, self.rs.data.get("problem", ""),
+                                         k=5, min_sim=0.12)
+                    if hits:
+                        hints = {"cross_run_priors": "; ".join(
+                            f"[{h.get('run_id')}] {h['text'][:160]}" for h in hits)}
+            except Exception:
+                hints = None
+        bundle = bundle_mod.build(self.ws, ph, b, inputs_hint=hints)
         host = self.rs.data.get("host", "manual")
         try:
             if host in ("claude", "codex"):

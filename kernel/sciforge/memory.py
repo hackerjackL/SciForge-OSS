@@ -69,7 +69,19 @@ def build_index(archive_dir: Path, out: Path) -> int:
                     continue
                 for bucket in ("failed_experiments", "idea_rollbacks", "code_errors", "lessons", "what_worked", "verified_proofs"):
                     for item in d.get(bucket, []):
-                        text = json.dumps(item, ensure_ascii=False) if not isinstance(item, str) else item
+                        if isinstance(item, str):
+                            text = item
+                        else:
+                            # v1.7.1: index the HUMAN-READABLE fields, not the
+                            # raw JSON dump — artifact paths dominate the dump
+                            # and drown the semantic signal (measured: top
+                            # cosine 0.16 on a topic query against JSON noise).
+                            keys = ("lesson", "error", "fix", "note", "reason",
+                                    "avoid", "what", "why", "description", "text",
+                                    "summary", "root_cause")
+                            text = " | ".join(str(item[k]) for k in keys
+                                              if item.get(k)) or \
+                                   json.dumps(item, ensure_ascii=False)
                         if not text.strip():
                             continue
                         f.write(json.dumps({"text": text[:800], "vec": embed(text),
@@ -78,7 +90,21 @@ def build_index(archive_dir: Path, out: Path) -> int:
     return n
 
 
-def query(index: Path, text: str, k: int = 8, min_sim: float = 0.3) -> list[dict]:
+def default_index_path() -> Path:
+    """Cross-run lesson index location (v1.7.1 wiring): the runs archive root
+    holds LESSONS.json per run; the index is built once per archive and
+    consumed by phase-2 ideation priors and the sota hill-climb driver."""
+    from pathlib import Path as _P
+    import os as _os
+    root = _P(_os.environ.get("SCIFORGE_RUNS_ARCHIVE",
+                              str(_P(__file__).resolve().parents[2] / "runs")))
+    return root / "LESSONS_INDEX.jsonl"
+
+
+def query(index: Path, text: str, k: int = 8, min_sim: float = 0.12) -> list[dict]:
+    """Top-k cosine hits. min_sim default 0.12 (v1.7.1): hashing-trick BoW over
+    short lesson texts yields genuinely low cosines (0.1-0.3 for on-topic
+    hits); a 0.3 floor returned nothing on real archives."""
     if not Path(index).exists():
         return []
     q = embed(text)
