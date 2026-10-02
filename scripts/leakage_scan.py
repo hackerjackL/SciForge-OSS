@@ -42,6 +42,18 @@ CLASSES = {
     # Limitations uses the flat regime ledger, so apology verbs are hits everywhere;
     # defense-framing phrases are hits everywhere (hedge-without-bound is the §0.6 rule).
     "K": r"\bwe apologize\b|\bapolog(?:y|ies|ize|ise)\b|\bunfortunately\b|\bregrettably\b|\bsadly\b|\bit is a pity\b|\bwe are sorry\b|\bwe failed to\b|\bwe failed\b|\badmittedly\b|\bit should be admitted\b|\bwe must acknowledge\b|\bwe hope (?:that|future)\b|\bhopefully\b|\bour work (?:has|suffers from) (?:the following )?limitations\b|\bmay be limited by\b(?![^\.]{0,40}\b(?:rho|rho|range|N=|n=|CI|regime|\[0\.|\d+\s*[-–]\s*\d+))",
+    # class L (v1.7.1): internal machinery jargon — the paper is about the
+    # SCIENCE, never about SciForge. Observed in ARC-Bench drafts: "the gate
+    # passed", "verdict", "phase 14", "our workspace", "engineer rounds",
+    # "integrity monitor". Legitimate scientific vocabulary (ladder as a
+    # method name, held-out, pre-registered, ablation) is NOT a hit; only
+    # references to THIS system's machinery are.
+    "L": r"\bSciForge\b|\bphase\s+[0-9]{1,2}\b|\bRUNSTATE\b|\b(?:our|the|run) workspace\b|"
+         r"\bkernel[- ]enforced\b|\bpromotion gate\b|\bengineer rounds\b|"
+         r"\bthree-state critic\b|\bregime ledger\b|\bintegrity monitor\b|"
+         r"\brebuttal loop\b|\bcalibrated panel\b|\bgate (?:exit|PASS|passed)\b|"
+         r"\bs2 (?:ladder|ablation|audit)\b|\bverdict (?:file|json)\b|"
+         r"\bthe (?:s2|ladder|ablation|smoke|security) gate\b",
 }
 
 FABRICATED_AUTHOR = re.compile(

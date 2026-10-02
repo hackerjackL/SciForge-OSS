@@ -45,8 +45,9 @@
 
 ### 范围与能力边界（v1.4.0 — 诚实定位）
 
-- **范围内**：一切可化为代码/数据/文献者——数值与符号仿真（NumPy/SciPy/SymPy/Julia）、机器学习与统计估计、因果推断、代码求解的 agent-based/ODE-PDE 模型，以及 web 检索增强的定性/人文/社科分析（检索→推理→写作→图表）。
-- **范围外（除非可脚本化）**：核心证据依赖**专有或 GUI 绑定的求解器**（如商业 CFD/FEA、COMSOL 多物理场、光学仪器台架软件）或**物理/湿实验硬件**的领域。若该方法能约化为可脚本化、开放或可代码调用的管线（如用 OpenFOAM/Julia PDE 代替 GUI CFD），则重新进入范围；纯 GUI 工作流本身不在内。
+- **范围内（v1.7.1 重述——"代码即科学"）**：一切证据可由代码/数据/文献在单机或集群上产出的学科——文、理、工、社科皆可：数值与符号仿真（NumPy/SciPy/SymPy/Julia）、机器学习与统计估计、因果推断、计量学与计量基准、代码求解的 agent-based/ODE-PDE 模型、PINN/代理模型、CV 与 NLP、大气污染建模、光学传感器仿真、金融预测、智慧教育分析、embodied AI 与 LLM/RSI/auto-research 研究、边缘计算，以及 web 检索增强的定性/人文/社科分析。计算生物学（基因组尺度模型、仿真）作为代码可执行科学在范围内。
+- **范围外**：**湿实验/临床生物医学**（证据依赖物理实验或患者数据）；核心证据依赖**专有或 GUI 绑定求解器**（商业 CFD/FEA、光学仪器台架软件）或**物理硬件**的领域。若该方法能约化为可脚本化、开放或可代码调用的管线（如用 OpenFOAM/Julia PDE 代替 GUI CFD），则重新进入范围；纯 GUI 工作流本身不在内。
+- **COMSOL（v1.7.1 定位）**：不作为独立领域。仅以**联合**方式进入——作为 PINN/代理模型或材料预测研究的仿真数据来源；专用 COMSOL 接口/MCP 是规划中的集成路径；"替我跑 COMSOL"类请求由 `/intake-triage` 拒绝。
 - 这是对**证据生产工具**的限定，不是对智能的限定：同一管线可对任何领域推理，但只在存在机器可执行方法处产出证据。
 
 **OSS = Open Single-question Stream** ——单题执行：每次 invocation 处理一个 Q-id，不自动迭代全部问题；全领域 1 universal pipeline（无 overlay，无学科分支）；agent 运行时推理处理领域方法；senior-reviewer-agnostic 唯一；单一 unified `elsarticle` 模板；理论-only + 计算 + 理论+实验 + qualitative 四路验证可选；INV-G1 唯一不变量（PROBLEM_ANCHOR_FREEZE 通用）。

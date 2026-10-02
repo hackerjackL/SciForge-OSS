@@ -2,7 +2,7 @@
 
 ## [1.7.1] - 2026-09-28 定版：ARC-Bench 两代实测驱动修复 + AAR 反 Goodhart 融合
 
-> 版本主题：**第一轮 ARC-Bench 五域实测暴露的全部缺陷，逐一修到根因**。全部改动带回归测试；430/430 绿，ci_check PASS。
+> 版本主题：**第一轮 ARC-Bench 五域实测暴露的全部缺陷，逐一修到根因**。全部改动带回归测试；435/435 绿，ci_check PASS。
 
 ### ARC-Bench 评测（runs/ 本地，永不入库）
 - 拉取 AIMING-Lab-UNC/ARC-Bench（55 课题 × 5 域，MIT）→ 五域各选一题（ML02/P01/Q02/B07/S01），两轮各 5 个 sciforge-experimenter 子 agent 端到端全链跑（skill 模式），产物在 `runs/ARC-BENCH{,2}/`（.gitignore 新增评测运行排除节，测试文件绝不进仓库）。
@@ -28,6 +28,17 @@
 
 ### 评测产物仓库卫生
 - `.gitignore` 新增评测运行排除节：`runs/ARC-BENCH*/`、`runs/EVAL-T1/`、`bench/s2demo/results/`——所有测试/评测产物永不入库（runs/DEMO-RK4 作为发布证据保留跟踪）。
+
+### 深度优化第二轮（用户指令：约束分级 / 工作区卫生 / 严格 DOI / 灵活 intake / 图高级化 / 零内部话术）
+- **约束三档 `--discipline strict|balanced|lean`**（kernel flags + bundle 每边界复述 + `gates.discipline()`）：severity ∝ 后果×事后不可检测性。lean 档只把不可检测类门（fabrication/leakage/ladder/integrity/citation/编译零 ERROR）保持硬；cosmetic 类（编译警告、页带、AIGC 计数、aspect）改披露——编译门实测：lean 下 warnings 披露 PASS、strict 下 FAIL。默认 strict（发布基线不变），强模型宿主可选 lean 免负优化税。
+- **误报修复**：monitor D2 正则不再命中散文 "held-out"（只认标识符/路径形态，B07 实测 REJECT 误报根因）；s2_audit parity 的 claimed-token 源去掉 `paper/main.tex`（LaTeX 宏名被当方法 token，S01 0.955→0.875 根因）。
+- **run 工作区卫生门** `scripts/workspace_hygiene.py`（接 wrap-up）：stray 顶层 log/json、缓存、空目录、非规范目录检出；kernel 16 相位自动写 run README 索引（不覆盖宿主版）——run 必须像 GitHub 仓库一样人类可读。
+- **图高级化**：数据图默认横版 16:9（`figsize_full/single` 默认 aspect 9/16）；forest/heatmap y 轴分类标签垂直碰撞自适应缩字（B07 Fig3 根因）；新门 `scripts/figure_style_gate.py`（接 figure_gates）：图随首次引用走（float 不得先于 citation）、正文禁栅格嵌入（矢量 only）、≥3 种视觉语法（禁全柱状图）；图预算改 Related-Work challenge 图 1 + Methods 1 + 实验 5-8（正文 ≥7）。
+- **严格 DOI 门** `scripts/doi_gate.py`（挂相位 15）：每条 bib 必须有可解析 BibTeX 的 DOI（CrossRef content-negotiation + 标题一致性 ≥0.8）；无 DOI 古典书籍可声明 `no_doi_classical`；JMLR/PMLR 等无 DOI 场馆以官方 url+声明替代；**arXiv 不豁免**（有 10.48550 DOI）；不可解析=丢弃而非保留。
+- **论文契约增补**（paper-voice-contract §4b/§8/§9/§10）：内部术语替换表（regime ledger→scope of validity 等，leakage class L 机械强制）；`claim_mode` 双模（sota：核心被证伪=上游 KILL、正文无失败叙事；attribution：null 即发现）；标准章节序 + Data&Code/Funding 占位 + **appendix 独立 tex 独立 PDF**；母语润色五步（删复述、名词转动词、burstiness、朗读、术语一致）。
+- **灵活 intake** `skills/support/intake-triage/`：任意输入组合（初稿/代码/数据/结果/日志/排版要求）→ INTAKE_MANIFEST（census/trust/phase_plan/user-request ledger/mode 建议）；inherit 只意味"以此为起点"，门照跑；COMSOL 仅 PINN 联合、湿实验/临床拒绝。
+- **scope 重声明**（README×2）：代码即科学全收（含用户兴趣域清单：AI/NLP/PINN/CV/大气污染/计量/统计/数学/光学传感器仿真/AI4Science/embodied AI/auto research/金融预测/智慧教育/RSI/LLM/边缘计算）；湿实验生物医学出局；COMSOL 定位接口/MCP 而非独立域。
+- flash 级（haiku）子代理真实 bench 验证：bench 两遍确定性 PASS、三门+新门在真实 run 上行为正确、误报修复与三档分级按预期；新门首战即抓真阳性（旧 run 的 compile.log 散落、.DS_Store、JMLR 缺 url、正文 "regime ledger"）。**435/435 绿，ci_check PASS**。
 
 ## [1.7.0] - 2026-09-27 定版：ScientistTwo 对标层（深度复刻 arXiv:2609.19644 + demo 子 bench）
 

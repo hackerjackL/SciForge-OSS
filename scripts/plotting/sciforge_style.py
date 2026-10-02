@@ -161,15 +161,24 @@ GROUND = "#FFFFFF"
 TEXTWIDTH_IN = 6.3          # elsarticle preprint text block width
 SINGLE_COL_IN = 3.5         # typical journal single-column width
 
-def figsize_full(aspect: float = 0.62) -> tuple[float, float]:
-    """Full-textwidth figure (\\textwidth). aspect = height/width."""
+def figsize_full(aspect: float = 9 / 16) -> tuple[float, float]:
+    """Full-textwidth figure (\\textwidth). aspect = height/width.
+
+    v1.7.1: default is LANDSCAPE 16:9 (the Nature data-figure proportion) —
+    the user mandate: data figures are horizontal, never the tall skinny
+    default. A tall figure stays available via an explicit aspect override.
+    """
     return (TEXTWIDTH_IN, TEXTWIDTH_IN * aspect)
 
-def figsize_single(aspect: float = 0.75) -> tuple[float, float]:
-    """Single-column figure (~89mm)."""
+def figsize_wide(aspect: float = 9 / 16) -> tuple[float, float]:
+    """Explicit landscape preset (same geometry as the v1.7.1 full default)."""
+    return figsize_full(aspect)
+
+def figsize_single(aspect: float = 9 / 16) -> tuple[float, float]:
+    """Single-column figure (~89mm), landscape 16:9 by default (v1.7.1)."""
     return (SINGLE_COL_IN, SINGLE_COL_IN * aspect)
 
-def figsize_panel(cols: int, aspect: float = 0.8) -> tuple[float, float]:
+def figsize_panel(cols: int, aspect: float = 0.72) -> tuple[float, float]:
     """One panel of an N-across composite laid out across \\textwidth.
 
     A 3-across panel is only ~2in wide — too small for readable axis text, so

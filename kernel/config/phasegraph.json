@@ -410,6 +410,10 @@
         {
           "check": "command",
           "cmd": "citation_support"
+        },
+        {
+          "check": "command",
+          "cmd": "doi_gate"
         }
       ]
     },

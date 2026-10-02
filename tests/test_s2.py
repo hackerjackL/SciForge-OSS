@@ -429,3 +429,108 @@ def test_bench_all_tasks_promoted(tmp_path: Path):
         # the written ladder validates against the production validator
         doc = json.loads((tmp_path / f"{stem}.S2_LADDER.json").read_text())
         assert ladder.validate(doc) == []
+
+
+# ---------------- v1.7.1 hardening: discipline tiers, monitor D2, hygiene,
+# ---------------- figure style, strict DOI ----------------
+
+def test_monitor_d2_prose_no_longer_flags(tmp_path: Path):
+    from sciforge.s2 import monitor
+    prose = ("# evaluate on the held-out split\n"
+             "assert coverage > 0.9  # held-out leg only\n")
+    assert monitor.scan_code(prose, ["main"]) == []
+    # identifier/path forms still flag
+    bad = 'p = Path(HOLDOUT_DIR) / "held_out" / "scores.json"\n'
+    assert any(v["desiderata"] == "D2" for v in monitor.scan_code(bad, ["main"]))
+    bad2 = 'with open("/eval_private/main.json") as f: ...\n'
+    assert any(v["desiderata"] == "D2" for v in monitor.scan_code(bad2, ["main"]))
+
+
+def test_discipline_tiers_and_compile_warnings(tmp_path: Path):
+    from sciforge import gates as g
+    (tmp_path / ".sciforge" / "verdicts").mkdir(parents=True)
+    (tmp_path / ".sciforge" / "RUNSTATE.json").write_text(json.dumps(
+        {"data": {"flags": {"discipline": "lean"}}}))
+    assert g.discipline(tmp_path) == "lean"
+    assert g.cosmetic_hard(tmp_path) is False
+    (tmp_path / ".sciforge" / "verdicts" / "PAPER_COMPILE.json").write_text(
+        json.dumps({"status": "PASS", "warnings": 3}))
+    r = g.check(tmp_path, {"check": "command", "cmd": "compile_audit"}, "13")
+    assert r["status"] == "PASS" and r.get("warnings_disclosed") == 3
+    # strict keeps warnings hard
+    (tmp_path / ".sciforge" / "RUNSTATE.json").write_text(json.dumps(
+        {"data": {"flags": {"discipline": "strict"}}}))
+    r = g.check(tmp_path, {"check": "command", "cmd": "compile_audit"}, "13")
+    assert r["status"] == "FAIL"
+
+
+def test_workspace_hygiene_gate(tmp_path: Path):
+    (tmp_path / ".sciforge").mkdir()
+    (tmp_path / "compile_attempt3.log").write_text("x")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "__pycache__").mkdir()
+    (tmp_path / "README.md").write_text("# idx")
+    r = gates.check(tmp_path, {"check": "command", "cmd": "workspace_hygiene"}, "16")
+    assert r["status"] == "FAIL"
+    (tmp_path / "compile_attempt3.log").unlink()
+    (tmp_path / "src" / "__pycache__").rmdir()
+    (tmp_path / "src" / "run.py").write_text("# code")  # no empty dirs left
+    r = gates.check(tmp_path, {"check": "command", "cmd": "workspace_hygiene"}, "16")
+    assert r["status"] == "PASS"
+
+
+def test_figure_style_gate(tmp_path: Path):
+    paper = tmp_path / "paper"
+    paper.mkdir()
+    # figure float BEFORE its first citation => FAIL
+    (paper / "main.tex").write_text(
+        "\\begin{figure}\\includegraphics{figures/a/output.pdf}"
+        "\\label{fig:a}\\end{figure}\nSee \\ref{fig:a} later.\n"
+        "\\includegraphics{figures/b/preview.png}\n")
+    (tmp_path / "figures").mkdir()
+    import subprocess as _sp
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "figure_style_gate.py"),
+                 str(tmp_path)], capture_output=True, text=True)
+    assert p.returncode == 2 and "BEFORE" in p.stdout and "raster" in p.stdout
+    # fixed: citation first, vector only, 3 recipe kinds
+    (paper / "main.tex").write_text(
+        "As shown in \\ref{fig:a}, ...\n"
+        "\\begin{figure}\\includegraphics{figures/a/output.pdf}"
+        "\\label{fig:a}\\end{figure}\n")
+    for kind in ("bar-grouped", "line-comparison", "scatter-fit"):
+        d = tmp_path / "figures" / kind
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "spec.recipe.json").write_text(json.dumps({"recipe": kind}))
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "figure_style_gate.py"),
+                 str(tmp_path)], capture_output=True, text=True)
+    assert p.returncode == 0, p.stdout
+
+
+def test_doi_gate_structure(tmp_path: Path):
+    lit = tmp_path / "literature"
+    lit.mkdir()
+    (lit / "references.bib").write_text(
+        "@article{a2024, title={Something Real}, doi={10.1000/xyz}, }\n"
+        "@article{b2024, title={No Doi Here}, }\n")
+    import subprocess as _sp
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "doi_gate.py"),
+                 str(tmp_path), "--offline"], capture_output=True, text=True)
+    assert p.returncode == 2 and "missing DOI" in p.stdout
+    (lit / "references.bib").write_text(
+        "@article{a2024, title={Something Real}, doi={10.1000/xyz}, }\n"
+        "@book{c1990, title={Classical}, no_doi_classical={yes}, }\n")
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "doi_gate.py"),
+                 str(tmp_path), "--offline"], capture_output=True, text=True)
+    assert p.returncode == 0 and "classical no-DOI" in p.stdout
+    # DOI-free venue (JMLR) with official url + declaration is honest; arXiv
+    # without a DOI is NOT (arXiv mints 10.48550 DOIs)
+    (lit / "references.bib").write_text(
+        "@article{j2011, title={Sklearn}, url={https://jmlr.org/papers/v12/x.html}, }\n")
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "doi_gate.py"),
+                 str(tmp_path), "--offline"], capture_output=True, text=True)
+    assert p.returncode == 0, p.stdout
+    (lit / "references.bib").write_text(
+        "@article{arx2024, title={Preprint}, url={https://arxiv.org/abs/2401.00001}, }\n")
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "doi_gate.py"),
+                 str(tmp_path), "--offline"], capture_output=True, text=True)
+    assert p.returncode == 2 and "missing DOI" in p.stdout

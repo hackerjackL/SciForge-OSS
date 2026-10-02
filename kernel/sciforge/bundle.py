@@ -37,6 +37,20 @@ def hard_constraints(ws: Path, budget: dict) -> list[str]:
         f"cost ${budget.get('api_cost_usd', 0)}/${lim.get('api_cost_usd_max')} | "
         f"pivot {budget.get('pivot_count', 0)}/{lim.get('pivot_count_max')} | "
         f"BA {budget.get('ba_rounds_used', 0)}/{budget.get('ba_rounds_max')}")
+    # v1.7.1: constraint tier + narrative mode are kernel facts, re-injected at
+    # every boundary so a strong-model host cannot "forget" it is in lean tier
+    # (or a weak one that it is in strict).
+    try:
+        rs = json.loads((ws / ".sciforge" / "RUNSTATE.json").read_text())
+        flags = (rs.get("data") or rs).get("flags", {})
+        out.append(f"discipline tier = {flags.get('discipline', 'strict')} "
+                   f"(strict: all gates hard | balanced: default | lean: only "
+                   f"undetectable-class gates hard — cosmetic checks disclose, never loop back)")
+        out.append(f"claim_mode = {flags.get('claim_mode', 'attribution')} "
+                   f"(sota: the core hypothesis must win — a refuted core is a KILL upstream, "
+                   f"never a failure narrative in the paper | attribution: measured nulls are findings)")
+    except Exception:
+        pass
     out.append("3-round fallback cap per failure type; exhaustion => BLOCKED, never silent retry")
     out.append("negative-result discipline: failed claims route to Limitations, never to contributions")
     out.append("every citation must pass 3-layer verification (citation-discipline.md); zero fabricated refs")

@@ -41,9 +41,20 @@ from pathlib import Path
 SCHEMA_VERSION = "1.0"
 AUDIT_REL = Path(".sciforge") / "audits" / "INTEGRITY_MONITOR.json"
 
-# D2: eval-private path tokens (AAR's HOLDOUT_DIR / secret_dir / heldout_scores)
-HOLDOUT_PATH_RE = re.compile(
-    r"(holdout|held[_-]?out|secret[_-]?dir|eval[_-]?private|answer[_-]?key)", re.I)
+# D2: eval-private path tokens (AAR's HOLDOUT_DIR / secret_dir / heldout_scores).
+# v1.7.1 false-positive fix (observed in ARC-Bench B07): the bare hyphenated
+# prose word "held-out" inside comments/claim text is NOT a path reference —
+# flagging it made agents rewrite honest prose. Fire only on (a) identifier /
+# path-variable forms (underscores or concatenation: held_out, holdout_dir),
+# (b) quoted strings that carry a path separator, or (c) lines with a
+# path-context call. Hyphenated prose in comments fails all three.
+HOLDOUT_ID_RE = re.compile(
+    r"\b(holdout|held_out|heldout|secret_dir|secretdir|eval_private|answer_key)\w*", re.I)
+HOLDOUT_PROSE_RE = re.compile(
+    r"(holdout|held[-_ ]?out|secret[-_ ]?dir|eval[-_ ]?private|answer[-_ ]?key)", re.I)
+PATH_CONTEXT_RE = re.compile(
+    r"open\s*\(|Path\s*\(|os\.path|glob|read_text|read_csv|load_|joinpath|"
+    r"[\"'][^\"']*(holdout|held|secret|private)[^\"']*[/\\]", re.I)
 # D2: data acquisition calls that could pull benchmark items
 ACQUISITION_RE = re.compile(
     r"load_dataset\s*\(|hf\.load|datasets\.load_dataset|urllib|requests\.get|curl\s|wget\s|git\s+clone",
@@ -85,7 +96,8 @@ def scan_code(text: str, benchmark_names: list[str]) -> list[dict]:
     v: list[dict] = []
     lines = text.splitlines()
     for i, ln in enumerate(lines, 1):
-        if HOLDOUT_PATH_RE.search(ln):
+        if HOLDOUT_ID_RE.search(ln) or (HOLDOUT_PROSE_RE.search(ln)
+                                        and PATH_CONTEXT_RE.search(ln)):
             v.append({"desiderata": "D2", "line": i, "kind": "eval-private-path",
                       "detail": f"references holdout/secret path: {ln.strip()[:120]}"})
         if ACQUISITION_RE.search(ln):

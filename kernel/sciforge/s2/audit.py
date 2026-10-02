@@ -96,11 +96,18 @@ def reward_hacking_scan(ws: Path) -> dict:
 # ---------------------------------------------------------------------------
 
 def _method_sources(ws: Path) -> list[Path]:
+    """Method-section sources for the parity claim.
+
+    v1.7.1 fix (observed in ARC-Bench S01): `paper/main.tex` was included, so
+    LaTeX macro names (\\pdfstringdefDisableCommands, math_commands, …) were
+    counted as "method tokens" and dragged parity down after writing started.
+    The method section is the registry + the claims audit; the manuscript is
+    the *consumer* of the method, not its definition.
+    """
     ws = Path(ws)
     out = []
     for rel in ("methods/METHOD_REGISTRY.md",
-                ".sciforge/audits/CLAIMS_FROM_RESULTS.md",
-                "paper/main.tex"):
+                ".sciforge/audits/CLAIMS_FROM_RESULTS.md"):
         p = ws / rel
         if p.exists():
             out.append(p)

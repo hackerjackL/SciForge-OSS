@@ -35,6 +35,13 @@ def main(argv=None) -> int:
     p_run.add_argument("--host", choices=["auto", "claude", "codex", "manual"], default="auto")
     p_run.add_argument("--test-mode", action="store_true")
     p_run.add_argument("--human-skip", action="store_true")
+    p_run.add_argument("--discipline", default="strict",
+                       choices=["strict", "balanced", "lean"],
+                       help="constraint tier: strict=all gates hard; balanced=default; "
+                            "lean=only undetectable-class gates hard (strong-model hosts)")
+    p_run.add_argument("--claim-mode", default="attribution", choices=["sota", "attribution"],
+                       help="sota: hypothesis must win (refuted core = KILL upstream, never a "
+                            "failure narrative in the paper); attribution: nulls are findings")
     p_run.add_argument("--max-steps", type=int, default=60)
     p_run.add_argument("--loop", action="store_true",
                        help="loop until done/blocked (headless overnight)")
@@ -177,7 +184,8 @@ def cmd_run(a) -> int:
     if host == "auto":
         host = "claude" if shutil.which("claude") else ("codex" if shutil.which("codex") else "manual")
     k.start(a.run_id, a.problem or "(resume)", a.effort, host=host,
-            test_mode=a.test_mode, human_skip=a.human_skip)
+            test_mode=a.test_mode, human_skip=a.human_skip,
+            discipline=a.discipline, claim_mode=a.claim_mode)
     if a.loop:
         r = k.run(max_steps=a.max_steps)
     else:

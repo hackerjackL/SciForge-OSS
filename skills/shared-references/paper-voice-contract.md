@@ -74,6 +74,23 @@ verification is dropped with disclosure, never guessed.
    (recipe path), and the caption is written AFTER the figure exists — never
    a caption describing a figure that changed.
 
+## 4b. Internal-term substitution table (v1.7.1, leakage class L)
+
+The manuscript never names SciForge machinery. Where the pipeline's internal
+vocabulary would otherwise leak, use the scientific equivalent:
+
+| internal term (class L hit) | write instead |
+|---|---|
+| regime ledger | scope of validity / validity regime |
+| promotion gate / three-state critic | pre-registered promotion rule |
+| engineer rounds | tuning rounds (pre-registered budget) |
+| integrity monitor / s2 audit | (omit; describe the check itself, e.g. "the comparison is paired on identical streams") |
+| phase N / gate exit / verdict file | (omit entirely) |
+| our/the/run workspace | the run artifacts / the released code |
+
+`leakage_scan.py` class L enforces this mechanically at the compile boundary;
+the table exists so writers never meet the gate for the first time at phase 13.
+
 ## 5. Negative vocabulary list (delete on sight)
 
 Flowery intensifiers (`meticulously`, `comprehensive`, `novel` as a
@@ -112,6 +129,67 @@ the reviewer score is worse than no rewrite. Answers to reviewer questions
 fold into the body at their natural position, never as a letter-style
 appendix; requests for experiments with no data path are dropped silently
 (not answered with promises).
+
+## 8. Claim mode: `sota` vs `attribution` (v1.7.1, kernel flag `claim_mode`)
+
+The run declares ONE mode at phase 0; it changes what a refuted hypothesis
+means, and the writing follows:
+
+- **`claim_mode=sota`** — the paper's thesis is that the method WINS.
+  A refuted core hypothesis is therefore an **idea-level failure**: it must
+  have triggered KILL-or-PIVOT upstream (L5/L7/L11), and if it survived to
+  writing the run is mis-routed — return to `/experiment-execution`, do not
+  write. The manuscript contains **no failure narrative**: discarded arms
+  appear only as *process evidence* (ablation rows, design-space tables,
+  "the promotion gate rejected candidate C because …" in Methods), never as
+  headline sentences. Exception: papers whose contribution IS a two-sided
+  finding (a method that wins on axis A and loses on axis B by design) —
+  declare that in the contributions at phase 0 and both sides are then
+  positive claims.
+- **`claim_mode=attribution`** — the thesis is a measurement ("how much does
+  X contribute?"). A measured null IS the positive result; write it in
+  discovery voice per paper-writing rule 2b (instrument + established fact),
+  never in failure voice.
+
+Either mode: the DATA is never hidden (full grids ship in results/ and the
+appendix); only the *narrative protagonist* changes. Selective reporting of
+numbers stays a gate failure in both modes.
+
+## 9. Canonical manuscript shape (v1.7.1)
+
+Fixed section order, no extras in the body:
+
+```
+Abstract → 1 Introduction → 2 Related Work → 3 Method →
+4 Experimental Setup → 5 Results and Analysis → 6 Conclusion →
+References → Data and Code Availability → Funding
+```
+
+- `Data and Code Availability` and `Funding` are written as short placeholders
+  when unknown ("Data and code will be released upon acceptance." / "The
+  authors declare no funding." — the user's instruction: write `no`/blank,
+  never invent).
+- **Appendix is a SEPARATE LaTeX file compiled to its own PDF**
+  (`paper/appendix.tex` → `appendix.pdf`); extended tables, extra robustness,
+  proofs live there. The body cites it ("Appendix A, separate file") and never
+  inlines it. Body length budget follows the declared tier (short 6–9 /
+  standard ≤12 / long ≤15) WITHOUT a trim loopback: over-band is a WARN with
+  a disclosure line, not a rewrite cycle (the negative-optimization tax).
+- No reviewer-facing apparatus in the manuscript: no "we thank the
+  reviewers", no response-letter residue, no over-explanation of the
+  pipeline. One sentence of setup where a reader needs it; everything else
+  is evidence.
+
+## 10. Native-voice polish (v1.7.1)
+
+Final pass before compile, in this order: (a) delete every sentence that
+only restates a previous one (redundancy is the #1 AI tell); (b) convert
+nominalizations to verbs where the verb is stronger; (c) vary sentence length
+deliberately (burstiness check from writing-principles §0.5); (d) read each
+paragraph aloud once — if it sounds like a template, rewrite the middle
+sentence; (e) terminology consistency table (one term per concept, defined
+once at first use). The target register is a native-speaking domain expert
+writing for peers: dense, plain, confident, zero filler.
 
 ## See Also
 

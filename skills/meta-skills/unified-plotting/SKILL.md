@@ -399,16 +399,16 @@ Semantics: read the existing mirror (if present), upsert this figure's entry, re
 
 | Section | Min figures | Typical figure type | Rationale |
 |---------|-------------|---------------------|-----------|
-| **Introduction** | 1 | Problem illustration / motivation figure / frontier-gap map (d2 concept-map or 1-panel data teaser) | A Zone-1 Intro often opens with "Figure 1: the problem" — it orients the reader before any text |
-| **Related Work** | 0-1 | Comparison table/diagram (taxonomy tree, method-comparison matrix) | Optional; a taxonomy diagram dramatically improves a survey-flavored Related Work |
+| **Introduction** | 0-1 | Problem illustration / motivation figure / frontier-gap map (d2 concept-map or 1-panel data teaser) | Optional (v1.7.1): the mandated set is Related-Work map + Methods diagram + 5-8 experiment figures; an Intro teaser adds orientation when the problem is visual |
+| **Related Work** | 1 | **Challenge-vs-ours map (v1.7.1 mandate)**: prior-work landscape × the challenge each line leaves open × where our method sits (taxonomy tree / method-comparison matrix / challenge map) | A Related Work with a visual challenge map reads as a positioned contribution, not a literature dump |
 | **Problem Formalization** | 0-1 | Formal setup illustration (variable-dependency graph, problem-schema diagram) | Optional but valuable for complex formalizations |
 | **Methods / Architecture** | 1 | **Pipeline / architecture diagram (MANDATORY)** — d2 layered/hub-and-spoke/flow showing the method's components + data flow | A Methods section with zero architecture diagram is the single strongest "thin paper" signal; every Zone-1 paper has one |
 | **Theory / Derivation** | 0-1 | Commutative diagram / derivation tree / dependency graph (tikz-cd or d2) | Optional for theory-heavy papers; valuable when proof structure is non-trivial |
-| **Results** | 2-4 | Primary result curves + comparison/bar + ablation + sensitivity (data plots, may be composites) | The core evidence; 2-4 panels is the Zone-1 norm (1 is thin, 5+ risks overcrowding without composites) |
+| **Results** | 5-8 | Experimental evidence: primary curves + comparisons + ablation + sensitivity/robustness + mechanism probes (data plots, composites count as 1) | v1.7.1 (user mandate): the experiment-figure band is 5-8; **type diversity is hard** — ≥3 distinct visual grammars across the paper (bars AND lines AND scatter/heatmap/forest/…); a run of identical bar charts is the basic-figure failure class, enforced by `scripts/figure_style_gate.py` |
 | **Discussion** | 0-1 | Limitations illustration / future-work roadmap / robustness summary | Optional; a robustness/sensitivity summary figure strengthens the Discussion |
 | **Appendix** | 0+ | Extended tables, full grid results, supplementary plots | Unlimited; appendix figures are not counted in the body budget |
 
-**Total body minimum (excl. appendix)**: **4 figures** (1 Intro + 1 Methods/architecture + 2 Results). A paper with fewer than 4 body figures is `WARN` (`figure_budget: below_minimum`). A paper with **only 1-2 figures total** is `FAIL` — it cannot support a Zone-1 submission regardless of text quality.
+**Total body minimum (excl. appendix)**: **7 figures** (1 Related-Work challenge map + 1 Methods/architecture + 5 experiment figures; an Intro motivation figure is optional and adds to the band, upper end 5-8 experiment figures ⇒ 7-10 body figures). Fewer than 7 body figures is `WARN` (`figure_budget: below_minimum`); fewer than 5 is `FAIL` — it cannot support a Zone-1 submission regardless of text quality. **All data figures are landscape 16:9 vector (PDF) by default; raster embeds in the body are a gate FAIL; every figure's first citation precedes its float** (`scripts/figure_style_gate.py` enforces all three).
 
 **Composite counting**: a single composite figure with 4 panels (a/b/c/d) counts as **1 figure** for budget purposes but provides 4 visual units — this is the preferred way to pack rich content without inflating the figure count past the page budget. The Results section's "2-4 figures" minimum is best met as 2 composites × 2-3 panels each.
 

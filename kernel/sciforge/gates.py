@@ -29,6 +29,37 @@ def _root():
     return Path(os.environ.get("SCIFORGE_REPO", REPO_ROOT))
 
 
+# ---------------------------------------------------------------------------
+# Discipline tiers (v1.7.1): severity ∝ consequence × post-hoc undetectability.
+#   strict    — every gate hard (submission-grade venues, weak-model hosts)
+#   balanced  — default: undetectable-class hard; cosmetic-class disclosed
+#   lean      — strong-model hosts: only undetectable-class gates hard
+#                 (fabrication/leakage/ladder/integrity/citation/compile-ERROR);
+#                 cosmetic class (zero-warning compile, page band, AIGC counts,
+#                 aspect ratios) becomes WARN + disclosure, never a loopback.
+# The tier is a RUN flag (RUNSTATE flags.discipline / SCIFORGE_DISCIPLINE),
+# re-injected by the bundle at every boundary — never left to model memory.
+# ---------------------------------------------------------------------------
+TIERS = ("strict", "balanced", "lean")
+
+
+def discipline(ws: Path) -> str:
+    try:
+        d = json.loads((Path(ws) / ".sciforge" / "RUNSTATE.json").read_text())
+        t = (d.get("data") or d).get("flags", {}).get("discipline")
+        if t in TIERS:
+            return t
+    except Exception:
+        pass
+    t = os.environ.get("SCIFORGE_DISCIPLINE", "")
+    return t if t in TIERS else "balanced"
+
+
+def cosmetic_hard(ws: Path) -> bool:
+    """True when cosmetic-class checks are HARD (strict tier only)."""
+    return discipline(ws) == "strict"
+
+
 def run_py(script: str, args: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(_root() / script), *args],
                           capture_output=True, text=True, timeout=900)
@@ -59,8 +90,20 @@ def figure_gates(ws: Path) -> dict:
     # not the workspace root; figures live at ws/figures in the canonical layout.
     p = run_py("scripts/check_figure_embedding.py",
                [str(ws / "paper"), "--require-renderer", "--figures-dir", str(ws / "figures")])
-    return {"gate": "figures_embedded_via_renderer", "status": "PASS" if p.returncode == 0 else "FAIL",
-            "exit": p.returncode, "output": (p.stdout + p.stderr)[-4000:]}
+    checks = {"embedded_via_renderer":
+              {"status": "PASS" if p.returncode == 0 else "FAIL",
+               "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}}
+    # v1.7.1 presentation gate: figures follow their citation, vector-only in
+    # the body, >=3 distinct visual grammars (Nature-grade mandate).
+    s = run_py("scripts/figure_style_gate.py", [str(ws)])
+    checks["presentation"] = {
+        "status": "SKIP" if "figure_style SKIP" in (s.stdout + s.stderr)
+        else ("PASS" if s.returncode == 0 else "FAIL"),
+        "exit": s.returncode, "output": (s.stdout + s.stderr)[-2000:]}
+    ok = all(c["status"] in ("PASS", "SKIP") for c in checks.values())
+    return {"gate": "figures_embedded_via_renderer", "status": "PASS" if ok else "FAIL",
+            "exit": p.returncode, "checks": checks,
+            "output": (p.stdout + p.stderr)[-2000:]}
 
 
 def wrap_up_gates(ws: Path) -> dict:
@@ -69,6 +112,9 @@ def wrap_up_gates(ws: Path) -> dict:
     p = run_py("scripts/s2_audit.py", [str(ws), "--quiet"])
     s2_status = "SKIP" if "s2_audit SKIP" in (p.stdout + p.stderr) else \
                 ("PASS" if p.returncode == 0 else "FAIL")
+    h = run_py("scripts/workspace_hygiene.py", [str(ws)])
+    hy_status = "SKIP" if "hygiene SKIP" in (h.stdout + h.stderr) else \
+                ("PASS" if h.returncode == 0 else "FAIL")
     checks = {
         "verdicts_complete": validate_verdicts(ws, strict=True, require_complete=True),
         "pipeline_audit": {"gate": "sciforge_audit",
@@ -78,6 +124,9 @@ def wrap_up_gates(ws: Path) -> dict:
         "s2_completeness_audit": {"gate": "s2_audit", "status": s2_status,
                                   "exit": p.returncode,
                                   "output": (p.stdout + p.stderr)[-2000:]},
+        "workspace_hygiene": {"gate": "workspace_hygiene", "status": hy_status,
+                              "exit": h.returncode,
+                              "output": (h.stdout + h.stderr)[-2000:]},
     }
     ok = all(c["status"] in ("PASS", "SKIP") for c in checks.values())
     return {"gate": "wrap_up", "status": "PASS" if ok else "FAIL", "checks": checks}
@@ -141,6 +190,30 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
         if name == "citation_support":
             p = run_py("scripts/citation_support.py", [str(ws), "--write-verdict"])
             return {"gate": "citation_support", "status": "PASS" if p.returncode == 0 else "FAIL",
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
+        if name == "workspace_hygiene":
+            # v1.7.1: the run must read like a GitHub repo (no stray logs/json,
+            # no caches, no empty dirs, README index present)
+            p = run_py("scripts/workspace_hygiene.py", [str(ws)])
+            status = "SKIP" if "hygiene SKIP" in (p.stdout + p.stderr) else \
+                     ("PASS" if p.returncode == 0 else "FAIL")
+            return {"gate": "workspace_hygiene", "status": status,
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
+        if name == "figure_style":
+            # v1.7.1: figures follow their citation, vector-only body embeds,
+            # >=3 distinct visual grammars
+            p = run_py("scripts/figure_style_gate.py", [str(ws)])
+            status = "SKIP" if "figure_style SKIP" in (p.stdout + p.stderr) else \
+                     ("PASS" if p.returncode == 0 else "FAIL")
+            return {"gate": "figure_style", "status": status,
+                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
+        if name == "doi_gate":
+            # v1.7.1 user mandate: every reference carries a DOI that resolves
+            # to a retrievable BibTeX record; unresolvable => dropped, not kept
+            p = run_py("scripts/doi_gate.py", [str(ws), "--write-verdict"])
+            status = "SKIP" if "doi_gate SKIP" in (p.stdout + p.stderr) else \
+                     ("PASS" if p.returncode == 0 else "FAIL")
+            return {"gate": "doi_gate", "status": status,
                     "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
         if name == "arb_verify":
             p = run_py("scripts/arb_verify.py", [str(ws)])
@@ -257,7 +330,23 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
                     return {"gate": "compile_audit", "status": "FAIL",
                             "note": "LEAKAGE_SCRUB.json unreadable"}
             if pc:
-                return {"gate": "compile_audit", "status": "PASS", "source": "PAPER_COMPILE.json"}
+                # v1.7.1 discipline tiers: compile ERRORS are always hard (a
+                # broken PDF is caught only when a human opens it — and
+                # reviewers do); compile WARNINGS are cosmetic (overfull boxes
+                # are visible in the PDF itself) — hard only in the strict
+                # tier, disclosed otherwise. This removes the observed
+                # negative-optimization tax (an agent died debugging underfull
+                # hboxes; two runs burned 12-16 compile passes on page bands).
+                try:
+                    warn_n = int(json.loads(pc.read_text()).get("warnings", 0) or 0)
+                except Exception:
+                    warn_n = 0
+                if warn_n and cosmetic_hard(ws):
+                    return {"gate": "compile_audit", "status": "FAIL",
+                            "note": f"{warn_n} compile warning(s) under discipline=strict"}
+                return {"gate": "compile_audit", "status": "PASS",
+                        "source": "PAPER_COMPILE.json",
+                        "warnings_disclosed": warn_n or None}
             return {"gate": "compile_audit", "status": "FAIL",
                     "note": "PAPER_COMPILE.json absent — host must compile (zero warnings) and write the verdict"}
         # skill_ref-based gates (quality-gate, compile, citation) run as LLM-driven

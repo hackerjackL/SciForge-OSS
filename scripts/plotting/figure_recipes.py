@@ -103,6 +103,29 @@ def _err_label(series, stat):
 XTICK_MIN_GAP_PX = 6.0  # ~one character of breathing room at 150 dpi
 
 
+def _fit_yticklabels(fig, ax, floor_pt: float = 5.0):
+    """Categorical y-tick labels must never collide vertically (the B07
+    forest-plot defect: 14 reaction names stacked into ~2in). Shrink this
+    axis's tick font in steps until adjacent label boxes clear, never below
+    the print floor — a figure whose labels cannot fit at readable size is
+    the wrong figure shape (say so in the caption instead)."""
+    for _ in range(8):
+        fig.canvas.draw()
+        r = fig.canvas.get_renderer()
+        vis = [t for t in ax.get_yticklabels() if t.get_text()]
+        if len(vis) < 2:
+            return
+        bbs = sorted((t.get_window_extent(renderer=r) for t in vis),
+                     key=lambda b: -b.y0)
+        if all(bbs[i].y0 - bbs[i + 1].y1 > -1.0 for i in range(len(bbs) - 1)):
+            return
+        fs = vis[0].get_fontsize()
+        if fs <= floor_pt:
+            return
+        for t in ax.get_yticklabels():
+            t.set_fontsize(max(floor_pt, fs - 1.0))
+
+
 def _xticks_overlap(fig, ax):
     """True when adjacent x-tick labels collide OR crowd horizontally.
 
@@ -239,6 +262,7 @@ def _heatmap(spec, outdir):
     if spec.get("panel_label"):
         ax.text(-0.16, 1.08, f"({spec['panel_label']})", transform=ax.transAxes,
                 fontsize=st.NATURE_FLOOR["title"], fontweight="bold")
+    _fit_yticklabels(fig, ax)   # dense row labels must not stack
     fig.savefig(outdir / "output.pdf")
     plt.close(fig)
 
@@ -293,6 +317,7 @@ def _forest(spec, outdir):
     ax.set_yticklabels([r["label"] for r in rows] + (["pooled"] if spec.get("pooled") else []),
                        fontsize=st.NATURE_FLOOR["tick_label"])
     ax.set_ylim(-1.8, len(rows) - 0.2)
+    _fit_yticklabels(fig, ax)   # many long row labels must not stack
     _finish(fig, ax, spec, outdir)
 
 
