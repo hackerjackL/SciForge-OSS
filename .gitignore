@@ -74,3 +74,4 @@ bench/s2demo/results/
 
 # stray top-level eval logs (agents leak cwd-relative logs here)
 logs/
+runs/LESSONS_INDEX.jsonl
