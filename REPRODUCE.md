@@ -116,8 +116,9 @@ GPU/NPU：镜像内 `detect_device.py` 自动 cuda/rocm/npu/mps/cpu；NPU allow-
 PYTHONPATH=kernel .venv/bin/python -c "import sys; sys.path.insert(0,'kernel'); from sciforge.evolve import ResearchDomain, Patch; print(ResearchDomain().score(Patch({'ops':[{'path':'x','old':'a','new':'package the failure as a contribution'}]})))"
 # Claude Code seamless: skill + subagent roles + project memory
 ls ~/.claude/skills/sciforge/SKILL.md ~/.claude/agents/sciforge-*.md CLAUDE.md
-# Closed-loop demo (RK4 energy conservation): quality report per phase
-ls runs/DEMO-RK4/QUALITY_REPORT.md
+# Closed-loop demo (RK4 energy conservation): run it yourself — run
+# workspaces are local-only and never shipped (v1.7.1 repo hygiene):
+sciforge run --workspace ./runs/DEMO-RK4 --problem "RK4 energy conservation" --test-mode --loop
 ```
 
 ## 9. GPU 后端：colab-mcp（免费 T4）接入 Claude Code
