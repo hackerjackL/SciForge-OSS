@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "overall": "SKIP",
+  "reward_hacking": {
+    "overall": "SKIP",
+    "checks": {
+      "gain_arithmetic": {
+        "status": "SKIP",
+        "note": "no S2_LADDER.json"
+      },
+      "split_discipline": {
+        "status": "SKIP",
+        "note": "no experiments"
+      }
+    }
+  },
+  "method_code_parity": {
+    "status": "SKIP",
+    "note": "no method/claims/paper source to audit"
+  },
+  "ts": 1790997817.864372,
+  "rule": "FAIL blocks wrap-up; SKIP only when no experiment claims exist"
+}

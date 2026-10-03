@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.7.2] - 2026-10-02 定版：研究 OS 层（XScientist ARA + SCION REP 适配）+ 多 agent 对抗评审修复
+
+> 版本主题：**把研究运行变成可 fork 的工件，把计划变成编译产物，把 claim 变成有锚的证据**。协议形态适配自 `smileformylove/XScientist`（Apache-2.0，归属记录在案）与 SCION REP（arXiv:2607.03863，无公开仓库，概念自实现）；全部实现为原创 SciForge 代码，stdlib-only。**444+ 全绿，ci_check PASS**。
+
+### 六机制（D1-D6，kernel-owned）
+- **D1 节点注册 + fork**（`kernel/sciforge/nodes.py`）：每个实验 RESULT.json 变成内容寻址节点（code/inputs/outputs sha256 + `reexec_cmd`）；`sciforge fork --node <id>` 从任意节点播种新工作区并落在该相位——绝不从 PDF 冷启动（三轮评测 3 次 agent 中途死的实测痛点）。失败分支是一等节点，永不滤除。
+- **D5 claim→节点锚**（ARA claim.schema 适配）：`CLAIM_ANCHORS.json` 把每条论文断言链到产出它的节点+证据字节；`claim_anchor_gate` @wrap-up 拦截"引用了但无锚"与**锚后漂移**（结果被改过=claim 失效）。
+- **D4 REP 运行计划**（SCION 概念自实现，`kernel/sciforge/rep.py`）：相位 1 编译 `REP.json`（分阶段目标+验证检查点+**fallback 条件**）；≥2 相位边界强制计划存在；loopback 触发时校验消费了 REP 声明的 fallback——**off-plan 恢复=违约**（杀"临场 improv 恢复"故障类）。
+- **D2 语义记忆**（`memory build/query --semantic`）：跨 run **已验证事实**层（polarity-positive claims + ladder 结论，内容哈希可溯源）——re-discovery benchmark 考的正是这层；与教训索引（procedural）分离。
+- **D3 批主动搜索**（`sota next -k`）：UCB 式记忆先验排序出 k 个并行变异提案 + 探索保证轮转；worker pool 共享基线数据流执行（fairness gate 天然保公平）。
+- **D6 daemon 多源调度**（`sources.py`）：源注册表（jsonl bench 主题 / inbox 简报），按 id 去重轮询入队——重启永不重复排队。
+
+### 多 agent 对抗评审修复（"确保无断裂"的实测闭环）
+三个对抗评审 agent 逐一核对门链/代码/契约，抓出并修复：
+- **claim_anchor_gate 结构性失效**（评审抓的最重断裂）：生产管线从不写 NODES.json（record_node 只有测试调用）、契约不教锚 token → 门永远 SKIP=三角形虚设。修复：kernel 在 6b/6c/10 边界自动注册节点（`nodes.auto_register`）、相位 10 自动锚定（`auto_anchor_claims`，按 claim 文本引用的工件路径匹配节点）、paper-writing rule 15 强制 `\claimref{C1}`/`(C1)` 锚 token。
+- claim_gate 正则收紧：裸 `\bC\d+\b` 会把图注 "C1 panel" 当 claim 误报 FAIL → 只认 `\claimref{}`/`(C1)`/"claim C1"。
+- REP.json 从 verdicts/ 挪到 audits/（validate_verdicts 对 verdicts/ 未知 JSON 会 WARN）；discipline 默认值统一为 strict（gates 与 pipeline.start 一致）。
+- 契约登记补齐：output-protocol 树登记 nodes/ + REP.json；artifact-registry 补 6 行 v1.7.2 产物（producer/consumer/verifier）；auto-pipeline 相位 1 行 + loopback registry 第 5 条 off-plan 违约类；s2-protocol §10 六机制；README×2 CLI/能力表；CLAUDE.md 硬规则门清单。
+- 附带发现（记档不修）：评审员称 CLAIMS 在项目根是误报（实测在 .sciforge/audits/，gate 路径正确）；e2e fixture 与新机制双向脱钩（测试盲区，留 v1.8）。
+
+
 ## [1.7.1] - 2026-09-28 定版：ARC-Bench 两代实测驱动修复 + AAR 反 Goodhart 融合
 
 > 版本主题：**第一轮 ARC-Bench 五域实测暴露的全部缺陷，逐一修到根因**。全部改动带回归测试；439/439 绿，ci_check PASS。

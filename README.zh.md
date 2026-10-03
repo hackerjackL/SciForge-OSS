@@ -3,7 +3,7 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.1-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.2-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -75,6 +75,7 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 | **宿主适配** | `--host claude`（Claude Code CLI，回传 `total_cost_usd`）、`--host codex`，或 `manual` bundle 协议（任意 agent 经 `.sciforge/host/*.done.json` 驱动） |
 | **实验执行** | 沙箱门控派发（macOS Seatbelt / Linux bubblewrap）、worker 池、后台 nohup + STATUS.json 聚合、设备规划（CUDA/ROCm/NPU/MPS/CPU 经 `detect_device.py`） |
 | **ScientistTwo 对标（v1.7）** | `s2/` 包 + 边界门：Subset→Full-Set 阶梯与三态 Critic（`s2_ladder` @6c）· 5–6 消融计划与严格 AblCritic（`s2_ablation` @10）· score<8 rebuttal ≤2 轮 + Meta-Review {ACCEPT\|REFINE} · 锚点校准评审分 · reward-hacking + 方法↔代码对齐审计（`s2_audit` @wrap-up）· 探索保证 idea evolution · `bench/s2demo`（CPU、仅 numpy） |
+| **研究 OS 层（v1.7.2）** | XScientist-ARA 适配：内容寻址实验节点 + `sciforge fork`（任意节点续跑、绝不冷启动）+ claim→节点锚（claim_anchor_gate 拦截漂移）+ SCION-REP 运行计划（fallback 条件、off-plan 恢复=违约）+ 语义记忆（`memory build --semantic` 已验证事实）+ 批主动搜索（`sota next -k`）+ daemon 多源调度（`SOURCES.json`） |
 | **SOTA 爬山 + 失败记忆（v1.7.1）** | `sota.py` 驱动：声明 incumbent → 由跨 run 教训索引（`sciforge memory build/query`）播种变异提案 → 每轮 geomean closed-fraction 头条 + capability-floor/回归 CI 使"赢"失效 → plateau/预算停止。`completion_gate` 让 S01 式虚假完成报告在 wrap-up 物理上不可能；`submission_ready` 按二区标准给论文分级 READY / MINOR_REV / MAJOR_REV / NOT_READY |
 | **约束三档（v1.7.1）** | `--discipline strict|balanced|lean`：severity ∝ 后果 × 事后不可检测性。lean 只把 fabrication/leakage/ladder/integrity/citation/编译零 ERROR 保持硬门；cosmetic 检查（警告、页带、计数）改披露而非回环——强模型不再付负优化税 |
 | **daemon** | `sciforge serve`——headless 队列 + loopback HTTP（:4510），服务器过夜运行；**任何环节无 GUI** |
@@ -88,7 +89,10 @@ sciforge resume  --workspace ./runs/Q001 --loop    # 崩溃后：重放事件，
 sciforge approve --workspace ./runs/Q001 idea-pick # 人工检查点
 sciforge memory build && sciforge memory query "bootstrap 覆盖率 重尾" -k 5
 sciforge sota next --workspace ./runs/Q001         # 爬山：下一个变异提案
+sciforge sota next --workspace ./runs/Q001 -k 3        # 批主动搜索（3 个并行变异提案）
 sciforge sota record --workspace ./runs/Q001 --variant v2 --legs legs.json
+sciforge fork --workspace ./runs/Q001 --node n003 --out ./runs/Q001B   # 从实验节点续跑
+sciforge memory build --semantic && sciforge memory query --semantic "linear ceiling"
 sciforge doctor                                    # 环境自检
 ```
 

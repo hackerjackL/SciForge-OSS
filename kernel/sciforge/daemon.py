@@ -61,6 +61,17 @@ class Daemon:
                 continue
             item = self._next()
             if not item:
+                # v1.7.2 (D6): idle moments poll the source registry — bench
+                # topic lists / inbox briefings become first-class producers
+                # with dedup-by-id, so restarts never double-queue.
+                try:
+                    from . import sources as src_mod
+                    new, _ = src_mod.poll_all(self.archive)
+                    for prob in new:
+                        self.enqueue(f"{prob['source_id']}_{prob['id']}",
+                                     prob["problem"])
+                except Exception:
+                    pass
                 time.sleep(2)
                 continue
             ws = self.archive / item["run_id"]

@@ -204,6 +204,12 @@ class Kernel:
         """Gate check then, only on PASS, commit boundary atomically."""
         ph = self.graph.phases[pid]
         results = []
+        # v1.7.2 (SCION REP adapted): from phase 2 onward the run must carry a
+        # compiled plan; a planless run improvises recovery — the exact
+        # failure class the REP exists to kill.
+        if _ord(ph) >= 2:
+            from . import rep as rep_mod
+            results.append({"gate": "rep_plan_present", **rep_mod.check_plan(self.ws)})
         # NOT_APPLICABLE (routing skip) legitimately never produces the phase's
         # artifacts — its file gates are vacuous; extend na_verdicts instead
         # (output-protocol: declared skips, never silent absences).
@@ -237,6 +243,19 @@ class Kernel:
         pend = self.appr.pending_records()
         self.log.emit(pid, "phase_done", {"phase": pid, "verdict": v.v, "artifacts": v.artifacts})
         self.log.emit(pid, "boundary_committed", {"phase": pid, "verdict": v.v})
+        # v1.7.2 (adversarial-review fix): the node registry is a KERNEL
+        # production artifact — experiment boundaries register nodes, the
+        # result-to-claim boundary anchors claims to them. Without this the
+        # registry stayed empty and claim_anchor_gate was structurally dead.
+        if pid in ("6b", "6c", "10"):
+            try:
+                from . import nodes as nodes_mod
+                new_nodes = nodes_mod.auto_register(self.ws, phase=pid)
+                anchored = nodes_mod.auto_anchor_claims(self.ws) if pid == "10" else []
+                self.log.emit(pid, "nodes_registered",
+                              {"n": len(new_nodes), "anchored": len(anchored)})
+            except Exception:
+                pass
         nxt = self.graph.nxt(pid, self.routing())
         self.rs.update(phase=nxt or pid, last_boundary=pid,
                        next_action=(f"enter phase {nxt}" if nxt else "done"),
@@ -521,9 +540,14 @@ class Kernel:
                 exploration_seed = ideas_mod.next_exploration_seed(self.ws)
             except Exception:
                 exploration_seed = None
+        # v1.7.2: the fired loopback must match a REP-declared fallback
+        # condition (off-plan recovery = contract violation, logged).
+        from . import rep as rep_mod
+        fb_check = rep_mod.fallback_consumed(self.ws, pid, lb["id"])
         self.log.emit(pid, "loopback", {"id": lb["id"], "target": target,
                                         "round": used + 1,
-                                        "exploration_seed": exploration_seed})
+                                        "exploration_seed": exploration_seed,
+                                        "rep_fallback": fb_check.get("status")})
         # A0: the KILL/PIVOT/BA ROUTING FACTS are the kernel's own decisions —
         # recorded append-only so "which kill fired when, budget left" survives
         # session death and is auditable (the full-argument KILL_ARGUMENT.json
@@ -639,8 +663,14 @@ class Kernel:
                 return Verdict("BLOCKED", reason_code=breach(b))
             return Verdict("PASS", artifacts=[".sciforge/verdicts/PROBLEM_HASH.txt"])
         if pid == "1":
-            # decomposition digest written by host next turn; native only checks anchor present
-            return Verdict("PASS")
+            # v1.7.2 (SCION REP adapted): phase 1 COMPILES the run plan —
+            # staged objectives + verification checkpoints + fallback
+            # conditions. Boundaries from phase 2 check it exists; loopbacks
+            # check they consumed a declared fallback (off-plan recovery =
+            # contract violation, same spirit as the loopback registry).
+            from . import rep as rep_mod
+            rep_mod.compile_rep(self.ws, self.graph)
+            return Verdict("PASS", artifacts=[".sciforge/audits/REP.json"])
         if pid == "6":  # verification-routing (S04 deterministic-first)
             return self._route()
         if pid == "16":

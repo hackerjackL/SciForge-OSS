@@ -52,6 +52,18 @@ This registry closes both gaps by being the **single, machine-checkable** list o
 | `.sciforge/audits/AUDIT_TRAIL.json` | .sciforge/audits/ | kernel `s2/audit.run_full_audit` (phase 16) | wrap-up gate `s2_completeness_audit`, human | `audit.py` (gain arithmetic, split discipline, method↔code parity ≥0.8) | `scripts/s2_audit.py` at wrap-up — FAIL blocks completion; SKIP only with no experiment claims |
 | `.sciforge/audits/IDEA_EVOLUTION.json` | .sciforge/audits/ | `/idea-discovery` (round ledger) + kernel loopback hook | `s2/ideas.next_exploration_seed` (attached to idea-regeneration loopback events) | `ideas.py` (`explored_ids` accumulate; `exploration_pool` must carry ≥1 unexplored id) | loopback event log + `KILL_DECISIONS.jsonl` carry `exploration_seed` |
 
+### v1.7.2 protocol artifacts (XScientist-ARA adapted / SCION REP)
+
+> Kernel-machine artifacts in `.sciforge/nodes/` and `.sciforge/audits/` (same unregistered class as REVIEW_PANEL.json — enforced by gates, not validate_verdicts).
+
+| Artifact | Path | Producer | Consumers | Schema enforced by | Verifier |
+|---|---|---|---|---|---|
+| `.sciforge/nodes/NODES.json` | .sciforge/nodes/ | kernel `nodes.auto_register` at 6b/6c/10 boundaries (every experiments/**/RESULT.json becomes a hash-stable node with reexec_cmd; failed branches stay first-class) | `sciforge fork --node`, claim_anchor_gate, sota driver, memory harvest | `nodes.py` (content-hash shape) | `scripts/claim_anchor_gate.py` (node existence + output hash drift) |
+| `.sciforge/nodes/CLAIM_ANCHORS.json` | .sciforge/nodes/ | kernel `nodes.auto_anchor_claims` at phase 10 (claim text → cited artifact node); host may overwrite with exact anchors (paper-writing rule 15) | claim_anchor_gate, human audit of the claim→code→data triangle | `nodes.py verify_anchors` (resolved + hash-stable) | `scripts/claim_anchor_gate.py` — cited claims must resolve to non-drifted nodes |
+| `.sciforge/audits/REP.json` | .sciforge/audits/ | kernel `rep.compile_rep` at phase 1 (staged objectives + per-phase fallback conditions from the loopback registry) | boundary checks (plan must exist ≥ phase 2), loopback consumption check (off-plan recovery = contract violation) | `rep.py check_plan` | `rep.fallback_consumed` logged at every loopback event |
+| `SOURCES.json` (archive root) | runs-archive | user / operator (source registry: jsonl bench topics / inbox briefings, dedup by id) | daemon `work()` idle poll → enqueue | `sources.py` | daemon audit (last_poll + seen ids) |
+| `MEMORY_FACTS.jsonl` (archive root) | runs-archive | `sciforge memory build --semantic` (polarity-positive claims + ladder outcomes, content-hashed) | sota variant proposals, phase-2 priors | `memory.harvest_facts` | index round-trip (tests/test_s2.py) |
+
 ### Shared backbone artifacts (all pipelines)
 
 | Artifact | Path | Producer | Consumers | Schema enforced by |

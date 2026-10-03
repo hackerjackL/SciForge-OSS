@@ -3,7 +3,7 @@ name: experiment-ladder
 description: "ScientistTwo §3.2 subset→full-set experiment ladder with the 3-state Critic {BAD|GOOD|ENGINEER≤2}. Companion to /experiment-execution at phases 6b/6c: reproduce the baseline on the subset, run the candidate, decide the critic state, promote only on strict full-set improvement. Writes .sciforge/audits/S2_LADDER.json (kernel gate s2_ladder at the 6c boundary)."
 type: support-skill
 role: experiment-ladder-critic
-version: 1.7.1
+version: 1.7.2
 ---
 
 # Experiment Ladder (SciForge-OSS — Subset→Full-Set + 3-state Critic)

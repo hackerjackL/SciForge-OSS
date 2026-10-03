@@ -3,7 +3,7 @@
 > **[English](README.md)** | **[中文](README.zh.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.1-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.2-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -76,6 +76,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 | **Experiments** | sandbox-gated dispatch (Seatbelt on macOS, bubblewrap on Linux), worker pool, background nohup + STATUS.json aggregation, device planning (CUDA/ROCm/NPU/MPS/CPU via `detect_device.py`) |
 | **Verifiable evidence (v1.6)** | security_scan enforced at 6b/6c · TDAL joint (tdal_compute.py) · fantasy 5-gate · Arb certified intervals · sentence-level citation support · SMOKE gate · injection sanitizer · rate limiter + 429 cooldown · dual-timer |
 | **ScientistTwo parity (v1.7)** | `s2/` package + gates: subset→full ladder & 3-state Critic (`s2_ladder` @6c) · 5–6 ablation plans & strict AblCritic (`s2_ablation` @10) · score<8 rebuttal ≤2 rounds + Meta-Review {ACCEPT\|REFINE} · anchor-calibrated panel scores · reward-hacking + method↔code parity audit (`s2_audit` @wrap-up) · exploration-guaranteed idea evolution · `bench/s2demo` (CPU, numpy-only) |
+| **Research-OS layer (v1.7.2)** | XScientist-ARA adapted: content-addressed experiment nodes + `sciforge fork` (resume from any node, never cold-start) + claim→node anchors (claim_anchor_gate blocks drift) + SCION-REP run plans (fallback conditions, off-plan recovery = contract violation) + semantic memory (`memory build --semantic`, verified facts) + batch active search (`sota next -k`) + multi-source daemon scheduling (`SOURCES.json`) |
 | **SOTA hill-climb + failure memory (v1.7.1)** | `sota.py` driver: declared incumbent → variant proposals seeded by the cross-run lesson index (`sciforge memory build/query`) → per-iteration geomean closed-fraction headline with capability-floor & regression-CI invalidation → plateau/budget stop. `completion_gate` makes S01-class lying reports physically impossible at wrap-up; `submission_ready` tiers the manuscript READY / MINOR_REV / MAJOR_REV / NOT_READY against the Zone-2 bar |
 | **Constraint tiers (v1.7.1)** | `--discipline strict|balanced|lean`: severity ∝ consequence × post-hoc undetectability. lean keeps only fabrication/leakage/ladder/integrity/citation/compile-ERROR hard; cosmetic checks (warnings, page bands, counts) disclose instead of looping back — no negative-optimization tax on strong models |
 | **Daemon** | `sciforge serve` — headless queue + loopback HTTP (:4510) for overnight server runs; no GUI anywhere |
@@ -89,7 +90,10 @@ sciforge resume --workspace ./runs/Q001 --loop     # after crash: replays events
 sciforge approve --workspace ./runs/Q001 idea-pick # human checkpoint
 sciforge memory build && sciforge memory query "bootstrap coverage heavy tails" -k 5
 sciforge sota next --workspace ./runs/Q001         # hill-climb: next variant proposal
+sciforge sota next --workspace ./runs/Q001 -k 3        # batch active search (3 parallel proposals)
 sciforge sota record --workspace ./runs/Q001 --variant v2 --legs legs.json
+sciforge fork --workspace ./runs/Q001 --node n003 --out ./runs/Q001B   # resume from an experiment node
+sciforge memory build --semantic && sciforge memory query --semantic "linear ceiling"
 sciforge doctor                                    # environment self-check
 ```
 

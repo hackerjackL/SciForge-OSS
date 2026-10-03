@@ -591,3 +591,177 @@ def test_submission_ready_tiering(tmp_path: Path):
     p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "submission_ready.py"),
                  str(tmp_path)], capture_output=True, text=True)
     assert p.returncode == 2 and "NOT_READY" in p.stdout
+
+
+# ---------------- v1.7.2: nodes/fork, claim anchors, semantic memory,
+# ---------------- batch sota, REP, sources ----------------
+
+def test_nodes_fork_and_anchor_drift(tmp_path: Path):
+    from sciforge import nodes as nd
+    src = tmp_path / "runA"
+    (src / "src").mkdir(parents=True)
+    (src / "src" / "exp.py").write_text("print(1)\n")
+    (src / "experiments").mkdir(parents=True)
+    (src / "experiments" / "RESULT.json").write_text('{"v": 1}')
+    n = nd.record_node(src, kind="full", phase="6c",
+                       code=[src / "src" / "exp.py"],
+                       inputs=[src / "experiments"],
+                       outputs=[src / "experiments" / "RESULT.json"],
+                       reexec_cmd="python src/exp.py", claim_ids=["C1"])
+    assert n["id"] == "n001" and n["outputs_sha"]
+    nd.anchor_claims(src, [{"claim_id": "C1", "node_id": "n001",
+                            "tex_file": "paper/main.tex", "line": 10,
+                            "resolved": True, "evidence_refs": []}])
+    assert nd.verify_anchors(src) == []
+    # drift: result edited after anchoring => anchor invalid
+    (src / "experiments" / "RESULT.json").write_text('{"v": 2}')
+    assert any("drifted" in p for p in nd.verify_anchors(src))
+    # fork seeds a new workspace at the node's phase with reexec hook
+    out = tmp_path / "runB"
+    r = nd.fork(src, "n001", out)
+    assert r["ok"] and r["resume_phase"] == "6c"
+    assert (out / "experiments" / "RESULT.json").exists()
+    rs = json.loads((out / ".sciforge" / "RUNSTATE.json").read_text())
+    assert rs["data"]["forked_from"]["node"] == "n001"
+
+
+def test_semantic_memory_harvests_positive_claims(tmp_path: Path):
+    from sciforge import memory as mem
+    run = tmp_path / "R1"
+    (run / ".sciforge" / "audits").mkdir(parents=True)
+    (run / ".sciforge" / "audits" / "CLAIMS_FROM_RESULTS.md").write_text(
+        "## C1 — fidelity numerical — polarity positive — to: abstract\n"
+        "linear family ceiling 0.645 on generator G at full split.\n\n"
+        "## C2 — fidelity numerical — polarity negative — to: none\n"
+        "this failed idea must NOT become a fact.\n")
+    facts = mem.harvest_facts(run)
+    assert len(facts) == 1 and facts[0]["claim_id"] == "C1"
+    assert facts[0]["hash"].startswith("sha256:")
+    n = mem.build_semantic_index(tmp_path, tmp_path / "facts.jsonl")
+    assert n == 1
+    hits = mem.query_facts(tmp_path / "facts.jsonl", "linear ceiling generator", k=1)
+    assert hits and "0.645" in hits[0]["text"]
+
+
+def test_sota_batch_returns_k_distinct_priors(tmp_path: Path):
+    from sciforge import sota
+    (tmp_path / ".sciforge" / "verdicts").mkdir(parents=True)
+    (tmp_path / ".sciforge" / "verdicts" / "SOTA_TARGET.json").write_text(json.dumps({
+        "problem": "p", "benchmarks": [{"name": "m", "baseline": 0.0, "optimum": 1.0}]}))
+    batch = sota.next_variants(tmp_path, "p", k=3)
+    assert len(batch) == 3
+    assert [b["batch_index"] for b in batch] == [0, 1, 2]
+
+
+def test_rep_compile_and_offplan_loopback(tmp_path: Path):
+    from sciforge import rep
+    from sciforge.pipeline import PhaseGraph
+    g = PhaseGraph()
+    r = rep.compile_rep(tmp_path, g)
+    assert any(o["phase"] == "6c" for o in r["objectives"])
+    assert "2" in r["fallbacks"]  # L3 loopback declared on phase 2
+    assert rep.check_plan(tmp_path)["status"] == "PASS"
+    fb = rep.fallback_consumed(tmp_path, "2", "L3")
+    assert fb["status"] == "PASS"
+    off = rep.fallback_consumed(tmp_path, "99", "LX")
+    assert off["status"] == "FAIL" and "OFF-PLAN" in off["note"]
+
+
+def test_sources_poll_dedup(tmp_path: Path):
+    from sciforge import sources as src
+    topics = tmp_path / "topics.jsonl"
+    topics.write_text('{"id": "t1", "topic": "problem one"}\n'
+                      '{"id": "t2", "topic": "problem two"}\n')
+    reg = [{"id": "bench", "kind": "jsonl", "path": str(topics),
+            "fields": {"problem": "topic", "id": "id"}, "poll_s": 0, "seen": []}]
+    src.save_registry(tmp_path, reg)
+    new, updated = src.poll_all(tmp_path)
+    assert len(new) == 2
+    new2, _ = src.poll_all(tmp_path)   # second poll: dedup by seen
+    assert new2 == []
+
+
+# ---------------- v1.7.2 adversarial-review fixes ----------------
+
+def test_auto_register_production_nodes(tmp_path: Path):
+    from sciforge import nodes as nd
+    exp = tmp_path / "experiments" / "full" / "e1"
+    exp.mkdir(parents=True)
+    (exp / "RESULT.json").write_text('{"status": "PASS"}')
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "run.py").write_text("x")
+    regs = nd.auto_register(tmp_path, phase="6c")
+    assert len(regs) == 1
+    assert regs[0]["outputs_sha"] and regs[0]["reexec_cmd"]
+    # idempotent: second call registers nothing new
+    assert nd.auto_register(tmp_path, phase="6c") == []
+
+
+def test_auto_anchor_claims_matches_cited_artifacts(tmp_path: Path):
+    from sciforge import nodes as nd
+    exp = tmp_path / "experiments" / "full" / "e1"
+    exp.mkdir(parents=True)
+    (exp / "RESULT.json").write_text('{"status": "PASS"}')
+    nd.auto_register(tmp_path, phase="10")
+    audits = tmp_path / ".sciforge" / "audits"
+    audits.mkdir(parents=True, exist_ok=True)
+    (audits / "CLAIMS_FROM_RESULTS.md").write_text(
+        "## C1 — fidelity numerical — polarity positive — to: abstract\n"
+        "accuracy 0.99 measured in experiments/full/e1/RESULT.json.\n\n"
+        "## C2 — fidelity numerical — polarity negative — to: none\n"
+        "failed arm.\n")
+    anchors = nd.auto_anchor_claims(tmp_path)
+    assert len(anchors) == 1 and anchors[0]["claim_id"] == "C1"
+    assert anchors[0]["resolved"] is True
+    assert nd.verify_anchors(tmp_path) == []
+
+
+def test_claim_anchor_gate_strict_citation_forms(tmp_path: Path):
+    import subprocess as _sp
+    exp = tmp_path / "experiments" / "full" / "e1"
+    exp.mkdir(parents=True)
+    (exp / "RESULT.json").write_text('{"status": "PASS"}')
+    from sciforge import nodes as nd
+    nd.auto_register(tmp_path, phase="10")
+    (tmp_path / ".sciforge" / "audits").mkdir(parents=True, exist_ok=True)
+    (tmp_path / ".sciforge" / "audits" / "CLAIMS_FROM_RESULTS.md").write_text(
+        "## C1 — fidelity numerical — polarity positive — to: abstract\n"
+        "in experiments/full/e1/RESULT.json.\n")
+    nd.auto_anchor_claims(tmp_path)
+    (tmp_path / "paper").mkdir()
+    # figure-panel letter "C1 panel" must NOT count as a claim citation:
+    # with EMPTY anchors it would FAIL if the regex over-counted C1
+    nd.anchor_claims(tmp_path, [])
+    (tmp_path / "paper" / "main.tex").write_text("Figure shows C1 panel at top.\n")
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "claim_anchor_gate.py"),
+                 str(tmp_path)], capture_output=True, text=True)
+    assert p.returncode == 0, f"bare C1 panel must not be a citation: {p.stdout}"
+    # real anchor citation resolves
+    nd.auto_anchor_claims(tmp_path)
+    (tmp_path / "paper" / "main.tex").write_text("As established in (C1), ...\n")
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "claim_anchor_gate.py"),
+                 str(tmp_path)], capture_output=True, text=True)
+    assert p.returncode == 0 and "PASS" in p.stdout
+    # cited but unanchored -> FAIL
+    nd.anchor_claims(tmp_path, [])
+    p = _sp.run([sys.executable, str(REPO_ROOT / "scripts" / "claim_anchor_gate.py"),
+                 str(tmp_path)], capture_output=True, text=True)
+    assert p.returncode == 2 and "not anchored" in p.stdout
+
+
+def test_rep_lives_outside_verdicts_dir(tmp_path: Path):
+    from sciforge import rep
+    from sciforge.pipeline import PhaseGraph
+    r = rep.compile_rep(tmp_path, PhaseGraph())
+    assert (tmp_path / ".sciforge" / "audits" / "REP.json").exists()
+    assert not (tmp_path / ".sciforge" / "verdicts" / "REP.json").exists()
+    assert r["discipline"] in ("strict", "balanced", "lean")
+
+
+def test_gates_discipline_default_is_strict(tmp_path: Path):
+    from sciforge import gates
+    (tmp_path / ".sciforge").mkdir()
+    assert gates.discipline(tmp_path) == "strict"
+    (tmp_path / ".sciforge" / "RUNSTATE.json").write_text(
+        json.dumps({"data": {"flags": {"discipline": "lean"}}}))
+    assert gates.discipline(tmp_path) == "lean"

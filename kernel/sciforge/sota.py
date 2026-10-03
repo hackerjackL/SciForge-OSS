@@ -94,6 +94,33 @@ def next_variant(ws: Path, problem: str = "") -> dict:
     }
 
 
+def next_variants(ws: Path, problem: str = "", k: int = 3) -> list[dict]:
+    """Batch active search (v1.7.2, D3): k parallel variant proposals.
+
+    UCB-flavoured ordering over the memory priors: each proposal gets a
+    distinct prior slice (highest-sim first) PLUS the exploration-guarantee
+    seed rotation, so the batch balances exploitation (what worked on
+    similar problems before) and exploration (never-tried seeds). The worker
+    pool executes them concurrently on SHARED baseline streams — the
+    fairness gate already forces one frozen split across arms, so parallel
+    variants stay comparable by construction.
+    """
+    base = next_variant(ws, problem)
+    state = load_state(ws)
+    tried = set(base.get("tried_variants") or [])
+    out = []
+    priors = base.get("memory_priors") or []
+    for i in range(max(1, k)):
+        payload = dict(base)
+        payload["iteration"] = base["iteration"] + i
+        payload["batch_index"] = i
+        payload["prior"] = priors[i] if i < len(priors) else None
+        payload["ucb_note"] = (f"prior rank {i + 1}/{max(len(priors), 1)}; "
+                               f"exploitation weight decays with rank")
+        out.append(payload)
+    return out
+
+
 def record_iteration(ws: Path, variant: str, legs: dict[str, dict],
                      note: str = "") -> dict:
     """legs: {bench: {"score": x, "ci": [lo, hi]}}. Returns the decision record.

@@ -164,3 +164,33 @@ unlicensed, so we port its *measurement discipline*, not its code:
 
 All five are pure-Python/contract level — identical semantics on macOS test
 boxes, Linux CUDA clusters, and Windows hosts; hardware changes nothing.
+
+## 10. v1.7.2 research-OS layer (XScientist ARA + SCION REP adapted)
+
+Protocol shapes adapted from `smileformylove/XScientist` (Apache-2.0) and the
+SCION REP concept (arXiv:2607.03863) — implementations are original SciForge
+code. Six mechanisms, all kernel-owned:
+
+1. **Node registry + fork** (`kernel/sciforge/nodes.py`): every experiment
+   RESULT.json becomes a content-addressed node (code/inputs/outputs sha256 +
+   `reexec_cmd`); `sciforge fork --node <id>` seeds a new workspace at the
+   node's phase — never cold-start from a PDF. Failed branches are first-class
+   nodes (status failed), never filtered.
+2. **Claim→node anchors** (ARA claim.schema adapted): `CLAIM_ANCHORS.json`
+   links every manuscript claim to the node + evidence bytes that produced it;
+   `claim_anchor_gate` FAILs cited-but-unanchored claims and hash drift
+   (a result edited after anchoring breaks the triangle).
+3. **REP** (`kernel/sciforge/rep.py`, SCION concept): phase 1 compiles
+   `REP.json` — staged objectives + verification checkpoints + fallback
+   conditions; ≥2 boundaries require the plan; loopbacks must consume a
+   declared fallback (off-plan recovery = contract violation).
+4. **Semantic memory** (`memory.py --semantic`): cross-run VERIFIED FACTS
+   (polarity-positive claims + ladder outcomes, content-hashed) — the layer
+   re-discovery benchmarks score; separate from the procedural lesson index.
+5. **Batch active search** (`sota.py next_variants -k`): k parallel variant
+   proposals ordered by UCB-flavoured memory priors + exploration-guarantee
+   rotation; the worker pool runs them on shared baseline streams (fairness
+   gate keeps arms comparable by construction).
+6. **Multi-source daemon scheduling** (`sources.py`): source registry
+   (jsonl bench topics / inbox briefings) polled with dedup-by-id — restarts
+   never double-queue.

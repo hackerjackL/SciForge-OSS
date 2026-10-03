@@ -1,6 +1,6 @@
 ---
 name: paper-writing
-version: 1.7.1
+version: 1.7.2
 description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (8-class regex, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer
@@ -325,6 +325,7 @@ Before declaring the draft ready, perform a self-review:
    All checks are voice/framing only — data, CIs, and every ablation row must remain stated in full (rule 2b; selective reporting stays banned).
 13. **Human-voice / anti-AIGC hardening (v1.5.0)** — beyond the §0.5 blacklist: run a grammar + readability pass (`language_tool_python` for grammar, `textstat` for Flesch/Kincaid within a discipline-sane band) and a "read-aloud" self-check; each discipline family gets 2-3 human-voice exemplars (stance sentences, discipline-jargon-in-its-own-meaning, citations woven as load-bearing walls). Any paragraph that survives the blacklist but still "reads like a template" (isomorphic claim+3-elaboration+wrap structure) is rewritten for burstiness. Results in `aigc_scan`.
 14. **Placement + length audit (v1.4.0)** — per [`writing-principles.md`](../../shared-references/writing-principles.md) §Main-text vs Appendix: confirm the primary result figures/tables and the main comparison live in the body Results section (NOT the appendix), the appendix holds only proofs/extended tables/secondary robustness/code, and the main body is within the 6-9 page budget (abstract ≤250 words). Main body > 12 pages or primary evidence in the appendix → restructure (move evidence up, cut restated results) before declaring ready (`reason_code: appendix_dump` / `overlong_manuscript`)
+15. **Claim-anchor discipline (v1.7.2, XScientist ARA adapted)** — every claim from `.sciforge/audits/CLAIMS_FROM_RESULTS.md` that enters the paper MUST appear in the tex with an anchor token the `claim_anchor_gate` can find: preferred `\claimref{C1}` (or parenthesized `(C1)` / "claim C1"); the kernel auto-registers experiment nodes at 6b/6c and best-effort anchors claims at phase 10 (`nodes.auto_anchor_claims`) — verify `CLAIM_ANCHORS.json` has `resolved: true` for every cited claim (a claim citing no registered artifact stays unresolved and blocks wrap-up). This closes the claim→code→data triangle: a result edited after anchoring breaks its hash and fails the gate (`reason_code: claim_anchor_broken`).
 
 ## Output Protocols
 > **v5.2 verdict artifact location**: all machine-readable verdict/hash/audit JSON produced by this skill goes into `.sciforge/verdicts/` (filenames: see the artifact directory layout in [`output-protocol.md`](../../shared-references/output-protocol.md); narrative reports stay in their original stage directory).

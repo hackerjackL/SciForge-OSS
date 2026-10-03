@@ -52,7 +52,9 @@ def discipline(ws: Path) -> str:
     except Exception:
         pass
     t = os.environ.get("SCIFORGE_DISCIPLINE", "")
-    return t if t in TIERS else "balanced"
+    # default strict = the release baseline (matches pipeline.start default);
+    # balanced/lean are explicit opt-ins.
+    return t if t in TIERS else "strict"
 
 
 def cosmetic_hard(ws: Path) -> bool:
@@ -120,6 +122,12 @@ def wrap_up_gates(ws: Path) -> dict:
     c = run_py("scripts/completion_gate.py", [str(ws)])
     c_status = "SKIP" if "completion_gate SKIP" in (c.stdout + c.stderr) else \
                ("PASS" if c.returncode == 0 else "FAIL")
+    # v1.7.2 (XScientist ARA adapted): claims must stay anchored to
+    # hash-stable experiment nodes — a result edited after anchoring breaks
+    # the claim-to-evidence triangle.
+    ca = run_py("scripts/claim_anchor_gate.py", [str(ws)])
+    ca_status = "SKIP" if "claim_anchor SKIP" in (ca.stdout + ca.stderr) else \
+                ("PASS" if ca.returncode == 0 else "FAIL")
     checks = {
         "verdicts_complete": validate_verdicts(ws, strict=True, require_complete=True),
         "pipeline_audit": {"gate": "sciforge_audit",
@@ -135,6 +143,9 @@ def wrap_up_gates(ws: Path) -> dict:
         "completion_truth": {"gate": "completion_gate", "status": c_status,
                              "exit": c.returncode,
                              "output": (c.stdout + c.stderr)[-2000:]},
+        "claim_anchors": {"gate": "claim_anchor_gate", "status": ca_status,
+                          "exit": ca.returncode,
+                          "output": (ca.stdout + ca.stderr)[-2000:]},
     }
     ok = all(c["status"] in ("PASS", "SKIP") for c in checks.values())
     return {"gate": "wrap_up", "status": "PASS" if ok else "FAIL", "checks": checks}

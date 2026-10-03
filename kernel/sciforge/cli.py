@@ -122,12 +122,26 @@ def main(argv=None) -> int:
     p_mem.add_argument("text", nargs="?", default="",
                        help="query text (for `memory query`)")
     p_mem.add_argument("-k", type=int, default=8)
+    p_mem.add_argument("--semantic", action="store_true",
+                       help="build/query the cross-run VERIFIED-FACT layer "
+                            "(claims + ladder outcomes), not the lesson layer")
+
+    # v1.7.2: node-level fork (XScientist-ARA adapted): resume from any
+    # experiment node instead of cold-starting a run
+    p_fk = sub.add_parser("fork", help="seed a new workspace from one experiment node")
+    p_fk.add_argument("--workspace", type=Path, required=True,
+                      help="source run workspace")
+    p_fk.add_argument("--node", required=True, help="node id (n001, …)")
+    p_fk.add_argument("--out", type=Path, required=True,
+                      help="new workspace path")
 
     # v1.7.1: SOTA hill-climb driver (claim_mode=sota loop bookkeeping)
     p_sota = sub.add_parser("sota", help="SOTA hill-climb driver (incumbent vs variants)")
     p_sota.add_argument("what", choices=["status", "next", "record"])
     p_sota.add_argument("--workspace", type=Path, required=True)
     p_sota.add_argument("--variant", default=None, help="variant id (record)")
+    p_sota.add_argument("-k", type=int, default=1,
+                        help="batch active search: k parallel variant proposals (next)")
     p_sota.add_argument("--legs", type=Path, default=None,
                         help="JSON {bench: {score, ci:[lo,hi]}} (record)")
     p_sota.add_argument("--note", default="")
@@ -192,6 +206,18 @@ def main(argv=None) -> int:
         return 0
     if a.cmd == "memory":
         from . import memory as mem
+        if a.semantic:
+            if a.what == "build":
+                archive = a.archive or (Path(__file__).resolve().parents[2] / "runs")
+                out = archive / mem.SEMANTIC_REL
+                n = mem.build_semantic_index(archive, out)
+                print(json.dumps({"indexed": n, "index": str(out)}))
+            else:
+                idx = (a.archive / mem.SEMANTIC_REL) if a.archive \
+                    else (Path(__file__).resolve().parents[2] / "runs" / mem.SEMANTIC_REL)
+                print(json.dumps(mem.query_facts(idx, a.text, k=a.k),
+                                 indent=2, ensure_ascii=False))
+            return 0
         if a.what == "build":
             archive = a.archive or (Path(__file__).resolve().parents[2] / "runs")
             out = archive / "LESSONS_INDEX.jsonl"
@@ -203,15 +229,21 @@ def main(argv=None) -> int:
             hits = mem.query(idx, a.text, k=a.k)
             print(json.dumps(hits, indent=2, ensure_ascii=False))
         return 0
+    if a.cmd == "fork":
+        from . import nodes
+        r = nodes.fork(a.workspace, a.node, a.out)
+        print(json.dumps(r, indent=2, ensure_ascii=False))
+        return 0 if r.get("ok") else 2
     if a.cmd == "sota":
         from . import sota
         if a.what == "status":
             print(json.dumps(sota.status(a.workspace), indent=2, ensure_ascii=False))
         elif a.what == "next":
             k = Kernel(a.workspace)
-            print(json.dumps(sota.next_variant(
-                a.workspace, k.rs.data.get("problem", "")), indent=2,
-                ensure_ascii=False))
+            payload = sota.next_variants(a.workspace,
+                                         k.rs.data.get("problem", ""), k=a.k)
+            print(json.dumps(payload if a.k > 1 else payload[0], indent=2,
+                             ensure_ascii=False))
         else:
             legs = json.loads(Path(a.legs).read_text()) if a.legs else {}
             rec = sota.record_iteration(a.workspace, a.variant or "unnamed",

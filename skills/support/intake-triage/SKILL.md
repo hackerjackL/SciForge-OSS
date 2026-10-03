@@ -3,7 +3,7 @@ name: intake-triage
 description: "Flexible user-intake triage (v1.7.1): the user may hand over ANY combination — a bare question, a draft manuscript, code, data, experiment results, logs, a target venue, formatting demands — and the run adapts instead of refusing. Produces INTAKE_MANIFEST.json (what arrived, what is trusted, which phases are inherited vs re-run) and routes the pipeline accordingly. Phase 0 companion; never gates, only plans."
 type: support-skill
 role: intake-triage-router
-version: 1.7.1
+version: 1.7.2
 ---
 
 # Intake Triage (SciForge-OSS — flexible user-intake router)

@@ -1,6 +1,6 @@
 ---
 name: auto-pipeline
-version: 1.7.1
+version: 1.7.2
 description: "SciForge-OSS autonomous 21-phase research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
@@ -379,7 +379,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | Phase | Gate condition | On failure |
 |------|---------|---------|
 | 0 | Q-id is clear, well-posed, and comes from the human prompt | Ask the user to clarify the Q-id; do **not** auto-search the problem index |
-| 1 | Problem decomposes into formal statements | Ask the user to clarify the problem boundary |
+| 1 | Problem decomposes into formal statements + **v1.7.2 kernel compiles REP.json** (staged objectives + per-phase fallback conditions; `kernel/sciforge/rep.py` — SCION REP adapted) | Ask the user to clarify the problem boundary; a phase-2+ boundary without REP.json fails `rep_plan_present` |
 | 2 | At least 1 idea generated (MCTS converges) | Relax perspectives and re-evaluate; further failure escalates to BLOCKED |
 | 2.5 | Falsification attack: assumption health ≥ 6 OR no counterexample | WEAKENED → fall back to Phase 2 and regenerate; FALSIFIED → eliminated (record reason) |
 | 2.5b | Engineering Grounding report output (Phase 5b): ENGINEERING_GROUNDING.md generated | Required output only for HEAVY/CONSTRAINED; BLOCKED eliminates (sub-dimension = 0)
@@ -525,7 +525,8 @@ The overall pipeline verdict = the **worst** verdict across all 21 phases: `ERRO
 2. **Loop-backs must change state**: a phase re-entered via loop-back must consume the evidence of the previous failure (failed_ideas.json / KILL_ARGUMENT.json / the response_class from REVIEW_STATE.json) — re-running the same input unchanged is forbidden (anti-deadloop)
 3. **KILL paths must go through kill-argument**: any "switch idea" decision must first produce KILL_ARGUMENT.json (.sciforge/verdicts/) — switching ideas without a kill argument is drift, not stop-loss (the INV-G1 content hash will intercept it)
 4. **BA budget is globally shared**: the three BA trigger points L7/L9/L11 share a total budget of ≤2 rounds (from v5.3, accounted in `ba_rounds_used`/`ba_rounds_max` of `.sciforge/verdicts/RUN_BUDGET.json`; the old `.sciforge/verdicts/BA_BUDGET.json` is a read-only fallback) — not 2 rounds each — preventing three BAs from stacking into 6 idle rounds
-5. **KILL requires a human checkpoint (v5.3, default ON)**: on any KILL path (L5/L7/L9/L11/L13), after the kill-argument produces `.sciforge/verdicts/KILL_ARGUMENT.json` and before returning to Phase 2 to regenerate ideas, the orchestrator must pause and present the kill-argument summary to the human, awaiting confirmation; fully automatic only when the invocation carries `kill_checkpoint=false` or `human_skip=true`. The checkpoint record is written to `.sciforge/APPROVAL_LOG.txt` (see the Boundaries section)
+5. **Off-plan loopbacks are contract violations (v1.7.2)**: phase 1 compiles `REP.json` declaring each phase's fallback condition; when a loopback fires, the kernel checks `rep.fallback_consumed` — a loopback not declared in the REP fallbacks is logged as `rep_fallback: FAIL` (an improvising recovery is the failure class the REP exists to kill; fix the plan or the code, never the log).
+6. **KILL requires a human checkpoint (v5.3, default ON)**: on any KILL path (L5/L7/L9/L11/L13), after the kill-argument produces `.sciforge/verdicts/KILL_ARGUMENT.json` and before returning to Phase 2 to regenerate ideas, the orchestrator must pause and present the kill-argument summary to the human, awaiting confirmation; fully automatic only when the invocation carries `kill_checkpoint=false` or `human_skip=true`. The checkpoint record is written to `.sciforge/APPROVAL_LOG.txt` (see the Boundaries section)
 
 ## Global Run Budget Ledger (v5.3 — RUN_BUDGET.json)
 

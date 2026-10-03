@@ -90,6 +90,96 @@ def build_index(archive_dir: Path, out: Path) -> int:
     return n
 
 
+# ---------------------------------------------------------------------------
+# Semantic layer (v1.7.2, D2): cross-run VERIFIED FACTS, not lessons.
+# A lesson says "what went wrong"; a fact says "what is true about this
+# world" (e.g. "on generator G the linear family ceiling is 0.645 full-split,
+# measured by run X"). Facts are what make re-discovery cheap — the
+# ResearchClawBench re-discovery-accuracy dimension scores exactly this.
+# Source: CLAIMS_FROM_RESULTS.md polarity-positive claims + ladder fullset
+# numbers, content-hashed so a fact can be traced to the run that measured it.
+# ---------------------------------------------------------------------------
+SEMANTIC_REL = Path("MEMORY_FACTS.jsonl")
+
+
+def _fact_text(claim: dict) -> str:
+    parts = [claim.get("claim", ""), claim.get("evidence", ""),
+             claim.get("regime", "")]
+    return " | ".join(p for p in parts if p)
+
+
+def harvest_facts(ws: Path) -> list[dict]:
+    """Extract verified facts from one finished run (polarity-positive claims
+    + ladder fullset values), each carrying the run id and a content hash."""
+    import hashlib
+    ws = Path(ws)
+    facts = []
+    run_id = ws.name
+    claims = ws / ".sciforge" / "audits" / "CLAIMS_FROM_RESULTS.md"
+    if claims.exists():
+        # real format: "## C1 — fidelity numerical — polarity positive (…) — to: …"
+        # followed by the claim body until the next "## " header.
+        text_all = claims.read_text(errors="replace")
+        blocks = re.split(r"(?m)^## ", text_all)[1:]
+        for blk in blocks:
+            head = blk.splitlines()[0] if blk else ""
+            m = re.match(r"(C\d+)", head.strip())
+            if not m or "polarity positive" not in head:
+                continue  # only verified positive findings become facts
+            body = re.sub(r"\s+", " ", "\n".join(blk.splitlines()[1:])).strip()
+            fact_text = f"{m.group(1)}: {body}"[:400]
+            facts.append({"run_id": run_id, "kind": "claim",
+                          "claim_id": m.group(1), "text": fact_text,
+                          "hash": "sha256:" + hashlib.sha256(
+                              fact_text.encode()).hexdigest()})
+    ladder = ws / ".sciforge" / "audits" / "S2_LADDER.json"
+    if ladder.exists():
+        try:
+            d = json.loads(ladder.read_text())
+            fs = d.get("fullset") or {}
+            text = (f"{d.get('problem_id')}: full-set baseline="
+                    f"{(fs.get('baseline') or {}).get('value')} candidate="
+                    f"{(fs.get('candidate') or {}).get('value')} "
+                    f"gain={d.get('relative_gain_pct')}% state={d.get('critic', {}).get('state')}")
+            facts.append({"run_id": run_id, "kind": "ladder", "text": text,
+                          "hash": "sha256:" + hashlib.sha256(
+                              text.encode()).hexdigest()})
+        except Exception:
+            pass
+    return facts
+
+
+def build_semantic_index(archive_dir: Path, out: Path) -> int:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    n = 0
+    with open(out, "w") as f:
+        for run in sorted(Path(archive_dir).iterdir()):
+            for fact in harvest_facts(run):
+                fact["vec"] = embed(fact["text"])
+                f.write(json.dumps(fact, ensure_ascii=False) + "\n")
+                n += 1
+    return n
+
+
+def query_facts(index: Path, text: str, k: int = 6,
+                min_sim: float = 0.12) -> list[dict]:
+    if not Path(index).exists():
+        return []
+    q = embed(text)
+    scored = []
+    for line in Path(index).read_text().splitlines():
+        try:
+            e = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        s = cosine(q, e.get("vec", []))
+        if s >= min_sim:
+            scored.append({k2: v for k2, v in e.items() if k2 != "vec"}
+                           | {"sim": round(s, 3)})
+    scored.sort(key=lambda x: -x["sim"])
+    return scored[:k]
+
+
 def default_index_path() -> Path:
     """Cross-run lesson index location (v1.7.1 wiring): the runs archive root
     holds LESSONS.json per run; the index is built once per archive and

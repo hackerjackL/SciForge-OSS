@@ -74,6 +74,9 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   ├── AUTO_REVIEW.md         ← cross-model review narrative (auto-review-loop)
 │   │   ├── CITATION_AUDIT.md      ← 3-layer citation audit narrative (citation-audit)
 │   │   ├── S2_LADDER.json / ABLATION_LEDGER.json / REBUTTAL_PLAN.json / CALIBRATION.json / AUDIT_TRAIL.json / IDEA_EVOLUTION.json / REVIEW_PANEL.json ← v1.7 ScientistTwo parity kernel-machine audits (gate-checked by scripts/s2_*.py; same unregistered class as REVIEW_PANEL.json — NOT verdicts, so validate_verdicts does not demand them)
+│   │   ├── REP.json  ← v1.7.2 run Research Execution Plan (kernel compiles at phase 1: staged objectives + fallback conditions; rep.py)
+│   │   └── (see .sciforge/nodes/ below) NODES.json / CLAIM_ANCHORS.json  ← v1.7.2 XScientist-ARA node registry + claim→node anchors (kernel auto-registers at 6b/6c/10; gates: claim_anchor_gate, sciforge fork)
+│   ├── nodes/          ←   [v1.7.2] NODES.json (experiment node registry: code/inputs/outputs sha256 + reexec_cmd — XScientist-ARA adapted) + CLAIM_ANCHORS.json (claim→node anchors, drift-checked)
 │   └── tmp/            ←   scratch space (rendering intermediates, debug scripts, download caches); whole directory deleted at wrap-up
 ├── refine-logs/        ← [VISIBLE — the research trail] decision artifacts (v1.4.0 boundary: research content is written into the open from the moment it is created, never hidden and transplanted later)
 │   ├── PROBLEM_ANALYSIS.md / phase bundles, domain-signature.json (+ hint)
