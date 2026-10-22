@@ -323,7 +323,7 @@ If Ouroboros is not available (network error, service down, not configured):
                               ▼  (pipeline continues Phase 5-10)
 ┌────────────────────────────────────────────────────────────────────┐
 │ DEEP call (L2, Section B, NEW)                                     │
-│   trigger: Phase 6 derivation completes + Phase 10 TDAL emits      │
+│   trigger: Phase 6a derivation completes + Phase 10 TDAL emits      │
 │            AND basic call's overall_score ≥ 0.5 (data exists)      │
 │   OSS → Ouroboros: "here is my theoretical prediction;             │
 │                     does matching real data agree?"               │
@@ -334,16 +334,16 @@ If Ouroboros is not available (network error, service down, not configured):
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-**Deep call OPTIONAL rationale**: if basic call returned `overall_score < 0.5` (data largely unavailable), the deep call has nothing to verify against — skip deep, fall back to OSS-internal numerical sanity check (existing Phase 6 behavior). The deep call only runs when there IS data to verify against.
+**Deep call OPTIONAL rationale**: if basic call returned `overall_score < 0.5` (data largely unavailable), the deep call has nothing to verify against — skip deep, fall back to OSS-internal numerical sanity check (existing Phase 6a behavior). The deep call only runs when there IS data to verify against.
 
-### OSS Output: theoretical-prediction.json (Phase 6 → deep call trigger)
+### OSS Output: theoretical-prediction.json (Phase 6a → deep call trigger)
 
-After Phase 6 (`/theory-derivation`) completes successfully, OSS emits a structured theoretical prediction for Ouroboros to match:
+After Phase 6a (`/theory-derivation`) completes successfully, OSS emits a structured theoretical prediction for Ouroboros to match:
 
 ```json
 {
   "format_version": "1.0",
-  "generated_by": "SciForge-OSS Phase 6",
+  "generated_by": "SciForge-OSS Phase 6a",
   "problem_id": "Q001",
   "timestamp": "2026-07-21T10:30:00Z",
   "derivation_summary": {
@@ -394,7 +394,7 @@ After Phase 6 (`/theory-derivation`) completes successfully, OSS emits a structu
 ```
 
 **Emission contract**:
-- Phase 6 emits `theoretical-prediction.json` ONLY when derivation succeeds (SymPy PASS or PARTIAL with documented gap). FAIL → no prediction, no deep call.
+- Phase 6a emits `theoretical-prediction.json` ONLY when derivation succeeds (SymPy PASS or PARTIAL with documented gap). FAIL → no prediction, no deep call.
 - `key_predictions` MUST distinguish `quantitative` (numeric effect) from `qualitative` (sign or regime). Ouroboros validates each type differently.
 - `anti_inflation_flags` MUST self-assess: if the prediction is grounded in restrictive assumptions, flag it — Ouroboros' fit report will respect the regime, not generalize.
 - `required_data_for_validation` echoes the basic call's data requirements but refined per-prediction — Ouroboros searches for the variables needed to validate EACH key prediction.
@@ -528,10 +528,10 @@ The new `theory_data_validation` component (weight 0.2) is fed by the deep integ
 
 **Floor**: `theory_data_validation` component cannot push T above 1.0 — the bonus is bounded by the cap. FALSIFIED_SIGN escalates to TDAL UNSUPPORTED regardless of other components (a theory with wrong direction is not publishable).
 
-### Phase Wiring (L2 integration into the 21-phase pipeline)
+### Phase Wiring (L2 integration into the 26-node pipeline)
 
 ```
-Phase 6: /theory-derivation
+Phase 6a: /theory-derivation
     ↓ emits derivations/* AND theoretical-prediction.json (NEW L2)
     ↓
 Phase 7: /leakage-audit
@@ -560,7 +560,7 @@ Phase 12: /paper-writing
 
 **Deep call OPTIONAL triggers** (all three must hold):
 1. `data-availability-report.json` exists AND `overall_score ≥ 0.5` (basic call found data)
-2. `theoretical-prediction.json` exists AND derivation succeeded (Phase 6 PASS or PARTIAL)
+2. `theoretical-prediction.json` exists AND derivation succeeded (Phase 6a PASS or PARTIAL)
 3. `theory_only = false` (theory-only problems have no data to verify against)
 
 If any trigger fails → skip deep call, T component = 0.5 neutral, `missing_inputs: ["theory_data_validation"]` caps TDAL verdict at MODERATE (per contract floor).
@@ -589,7 +589,7 @@ If the deep call is triggered but Ouroboros returns an error or no matching data
 
 The deep integration operationalizes the v2.7 strategic positioning ("OSS is not 'do research for you', it is 'verify your research idea against real data'"):
 
-1. OSS produces a **falsifiable prediction** (Phase 6) — not a vague claim, but a structured prediction with sign, size, CI, regime.
+1. OSS produces a **falsifiable prediction** (Phase 6a) — not a vague claim, but a structured prediction with sign, size, CI, regime.
 2. Ouroboros finds **matching real data** — not cherry-picked data, but data within the theory's stated regime.
 3. OSS computes a **joint validation report** — theory vs data agreement, with bounded T uplift.
 4. The paper's Validation section **transparently reports** the match — readers see exactly what was predicted, what was observed, and the fit quality.
@@ -602,7 +602,7 @@ This is distinct from "AutoML runs experiments for you" (competitor positioning)
 
 - [`domain-adaptation-contract.md`](domain-adaptation-contract.md) — TDAL 4-dim locked schema (D dimension definition + T dimension `theory_data_validation` component added in L2)
 - [`../support/adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — produces data-requirements.json (Phase 2.5, basic call trigger)
-- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6 producer of `theoretical-prediction.json` (deep call trigger)
+- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6a producer of `theoretical-prediction.json` (deep call trigger)
 - [`../support/result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — Phase 10 producer of `theory-data-validation-report.json` + T uplift application
 - [`../support/paper-writing/SKILL.md`](../support/paper-writing/SKILL.md) — Phase 12 consumer of validation report → paper Validation section
 - [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — phase wiring integration

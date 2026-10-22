@@ -121,7 +121,7 @@ Map the idea to analogous problems in other domains and estimate prior success p
 **Adjusted prior**: [low/medium/high]
 ```
 
-### Phase 5a: OSS Sandbox Feasibility (unchanged)
+### Phase 2.5 (sandbox feasibility): OSS Sandbox Feasibility (unchanged)
 
 Estimate minimum resources needed for the OSS sandbox and whether OSS can provide them:
 
@@ -135,9 +135,9 @@ Estimate minimum resources needed for the OSS sandbox and whether OSS can provid
 **If no**: [recommendation to scope down or reject]
 ```
 
-### Phase 5b: Engineering Grounding Estimate (NEW)
+### Phase 2.5b: Engineering Grounding Estimate (skill-local step 5b)
 
-Estimate real-world engineering feasibility using the 8-dimension EG axis (AI perspective). This phase runs AFTER Phase 5a, but is **independent** — even if Phase 5a BLOCKED the idea (OSS sandbox can't run it), Phase 5b still executes to assess whether AI can implement the idea in src/experiments outside the sandbox. Phase 5b only skips if the idea is purely theoretical (no src/experiment needed).
+Estimate real-world engineering feasibility using the 8-dimension EG axis (AI perspective). This phase runs AFTER Phase 2.5 (sandbox feasibility), but is **independent** — even if Phase 2.5 (sandbox feasibility) BLOCKED the idea (OSS sandbox can't run it), Phase 2.5b still executes to assess whether AI can implement the idea in src/experiments outside the sandbox. Phase 2.5b only skips if the idea is purely theoretical (no src/experiment needed).
 
 The agent computes the 8 sub-dimensions per the [Engineering Grounding Contract](../../shared-references/engineering-grounding-contract.md) and produces `refine-logs/ENGINEERING_GROUNDING.md`:
 
@@ -255,4 +255,4 @@ Check whether the required data exists and is accessible. This prevents "data-le
 - [`../novelty-check/SKILL.md`](../../meta-skills/novelty-check/SKILL.md) — downstream filter after falsification
 - [`../method-registry/SKILL.md`](../method-registry/SKILL.md) — consumes falsification results for assumption registry
 - [`../kill-argument/SKILL.md`](../kill-argument/SKILL.md) — complementary adversarial exercise (post-paper, not pre-idea)
-- [`../../shared-references/engineering-grounding-contract.md`](../../shared-references/engineering-grounding-contract.md) — EG axis contract consumed by Phase 5b
+- [`../../shared-references/engineering-grounding-contract.md`](../../shared-references/engineering-grounding-contract.md) — EG axis contract consumed by Phase 2.5b

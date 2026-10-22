@@ -10,7 +10,7 @@ Skill-driven, domain-agnostic "AI Scientist" framework. **No build step** — th
 - No lint/format tool configured — match surrounding style manually.
 
 ## Layout
-- `skills/orchestrator/auto-pipeline/SKILL.md` — the only entry: one research question per run, 21-phase DAG, delegates every phase to a sub-skill (never does research itself).
+- `skills/orchestrator/auto-pipeline/SKILL.md` — the only entry: one research question per run, 26-node DAG, delegates every phase to a sub-skill (never does research itself).
 - `skills/support/` — phase skills; `skills/meta-skills/` — cross-cutting; `skills/shared-references/` — contract layer (`*-contract.md`, `schemas/`).
 - `scripts/` — `ci_check.py`, `verifiers/`, `plotting/` (`render_figure.py` = single figure entry, dual PDF+SVG + embedded Nature-grade audit), `eval/`.
 - `fixtures/e2e_minimal/` — mock pipeline workspace consumed by tests.

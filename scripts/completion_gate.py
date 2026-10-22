@@ -2,7 +2,7 @@
 """Completion-declaration gate (v1.7.1) — the physical cure for S01-class lies.
 
 Failure class (observed in ARC-Bench round 1): an agent's FINAL REPORT claimed
-"21/21 phases, PDF compiled, score 92" while the workspace had no PDF, empty
+"21/21 phases, PDF compiled, score 92" (a historical 21-phase run) while the workspace had no PDF, empty
 sections and 11 missing verdicts. Prose completion claims have no physical
 gate; this script is that gate, wired into wrap-up:
 

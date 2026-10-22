@@ -1,5 +1,7 @@
 # SciForge-OSS 优化分析：从 Skill 包跃迁到 RSI 级 Auto-Research 开源项目
 
+> **Historical naming note**: this document was written for the 21-phase era. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; the text below is preserved as a historical record.
+
 > 分析日期：2026-09-25 ｜ 依据：本仓库 README/orchestrator/CHANGELOG 全量阅读 + AUTO_RESEARCH_LANDSCAPE.md 调研 + 5 个标杆项目源码级架构对比（AI-Scientist-v2 / EvoScientist / AgentLaboratory / DeepScientist / STORM）
 
 ---

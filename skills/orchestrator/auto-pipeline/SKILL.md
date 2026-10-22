@@ -1,22 +1,22 @@
 ---
 name: auto-pipeline
 version: 1.7.2
-description: "SciForge-OSS autonomous 21-phase research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
+description: "SciForge-OSS autonomous 26-node research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
 role: single-question-research-orchestrator
 ---
 
-# Auto Pipeline (SciForge-OSS — Single-Question, 21-Phase DAG Loop)
+# Auto Pipeline (SciForge-OSS — Single-Question, 26-Node DAG Loop; "21-Phase" Is the Legacy Name)
 
-> **Status**: The **single entry orchestrator** for OSS. Executes a complete 21-phase DAG research loop on **one** question supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
+> **Status**: The **single entry orchestrator** for OSS. Executes a complete 26-node DAG research loop on **one** question supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation processes exactly one Q-id, end-to-end. The orchestrator does NOT execute research itself — it delegates each phase to the corresponding meta-skill or support skill, reads their outputs, and feeds the next phase.
 >
 > **Key OSS difference from main SciForge**: main SciForge's research-pipeline branches by discipline (economics / cs-ml / physics / general) into 4 parallel pipelines each with its own framework (AIM / SOTA / PNV / none) + reviewer persona. OSS has **no discipline branch** — one universal pipeline, the universal `senior-reviewer-agnostic` persona, and the agent's runtime reasoning handles domain-specific methodology.
 
 ## Quick Reference
 
 - **Entry point**: `/auto-pipeline "Q001: problem description" — effort: max`
-- **Scope**: single-question execution, 21-phase DAG loop, universal across all domains
+- **Scope**: single-question execution, 26-node DAG loop, universal across all domains
 - **Output**: complete paper (LaTeX/PDF) + all intermediate artifacts
 - **Key**: single-question execution, does not iterate the problem index, human supplies the Q-id; Phase 2.5 falsification is mandatory; Phase 3→4 and Phase 5→6 require human approval
 - **Optional flags**: `test_mode=true` (auto-waive the 2 human checkpoints for end-to-end stress testing — see TEST_MODE exemption below); `language=chinese`; `effort=lite|balanced|max|beast`
@@ -34,7 +34,7 @@ Typical prompts:
 
 ## Job
 
-Orchestrate a complete 21-phase DAG research loop. The non-negotiable goals:
+Orchestrate a complete 26-node DAG research loop. The non-negotiable goals:
 1. **Each question runs the complete loop** — no phase skipped, regardless of how simple the problem seems
 2. **Each phase produces a verifiable artifact** — the pipeline is documented by output files, not promises
 3. **Every citation is real** — the 3-layer anti-hallucination protocol is mandatory (see [`citation-discipline.md`](../../shared-references/citation-discipline.md))
@@ -126,7 +126,7 @@ refine-logs/domain-signature.json (written ONLY by Phase 1b)
      ↓
 Phase 2:  /idea-discovery        → reads signature → adjusts perspective weights
 Phase 2.5: /adversarial-falsification → reads signature → loads domain failure modes + calibrates EG sub-dimension N/A judgments
-Phase 2.5b: (Phase 5b EG) → reads signature → domain-specific EG sub-dimension weighting (Compute/N/A judgment)
+Phase 2.5b: Engineering Grounding (EG) → reads signature → domain-specific EG sub-dimension weighting (Compute/N/A judgment)
 Phase 3:  /novelty-check         → reads signature → adjusts evaluation weights
 Phase 5:  /method-registry       → reads signature → adjusts hypothesis scoring criteria
 Phase 6:  /verification-routing  → reads signature → routing decision (experiment-first default / theory-only exception / hybrid) → writes VERIFICATION_ROUTING.json, then dispatches Phase 6a/6b/6c
@@ -203,120 +203,33 @@ This section replaces ad-hoc instructions duplicated across skills; the contract
 
 ```
 Phase  0: load problem (freeze Q-id — INV-G1 anchor)
-     │
-Phase  1: problem understanding & decomposition (built-in reasoning) [MUST]
-     │
-     ├───────────────── DAG branch ─────────────────┐
-     │                                             │
-Phase  1a: /domain-signature domain feature extraction [OPTIONAL] ← v2.8 demoted to fast-path hint
-     │  analyze problem text → extract domain hint (rule-based)    │
-     │  writes refine-logs/domain-signature-hint.json  │
-     │  (not consumed directly downstream; only a prior for Phase 1b)    │
-     │                                             │
-Phase  1b: /domain-learner domain learning [MUST] ← v2.8 promoted to single source of truth
-     │  learn domain characteristics from scratch from literature + seed papers           │
-     │  (literature search + seed paper analysis)   │
-     │  read hint.json as prior + correct via autonomous retrieval      │
-     │  writes refine-logs/domain-signature.json      │
-     │  (sole downstream consumption source; learner confidence threshold 0.7)│
-     │                                             │
-Phase  2: /idea-discovery [DAG branch] [MUST] — 4-perspective GAP-ANCHORED ideas (v6.0 gap chain)
-     │  (theoretical / computational / qualitative / empirical)   │
-     │  + MCTS iteration (4 rounds, 8-12 root nodes)           │
-     │  + every promoted idea cites a gap-id from literature/GAP_REPORT.md
-     │    (or a capped exploratory slot); unanchored ideas are downweighted
-     │  + outputs verification_type (theory-only / computational / theory+experiment)
-     │                                             │
-Phase  2.5: /adversarial-falsification [falsification gate] [MUST]
-     │  6-dimension attack: assumption scoring → counterexample construction → literature adversarial    │
-     │  → analogy mapping → sandbox feasibility → engineering grounding → data availability │
-     │  SURVIVE → continue; WEAKENED → fall back to Phase 2      │
-     │  FALSIFIED → eliminated (record reason, does not enter derivation)     │
-     │                                             │
-     │  Phase 5a: OSS Sandbox Feasibility (can the sandbox run it)│
-     │  Phase 5b: AI Engineering Grounding (can the AI be implemented)│
-     │                                             │
-Phase  3: /novelty-check [DAG gate] [MUST] — 4-dimension evaluation + elimination
-     │  (novelty×0.45 + feasibility×0.25 + relevance×0.15 + engineering grounding×0.15)│
-     │                                             │
-     └ Forced human checkpoint: pick the final idea ─┘
-     │
-Phase  4: /universal-retrieval — literature survey + 3-layer anti-hallucination
-     │  v6.0 wave protocol: broad wave (before idea scoring settles) mines
-     │  literature/GAP_REPORT.md (gap-id anchored); targeted waves per
-     │  surviving idea (logged in TARGETED_WAVE_LOG.md) before Phase 3 collision
-     │
-     ├── verification path branch (determined by verification_type) ────┐
-     │                                                 │
-     │  [theory-only]  → skip to Phase 8 (logic verification)         │
-     │  [computational]       → Phase 5 → 6 → 7 → 8            │
-     │  [theory+experiment]  → Phase 5 → 6 → 7 → 8            │
-     │  (OSS has no experiment environment; the experiment part outputs verifiable predictions)      │
-     │                                                 │
-Phase  5: /method-registry — method binding + hash lock + forced human approval       ← new
-     │
-Phase  6: /verification-routing — verification routing decision [MUST]                ← v5.0
-     │  read domain-signature.evidence_type + computability signals →
-     │  experiment-first (default) / theory-only (exception: derivational ∧ no executable computation) / hybrid
-     │  → writes .sciforge/verdicts/VERIFICATION_ROUTING.json (route/evidence_type/reason
-     │    + na_verdicts: the registered verdicts this route legitimately never
-     │    produces — verification-routing.md §5 defaults; validator reports them N/A)
-     │  see shared-references/verification-routing.md
-     │
-Phase  6a: /theory-derivation — symbolic derivation + step-by-step machine verification [ROUTED]
-     │  theory-only / hybrid → MUST (primary verification or parallel primary verification)
-     │  experiment-first → OPTIONAL auxiliary (take it only if derivational structure exists; non-blocking, full-step SymPy not forced)
-     │          ↻ on failure fall back to Phase 1 (max 3 rounds)
-     │          (theory-only: engine=manual, marked [not machine-verified])
-     │
-     │  ── experiment execution layer (v2.0, v5.0 default primary verification) ──
-     │
-Phase  6b: /experiment-execution --stage=toy [ROUTED]                 ← v2.0/v5.0
-     │  toy experiment: minimal scale (~20 rounds) verifies "is the idea direction right" (idea life-or-death verdict)
-     │  (theory-only → SKIP; experiment-first/hybrid → MUST)
-     │  foreground hard cap 5 minutes; estimated > 5 minutes → also dispatch to background (toy_bg)
-     │  Gate: PASS → Phase 6c; FAIL → KILL-or-PIVOT decision (see experiment-execution
-     │  from-0-to-1 stop protocol; triggered only when significantly negative and reproducible on ≥2 seeds; PIVOT budget ≤2)
-     │  (judge the Gate after toy_bg completes; do not wait on the foreground)
-     │
-Phase  6c: /experiment-execution --stage=full --background [ROUTED]  ← v2.0/v5.0
-     │  full experiment: background scheduling (tmux/nohup/systemd); execute the mandatory experiment matrix per method-registry §3
-     │  (theory-only → SKIP; experiment-first/hybrid → MUST)
-     │  Dispatch → return immediately, pipeline continues
-     │  v5.1 completion criteria: on experiment completion read budget_floor from the Return payload —
-     │  satisfied=false → verdict may only be IN_PROGRESS/BLOCKED; must not enter Phase 10
-     │  ("do not declare completion before the minimum exploration budget is consumed"; completion_justification
-     │  see experiment-execution Step 6 exploration budget floor)
-     │
-Phase  7: /leakage-audit — Type I logic leakage + Type IV escape audit
-     │          ↻ CRITICAL falls back to Phase 5 (3-round callback cap)
-     │          (theory-only: Type IV = NOT_APPLICABLE)
-     │
-     └── paths merge ─────────────────────────────────┘
-     │
-Phase  8: /logic-verification — 6-dimension logic consistency audit
-     │          ↻ FATAL/CRITICAL fall back to Phase 6 (max 3 rounds)
-Phase  9: /invariant-check — INV-G1 problem-anchor freeze verification                  ← new
-     │
-Phase 10: /result-to-claim — 3-fidelity claim gate                     ← new
-     │  (symbolic / numerical / qualitative; primary result requires ≥ numerical)
-     │
-Phase 11: /unified-plotting — academic figures (optional, dopamine palette + Layer 2)
-     │
-Phase 12: /paper-writing — single-template writing (elsarticle)
-     │
-Phase 13: /paper-compile — LaTeX zero-warning zero-error compilation                    ← new
-     │          ↻ anti-deadloop ladder (3 attempts per-warning → BLOCKED)
-     │
-Phase 14: /auto-review-loop — cross-model review + kill-argument anti-self-deception      ← new
-     │          ↻ score < 6 falls back to Phase 6 (max 4 rounds)
-     │
-Phase 15: /citation-audit — final 3-layer citation verification                        ← new
-     │
-Phase 15.5: /publishability-score — publishability score (dim1 first-axis gate)     ← new v2.2
-     │         produces PUBLISHABILITY_SCORE.json/md
-     │
-Phase 16: final assembly + artifact archival + RUN_PREPRINT archive write
+Phase  1: problem understanding + decomposition (compiles REP.json)
+Phase 1a: /domain-signature (OPTIONAL fast-path hint)
+Phase 1b: /domain-learner (MUST, sole writer of domain-signature.json)
+Phase 4broad: /universal-retrieval — broad literature wave + GAP_REPORT.md (MUST)
+Phase  2: /idea-discovery [DAG branch] — 4 perspectives + MCTS iteration
+Phase 2.5: /adversarial-falsification — assumptions/counterexample/literature/analogy/sandbox
+Phase 2.5b: engineering-grounding (EG) — 8-dimension AI feasibility report
+Phase  3: /novelty-check [DAG gate] — 4-axis + frontier advancement + collision matrix
+     └ Forced human checkpoint: pick the final idea
+Phase 4targeted: /universal-retrieval — targeted waves per survivor (TARGETED_WAVE_LOG.md)
+Phase  5: /method-registry — method binding + hash lock + forced human approval
+Phase  6: /verification-routing — experiment-first (default) / theory-only / hybrid
+Phase 6a: /theory-derivation [ROUTED] — SymPy derivation + step-by-step verification
+Phase 6b: /experiment-execution --stage=toy [ROUTED] — idea life-or-death gate
+Phase 6c: /experiment-execution --stage=full --background [ROUTED] — full matrix
+Phase  7: /leakage-audit — Type I logic gap + Type IV empirical escape
+Phase  8: /logic-verification — 6-dimension / 20-category audit
+Phase  9: /invariant-check — INV-G1 problem-anchor freeze
+Phase 10: /result-to-claim — 3-fidelity claim gate + TDAL + ablation ledger
+Phase 11: /unified-plotting — publication figures (MUST)
+Phase 12: /paper-writing — elsarticle template + pipeline-leakage scrub
+Phase 13: /paper-compile — zero-warning zero-error compile (MUST)
+Phase 14: /auto-review-loop — cross-model review + kill-argument (MUST)
+Phase 15: /citation-audit — 3-layer citation + DOI audit
+Phase 15.5: /publishability-score — 6-dimension publishability gate
+Phase 16: final assembly + artifact archival + RUN_PREPRINT
+```
 ```
 
 **Run Preprint Archive (v1.4.0 — cross-run cumulative memory, adapted from the AgentRxiv mechanism)**: at Phase 16 the orchestrator MUST write `output/RUN_PREPRINT.md` — a structured one-page digest of the finished run: problem + anchored gap-ids, selected idea, fired kill arguments, verdict trail summary (from PIPELINE_VERDICT_SUMMARY), discovered-but-unexplored gaps, budget consumption (from RUN_BUDGET), and explicit failure notes. Purpose: later runs' ideation phase queries the surrounding run-archive directory (siblings of this workspace) alongside the literature, so new ideas anchor on the system's OWN prior partial results and failures, not only external gaps — turning independent runs into a compounding research program. The preprint is a deliverable-adjacent archive document: human-readable Markdown, no machine schema, never gates the pipeline (missing = WARN `run_preprint_missing`, never BLOCKED).
@@ -340,30 +253,31 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | Phase | Mode | Condition |
 |-------|------|-----------|
 | 0: load problem | MUST | — |
-| 1: problem understanding | MUST | — |
-| 1a: domain-signature | OPTIONAL | v2.8 demoted to fast-path hint, outputs domain-signature-hint.json; disabled when the learner is unavailable |
-| 1b: domain-learner | MUST | v2.8 promoted to single source of truth; reads hint.json as prior, outputs domain-signature.json |
-| 2: idea-discovery | MUST | — |
-| 2.5: adversarial-falsification | MUST | — |
-| 2.5b: adversarial-falsification Phase 5b (EG) | MUST | ENGINEERING_GROUNDING.md mandatory; HEAVY/CONSTRAINED full output, READY simplified version |
-| 3: novelty-check | MUST | — |
-| 4: universal-retrieval | MUST | v2.2: non-skippable — must run even for theory-only (theory problems need a duplication check to avoid re-proving known results); access arxiv/s2/crossref via the mihomo proxy (rule mode) |
-| 5: method-registry | MUST | — |
-| 6: verification-routing | MUST | v5.0: routing decision at the Phase 6 entry → VERIFICATION_ROUTING.json (experiment-first default) |
-| 6a: theory-derivation | ROUTED | v5.0: theory-only/hybrid → MUST; experiment-first → OPTIONAL auxiliary (non-blocking) |
-| 6b: experiment-execution (toy) | ROUTED | v5.0: theory-only → SKIP; experiment-first/hybrid → MUST (idea life-or-death verdict, FAIL → KILL-or-PIVOT) |
-| 6c: experiment-execution (full+bg) | ROUTED | v5.0: theory-only → SKIP; experiment-first/hybrid → MUST (background dispatch + mandatory experiment matrix) |
-| 7: leakage-audit | MUST | — |
-| 8: logic-verification | MUST | — |
-| 9: invariant-check | MUST | — |
-| 10: result-to-claim | MUST | — |
-| 11: unified-plotting | MUST | v2.2: figures are not optional — every paper has at least 1 figure (architecture/result figure); when no data figures exist, draw at least 1 pipeline/concept figure |
-| 12: paper-writing | MUST | — |
-| 13: paper-compile | MUST | v2.2: zero-warning zero-error mandatory (non-waivable); real compile to PDF once texlive is installed |
-| 14: auto-review-loop | MUST | v2.2: self-review mandatory (role rotation researcher→reviewer→adjudicator); score < 6 falls back to Phase 6/12 (max 4 rounds); can no longer be replaced by grounding-check |
-| 15: citation-audit | MUST | — |
-| 15.5: publishability-score | MUST | v2.2 new: final publishability score (primary axis = main experiment logic in place); produces PUBLISHABILITY_SCORE.json/md |
-| 16: final assembly + cleanliness audit | MUST | v2.2: adds the project-architecture-contract cleanliness audit (orphan files / empty directories / README completeness) |
+| 1: problem understanding + REP compile | MUST | — |
+| 1a: domain-signature | OPTIONAL | Fast-path hint only; writes domain-signature-hint.json |
+| 1b: domain-learner | MUST | Sole writer of domain-signature.json; confidence threshold 0.7 |
+| 4broad: retrieval-broad-wave | MUST | Literature-first: references.bib + GAP_REPORT.md before idea scoring; gate `gap_gate` |
+| 2: idea-discovery | MUST | 4-perspective ideas + MCTS; promoted ideas must anchor to a gap-id |
+| 2.5: adversarial-falsification | MUST | Assumption/counterexample/literature/analogy/sandbox attacks |
+| 2.5b: engineering-grounding | MUST | 8-dim EG report; HEAVY/CONSTRAINED full output, READY simplified |
+| 3: novelty-check | MUST | 4-axis composite + frontier advancement + collision matrix |
+| 4targeted: retrieval-targeted-waves | MUST | Per-survivor targeted retrieval; TARGETED_WAVE_LOG.md |
+| 5: method-registry | MUST | 8-section registry + Section 3 hash lock + experiment matrix + human approval |
+| 6: verification-routing | MUST | experiment-first (default) / theory-only / hybrid; writes VERIFICATION_ROUTING.json |
+| 6a: theory-derivation | ROUTED | theory-only/hybrid MUST; experiment-first optional auxiliary |
+| 6b: experiment-execution (toy) | ROUTED | theory-only SKIP; experiment-first/hybrid MUST; FAIL → KILL-or-PIVOT |
+| 6c: experiment-execution (full+bg) | ROUTED | theory-only SKIP; experiment-first/hybrid MUST; background dispatch + budget floor + s2 ladder |
+| 7: leakage-audit | MUST | Type I / Type IV; CRITICAL → Phase 5 callback |
+| 8: logic-verification | MUST | 20-category audit; zero FATAL/CRITICAL |
+| 9: invariant-check | MUST | Kernel-native INV-G1 content-hash check |
+| 10: result-to-claim | MUST | 3-fidelity gate + evidence sufficiency + TDAL + ablation ledger |
+| 11: unified-plotting | MUST | Renderer-only figures; embedding + style gates |
+| 12: paper-writing | MUST | elsarticle template + pipeline-leakage scrub |
+| 13: paper-compile | MUST | Zero-error / strict zero-warning; page cap; figure embedding |
+| 14: auto-review-loop | MUST | Multi-panel review + calibration + kill-argument + rebuttal loop |
+| 15: citation-audit | MUST | Existence / metadata / context + DOI + sentence-level support |
+| 15.5: publishability-score | MUST | Main-experiment-logic primary axis; submission tier |
+| 16: final assembly + cleanliness audit | MUST | Verdict completeness + completion truth + claim anchors + hygiene |
 
 ### Degradation Rules
 
@@ -382,7 +296,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 1 | Problem decomposes into formal statements + **v1.7.2 kernel compiles REP.json** (staged objectives + per-phase fallback conditions; `kernel/sciforge/rep.py` — SCION REP adapted) | Ask the user to clarify the problem boundary; a phase-2+ boundary without REP.json fails `rep_plan_present` |
 | 2 | At least 1 idea generated (MCTS converges) | Relax perspectives and re-evaluate; further failure escalates to BLOCKED |
 | 2.5 | Falsification attack: assumption health ≥ 6 OR no counterexample | WEAKENED → fall back to Phase 2 and regenerate; FALSIFIED → eliminated (record reason) |
-| 2.5b | Engineering Grounding report output (Phase 5b): ENGINEERING_GROUNDING.md generated | Required output only for HEAVY/CONSTRAINED; BLOCKED eliminates (sub-dimension = 0)
+| 2.5b | Engineering Grounding report output (pipeline Phase 2.5b): ENGINEERING_GROUNDING.md generated | Required output only for HEAVY/CONSTRAINED; BLOCKED eliminates (sub-dimension = 0)
 | 3 | DAG converges to 1 survivor (≥ 0.6 idea-fit) | Relax strictness and re-evaluate; further failure escalates to BLOCKED |
 | — | **Forced human approval**: pick the final idea from the survivors | Wait for human confirmation; the agent cannot self-select |
 | 4 | Literature search complete + 3-layer verification passed + screening-chain (truth+completeness) integrity check PASS | v2.2: **non-skippable** — must run even for theory-only (theory problems need a duplication check to avoid re-proving known results); if empty WARN but continue (literature requires manual remediation); screening-chain check: every reference has ≥ 1 verification layer + no orphan references + references cover the core claims |
@@ -420,7 +334,7 @@ Only the human user can waive a failure past round 3; the orchestrator never sel
 
 ## Required Workspace
 
-On successful completion, the orchestrator produces the following structure under `{problem_id}/` (21-phase trail). **v2.2**: the full GitHub-style layout, README.md/.sciforge/MANIFEST.md contracts, workspace-hygiene rules, and the Phase 16 cleanliness audit are defined in [`project-architecture-contract.md`](../../shared-references/project-architecture-contract.md) — that contract applies to every run (auto-pipeline OR partial skill invocation). Summary tree (v6.0 two-tier split — full authority: [`output-protocol.md`](../../shared-references/output-protocol.md) §Artifact Directory Tree):
+On successful completion, the orchestrator produces the following structure under `{problem_id}/` (26-node trail). **v2.2**: the full GitHub-style layout, README.md/.sciforge/MANIFEST.md contracts, workspace-hygiene rules, and the Phase 16 cleanliness audit are defined in [`project-architecture-contract.md`](../../shared-references/project-architecture-contract.md) — that contract applies to every run (auto-pipeline OR partial skill invocation). Summary tree (v6.0 two-tier split — full authority: [`output-protocol.md`](../../shared-references/output-protocol.md) §Artifact Directory Tree):
 
 ```
 {problem_id}/
@@ -428,7 +342,7 @@ On successful completion, the orchestrator produces the following structure unde
 ├── .sciforge/                    ← [hidden state layer] pipeline guts, durable + resumable
 │   ├── RUNSTATE.json             ← long-horizon checkpoint (rewritten every boundary, v6.0)
 │   ├── MANIFEST.md / APPROVAL_LOG.txt / PIPELINE_STATUS.md
-│   ├── verdicts/                 ← 20 machine-readable verdicts (flat, fixed names)
+│   ├── verdicts/                 ← 22 registered verdicts (flat, fixed names)
 │   │   └── PIPELINE_VERDICT_SUMMARY.md  ← rewritten at every boundary
 │   ├── logs/                     ← pipeline.log + phase_<n>.log
 │   ├── refine-logs/              ← IDEA_* / MCTS_LOG / GAP_ANCHOR_LOG / FRONTIER_MAP /
@@ -498,7 +412,7 @@ The orchestrator uses the 6-state machine defined in [`assurance-contract.md`](.
 | `BLOCKED` | Prerequisite missing OR fallback exhausted | Halt + surface to human |
 | `ERROR` | Skill itself failed | Halt + surface to human |
 
-The overall pipeline verdict = the **worst** verdict across all 21 phases: `ERROR > BLOCKED > FAIL > WARN > NOT_APPLICABLE > PASS`.
+The overall pipeline verdict = the **worst** verdict across all 26 nodes: `ERROR > BLOCKED > FAIL > WARN > NOT_APPLICABLE > PASS`.
 
 ## Loop-Back Integrity Registry (v5.2 — Loop-Back Registry, guards against "broken chains")
 
@@ -600,11 +514,11 @@ Only the human user can waive a failure past attempt 3; the orchestrator never s
 - **3-round fallback limit is hard.** Do not exceed 3 rounds on the same failure type. If exhausted, BLOCK + surface to human.
 - **The orchestrator never executes research.** It delegates to the corresponding skill. Do not inline derivation / verification / writing logic into this orchestrator.
 - **Theory-only verification path.** When `verification_type=theory-only` (pure theory, no src/experiment):
-  - Phase 5 (method-registry) → Phase 6 (theory-derivation with `engine=manual`) → Phase 6b/6c (SKIP) → Phase 7 (Type IV = NOT_APPLICABLE) → Phase 8 (logic-verification)
+  - Phase 5 (method-registry) → Phase 6a (theory-derivation with `engine=manual`) → Phase 6b/6c (SKIP) → Phase 7 (Type IV = NOT_APPLICABLE) → Phase 8 (logic-verification)
   - Phase 10 (result-to-claim): qualitative fidelity is the expected norm for theory-only problems
   - The derivation output is marked `[not machine-verified]` and the claim strength is adjusted accordingly
 - **Experiment execution path (v2.0).** When `verification_type` is NOT `theory-only`:
-  - Phase 6 (theory-derivation) → Phase 6b (toy experiment) → Phase 6c (full experiment, **background dispatch mandatory**) → Phase 7+ (pipeline continues, experiment runs async)
+  - Phase 6a (theory-derivation) → Phase 6b (toy experiment) → Phase 6c (full experiment, **background dispatch mandatory**) → Phase 7+ (pipeline continues, experiment runs async)
   - **Toy dispatch rule (v2.1)**: estimate toy wall-clock first. `≤ 5 min` → run foreground. `> 5 min` → dispatch to background as `toy_bg` (same dispatch protocol as full), continue pipeline. The toy gate verdict (PASS/FAIL from `RESULT.json`) is read **at the Phase 6c dispatch boundary** — if `toy_bg` is still running when the pipeline reaches 6c, the orchestrator **skips 6c** (no full experiment dispatched yet) and continues with Phase 7+ for non-experiment work; the toy verdict is re-checked at Phase 10 alongside other live background jobs. Never busy-wait at 6c for `toy_bg`.
   - Toy experiment FAIL → **kill the idea** (BLOCKED, do not proceed to full experiment). This holds whether toy ran foreground or background.
   - Full experiment dispatched to background → pipeline continues with Phase 7-16 while experiment runs

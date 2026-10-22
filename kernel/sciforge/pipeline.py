@@ -1,4 +1,4 @@
-"""The code-driven 21-phase loop (S01).
+"""The code-driven 26-node loop (S01).
 
 Kernel is the orchestrator: knowledge lives in skills/ (Markdown), control lives
 here (phasegraph.json + this engine). The loop:

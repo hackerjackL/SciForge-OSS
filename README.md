@@ -10,7 +10,7 @@
 
 > **AI for Scientist Anything** — a Skill-driven universal research runtime: **Skill Library (pure Markdown) + Runtime Kernel (code-enforced control loop) + RSI evolution layer**.
 >
-> The knowledge layer keeps its spirit: **the skills are pure Markdown** — no IDE-specific syntax, consumable by any agent that can read files (Claude Code, Cursor, Trae, Codex…). The 1.5.0 change is the split, and v1.6.0 hardens it into a verifiable evidence chain (kernel-enforced experiment security scan, TDAL joint confidence, fantasy 5-gate, Arb certified intervals, sentence-level citation support, SMOKE gate, injection sanitizer, rate limiter, dual-timer): **what to do stays in Markdown; how it is enforced moves into code**. v1.7.0 adds the **ScientistTwo parity layer** — the mechanisms behind Google's arXiv:2609.19644 result, reimplemented as open code: subset→full-set experiment ladder with the 3-state Critic (6c boundary gate), 5–6-plan ablation ledger with the strict AblCritic (phase-10 gate), score<8 rebuttal loop + Meta-Review {ACCEPT|REFINE} with anchor-calibrated review scores, reward-hacking + method↔code completeness audit at wrap-up, exploration-guaranteed idea evolution, and the CPU-only `bench/s2demo` sub-bench in their mold. v1.7.1 adds the **AAR anti-Goodhart layer** (patterns ported from Anthropic's arXiv:2608.28945): a fail-closed pre-execution integrity monitor (D1/D2/D3) at the experiment boundary, geometric-mean headline metrics, and results-free pre-registration — plus figure fixes and the evidence-based S2 disclosure voice, all driven by a two-round five-domain ARC-Bench evaluation. The optional `kernel/` (Python ≥3.10, stdlib-only) runs the 21-phase DAG as a real state machine with event-sourced resume, mechanical gates, human checkpoints as code, multi-backend providers, a cross-model review panel, and a recursive skill-library evolution loop. **No UI** — headless CLI (`sciforge run …`) or host-agent mode.
+> The knowledge layer keeps its spirit: **the skills are pure Markdown** — no IDE-specific syntax, consumable by any agent that can read files (Claude Code, Cursor, Trae, Codex…). The 1.5.0 change is the split, and v1.6.0 hardens it into a verifiable evidence chain (kernel-enforced experiment security scan, TDAL joint confidence, fantasy 5-gate, Arb certified intervals, sentence-level citation support, SMOKE gate, injection sanitizer, rate limiter, dual-timer): **what to do stays in Markdown; how it is enforced moves into code**. v1.7.0 adds the **ScientistTwo parity layer** — the mechanisms behind Google's arXiv:2609.19644 result, reimplemented as open code: subset→full-set experiment ladder with the 3-state Critic (6c boundary gate), 5–6-plan ablation ledger with the strict AblCritic (phase-10 gate), score<8 rebuttal loop + Meta-Review {ACCEPT|REFINE} with anchor-calibrated review scores, reward-hacking + method↔code completeness audit at wrap-up, exploration-guaranteed idea evolution, and the CPU-only `bench/s2demo` sub-bench in their mold. v1.7.1 adds the **AAR anti-Goodhart layer** (patterns ported from Anthropic's arXiv:2608.28945): a fail-closed pre-execution integrity monitor (D1/D2/D3) at the experiment boundary, geometric-mean headline metrics, and results-free pre-registration — plus figure fixes and the evidence-based S2 disclosure voice, all driven by a two-round five-domain ARC-Bench evaluation. The optional `kernel/` (Python ≥3.10, stdlib-only) runs the 26-node DAG as a real state machine with event-sourced resume, mechanical gates, human checkpoints as code, multi-backend providers, a cross-model review panel, and a recursive skill-library evolution loop. **No UI** — headless CLI (`sciforge run …`) or host-agent mode.
 >
 > Two ways to use: **(A) skills-only** (inside any AI agent: `/auto-pipeline "problem"`) — unchanged from before; **(B) skills + kernel** (`sciforge run --workspace … --host claude`) — the pipeline can no longer silently skip a gate, survives process death, and gets measurably better with every run (RSI).
 >
@@ -61,13 +61,13 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 | **Universal Retrieval** | Literature search | Multi-source academic search (arXiv/S2/CrossRef/PubMed/Web/OpenAlex) + 3-layer anti-hallucination verification |
 | **Unified Plotting** | Figure rendering | Structured data → publication-quality vector figures (PDF+SVG); dopamine palette (Layer 1, CVD-verified high-saturation) + viridis/magma/cividis data colormaps (Layer 2) |
 
-## Runtime kernel (v1.5.0)
+## Runtime kernel (introduced v1.5.0)
 
 `kernel/` is a **code control plane** for the skill library (Python ≥3.10, stdlib-only — the only extra pip dep is pytest). Skills stay the single source of *method*; the kernel is where *control* lives:
 
 | Capability | Mechanism |
 |---|---|
-| **State machine** | `kernel/config/phasegraph.json` encodes the 21-phase DAG, loopbacks L1–L13 with budgets, per-phase gates — the orchestrator loop runs as code, not prose |
+| **State machine** | `kernel/config/phasegraph.json` encodes the 26-node DAG, loopbacks L1–L13 with budgets, per-phase gates — the orchestrator loop runs as code, not prose |
 | **Event-sourced resume** | `.sciforge/events.ndjson` (append-only) + `RUNSTATE.json`; a dead process is detected via stale lockfile and **replays from the exact boundary** (kill -9 verified on macOS) |
 | **Gates in control flow** | every boundary runs `validate_verdicts.py --strict`, `security_scan.py`, `gap_gate.py`, `check_figure_embedding.py --require-renderer`, `leakage_scan.py` **as code**; a failing gate blocks the transition — audits can no longer be silently skipped |
 | **HITL as data** | checkpoints = `paused_checkpoint` + approval records + `APPROVAL_LOG.txt`; decide with `sciforge approve/deny`, or delegate via `--human-skip` / `--test-mode` |
@@ -214,7 +214,7 @@ claude                  # or codex / cursor / trae
 
 #### Other AI agents
 
-Any AI agent supporting Markdown context or custom skill sets works: provide `AGENT_GUIDE.md` to the agent as a system prompt / initial context; the agent reads it and auto-understands the 21-phase DAG loop and all available skills; type `/auto-pipeline "your scientific problem"` to launch.
+Any AI agent supporting Markdown context or custom skill sets works: provide `AGENT_GUIDE.md` to the agent as a system prompt / initial context; the agent reads it and auto-understands the 26-node DAG loop and all available skills; type `/auto-pipeline "your scientific problem"` to launch.
 
 ### Toolchain (optional but recommended — needed to fully run through)
 
@@ -252,35 +252,39 @@ After start, all arxiv/s2/crossref/openalex/huggingface/github requests auto-rou
 
 ## Architecture: DAG-driven research loop
 
-The core of SciForge-OSS is a **21-phase DAG research loop** driven by a single entry orchestrator (`/auto-pipeline`). Each invocation runs the complete loop on one Q-id, producing a full paper (LaTeX/PDF) + all intermediate artifacts.
+The core of SciForge-OSS is a **26-node DAG research loop** driven by a single entry orchestrator (`/auto-pipeline`). Each invocation runs the complete loop on one Q-id, producing a full paper (LaTeX/PDF) + all intermediate artifacts.
+
+> **Naming note**: older documents call this the "21-phase" pipeline. 21 was the pre-v1.5.0 node count; the executable topology is the 26-node DAG in `kernel/config/phasegraph.json`, and it may grow further. Current docs use "26-node"; "21-phase" appears only as a legacy alias.
 
 ```
 Phase  0: Load problem (freeze Q-id — INV-G1 anchor)
-Phase  1: Problem understanding + decomposition
+Phase  1: Problem understanding + decomposition (compiles REP.json)
 Phase 1a: /domain-signature (OPTIONAL fast-path hint)
 Phase 1b: /domain-learner (MUST, sole writer of domain-signature.json)
+Phase 4broad: /universal-retrieval — broad literature wave + GAP_REPORT.md (MUST)
 Phase  2: /idea-discovery [DAG branch] — 4 perspectives + MCTS iteration
-Phase 2.5: /adversarial-falsification [falsification gate] — hypothesis scoring + counterexample + literature adversarial
-Phase 2.5b: Phase 5b AI Engineering Grounding (EG report)
-Phase  3: /novelty-check [DAG gate] — 4-axis scoring + pruning
-     ─── Forced human checkpoint: pick the final idea ─── (test_mode bypasses: agent auto-selects)
-Phase  4: /universal-retrieval — literature survey + 3-layer anti-hallucination (MUST, no-skip; via mihomo proxy)
-Phase  5: /method-registry — method binding + hash lock + forced human approval (test_mode bypasses)
-Phase  6: /theory-derivation — SymPy symbolic derivation + step-by-step machine verification
-     │  ── Experiment execution layer ── non-theory-only path ──
-Phase  6b: /experiment-execution --stage=toy [CONDITIONAL] — toy: minimal-scale core-reasoning-chain validation (foreground ≤5min, else toy_bg background)
-Phase  6c: /experiment-execution --stage=full --background [CONDITIONAL] — full: background dispatch (nohup/tmux/systemd)
+Phase 2.5: /adversarial-falsification — assumption/counterexample/literature attacks
+Phase 2.5b: engineering-grounding (EG) — 8-dimension AI feasibility report
+Phase  3: /novelty-check [DAG gate] — 4-axis + frontier + collision audit
+     ─── Forced human checkpoint: pick the final idea ───
+Phase 4targeted: /universal-retrieval — targeted waves per survivor (TARGETED_WAVE_LOG.md)
+Phase  5: /method-registry — method binding + hash lock + forced human approval
+Phase  6: /verification-routing — experiment-first (default) / theory-only / hybrid
+Phase 6a: /theory-derivation [ROUTED] — SymPy derivation + step-by-step verification
+Phase 6b: /experiment-execution --stage=toy [ROUTED] — idea life-or-death gate
+Phase 6c: /experiment-execution --stage=full --background [ROUTED] — full matrix
 Phase  7: /leakage-audit — Type I logic gap + Type IV escape audit
-Phase  8: /logic-verification — 6-dim logical consistency audit (FATAL contradiction → BA back to Phase 2)
-Phase  9: /invariant-check — INV-G1 problem-anchor freeze verification
-Phase 10: /result-to-claim — 3-fidelity claim gate (symbolic/numerical/qualitative); reads background STATUS.json
-Phase 11: /unified-plotting — academic figures (MUST; PDF+PNG dual output; 16:9; Nature readability; d2 for diagrams)
-Phase 12: /paper-writing — elsarticle single template (mode-selected section set)
-Phase 13: /paper-compile — LaTeX zero-warning zero-error compile (MUST, non-waivable)
-Phase 14: /auto-review-loop — structured self-review (role switch: researcher→reviewer→adjudicator) + kill-argument (MUST)
-Phase 15: /citation-audit — final 3-layer citation verification
-Phase 15.5: /publishability-score — 6-dim score (main-experiment-logic is the gating axis) (MUST)
-Phase 16: Final assembly + cleanliness audit (project-architecture-contract)
+Phase  8: /logic-verification — 6-dimension / 20-category audit
+Phase  9: /invariant-check — INV-G1 problem-anchor freeze
+Phase 10: /result-to-claim — 3-fidelity claim gate + TDAL + ablation ledger
+Phase 11: /unified-plotting — publication figures (MUST)
+Phase 12: /paper-writing — elsarticle template + pipeline-leakage scrub
+Phase 13: /paper-compile — zero-warning zero-error compile (MUST)
+Phase 14: /auto-review-loop — cross-model review + kill-argument (MUST)
+Phase 15: /citation-audit — 3-layer citation + DOI audit
+Phase 15.5: /publishability-score — 6-dimension publishability gate
+Phase 16: final assembly + cleanliness audit
+```
 ```
 
 **Fallback contract (bounded 3 rounds)**: each phase with a ↻ falls back to the relevant prior phase on failure, bounded to 3 rounds per failure-type. Past round 3 → BLOCKED + surfaced to the human. **BA (Backtracking-After)**: when an experiment falsifies the idea's core claim (Phase 6c full FAIL after toy PASS / Phase 8 FATAL contradiction / Phase 14 kill-argument sustained), the orchestrator backtracks to Phase 2 to regenerate the idea (bounded 2 rounds) — distinct from phase-internal 3-round fallback.
@@ -298,7 +302,7 @@ Phase 16: Final assembly + cleanliness audit (project-architecture-contract)
 /auto-pipeline "Study: AI-driven drug discovery for Alzheimer's disease"
 ```
 
-The orchestrator runs the full 21-phase loop. Forced human checkpoints at Phase 3→4 and 5→6 (bypassed in test_mode).
+The orchestrator runs the full 26-node loop. Forced human checkpoints at Phase 3→4 and 5→6 (bypassed in test_mode).
 
 ### Test mode (autonomous, bypasses the 2 checkpoints)
 
@@ -325,7 +329,7 @@ The user can invoke individual skills directly:
 "/paper-compile paper/main.tex"
 ```
 
-But the canonical workflow is the full 21-phase orchestrator loop; partial runs are for debugging only.
+But the canonical workflow is the full 26-node orchestrator loop; partial runs are for debugging only.
 
 ## Project Structure
 
@@ -341,7 +345,7 @@ SciForge-OSS/
 ├── bin/sciforge.js                  # local CLI (init / tools-check / tools-install / run·resume·approve·evolve·serve → kernel)
 ├── bench/s2demo/                    # v1.7 ScientistTwo-mold CPU demo sub-bench (4 numpy tasks + ladder harness)
 ├── kernel/                          # v1.5.0 runtime kernel (Python >= 3.10, stdlib-only control plane)
-│   ├── config/phasegraph.json       # 21-phase DAG as executable config (loopbacks, gates, budgets)
+│   ├── config/phasegraph.json       # 26-node DAG as executable config (loopbacks, gates, budgets)
 │   ├── config/providers.json        # role-tiered multi-backend model routing
 │   ├── config/evolve.json           # RSI gate battery (CI + schemas + golden)
 │   └── sciforge/                    # pipeline.py state machine · state.py events+RUNSTATE · gates.py · approvals.py · execution.py (sandbox+pool) · providers.py · review.py (cross-model panel) · evolve.py (PUCT+MAP-Elites) · propose.py · skills_pack.py (frozen packages) · litcache.py · proxy.py · memory.py · daemon.py · golden.py · cli.py
@@ -363,7 +367,7 @@ SciForge-OSS/
 ├── .workflow/ci.yml                 # AtomGit Actions CI (same gate as ci_check.py)
 ├── skills/
 │   ├── orchestrator/
-│   │   └── auto-pipeline/SKILL.md   # the single entry orchestrator (21-phase DAG loop)
+│   │   └── auto-pipeline/SKILL.md   # the single entry orchestrator (26-node DAG loop)
 │   ├── meta-skills/                 # 8 universal meta-skills
 │   │   ├── idea-discovery/          # MCTS-enhanced idea generation (4 perspectives incl. empirical)
 │   │   ├── universal-retrieval/     # literature search + 3-layer anti-hallucination (mihomo proxy)
@@ -431,7 +435,7 @@ Developer quick checks: `python3 scripts/ci_check.py` · `python3 -m pytest test
 
 SciForge-OSS supports **all scientific domains**. The framework hardcodes no discipline knowledge; the agent's runtime reasoning handles domain-specific methodology. The `domain-learner` (Phase 1b) learns the domain signature from literature, and the downstream skills adapt to that signature.
 
-Domains validated in real end-to-end runs (10 rounds, all 21 phases PASS):
+Domains validated in real end-to-end runs (10 rounds; at the time of that run the then-current 21-phase DAG passed all phases — the current topology is 26 nodes):
 - **Physics** (damped oscillator energy conservation) — hybrid mode
 - **Economics** (minimum-wage DiD) — experiment mode
 - **CS/ML** (label-smoothing ablation) — computational mode
@@ -498,7 +502,7 @@ Each problem's `verification_type` (a canonical token: `theory-only` | `computat
 
 ## Core design principles
 
-1. **Single entry** — `/auto-pipeline` is the only entry orchestrator; every run goes through the complete 21-phase DAG loop.
+1. **Single entry** — `/auto-pipeline` is the only entry orchestrator; every run goes through the complete 26-node DAG loop.
 
 2. **DAG over linear** — multiple ideas explored in parallel; weak ideas pruned at gates; only the strongest survive. The DAG structure is traceable and visualizable.
 

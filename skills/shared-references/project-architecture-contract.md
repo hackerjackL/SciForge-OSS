@@ -159,7 +159,7 @@ Every artifact produced is appended to `.sciforge/MANIFEST.md` as it is created 
 
 ## 4. Workspace Hygiene Rules (Apply to ALL Entries, Not Just auto-pipeline)
 
-The contract applies whether the entry was `/auto-pipeline` (full 21-phase run) OR a partial/manual skill invocation (e.g., a human running `/theory-derivation` alone for debugging). Rules:
+The contract applies whether the entry was `/auto-pipeline` (full 26-node run) OR a partial/manual skill invocation (e.g., a human running `/theory-derivation` alone for debugging). Rules:
 
 1. **One project = one root dir.** Never scatter artifacts across the filesystem. If a human invokes a skill without a project root, the skill creates `{cwd}/{slug}/` first and writes there.
 2. **No orphan files at the root.** Only the top-level entry files (`README.md`, `PROBLEM.md`, `AGENT_DOC.md`, and the registered root contract artifacts — `CLAIMS_FROM_RESULTS.md`, `EXPERIMENT_LOG.md`, `NARRATIVE_REPORT.md`) live at the root. All other artifacts go in a named subdirectory; pipeline state goes in `.sciforge/`.

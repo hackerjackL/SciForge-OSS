@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "source_contract": "skills/orchestrator/auto-pipeline/SKILL.md v1.5.0 (21-phase DAG)",
+  "source_contract": "skills/orchestrator/auto-pipeline/SKILL.md v1.7.2 (26-node DAG)",
   "comment": "Executable encoding of the pipeline: knowledge stays in skills/ (Markdown), control lives here. Gates run as code at boundaries; loopbacks L1-L13 enforced by kernel.",
   "effort_limits": {
     "lite": {

@@ -1,5 +1,7 @@
 # SciForge v1.6.0 候选池分析（深度全面版 · 仅分析不改代码）
 
+> **Historical naming note**: this document was written for the 21-phase era. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; the text below is preserved as a historical record.
+
 > 分析日期：2026-09-26 ｜ 基线：v1.5.0（338/338 测试绿，tag 已打，HEAD 8f57ddc）
 > 方法：① 本地仓库"契约承诺 vs kernel 实现"差距审计 ② 5 路并行开源调研（自我改进agent / 实验工程agent / 文献检索新势力 / 形式化验证+科学工具+benchmark / sciencediscovery 未吸收模式）
 > 状态：**候选池 A、B 已定（本地实证）；候选池 C 待外部调研回填**

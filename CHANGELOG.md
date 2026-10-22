@@ -1,5 +1,7 @@
 # Changelog
 
+> **Historical naming note**: entries before v1.7.2 may say “21-phase”. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; entries below are preserved as written.
+
 ## [1.7.2] - 2026-10-02 定版：研究 OS 层（XScientist ARA + SCION REP 适配）+ 多 agent 对抗评审修复
 
 > 版本主题：**把研究运行变成可 fork 的工件，把计划变成编译产物，把 claim 变成有锚的证据**。协议形态适配自 `smileformylove/XScientist`（Apache-2.0，归属记录在案）与 SCION REP（arXiv:2607.03863，无公开仓库，概念自实现）；全部实现为原创 SciForge 代码，stdlib-only。**444+ 全绿，ci_check PASS**。

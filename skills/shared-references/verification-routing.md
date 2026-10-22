@@ -1,10 +1,10 @@
 # Verification Routing Contract (SciForge-OSS — Experiment-First by Default)
 
-> **Status (v1.0)**: The routing contract that decides "how this paper gets verified". Field feedback (v5.0): the old pipeline defaulted every paper to symbolic/theoretical derivation first, with experiments serving only as supplementary verification — for problems that have data and are computable, this is **putting the cart before the horse**, and symbolic verification itself was judged "meaningless". This contract moves verification routing **upfront to the Phase 6 entry**: decide the route first, then choose the verification chain.
+> **Status (v1.0)**: The routing contract that decides "how this paper gets verified". Field feedback (v5.0): the old pipeline defaulted every paper to symbolic/theoretical derivation first, with experiments serving only as supplementary verification — for problems that have data and are computable, this is **putting the cart before the horse**, and symbolic verification itself was judged "meaningless". This contract moves verification routing **upfront to the Phase 6 entry**: decide the route first, then dispatch Phase 6a (theory), 6b (toy experiment), or 6c (full experiment).
 
 ## 1. Routing rules (entry-point decision, decided once and final)
 
-At the Phase 6 (theory-derivation / experiment-execution) entry, read `evidence_type` from `refine-logs/domain-signature.json` plus the problem's own computability signals, route per the table below, and write to `.sciforge/verdicts/VERIFICATION_ROUTING.json` (v6.0 canonical home; legacy fallbacks, read-only: v5.2 `verdicts/`, pre-v5.2 `refine-logs/`):
+At the Phase 6 (verification-routing) entry, read `evidence_type` from `refine-logs/domain-signature.json` plus the problem's own computability signals, route per the table below, and write to `.sciforge/verdicts/VERIFICATION_ROUTING.json` (v6.0 canonical home; legacy fallbacks, read-only: v5.2 `verdicts/`, pre-v5.2 `refine-logs/`):
 
 | Route | Trigger condition | Verification chain |
 |------|---------|--------|

@@ -1,6 +1,6 @@
 # Contributing to SciForge-OSS
 
-Thanks for your interest! SciForge-OSS is a **pure-Skill-driven universal AI Scientist framework** — "AI for Scientist Anything": one universal 21-phase pipeline, any scientific domain.
+Thanks for your interest! SciForge-OSS is a **pure-Skill-driven universal AI Scientist framework** — "AI for Scientist Anything": one universal 26-node pipeline, any scientific domain.
 
 > 中文使用者：README.zh.md 有完整的中文说明；本贡献指南以英文为准（repo 的 skill 与契约文档均为英文）。
 

@@ -1,6 +1,6 @@
 """End-to-end smoke test for the SciForge-OSS pipeline structure (P2-12).
 
-The 21 pipeline phases are LLM-executed skills — there is no orchestrator
+The 26 pipeline nodes are LLM-executed skills — there is no orchestrator
 binary to run — so this test validates the STRUCTURE that makes a run
 possible, on the minimal fixture in ``fixtures/e2e_minimal/``:
 
@@ -12,8 +12,8 @@ possible, on the minimal fixture in ``fixtures/e2e_minimal/``:
      and REGISTRY_HASH.txt is the sha256 of METHOD_REGISTRY_SNIPPET.md;
   d. the workspace stage directories match the tree in
      skills/shared-references/output-protocol.md exactly (both directions);
-  e. skills/orchestrator/auto-pipeline/SKILL.md still documents the
-     21-phase DAG (guards against silent phase drops).
+  e. skills/orchestrator/auto-pipeline/SKILL.md documents the same
+     node set as kernel/config/phasegraph.json (guards against silent drops).
 
 Authorities (read-only; this test never modifies them):
   - workspace tree:  skills/shared-references/output-protocol.md
@@ -45,10 +45,12 @@ SCHEMA_DIR = REPO_ROOT / "skills" / "shared-references" / "schemas"
 OUTPUT_PROTOCOL = REPO_ROOT / "skills" / "shared-references" / "output-protocol.md"
 PIPELINE_SKILL = REPO_ROOT / "skills" / "orchestrator" / "auto-pipeline" / "SKILL.md"
 
-# Number of phases documented by auto-pipeline SKILL.md today (title + Quick
-# Reference). Pinned so a silent phase drop/renumber fails loudly; bump it
-# deliberately when the DAG genuinely changes.
-EXPECTED_PHASE_COUNT = 21
+# Authoritative phase topology. Read from phasegraph.json instead of pinning a
+# prose count: the DAG has grown before (21 -> 26) and will grow again, so a
+# hardcoded number would immediately rot.
+PHASEGRAPH = REPO_ROOT / "kernel" / "config" / "phasegraph.json"
+EXPECTED_PHASE_IDS = [p["id"] for p in json.loads(PHASEGRAPH.read_text())["phases"]]
+EXPECTED_PHASE_COUNT = len(EXPECTED_PHASE_IDS)
 
 # Top-level directories under {problem_id}/ (v6.0 two-tier split). Authority:
 # the tree block in skills/shared-references/output-protocol.md (section
@@ -335,32 +337,40 @@ def test_output_protocol_tree_matches_hardcoded_dirs():
 
 
 # ---------------------------------------------------------------------------
-# (e) phase-count guard: auto-pipeline still documents the 21-phase DAG
+# (e) phase-topology guard: auto-pipeline documents the phasegraph node set
 # ---------------------------------------------------------------------------
 
-def test_pipeline_skill_documents_expected_phase_count():
-    """Pin the phase count documented today so silent phase drops fail.
-    Checked in the Quick Reference ('21-phase DAG loop') and in the H1
-    title ('21-Phase DAG Loop')."""
+def test_pipeline_skill_documents_expected_phase_graph():
+    """The orchestrator doc must track phasegraph.json, not a prose count.
+
+    A silent phase drop/renumber fails here; growing the DAG only requires
+    updating phasegraph.json and the doc table, not this test's number.
+    """
     text = PIPELINE_SKILL.read_text(encoding="utf-8")
 
-    # Quick Reference section (from '## Quick Reference' to the next '## ')
+    # Quick Reference states the current node count.
     m = re.search(r"^## Quick Reference\n(.*?)^## ", text, re.M | re.S)
     assert m, "auto-pipeline SKILL.md lost its Quick Reference section"
     quick_ref = m.group(1)
-    count = re.search(r"(\d+)\s*-?\s*phase", quick_ref, re.I)
-    assert count, f"no phase-count statement in Quick Reference:\n{quick_ref}"
+    count = re.search(r"(\d+)\s*[- ]\s*(?:node|phase)", quick_ref, re.I)
+    assert count, f"no node-count statement in Quick Reference:\n{quick_ref}"
     assert int(count.group(1)) == EXPECTED_PHASE_COUNT, (
-        f"Quick Reference documents {count.group(1)} phases, expected "
-        f"{EXPECTED_PHASE_COUNT} — deliberate change? update the pin."
+        f"Quick Reference documents {count.group(1)} nodes, expected "
+        f"{EXPECTED_PHASE_COUNT} from phasegraph.json"
     )
 
-    # H1 title pins the same number
+    # H1 title states the same count.
     title = next(line for line in text.splitlines() if line.startswith("# "))
-    assert re.search(rf"\b{EXPECTED_PHASE_COUNT}-Phase\b", title, re.I), (
-        f"title no longer says '{EXPECTED_PHASE_COUNT}-Phase': {title!r}"
+    assert re.search(rf"\b{EXPECTED_PHASE_COUNT}-Node\b", title, re.I), (
+        f"title no longer says '{EXPECTED_PHASE_COUNT}-Node': {title!r}"
     )
 
-    # the "21-phase" wording appears throughout the document today (6x);
-    # require a healthy minimum so bulk rewording/drops are noticed
-    assert len(re.findall(r"21-phase", text, re.I)) >= 4
+    # The Phase Mode Table must contain exactly the phasegraph node ids.
+    documented = set(re.findall(r"^\|\s*([0-9]+(?:\.[0-9]+)?[a-z]*):", text, re.M))
+    expected = {str(pid) for pid in EXPECTED_PHASE_IDS}
+    missing = expected - documented
+    extra = documented - expected
+    assert not missing and not extra, (
+        f"Phase Mode Table drifts from phasegraph.json: "
+        f"missing={sorted(missing)}, extra={sorted(extra)}"
+    )

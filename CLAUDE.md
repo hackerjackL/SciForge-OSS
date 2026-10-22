@@ -1,8 +1,8 @@
 # SciForge-OSS — Claude Code Project Memory
 
 ## What this is
-Skill-driven research runtime (v1.5.0): Skill Library (pure Markdown, `skills/`) + Runtime Kernel (`kernel/`, Python ≥3.10 stdlib-only) + RSI evolution. Two modes:
-- **Skill mode**: `/auto-pipeline "Q: ..."` — read `skills/orchestrator/auto-pipeline/SKILL.md`, execute the 21-phase DAG in-conversation (pointer-load: load only declared references).
+Skill-driven research runtime (v1.7.2): Skill Library (pure Markdown, `skills/`) + Runtime Kernel (`kernel/`, Python ≥3.10 stdlib-only) + RSI evolution. Two modes:
+- **Skill mode**: `/auto-pipeline "Q: ..."` — read `skills/orchestrator/auto-pipeline/SKILL.md`, execute the 26-node DAG in-conversation (pointer-load: load only declared references).
 - **Kernel mode**: `node bin/sciforge.js run --workspace ./runs/Q001 --problem "..." --host claude` — the kernel dispatches phase bundles to you and expects a final JSON verdict `{"verdict": "PASS|WARN|FAIL|BLOCKED|NOT_APPLICABLE|ERROR", "artifacts": [...], "notes": "..."}`.
 
 ## Hard rules (non-negotiable, gate-checked)
@@ -17,7 +17,7 @@ Skill-driven research runtime (v1.5.0): Skill Library (pure Markdown, `skills/`)
 ## Key paths
 - Orchestrator: `skills/orchestrator/auto-pipeline/SKILL.md`
 - Kernel: `kernel/sciforge/` (`pipeline.py` state machine, `evolve.py` PUCT+MAP-Elites, `review.py` cross-model panel)
-- Registered verdicts: `skills/shared-references/schemas/*.schema.json` (22 artifacts incl. FAIRNESS.json)
+- Registered verdicts: `skills/shared-references/schemas/*.schema.json` (22 registered verdict schemas incl. FAIRNESS.json, plus RUNSTATE.schema.json)
 - v1.7.2 protocol layer: `kernel/sciforge/{nodes,rep,sources,sota,memory}.py` + `skills/shared-references/s2-protocol.md` §10 (node fork / claim anchors / REP / semantic memory / batch sota / sources)
 - Gates: `scripts/{validate_verdicts,security_scan,gap_gate,leakage_scan,fairness_gate,ci_check}.py`
 - Reproduction: `REPRODUCE.md` · 30-item plan: `EVOLUTION_PLAN.md`

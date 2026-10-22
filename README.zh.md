@@ -10,7 +10,7 @@
 
 > **AI for Scientist Anything** — Skill 驱动的通用科研运行时：**Skill 库（纯 Markdown）+ Runtime Kernel（代码强制控制循环）+ RSI 进化层**。
 >
-> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**，v1.6.0 进一步把证据变成**可验证**（实验安全扫描 kernel 强制、TDAL 联合置信、反幻想五门、Arb 认证区间、句级引用归因、SMOKE 门、注入消毒、限速器、双计时器）：**"做什么"留在 Markdown，"如何强制"进入代码**。v1.7.0 加入 **ScientistTwo 对标层**——把 Google arXiv:2609.19644 成绩背后的机制复刻为开源代码：Subset→Full-Set 实验阶梯 + 三态 Critic（6c 边界门）、5–6 计划消融账本 + 严格 AblCritic（相位 10 门）、score<8 rebuttal 闭环 ≤2 轮 + Meta-Review {ACCEPT|REFINE} + 锚点校准评审分、wrap-up 的 reward-hacking + 方法↔代码完整性审计、带探索保证的 idea evolution，以及同构的 CPU 级 `bench/s2demo` 子 bench。v1.7.1 加入 **AAR 反 Goodhart 层**（移植 Anthropic arXiv:2608.28945 的模式）：实验边界的 fail-closed 预执行完整性监控（D1/D2/D3）、geomean 头条度量、results-free 预注册——外加图系统修复与实证版 S2 披露语态，全部由两轮五域 ARC-Bench 实测驱动。可选的 `kernel/`（Python ≥3.10，仅标准库）把 21-phase DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
+> 知识层保留原精神：**skill 依旧是纯 Markdown**——无 `.py` 无 bash 无 IDE 专属语法，任何能读文件的 agent（Claude Code、Cursor、Trae、Codex…）都能消费。1.5.0 的变化是**拆分**，v1.6.0 进一步把证据变成**可验证**（实验安全扫描 kernel 强制、TDAL 联合置信、反幻想五门、Arb 认证区间、句级引用归因、SMOKE 门、注入消毒、限速器、双计时器）：**"做什么"留在 Markdown，"如何强制"进入代码**。v1.7.0 加入 **ScientistTwo 对标层**——把 Google arXiv:2609.19644 成绩背后的机制复刻为开源代码：Subset→Full-Set 实验阶梯 + 三态 Critic（6c 边界门）、5–6 计划消融账本 + 严格 AblCritic（相位 10 门）、score<8 rebuttal 闭环 ≤2 轮 + Meta-Review {ACCEPT|REFINE} + 锚点校准评审分、wrap-up 的 reward-hacking + 方法↔代码完整性审计、带探索保证的 idea evolution，以及同构的 CPU 级 `bench/s2demo` 子 bench。v1.7.1 加入 **AAR 反 Goodhart 层**（移植 Anthropic arXiv:2608.28945 的模式）：实验边界的 fail-closed 预执行完整性监控（D1/D2/D3）、geomean 头条度量、results-free 预注册——外加图系统修复与实证版 S2 披露语态，全部由两轮五域 ARC-Bench 实测驱动。可选的 `kernel/`（Python ≥3.10，仅标准库）把 26-node DAG 跑成真正的状态机：事件溯源续跑、机械门强制、把人工检查点变成代码、多后端 provider、跨模型审稿团，以及让 skill 库自我进化的递归闭环。**无 UI**——headless CLI（`sciforge run …`）或宿主 agent 模式均可。
 >
 > 两种用法：**(A) 纯 skill**（任意 agent 内 `/auto-pipeline "问题"`）——与从前一致；**(B) skill + kernel**（`sciforge run --workspace … --host claude`）——管线再也不能静默跳过门、进程死了能续、且每一轮都变得更强（RSI）。
 >
@@ -61,13 +61,13 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 | **Universal Retrieval** | 文献检索 | 多源学术搜索（arXiv/S2/CrossRef/PubMed/Web/OpenAlex）+ 3 层防幻觉验证 |
 | **Unified Plotting** | 图表渲染 | 结构化数据 → 出版级矢量图（SVG/PDF）；多巴胺色系（Layer 1，色盲可辨校验的高饱和盘）+ viridis/magma/cividis 数据热图（Layer 2） |
 
-## Runtime Kernel（v1.5.0）
+## Runtime Kernel（introduced v1.5.0）
 
 `kernel/` 是 skill 库的**代码控制面**（Python ≥3.10，仅标准库——唯一的额外 pip 依赖是 pytest）。skill 依旧是**方法**的唯一来源；kernel 是**控制**所在：
 
 | 能力 | 机制 |
 |---|---|
-| **状态机** | `kernel/config/phasegraph.json` 把 21-phase DAG、回路预算（L1–L13）、按相门编码为可执行配置——编排循环由代码驱动，而非 prose |
+| **状态机** | `kernel/config/phasegraph.json` 把 26-node DAG、回路预算（L1–L13）、按相门编码为可执行配置——编排循环由代码驱动，而非 prose |
 | **事件溯源续跑** | `.sciforge/events.ndjson`（追加式）+ `RUNSTATE.json`；进程死亡经 stale lockfile 检出，**从精确边界重放续跑**（macOS kill -9 实测通过） |
 | **门嵌入控制流** | 每个边界以代码强制跑 `validate_verdicts.py --strict`、`security_scan.py`、`gap_gate.py`、`check_figure_embedding.py --require-renderer`、`leakage_scan.py`；门不过则无法推进——审计再也无法被静默跳过 |
 | **HITL 数据化** | 检查点 = `paused_checkpoint` + 审批记录 + `APPROVAL_LOG.txt`；用 `sciforge approve/deny` 决策，或 `--human-skip` / `--test-mode` 委托 |
@@ -200,7 +200,7 @@ claude                  # 或 codex / cursor / trae
 
 #### 其他 AI agent
 
-任何支持 Markdown 上下文或自定义技能集的 AI agent 均可：将 `AGENT_GUIDE.md` 提供给 agent 作为系统提示/初始上下文，agent 读取后会自动理解 21-phase DAG 循环和所有可用 skill，直接输入 `/auto-pipeline "你的科学问题"` 即可启动。
+任何支持 Markdown 上下文或自定义技能集的 AI agent 均可：将 `AGENT_GUIDE.md` 提供给 agent 作为系统提示/初始上下文，agent 读取后会自动理解 26-node DAG 循环和所有可用 skill，直接输入 `/auto-pipeline "你的科学问题"` 即可启动。
 
 ### 工具链（可选但推荐——完整跑通需要）
 
@@ -244,69 +244,71 @@ mode: rule                # 规则模式（CN 直连，外网走代理）
 /auto-pipeline "Q001: 宇宙的起源与演化" — effort: max, language: chinese
 ```
 
-如果 agent 正确识别并启动了 21-phase 研究流程，说明安装成功。
+如果 agent 正确识别并启动了 26-node 研究流程，说明安装成功。
 
 ## 架构：DAG 驱动的科研闭环
 
 SciForge-OSS 采用 **DAG（有向无环图）** 架构，而非简单的线性管线。这是整个框架最核心的"show"：
 
 ```
-                    ┌→ Idea 1 (theoretical)   ─┐
-                    │                           │
-Problem → Discover ─┼→ Idea 2 (computational) ─┼→ MCTS 4 轮迭代 (UCB1 选择 × expand × rollout × backprop)
-                    │                           │   ↓ 每轮淘汰弱 idea
-                    └→ Idea 3 (qualitative)   ─┘   ↓
-                                                  survivors
-                                                     │
-                                                     ▼
-                                              Phase 2.5: adversarial-falsification (证伪门控)
-                                                  ↓ 假设评分 + 反例构造 + 文献对抗
-                                                  ↓ falsified ideas eliminated
-                                                     │
-                                                     ▼
-                                              Phase 3: novelty-check (3 维门控)
-                                                  ↓ 新颖性 × 可行性 × 相关性
-                                                  ↓ only strongest idea survives
-                                                     │
-                                                     ▼
-                                          Derive (Phase 6) → Verify (Phase 7-10)
-                                                     │
-                                                     ▼
-                                          Write (Phase 12) → Review (Phase 14) → Output (Phase 16)
-                                                     │
-                                                     └→ DAG 可视化追踪 (refine-logs/IDEA_DAG.json)
+Problem
+  ├─ Phase 4broad : /universal-retrieval 文献宽波 → GAP_REPORT.md
+  ├─ Phase 2      : 4 视角 idea → MCTS 4 轮迭代
+  ├─ Phase 2.5    : adversarial-falsification 对抗证伪
+  ├─ Phase 2.5b   : engineering-grounding（8 维 EG）
+  ├─ Phase 3      : novelty-check（4 维 + 前沿 + 碰撞矩阵）→ 人类选想法
+  ├─ Phase 4targeted : 定向文献波（每个存活想法一波）
+  ├─ Phase 5      : method-registry（哈希锁 + 人类批准）
+  ├─ Phase 6      : verification-routing → 6a 推导 / 6b toy / 6c full
+  ├─ Phase 7–10   : 泄漏审计 / 逻辑验证 / 不变量 / 结果到主张
+  ├─ Phase 11–13  : 统一绘图 / 论文写作 / 零警告编译
+  └─ Phase 14–16  : 评审与 rebuttal / 引用审计 / 可发表性 / 归档
 ```
+```
+
+> **命名说明**：旧文档把这条流水线称为 “21-phase”。21 是 v1.5.0 之前的节点数；现行可执行拓扑是 `kernel/config/phasegraph.json` 中的 26 节点 DAG，未来还可能继续增长。现行文档统一写 “26 节点”；“21-phase”只作为历史别名保留。
 
 ### DAG 原理
 
-1. **分支（Branch）**：从问题出发，并行生成 3 个不同方法论视角的 idea（理论/计算/定性）
+1. **分支（Branch）**：从问题出发，并行生成 4 个不同方法论视角的 idea（理论/计算/定性/经验）
 2. **MCTS 迭代**：每个 idea 经 4 轮 MCTS 迭代（UCB1 选择 → expand → rollout → backprop），弱 idea 在迭代中被淘汰
-3. **证伪门控（Falsification Gate, Phase 2.5）**：存活的 idea 接受 6 维度 adversarial-falsification 攻击（假设评分 + 反例构造 + 文献对抗 + 类比映射 + 沙盒可行性 + AI 工程落地），被证伪的 idea 淘汰。Phase 5b 同时产出 **AI 工程落地评估报告**，含 8 维子评分（Compute/Dev Cycle/Code Complexity/Repro Risk/Dependency/Capital/Temporal Maturity/Regulatory）和 AI 开发路线图
-4. **新颖性门控（Novelty Gate, Phase 3）**：通过证伪的 idea 经 4 维评估（新颖性 × 0.45 + 可行性 × 0.25 + 相关性 × 0.15 + 工程落地 × 0.15），只有最优 idea 存活进入后续推导、验证、写作阶段
-5. **追踪（Trace）**：整条链路的 DAG 结构保存在 `refine-logs/IDEA_DAG.json`，可生成 Mermaid 可视化
+3. **文献先行**：Phase 4broad 先产出 `GAP_REPORT.md`；每个 promoted idea 必须锚定 gap-id（或占用受限 exploratory 槽）
+4. **证伪与工程接地**：Phase 2.5 做假设评分、反例、文献对抗、类比与沙盒可行性；Phase 2.5b 产出 8 维 AI 工程接地报告（Compute/Dev Cycle/Code Complexity/Repro Risk/Dependency/Capital/Temporal Maturity/Regulatory）
+5. **新颖性门控（Phase 3）**：4 维综合评分（新颖性 × 0.45 + 可行性 × 0.25 + 相关性 × 0.15 + 工程接地 × 0.15）+ 前沿推进三件套 + 碰撞矩阵；只有最优 idea 存活
+6. **追踪（Trace）**：整条链路的 DAG 结构保存在 `refine-logs/IDEA_DAG.json`，可生成 Mermaid 可视化
 
-### 21 阶段 DAG 循环
+### 26 节点 DAG 循环
 
 ```
-Phase  0: 加载问题（冻结 Q-id — INV-G1 锚点）
-Phase  1: 问题理解与分解（内置推理）
-Phase  2: /idea-discovery [DAG 分支] — 3 视角 idea + MCTS 迭代
-Phase  3: /novelty-check [DAG 门控] — 4 维评估 + 淘汰
-    ─── Forced human checkpoint: pick the final idea ───
-Phase  4: /universal-retrieval — 文献调研 + 3 层防幻觉
-Phase  5: /method-registry — 方法绑定 + hash 锁 + 强制人类审批
-    ─── Forced human checkpoint: approve the method registry ───
-Phase  6: /theory-derivation — SymPy 符号推导 + 逐步机器验证
-Phase  7: /leakage-audit — Type I 逻辑漏洞 + Type IV 逃逸审计
-Phase  8: /logic-verification — 6 维度逻辑一致性审计
+Phase  0: 加载问题（冻结 Q-id / PROBLEM_HASH — INV-G1 锚点）
+Phase  1: 问题理解与分解（编译 REP.json）
+Phase 1a: /domain-signature（OPTIONAL 快速提示）
+Phase 1b: /domain-learner（MUST，domain-signature.json 唯一写者）
+Phase 4broad: /universal-retrieval — 文献宽波 + GAP_REPORT.md（MUST）
+Phase  2: /idea-discovery [DAG 分支] — 4 视角 idea + MCTS 迭代
+Phase 2.5: /adversarial-falsification — 假设/反例/文献/类比/沙盒攻击
+Phase 2.5b: engineering-grounding（EG）— 8 维 AI 工程可行性报告
+Phase  3: /novelty-check [DAG 门控] — 4 维 + 前沿推进 + 碰撞矩阵
+    ─── 强制人类检查点：选定最终 idea ───
+Phase 4targeted: /universal-retrieval — 每个存活想法的定向文献波
+Phase  5: /method-registry — 方法绑定 + 哈希锁 + 强制人类审批
+    ─── 强制人类检查点：批准方法注册表 ───
+Phase  6: /verification-routing — experiment-first（默认）/ theory-only / hybrid
+Phase 6a: /theory-derivation [ROUTED] — SymPy 推导 + 逐步机器验证
+Phase 6b: /experiment-execution --stage=toy [ROUTED] — 想法生死判决
+Phase 6c: /experiment-execution --stage=full --background [ROUTED] — 完整实验矩阵
+Phase  7: /leakage-audit — Type I 逻辑缺口 + Type IV 经验逃逸
+Phase  8: /logic-verification — 6 维 / 20 类逻辑审计
 Phase  9: /invariant-check — INV-G1 问题锚点冻结验证
-Phase 10: /result-to-claim — 3 保真度 claim 门控
-Phase 11: /unified-plotting — 学术图表（可选，多巴胺色系 + Layer 2）
-Phase 12: /paper-writing — elsarticle 单模板写作
-Phase 13: /paper-compile — LaTeX 零警告零报错编译
-Phase 14: /auto-review-loop — 跨模型评审 + kill-argument 反自欺
-Phase 15: /citation-audit — 最终引用 3 层验证
+Phase 10: /result-to-claim — 3 保真度 claim 门 + TDAL + 消融账本
+Phase 11: /unified-plotting — 出版级图（MUST）
+Phase 12: /paper-writing — elsarticle 模板 + 管线泄漏擦洗
+Phase 13: /paper-compile — 零警告零错误编译（MUST）
+Phase 14: /auto-review-loop — 跨模型评审 + kill-argument（MUST）
+Phase 15: /citation-audit — 三层引用 + DOI 审计
+Phase 15.5: /publishability-score — 6 维可发表性门
 Phase 16: 最终组装 + 产物归档
+```
 ```
 
 ## 快速开始
@@ -353,7 +355,7 @@ SciForge-OSS/
 ├── README.md                               ← 人类阅读
 ├── bin/sciforge.js                         ← CLI（init/tools-check/run/resume/approve/evolve/serve…→kernel）
 ├── kernel/                                 ← v1.5.0 runtime kernel（Python ≥3.10 纯 stdlib 控制面）
-│   ├── config/phasegraph.json              ← 21-phase DAG 可执行配置（回路/门/预算）
+│   ├── config/phasegraph.json              ← 26-node DAG 可执行配置（回路/门/预算）
 │   ├── config/providers.json               ← 角色分档多后端路由
 │   ├── config/evolve.json                  ← RSI 门阵列（CI + schema + golden）
 │   └── sciforge/                           ← 状态机 pipeline · events state · gates · approvals · execution · providers · review 跨模型审稿 · evolve PUCT+MAP-Elites · skills_pack 冻结包 · daemon · golden · cli
@@ -385,7 +387,7 @@ SciForge-OSS/
 │   │   ├── publishability-score/SKILL.md   ← 6 维发表性终评
 │   │   └── rebuttal/SKILL.md               ← 拒稿后逐点申诉信
 │   ├── orchestrator/                       ← 1 个编排器
-│   │   └ auto-pipeline/SKILL.md  ← 21 阶段 DAG 闭环（单题执行，含 Phase 5b 工程落地评估）
+│   │   └ auto-pipeline/SKILL.md  ← 26 节点 DAG 闭环（单题执行，含 Phase 2.5b 工程落地评估）
 │   └── shared-references/                  ← 共享契约（学科无关）
 │       ├── artifact-registry.md            ← 跨 skill 产物唯一登记处（SSoT）
 │       ├── output-protocol.md              ← 工作区目录树唯一权威（verdicts/ 统一）

@@ -63,7 +63,7 @@ Proposed additions to the three adaptive matrices:
 |--------------|----------|-----------|----------|--------|------------------|
 | `<name>` | `<paradigm>` | REDUCED/STANDARD/INTENSIFIED | ... | ... | ... |
 
-### Phase 6 — /theory-derivation intensity
+### Phase 6a — /theory-derivation intensity
 | evidence_type | paradigm | intensity | engine | verification strictness | output mark |
 |--------------|----------|-----------|--------|-------------------------|-------------|
 | `<name>` | `<paradigm>` | ... | ... | ... | ... |
@@ -157,7 +157,7 @@ If §2 of the spec fails — the domain DOES fit an existing type but needs a pe
 
 ## Override
 - evidence_type: <existing>
-- domain-specific Phase 5/6/11 emphasis: [e.g., "for synthetic biology, Phase 6 emphasis = biofabrication protocol"]
+- domain-specific Phase 5/6a/11 emphasis: [e.g., "for synthetic biology, Phase 6a emphasis = biofabrication protocol"]
 - domain-specific failure modes: [list]
 - learner prompt addition: [recognize "synthetic biology" signals → set evidence_type=experimental + domain_label=synbio]
 

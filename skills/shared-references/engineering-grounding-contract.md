@@ -1,4 +1,6 @@
-# Engineering Grounding Contract — AI-Development Feasibility Axis
+# Engineering Grounding Contract
+
+> **Naming note**: the EG step is pipeline node **2.5b**. Older skill-local text calls it “Phase 5b”; this contract now uses “Phase 2.5b”. — AI-Development Feasibility Axis
 
 > **Status (v3.0 — AI perspective rewrite)**: Contract for the **Engineering Grounding (EG)** axis, the 6th axis in the idea pre-screen. Defines how OSS evaluates whether an **AI agent** can implement an idea — write code, run experiments, produce results — **not** whether a human engineering team can build it.
 >
@@ -114,7 +116,7 @@ Every idea with EG tier CONSTRAINED or HEAVY produces a report. READY ideas may 
 
 ### AI Engineering Path automatic figure generation
 
-After Phase 5b completes, automatically invoke `/unified-plotting` with the `ai-dev-path` figure type to produce a **PDF vector figure** `figures/engineering-path/ENGINEERING_GROUNDING_PATH.pdf`, whose content is a three-stage AI development route timeline:
+After Phase 2.5b completes, automatically invoke `/unified-plotting` with the `ai-dev-path` figure type to produce a **PDF vector figure** `figures/engineering-path/ENGINEERING_GROUNDING_PATH.pdf`, whose content is a three-stage AI development route timeline:
 
 ```
 Stage 1 (0-3 rounds) ───[risk: trick falsified]─── Stage 2 (3-9 rounds) ───[risk: scaled gate fail]─── Stage 3 (9-18 rounds)
@@ -166,10 +168,10 @@ The existing Phase 5 (Computational Feasibility) is **split** into two independe
 
 | Phase | Name | What it evaluates | Independence |
 |-------|------|-------------------|-------------|
-| **Phase 5a** | OSS Sandbox Feasibility (unchanged) | Can the idea be run in OSS sandbox (SymPy + numpy)? | Independent |
-| **Phase 5b** | AI Engineering Grounding Estimate (NEW) | AI perspective — 8-dimension EG evaluation | **Runs even if Phase 5a BLOCKED** (sandbox≠engineering) |
+| **Phase 2.5 (sandbox feasibility)** | OSS Sandbox Feasibility (unchanged) | Can the idea be run in OSS sandbox (SymPy + numpy)? | Independent |
+| **Phase 2.5b** | AI Engineering Grounding Estimate (NEW) | AI perspective — 8-dimension EG evaluation | **Runs even if Phase 2.5 (sandbox feasibility) BLOCKED** (sandbox≠engineering) |
 
-Phase 5b produces the `ENGINEERING_GROUNDING.md` report. It runs AFTER Phase 5a, but is **independent** — even if Phase 5a BLOCKED the idea, Phase 5b still executes. Phase 5b only skips if the idea is purely theoretical (no src/experiment needed).
+Phase 2.5b produces the `ENGINEERING_GROUNDING.md` report. It runs AFTER Phase 2.5 (sandbox feasibility), but is **independent** — even if Phase 2.5 (sandbox feasibility) BLOCKED the idea, Phase 2.5b still executes. Phase 2.5b only skips if the idea is purely theoretical (no src/experiment needed).
 
 ---
 
@@ -179,8 +181,8 @@ The existing `Grounding Confidence` in `result-to-claim` is **split**:
 
 | Component | Source | What it reports |
 |-----------|--------|-----------------|
-| **OSS Sandbox Grounding** (unchanged) | Phase 5a result, re-computed in Phase 10 | Confidence that OSS derivation is correct |
-| **AI Engineering Grounding** (NEW) | Inherited from Phase 5b; NOT re-computed | AI-perspective feasibility projection from idea stage |
+| **OSS Sandbox Grounding** (unchanged) | Phase 2.5 (sandbox feasibility) result, re-computed in Phase 10 | Confidence that OSS derivation is correct |
+| **AI Engineering Grounding** (NEW) | Inherited from Phase 2.5b; NOT re-computed | AI-perspective feasibility projection from idea stage |
 
 The Phase 10 `Grounding Confidence` score becomes:
 ```
@@ -195,7 +197,7 @@ The EG component is **inherited** from the idea stage, not re-computed.
 
 | Artifact | Path | Producer | Consumers | Schema |
 |----------|------|----------|-----------|--------|
-| `ENGINEERING_GROUNDING.md` | refine-logs/ | Phase 5b (adversarial-falsification) | Phase 3→4 human checkpoint, novelty-check, result-to-claim, auto-review-loop | This contract |
+| `ENGINEERING_GROUNDING.md` | refine-logs/ | Phase 2.5b (adversarial-falsification) | Phase 3→4 human checkpoint, novelty-check, result-to-claim, auto-review-loop | This contract |
 
 ---
 
@@ -225,7 +227,7 @@ The EG component is **inherited** from the idea stage, not re-computed.
 - [`idea-discovery/SKILL.md`](../meta-skills/idea-discovery/SKILL.md) — consumes EG axis at pre-screen
 - [`idea-dag-schema.md`](idea-dag-schema.md) — node schema with EG fields
 - [`novelty-check/SKILL.md`](../meta-skills/novelty-check/SKILL.md) — composite score with EG weight
-- [`adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — Phase 5b EG estimate
-- [`result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — inherits EG from Phase 5b
+- [`adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — Phase 2.5b EG estimate
+- [`result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — inherits EG from Phase 2.5b
 - [`auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — orchestrator quality gate
 - [`competitive-analysis.md`](competitive-analysis.md) — marks EG as "implemented"

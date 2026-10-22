@@ -58,7 +58,7 @@ When self-reviewing or when delegating to a reviewer sub-agent, pass only **path
 
 | In scope (single agent MUST do) | Out of scope (correctly OUT / deferred) |
 |---------------------------------|-----------------------------------------|
-| Full 21-phase loop on one Q-id | Multi-model cross-family adjudication (approx. via external-review perspective only) |
+| Full 26-node loop on one Q-id | Multi-model cross-family adjudication (approx. via external-review perspective only) |
 | Literal/sub-symbolic/numerical fidelity tri-split | GPU training / long background experiment arbitration (OSS emits predicted/falsifiable output) |
 | Universal cross-disciplinary idea + methodology | Fork the whole 4-pipeline discipline orchestration |
 | Deterministic + LLM checks | Multi-agent fan-out infra (Feishu/sleep scheduling) |

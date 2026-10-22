@@ -1,15 +1,15 @@
 # Domain Adaptive Pipeline (SciForge-OSS — evidence_type-driven Phase intensity)
 
-> **Status (v2.8 — mid-term M1, v1.0.0 — cross-link to M3)**: Defines how the orchestrator dynamically adjusts **Phase 5 (method-registry) / Phase 6 (theory-derivation) / Phase 11 (unified-plotting)** **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED) based on the `evidence_type` + `reasoning_paradigm` written to `refine-logs/domain-signature.json` by `/domain-learner` (Phase 1b). This file adapts **intensity**; the orthogonal companion [`pipeline-adaptive-degradation.md`](pipeline-adaptive-degradation.md) (M3) adapts **mode** (MUST/CONDITIONAL/OPTIONAL/SKIP). The two files are independent — read either depending on which axis the orchestrator is configuring.
+> **Status (v2.8 — mid-term M1, v1.0.0 — cross-link to M3)**: Defines how the orchestrator dynamically adjusts **Phase 5 (method-registry) / Phase 6a (theory-derivation) / Phase 11 (unified-plotting)** **intensity** (REDUCED/STANDARD/INTENSIFIED/REPLACED/SKIPPED) based on the `evidence_type` + `reasoning_paradigm` written to `refine-logs/domain-signature.json` by `/domain-learner` (Phase 1b). This file adapts **intensity**; the orthogonal companion [`pipeline-adaptive-degradation.md`](pipeline-adaptive-degradation.md) (M3) adapts **mode** (MUST/CONDITIONAL/OPTIONAL/SKIP). The two files are independent — read either depending on which axis the orchestrator is configuring.
 >
-> **Core principle**: One universal 21-phase pipeline shape; **intensity** adapts per signature. The pipeline structure (phase order, fallback contract, 3-round cap) is invariant — only the per-phase emphasis, budget, and gate strictness adapt. This avoids both the "hardcoded discipline branch" anti-pattern (main SciForge's 4 parallel pipelines) and the "uniform strength" anti-pattern (v2.7's all-MUST).
+> **Core principle**: One universal 26-node pipeline shape; **intensity** adapts per signature. The pipeline structure (phase order, fallback contract, 3-round cap) is invariant — only the per-phase emphasis, budget, and gate strictness adapt. This avoids both the "hardcoded discipline branch" anti-pattern (main SciForge's 4 parallel pipelines) and the "uniform strength" anti-pattern (v2.7's all-MUST).
 
 ## Quick Reference
 
-- **Purpose**: Phase 5/6/11 intensity is dynamically adjusted by evidence_type/paradigm, achieving true universality rather than hardcoded branches
+- **Purpose**: Phase 5/6a/11 intensity is dynamically adjusted by evidence_type/paradigm, achieving true universality rather than hardcoded branches
 - **Input**: refine-logs/domain-signature.json (`evidence_type`, `reasoning_paradigm`) from Phase 1b
 - **Output**: per-phase `intensity_override` block written to .sciforge/PIPELINE_STATUS.md before Phase 5 starts
-- **Key**: Structure is invariant (21-phase order locked, 3-round fallback, all contracts preserved); only intensity/emphasis/budget/gate strictness adapt
+- **Key**: Structure is invariant (26-node order locked, 3-round fallback, all contracts preserved); only intensity/emphasis/budget/gate strictness adapt
 
 ## Adaptive Override Table (locked)
 
@@ -30,7 +30,7 @@ The orchestrator reads `signature.evidence_type` + `signature.reasoning_paradigm
 - STANDARD = the v2.7 default behavior; full registry.
 - INTENSIFIED = additional required sections beyond v2.7 default; stricter gate.
 
-### Phase 6 — /theory-derivation intensity
+### Phase 6a — /theory-derivation intensity
 
 | evidence_type | paradigm | intensity | engine | verification strictness | output mark |
 |--------------|----------|-----------|--------|-------------------------|-------------|
@@ -40,7 +40,7 @@ The orchestrator reads `signature.evidence_type` + `signature.reasoning_paradigm
 | `simulational` | empirical | **STANDARD** | SymPy for equations + numerical sweep for stability/convergence | symbolic for core equations; numerical for regime map | `[machine-verified]` for equations |
 | `interpretive` | interpretive | **REPLACED** → textual-analysis | `engine=manual` only; SymPy NOT applicable | argument coherence check replaces symbolic verification | `[interpretive-verified]` |
 
-**Phase 6 REPLACED caveat (interpretive only)**: the orchestrator does NOT skip Phase 6 — it runs `/theory-derivation` in `interpretive_mode` where the "derivation" is argument reconstruction, not SymPy. The phase boundary and fallback contract still apply; the gate logic changes from "symbolic proof complete" to "argument coherent + counter-evidence addressed". See [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) § Interpretive Mode (added v2.8).
+**Phase 6a REPLACED caveat (interpretive only)**: the orchestrator does NOT skip Phase 6a — it runs `/theory-derivation` in `interpretive_mode` where the "derivation" is argument reconstruction, not SymPy. The phase boundary and fallback contract still apply; the gate logic changes from "symbolic proof complete" to "argument coherent + counter-evidence addressed". See [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) § Interpretive Mode (added v2.8).
 
 ### Phase 11 — /unified-plotting intensity
 
@@ -62,7 +62,7 @@ The orchestrator executes the following BEFORE Phase 5 launches (after Phase 1b 
 Step 1: Read refine-logs/domain-signature.json
 Step 2: Extract signature.evidence_type + signature.reasoning_paradigm
         (If file absent → Phase 1b failed; apply default = STANDARD for all three phases; flag reduced TDAL A dimension)
-Step 3: Look up the override row in each table above (Phase 5 / Phase 6 / Phase 11)
+Step 3: Look up the override row in each table above (Phase 5 / Phase 6a / Phase 11)
 Step 4: If signature has mixed evidence_types (e.g., computational_biology = derivational + experimental):
         → apply the MOST INTENSE override across the mix (intensified wins over standard wins over reduced)
         → this ensures mixed-domain problems do not under-verify either side
@@ -130,11 +130,11 @@ Step 7: Log the override in .sciforge/PIPELINE_STATUS.md (transparency — the i
 
 ## Boundaries
 
-- **Pipeline structure is invariant.** The 21-phase order, the 3-round fallback cap, the human checkpoints (Phase 3→4, Phase 5→6), the INV-G1 freeze — NONE of these change with intensity. Only per-phase emphasis/budget/gate-strictness adapts.
-- **REDUCED never means SKIPPED for Phase 5/6.** Even `derivational` problems run Phase 5 (hash-lock + human checkpoint on proof strategy) and Phase 6 (SymPy attempt; `manual` only on SymPy fail). Only Phase 11 can be `SKIPPED` (derivational) or `REPLACED` (interpretive).
+- **Pipeline structure is invariant.** The 26-node order, the 3-round fallback cap, the human checkpoints (after Phase 3 and after Phase 5), the INV-G1 freeze — NONE of these change with intensity. Only per-phase emphasis/budget/gate-strictness adapts.
+- **REDUCED never means SKIPPED for Phase 5/6.** Even `derivational` problems run Phase 5 (hash-lock + human checkpoint on proof strategy) and Phase 6a (SymPy attempt; `manual` only on SymPy fail). Only Phase 11 can be `SKIPPED` (derivational) or `REPLACED` (interpretive).
 - **INTENSIFIED never removes the 3-round cap.** More sections and stricter gates yes; more retry rounds no — the anti-deadloop ladder is universal.
 - **The override is auditable.** `pipeline-intensity-override.json` is a required artifact; the orchestrator MUST NOT silently apply intensity without emitting it. Phase 14 (`/auto-review-loop`) reads it to check whether the intensity choice was justified by the signature.
-- **Mixed-domain problems intensify, not average.** Computational biology (derivational + experimental) gets the INTENSIFIED override for both Phase 5 and Phase 6 — the proof side and the experiment side each get full rigor. Averaging would under-verify both.
+- **Mixed-domain problems intensify, not average.** Computational biology (derivational + experimental) gets the INTENSIFIED override for both Phase 5 and Phase 6a — the proof side and the experiment side each get full rigor. Averaging would under-verify both.
 - **User override trumps signature.** If the human supplies `—paradigm: interpretive` on a problem the learner classified as `empirical`, the user override wins and is logged with `source: "user_override"`.
 
 ## Why this is not "hardcoded discipline branch"
@@ -142,7 +142,7 @@ Step 7: Log the override in .sciforge/PIPELINE_STATUS.md (transparency — the i
 Main SciForge has 4 parallel pipelines (economics / cs-ml / physics / general) each with its own framework and reviewer persona. That is hardcoded discipline branching — adding a 5th discipline means adding a 5th pipeline.
 
 This adaptive pipeline is **structurally different**:
-1. **One pipeline shape** — 21 phases, invariant order, universal fallback contract. No "economics pipeline" or "physics pipeline".
+1. **One pipeline shape** — 26 nodes, invariant order, universal fallback contract. No "economics pipeline" or "physics pipeline".
 2. **Intensity is data-driven** — the learner (Phase 1b) writes the signature; the orchestrator reads it and applies the override table. No human pre-classifies the discipline.
 3. **The override table is evidence-type-based, not discipline-based** — `derivational` covers math + theoretical CS + logic; `experimental` covers medicine + bio + psychology; `interpretive` covers humanities + law + education. Adding a new discipline that fits an existing evidence_type requires ZERO orchestrator changes.
 4. **Unknown evidence_types default to STANDARD** — the pipeline does not break on a novel domain; it runs the v2.7 default behavior and flags for community contribution.
@@ -162,11 +162,11 @@ The override table is therefore a **small finite alphabet** (5 evidence_types ×
 
 ## See Also
 
-- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 21-phase pipeline (Phase 5/6/11 boundaries)
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — the 26-node pipeline (Phase 5/6a/11 boundaries)
 - [`domain-signature-consumer.md`](domain-signature-consumer.md) — how Phase 1b's signature is consumed downstream
 - [`domain-adaptation-contract.md`](domain-adaptation-contract.md) — TDAL A dimension (domain adaptation confidence)
 - [`discipline-paradigm.md`](discipline-paradigm.md) — 4 research paradigms (formal/empirical/interpretive/design)
 - [`../support/method-registry/SKILL.md`](../support/method-registry/SKILL.md) — Phase 5 (intensity consumer)
-- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6 (intensity consumer + interpretive_mode)
+- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6a (intensity consumer + interpretive_mode)
 - [`../meta-skills/unified-plotting/SKILL.md`](../meta-skills/unified-plotting/SKILL.md) — Phase 11 (intensity consumer + concept-map_mode)
 - [`domain-contribution-protocol.md`](domain-contribution-protocol.md) — unknown evidence_type community contribution channel (long-term L1)

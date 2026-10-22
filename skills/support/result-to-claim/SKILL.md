@@ -396,10 +396,10 @@ The final `CLAIMS_FROM_RESULTS.md` contains:
 - **Basis**: OSS sandbox feasibility, adversarial falsification results, analogy mapping, prior probability
 - **Risks**: [assumptions that may not hold in OSS sandbox]
 
-### Engineering Grounding (from Phase 5b, inherited, not recomputed)
+### Engineering Grounding (from Phase 2.5b (EG), inherited, not recomputed)
 - **Score**: [0-10] (inherited from `refine-logs/ENGINEERING_GROUNDING.md` eg_average)
 - **Report**: See `refine-logs/ENGINEERING_GROUNDING.md` for full 8-dim breakdown + downside protection
-- **Risks**: [engineering risks from Phase 5b — compute, deps, ai_dev_cycle, reproducibility, capital, code_complexity, temporal_maturity, regulatory]
+- **Risks**: [engineering risks from Phase 2.5b (EG) — compute, deps, ai_dev_cycle, reproducibility, capital, code_complexity, temporal_maturity, regulatory]
 
 ### Combined Assessment
 - **Grounding confidence**: 0.6 × OSS_sandbox_grounding + 0.4 × engineering_grounding

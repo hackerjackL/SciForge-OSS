@@ -1,6 +1,6 @@
 # SciForge-OSS Agent Guide
 
-> **Status**: The single entry orchestrator for OSS is `/auto-pipeline`. It executes a complete 21-phase DAG research loop on **one** problem supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation = one Q-id = one complete pipeline run end-to-end.
+> **Status**: The single entry orchestrator for OSS is `/auto-pipeline`. It executes a complete 26-node DAG research loop on **one** problem supplied by the human user's prompt. **OSS does NOT auto-iterate over all problems** — each invocation = one Q-id = one complete pipeline run end-to-end.
 >
 > **All-domain support**: SciForge-OSS is not restricted to any discipline. Physics, mathematics, computer science, medicine, economics, education, materials science, earth science, atmospheric science, astronomy, chemistry, engineering, sensors, optoelectronics — any scientific domain can use it.
 
@@ -35,7 +35,7 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 
 | Type | Skill | Role |
 |------|-------|------|
-| **Orchestrator** | `/auto-pipeline` | Single entry — 21-phase DAG research loop on one problem (v2.9 + Phase 5b EG) |
+| **Orchestrator** | `/auto-pipeline` | Single entry — 26-node DAG research loop on one problem (EG at Phase 2.5b) |
 | **Meta-skill** | `/idea-discovery` | Generate + pre-screen 8-12 idea candidates via MCTS (4 rounds) |
 | **Meta-skill** | `/universal-retrieval` | Literature survey + 3-layer anti-hallucination citation verification |
 | **Meta-skill** | `/unified-plotting` | Render publication-quality figures (dopamine palette + Layer 2 data colormaps) |
@@ -63,32 +63,38 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 
 ---
 
-## The 21-Phase DAG Loop
+## The 26-Node DAG Loop
 
 ```
 Phase  0: load problem (freeze Q-id — INV-G1 anchor)
-Phase  1: problem understanding & decomposition (built-in reasoning)
-Phase  2: /idea-discovery [DAG branching] — 4-perspective ideas (theoretical/computational/qualitative/empirical) + MCTS iteration
-Phase  2.5: /adversarial-falsification [falsification gate] — hypothesis scoring + counterexample construction + literature adversarial check
-Phase  3: /novelty-check [DAG gate] — 4-dim evaluation + elimination
-    ─── Forced human checkpoint: pick the final idea ───
-Phase  4: /universal-retrieval — literature survey + 3-layer anti-hallucination
+Phase  1: problem understanding & decomposition (compiles REP.json)
+Phase 1a: /domain-signature (OPTIONAL fast-path hint)
+Phase 1b: /domain-learner (MUST, sole writer of domain-signature.json)
+Phase 4broad: /universal-retrieval — broad literature wave + GAP_REPORT.md (MUST)
+Phase  2: /idea-discovery [DAG branching] — 4 perspectives + MCTS iteration
+Phase 2.5: /adversarial-falsification — assumption/counterexample/literature attacks
+Phase 2.5b: engineering-grounding (EG) — 8-dimension AI feasibility report
+Phase  3: /novelty-check [DAG gate] — 4-axis + frontier + collision audit
+    └ Forced human checkpoint: pick the final idea
+Phase 4targeted: /universal-retrieval — targeted waves per survivor
 Phase  5: /method-registry — method binding + hash lock + forced human approval
-    ─── Forced human checkpoint: approve the method registry ───
-Phase  5b: engineering-grounding evaluation [v2.9] — 5-dim EG axis weighted by domain signature
-Phase  6: /theory-derivation — SymPy symbolic derivation + step-by-step machine verification
-Phase  6b: /experiment-execution (toy) [CONDITIONAL] — v2.0 toy experiment (theory-only → SKIP)
-Phase  6c: /experiment-execution (full+bg) [CONDITIONAL] — v2.0 full-experiment background dispatch (theory-only → SKIP)
+    └ Forced human checkpoint: approve the method registry
+Phase  6: /verification-routing — experiment-first (default) / theory-only / hybrid
+Phase 6a: /theory-derivation [ROUTED] — SymPy derivation + step-by-step verification
+Phase 6b: /experiment-execution --stage=toy [ROUTED] — idea life-or-death gate
+Phase 6c: /experiment-execution --stage=full --background [ROUTED] — full matrix
 Phase  7: /leakage-audit — Type I logic leaks + Type IV escape audit
-Phase  8: /logic-verification — 6-dim logical consistency audit
-Phase  9: /invariant-check — INV-G1 problem-anchor freeze verification
-Phase 10: /result-to-claim — 3-fidelity claim gate
-Phase 11: /unified-plotting — academic figures (optional, dopamine palette + Layer 2)
-Phase 12: /paper-writing — single elsarticle template writing
-Phase 13: /paper-compile — LaTeX compile with zero warnings, zero errors
-Phase 14: /auto-review-loop — cross-model review + kill-argument anti-self-deception
-Phase 15: /citation-audit — final 3-layer citation verification
+Phase  8: /logic-verification — 6-dimension / 20-category audit
+Phase  9: /invariant-check — INV-G1 problem-anchor freeze
+Phase 10: /result-to-claim — 3-fidelity claim gate + TDAL + ablation ledger
+Phase 11: /unified-plotting — publication figures (MUST)
+Phase 12: /paper-writing — elsarticle template + pipeline-leakage scrub
+Phase 13: /paper-compile — zero-warning zero-error compile (MUST)
+Phase 14: /auto-review-loop — cross-model review + kill-argument (MUST)
+Phase 15: /citation-audit — 3-layer citation + DOI audit
+Phase 15.5: /publishability-score — 6-dimension publishability gate
 Phase 16: final assembly + artifact archival
+```
 ```
 
 ### Fallback contract (bounded 3 rounds)
@@ -183,7 +189,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 "Analyze this economics model: general equilibrium under incomplete markets"
 ```
 
-The orchestrator runs the full 21-phase loop. Forced human checkpoints at Phase 3→4 (pick final idea) and Phase 5→6 (approve method registry).
+The orchestrator runs the full 26-node loop. Forced human checkpoints after Phase 3 (pick the final idea, before 4targeted) and after Phase 5 (approve the method registry, before verification routing).
 
 ### Resume from checkpoint (v6.0 RUNSTATE contract)
 
@@ -204,7 +210,7 @@ The user can invoke individual skills directly for debugging (bypassing the orch
 "/paper-compile paper/main.tex"
 ```
 
-But the **canonical** workflow is the full 21-phase orchestrator loop — partial runs are for debugging only and do not produce a complete artifact chain.
+But the **canonical** workflow is the full 26-node orchestrator loop — partial runs are for debugging only and do not produce a complete artifact chain.
 
 ---
 
@@ -224,5 +230,5 @@ But the **canonical** workflow is the full 21-phase orchestrator loop — partia
 
 - [`README.md`](README.md) — project overview + skill catalog + comparison with main SciForge
 - Problem input: the human user's prompt (Q-id + problem statement); no problem index file ships with the repo
-- [`skills/orchestrator/auto-pipeline/SKILL.md`](skills/orchestrator/auto-pipeline/SKILL.md) — the 21-phase DAG loop orchestrator
+- [`skills/orchestrator/auto-pipeline/SKILL.md`](skills/orchestrator/auto-pipeline/SKILL.md) — the 26-node DAG loop orchestrator
 - [`skills/shared-references/`](skills/shared-references/) — the shared contract layer (discipline-agnostic)

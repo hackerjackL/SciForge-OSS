@@ -1,5 +1,7 @@
 # SciForge 超级迭代作战计划 — v1.5.0（30 项大重构定版映射）
 
+> **Historical naming note**: this document was written for the 21-phase era. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; the text below is preserved as a historical record.
+
 > 性质变更声明：SciForge-OSS 从"纯 Skill 包"升级为 **Skill 驱动的研究运行时**（Runtime Kernel + Skill Library + RSI Evolution）。技能库依旧纯 Markdown、可被任何 agent 直读；新增 `kernel/` 提供代码级控制循环。无 UI——通过 `sciforge run` CLI + claude/codex 宿主适配器使用。
 > 吸取对象：ScienceDiscovery(openJiuwen/华为: evolve sidecar、三 shard、评分冻结、probe、skill 冻结包+扩展区、run 状态机、NPU broker)、AI-Scientist v2(PUCT 树、worker 池、token 实测)、EvoScientist(6-agent、自演化 memory、serve/deploy、cron)、DeepScientist(事件可重放、quest-as-git、runner 委托)、STORM(逐角色模型分档、stage 开关断点续跑)、AgentLaboratory(报错历史注入勿重复、best_codes 精英池)。
 

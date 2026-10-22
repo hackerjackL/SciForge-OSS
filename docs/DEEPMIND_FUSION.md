@@ -1,5 +1,7 @@
 # DeepMind 顶级项目融合调研（v1.5.0-w2，最终版）
 
+> **Historical naming note**: this document was written for the 21-phase era. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; the text below is preserved as a historical record.
+
 > 子代理 WebFetch DeepMind 官方博客/论文/GitHub 完成的完整调研。下方为调研全文 +
 > 本项目已落地映射。GNoME 湿实验类确认不适用 kernel。
 

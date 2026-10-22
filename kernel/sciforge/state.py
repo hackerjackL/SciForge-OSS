@@ -4,7 +4,7 @@ The event log (.sciforge/events.ndjson) is the durable truth; RUNSTATE.json is
 a derived snapshot rewritten at every boundary. A crashed run recovers by
 replaying events: status interrupted -> resume from next_action. This mirrors
 ScienceDiscovery's events.ndjson + `interrupted` lifecycle and DeepScientist's
-replayable quest state, but for our 21-phase DAG.
+replayable quest state, but for our 26-node DAG.
 
 Stdlib only. Every event carries: seq, ts, phase, kind, payload.
 """

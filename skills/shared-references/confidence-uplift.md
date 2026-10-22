@@ -23,11 +23,11 @@
 **Workflow**:
 
 ```
-Step 1: Enumerate the derivation's assumptions (from Phase 6 premises.md)
+Step 1: Enumerate the derivation's assumptions (from Phase 6a premises.md)
         → For each: classify current strength {weak|medium|strong}
         → Current strength is judged by how restrictive the assumption is
 
-Step 2: For each assumption blocking the proof (Phase 6 SymPy FAIL or PARTIAL):
+Step 2: For each assumption blocking the proof (Phase 6a SymPy FAIL or PARTIAL):
         → Generate 3 strength variants:
             variant_s: stronger version (more restrictive) — does the proof close?
             variant_m: medium version (current) — current state
@@ -44,7 +44,7 @@ Step 4: Pick the variant with highest optimal_score:
         → If variant_s closes AND scope_score < 0.5: do NOT adopt; flag as "scope loss too severe"
         → If no variant closes: record fundamental_gap, escalate to Mechanism 2 (alternative path)
 
-Step 5: Re-run Phase 6 with tightened assumptions; recompute T dimension
+Step 5: Re-run Phase 6a with tightened assumptions; recompute T dimension
         → Expected lift: T goes from FAIL (0.0) to PARTIAL (0.5) or PASS (1.0) for the affected component
         → TDAL joint uplift estimated: ΔT × D × A × L (downstream unchanged)
 ```
@@ -53,7 +53,7 @@ Step 5: Re-run Phase 6 with tightened assumptions; recompute T dimension
 
 ```
 Problem: convergence of an iterative scheme on Banach spaces
-Phase 6 SymPy FAIL on the original assumption "operator is arbitrary bounded"
+Phase 6a SymPy FAIL on the original assumption "operator is arbitrary bounded"
 Step 1: assumption = "operator is arbitrary bounded" — current strength = weak
 Step 2: variants:
     variant_s: "operator is compact + contraction" → SymPy closes (PASS)
@@ -62,7 +62,7 @@ Step 2: variants:
 Step 3: variant_s strength_score = 1.0, scope_score = 0.7 (compact+contraction ⊂ bounded; still covers most practical uses)
         optimal_score = 1.0 × 0.7 = 0.7
 Step 4: variant_s scope_score 0.7 ≥ 0.5 → adopt
-Step 5: re-run Phase 6 with "operator is compact + contraction"
+Step 5: re-run Phase 6a with "operator is compact + contraction"
         T component sympy_derivation: 0.0 → 1.0; T dimension: 0.4×1.0 + 0.3×1.0 + 0.3×1.0 = 1.0
         TDAL joint uplift: 1.0×0.725×0.80×0.755 = 0.436 (vs 0.0×... = 0.0 before — major lift)
 
@@ -111,7 +111,7 @@ Step 4: Compute hedge uplift:
         → If improvement ≥ 0.2: adopt the surviving alternative path; re-run downstream phases on it
         → If improvement < 0.2: all alternatives weak too; flag as "no alternative path; fundamental grounding limit"
 
-Step 5: Re-run Phase 6/10 on the alternative path; recompute A or D dimension
+Step 5: Re-run Phase 6a/10 on the alternative path; recompute A or D dimension
         → Expected lift: A or D component score rises by improvement
         → TDAL joint uplift: T × ΔD × A × L (or T × D × ΔA × L)
 
@@ -163,14 +163,14 @@ Step 1: Decompose the theory into verification tiers:
         tier-2 (extension-2): second additional assumption
         tier-N (full): all assumptions; corresponds to the full claim
 
-Step 2: Run Phase 6 on tier-0 alone:
+Step 2: Run Phase 6a on tier-0 alone:
         → SymPy on tier-0 premises only → target outcome
         → If tier-0 closes: record tier-0 grounded; ΔT = scope(tier-0) × weight
         → If tier-0 fails: the core is ungrounded; mechanism cannot help — escalate to BLOCK
 
 Step 3: For each subsequent tier k (1, 2, ..., up to budget):
         → Add tier-k premises to the running set
-        → Re-run Phase 6; if closes → tier-k grounded, ΔT += scope(tier-k) × weight
+        → Re-run Phase 6a; if closes → tier-k grounded, ΔT += scope(tier-k) × weight
         → If fails at tier-k → stop progressive verification at tier-(k-1); record tier-k as conjectural
 
 Step 4: Compute progressive T:
@@ -186,7 +186,7 @@ Step 5: Frame the claim as "progressively grounded":
 
 ```
 Problem: stability of a numerical scheme for a class of PDEs
-Phase 6 full proof FAIL — too many coupled assumptions.
+Phase 6a full proof FAIL — too many coupled assumptions.
 Mechanism 1 exhausted (tightest assumption still leaves proof gap).
 Mechanism 2 not applicable (this is T weak, not A/D).
 
@@ -195,9 +195,9 @@ Mechanism 3 Step 1: tiers
     tier-1: extends to nonlinear advection (semi-implicit treatment)
     tier-2: extends to coupled reaction-diffusion (full original claim)
 
-Step 2: Phase 6 on tier-0 → SymPy PASS; T contribution = 0.6 × 1.0 = 0.6 (scope 0.6)
-Step 3: Phase 6 on tier-1 → SymPy PARTIAL (needs one more assumption); T contribution = 0.2 × 0.5 = 0.1
-        Phase 6 on tier-2 → SymPy FAIL; stop at tier-1; record tier-2 conjectural
+Step 2: Phase 6a on tier-0 → SymPy PASS; T contribution = 0.6 × 1.0 = 0.6 (scope 0.6)
+Step 3: Phase 6a on tier-1 → SymPy PARTIAL (needs one more assumption); T contribution = 0.2 × 0.5 = 0.1
+        Phase 6a on tier-2 → SymPy FAIL; stop at tier-1; record tier-2 conjectural
 
 Step 4: T_progressive = 0.6 + 0.1 = 0.7
         TDAL joint = 0.7 × 0.725 × 0.80 × 0.755 = 0.306 → WEAK (lifted from UNSUPPORTED 0.0)
@@ -220,7 +220,7 @@ Phase 10 emits TDAL verdict
 verdict ≤ WEAK → invoke uplift
     ↓
 Round 1: Mechanism 1 (Assumption Strength) — tightens T
-    ↓ re-run Phase 6 + Phase 10 → recompute TDAL
+    ↓ re-run Phase 6a + Phase 10 → recompute TDAL
     → STRONG/MODERATE: stop, success
     → still WEAK: Round 2
     ↓
@@ -230,7 +230,7 @@ Round 2: Mechanism 2 (Alternative Path) — hedges A or D
     → still WEAK: Round 3
     ↓
 Round 3: Mechanism 3 (Progressive Verification) — incremental T
-    ↓ re-run Phase 6 progressively → recompute TDAL
+    ↓ re-run Phase 6a progressively → recompute TDAL
     → STRONG/MODERATE: stop, success
     → still WEAK/UNSUPPORTED: STOP — record final TDAL, escalate to human
     ↓
@@ -289,7 +289,7 @@ Human checkpoint: human may waive further (the 3-round cap is hard; only human c
 - **Uplift is not inflation.** Every lifted dimension MUST have a corresponding scope caveat or alternative-path enumeration in the paper. Lifting T by tightening assumptions reduces scope — the paper MUST say so. Lifting D by alternative dataset — the paper MUST cite the alternative, not the primary. Lifting T progressively — the paper MUST distinguish theorem vs extension vs conjecture.
 - **The 3-round cross-mechanism cap is hard.** No silent retry past Round 3. Only the human can waive — and a waiver is logged in `human_waived: true` with the waiving reason.
 - **UNSUPPORTED after Round 3 → BLOCK.** No amount of uplift drags UNSUPPORTED to publishable. The mechanisms raise the *confidence*; they do not fabricate evidence.
-- **Mechanism order is fixed (1 → 2 → 3).** Mechanism 1 is cheapest (re-run Phase 6 only); Mechanism 2 re-runs Phase 4 too; Mechanism 3 re-runs Phase 6 multiple times. Escalate cost monotonically.
+- **Mechanism order is fixed (1 → 2 → 3).** Mechanism 1 is cheapest (re-run Phase 6a only); Mechanism 2 re-runs Phase 4 too; Mechanism 3 re-runs Phase 6a multiple times. Escalate cost monotonically.
 - **Mixed mechanisms NEVER combine within one round.** Round 1 is Mechanism 1 only; Round 2 is Mechanism 2 only; Round 3 is Mechanism 3 only. This keeps the audit trail legible.
 - **Literature Support (L) dimension is NOT upliftable directly.** L weak means the literature does not support the claim — the only fix is more retrieval (Phase 4 rerun) or reframing. The uplift mechanisms target T/A/D; L weakness triggers a Phase 4 rerun flag, not an uplift mechanism.
 - **The uplift is auditable.** `confidence-uplift-plan.json` is a required artifact; Phase 14 (`/auto-review-loop`) reads it to check whether the uplift was honest (scope caveats present in paper) or inflated (scope caveats missing).
@@ -308,7 +308,7 @@ Human checkpoint: human may waive further (the 3-round cap is hard; only human c
 
 - [`domain-adaptation-contract.md`](domain-adaptation-contract.md) — TDAL 4-dim schema (what uplift raises)
 - [`../support/result-to-claim/SKILL.md`](../support/result-to-claim/SKILL.md) — Phase 10 producer of TDAL (uplift trigger)
-- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6 (re-run by Mechanism 1 and 3)
+- [`../support/theory-derivation/SKILL.md`](../support/theory-derivation/SKILL.md) — Phase 6a (re-run by Mechanism 1 and 3)
 - [`../meta-skills/universal-retrieval/SKILL.md`](../meta-skills/universal-retrieval/SKILL.md) — Phase 4 (re-run by Mechanism 2 alternative-path)
 - [`../support/adversarial-falsification/SKILL.md`](../support/adversarial-falsification/SKILL.md) — Phase 2.5 (alternative path survival check)
-- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — uplift loop integration into the 21-phase pipeline
+- [`../orchestrator/auto-pipeline/SKILL.md`](../orchestrator/auto-pipeline/SKILL.md) — uplift loop integration into the 26-node pipeline

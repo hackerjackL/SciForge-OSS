@@ -42,7 +42,7 @@ version: 1.7.2
    order, figure style, "make it SOTA", "appendix separate", language) as a
    numbered item with its target phase; the ledger is re-read at phases 11,
    12, 13 so demands cannot be forgotten mid-run.
-4. **Routing proposal** — for each of the 21 phases: `inherit` (artifact
+4. **Routing proposal** — for each of the 26 nodes (read `kernel/config/phasegraph.json`): `inherit` (artifact
    arrives trusted and gate-re-derivable), `re-run`, or `skip` (route-N/A).
    Write it to `INTAKE_MANIFEST.json` as `phase_plan`; the orchestrator
    treats it as advisory (a phase marked inherit still executes its gate).
