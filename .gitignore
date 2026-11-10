@@ -72,6 +72,12 @@ tools/
 KILL_ARGUMENT.md
 KILL_ARGUMENT.json
 KILL_ARGUMENT.html
+# The rules above exclude a run-side KILL_ARGUMENT.json by bare filename, which
+# also swallows the e2e fixture's registered verdict of the same name. That
+# verdict is checked-in fixture content (validate_verdicts --require-complete
+# needs all 24), so re-include it. Must come AFTER the bare-filename rule: in
+# gitignore the last match wins.
+!fixtures/e2e_minimal/.sciforge/verdicts/KILL_ARGUMENT.json
 # eval harness (test scaffolding, not shipped)
 scripts/eval/
 .venv/

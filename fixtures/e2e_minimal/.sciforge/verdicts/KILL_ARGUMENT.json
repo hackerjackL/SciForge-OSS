@@ -1,0 +1,49 @@
+{
+  "audit_skill": "kill-argument",
+  "verdict": "PASS",
+  "reason_code": "claim_survives_own_experiments",
+  "summary": "Strongest rejection paragraph and still-unresolved items; claim not refuted by its own experiments.",
+  "audited_input_hashes": {},
+  "trace_path": "refine-logs/KILL_ARGUMENT_trace.md",
+  "reviewer_model": "host-agent",
+  "reviewer_reasoning": "The headline claim is falsifiable and survives the toy+full evidence; no kill argument holds.",
+  "generated_at": "2026-08-09T00:00:00Z",
+  "details": {
+    "attack_memo": "H1 would fail if the core mechanism is confounded by scale.",
+    "decomposed_points": [
+      {
+        "id": "P_1",
+        "label": "scale-confound",
+        "attack_claim": "the effect is just scale",
+        "verdict": "answered_by_current_text",
+        "evidence": "src/experiments/ablation.py:42 \u2014 scale-matched baseline controls the confound",
+        "severity_if_unresolved": "major"
+      },
+      {
+        "id": "P_2",
+        "label": "seed-robustness",
+        "attack_claim": "result is seed luck",
+        "verdict": "answered_by_current_text",
+        "evidence": "experiments/toy/RESULT.json \u2014 3 seeds identical sign",
+        "severity_if_unresolved": "critical"
+      },
+      {
+        "id": "P_3",
+        "label": "regime",
+        "attack_claim": "effect may not extrapolate",
+        "verdict": "partially_answered",
+        "evidence": "derivations/Q001: regime stated but data covers only \u03c1\u2208[0.2,0.8]",
+        "severity_if_unresolved": "minor"
+      }
+    ],
+    "counts": {
+      "answered_by_current_text": 2,
+      "partially_answered": 1,
+      "still_unresolved": 0
+    },
+    "net_assessment": "claim survives; not killed",
+    "top_action_items": [
+      "state regime caveat in Limitations"
+    ]
+  }
+}
