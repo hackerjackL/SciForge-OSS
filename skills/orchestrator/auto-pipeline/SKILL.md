@@ -1,6 +1,6 @@
 ---
 name: auto-pipeline
-version: 1.7.2
+version: 1.7.3
 description: "SciForge-OSS autonomous 26-node research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
@@ -147,8 +147,10 @@ context small and the chain short:
 - **Pointer-load per phase**: a phase loads ONLY its own SKILL.md + the references it
   declares; everything else is a path, never inlined prose (bundle-out/compact-forward per
   methodology-and-context-contract).
-- **Mechanical verdicts via tool, not prose**: gates run through `scripts/sciforge_audit.py`
-  (one call, hard exit code); the model reads the machine verdict instead of re-deriving rules.
+- **Mechanical verdicts via tool, not prose**: gates run through
+  `python3 scripts/gate_all.py {problem_id}` (one call, full battery, one hard exit code;
+  see "Mode A vs Mode B: Guarantee Matrix" below) or `scripts/sciforge_audit.py` for the
+  wrap-up trio; the model reads the machine verdict instead of re-deriving rules.
 - **Single writer per artifact** + schema-enforced verdicts + constraint re-injection at every
   boundary (existing) — the three structural anti-drift layers.
 
@@ -200,6 +202,76 @@ Non-negotiable for OSS runs (esp. multi-round / context-constrained):
 7. **Boundary**: anything out of single-agent scope is written as `deferred` + one-line reason, and the closest valid artifact is emitted — never silently skipped. Human supplies the Q-id; OSS runs exactly one Q-id per invocation.
 
 This section replaces ad-hoc instructions duplicated across skills; the contract file is the single source of truth.
+
+## Mode A vs Mode B: Guarantee Matrix (v1.7.3)
+
+Both modes execute the same 26-node DAG; the enforcement strength differs. In Mode B
+the runtime kernel checks every gate inside `Kernel.commit_boundary()`
+([`pipeline.py`](../../../kernel/sciforge/pipeline.py)) and refuses the state
+transition on failure. Mode A is this skill executed by a host agent: a gate runs
+only when the agent invokes it, and gates whose input is produced only by the kernel
+cannot run at all. [`AGENT_GUIDE.md`](../../../AGENT_GUIDE.md) carries the same matrix
+for humans.
+
+Legend: **Enforced** = failure blocks the transition; **Advisory** = the script
+exists and this contract requires it, but skipping it does not mechanically stop the
+run; **Not in force** = the input artifact is kernel-produced, so the check SKIPs or
+has nothing to inspect.
+
+| Gate / mechanism (source) | Mode B — kernel | Mode A — skills-only |
+|---|---|---|
+| Verdict schema validation ([`validate_verdicts.py`](../../../scripts/validate_verdicts.py)) | Enforced at every boundary; `--strict` from phase 5; `--strict --require-complete` at wrap-up | Advisory; `gate_all.py` runs it |
+| REP plan + off-plan loopback detection ([`rep.py`](../../../kernel/sciforge/rep.py)) | Enforced: compiled at phase 1, `check_plan` on every boundary from phase 2. A fired loopback's `fallback_consumed` result is recorded in the event log — an off-plan loopback is recorded, not blocked | Not in force: nothing compiles `REP.json`; `gate_all.py` reports `rep_plan_present` as UNPROTECTED |
+| Node registry + claim anchors ([`nodes.py`](../../../kernel/sciforge/nodes.py), [`claim_anchor_gate.py`](../../../scripts/claim_anchor_gate.py)) | Enforced: nodes auto-registered after 6b/6c/10, claims anchored after 10, gate run at wrap-up (16) | Not in force: `NODES.json` is never written, so the gate SKIPs; `gate_all.py` reports UNPROTECTED whenever claims or experiment evidence exist |
+| Node fork / resume from a node (`sciforge fork`) | Available (`nodes.fork`) | Not available |
+| Method registry hash lock (`REGISTRY_HASH.txt`) | Enforced at 5 by the `hash` gate (missing/BLOCKED/malformed refuses the boundary) | Advisory: the method-registry skill writes it; `gate_all.py` validates the file in either canonical location |
+| INV-G1 problem anchor (`PROBLEM_HASH.txt`) | Enforced at 9 by `hash_match` against the `problem_hash` frozen in RUNSTATE | Partly protected: the invariant-check skill writes the hash file, but RUNSTATE carries no frozen reference by default, so `gate_all.py` reports `inv_g1` as UNPROTECTED unless the workspace records one |
+| Security scan of agent scripts ([`security_scan.py`](../../../scripts/security_scan.py)) | Enforced at 6b/6c over `src/**/*.py` + `experiments/**/*.py`; a BLOCKED-class finding refuses the boundary | Advisory; `gate_all.py` runs the same scan |
+| Dependency allowlist ([`dep_gate.py`](../../../scripts/dep_gate.py)) | Enforced at 6b/6c | Advisory; `gate_all.py` |
+| Pre-execution integrity monitor ([`monitor.py`](../../../kernel/sciforge/s2/monitor.py), [`s2_integrity_gate.py`](../../../scripts/s2_integrity_gate.py)) | Enforced at 6b/6c; the semantic D1 tier runs only when a provider gateway is configured | Advisory: the CLI runs the deterministic D2/D3 core; D1 needs `--strict-llm` and configured providers (`gate_all.py --integrity-llm`) |
+| Smoke gate ([`smoke_gate.py`](../../../scripts/smoke_gate.py)) | Enforced at 6c | Advisory; `gate_all.py` |
+| Subset→full ladder ([`s2_ladder_gate.py`](../../../scripts/s2_ladder_gate.py)) | Enforced at 6c | Advisory; `gate_all.py` |
+| Ablation ledger ([`s2_ablation_gate.py`](../../../scripts/s2_ablation_gate.py)) | Enforced at 10 | Advisory; `gate_all.py` |
+| Certified-interval claims ([`arb_verify.py`](../../../scripts/arb_verify.py)) | Enforced at 10 | Advisory; `gate_all.py` |
+| TDAL score ([`tdal_compute.py`](../../../scripts/tdal_compute.py)) | Not a gate: the kernel never invokes it | Not a gate; `gate_all.py` reports it as INFO |
+| Figure embedding + renderer audit ([`check_figure_embedding.py`](../../../scripts/check_figure_embedding.py)) | Enforced at 11 | Advisory; `gate_all.py` |
+| Figure presentation ([`figure_style_gate.py`](../../../scripts/figure_style_gate.py)) | Enforced at 11 | Advisory; `gate_all.py` |
+| Quality-gate marker (`QUALITY_GATE.json`) | Enforced at 12 (a missing marker FAILs the boundary) | Advisory: the agent must write the marker; `gate_all.py` checks presence |
+| Fantasy-prevention ([`fantasy_gate.py`](../../../scripts/fantasy_gate.py)) | Enforced at 12 | Advisory; `gate_all.py` |
+| Pipeline-leakage scrub ([`leakage_scan.py`](../../../scripts/leakage_scan.py)) | Enforced at 13 (classes A–L, writes `LEAKAGE_SCRUB.json`) | Advisory; `gate_all.py` |
+| Compile audit (`PAPER_COMPILE.json` + `LEAKAGE_SCRUB.json`) | Enforced at 13; compile warnings are hard only under `discipline=strict`, disclosed under balanced/lean | Advisory: the agent must write the marker; `gate_all.py` re-checks the same conditions |
+| Citation-audit marker (`CITATION_AUDIT.json`) | Enforced at 15 | Advisory; `gate_all.py` checks presence |
+| Sentence-level citation support ([`citation_support.py`](../../../scripts/citation_support.py)) | Enforced at 15 | Advisory; `gate_all.py` |
+| DOI resolution ([`doi_gate.py`](../../../scripts/doi_gate.py)) | Enforced at 15 (network resolution; unresolved entries are dropped) | Advisory; `gate_all.py` (`--offline` is structure-only and weaker) |
+| Fairness ledger ([`fairness_gate.py`](../../../scripts/fairness_gate.py)) | Enforced at 15.5 (exit 3 = no ledger → SKIP). Cross-validation of split hashes / seed counts / budget against raw evidence is always in force, because RUNSTATE and the event log exist | Advisory; `gate_all.py`. With no co-located raw evidence (`scope=ledger_only`) the cross-validation layer cannot run, so `gate_all.py` reports UNPROTECTED instead of PASS |
+| Submission readiness ([`submission_ready.py`](../../../scripts/submission_ready.py)) | Enforced at 15.5: READY/MINOR_REV pass (exit 0); MAJOR_REV (exit 1 → WARN) **and** NOT_READY (exit 2 → FAIL) both block the boundary, since WARN is not in the pass set {PASS, SKIP, NOT_APPLICABLE} | Same tiers; `gate_all.py` fails on both MAJOR_REV and NOT_READY so the two modes cannot disagree about submittability |
+| Wrap-up completeness (`s2_audit`, `workspace_hygiene`, `completion_gate`, `claim_anchor`) | Enforced at 16 (`wrap_up_gates`) | Advisory; `gate_all.py` |
+| Single-entry mechanical audit ([`sciforge_audit.py`](../../../scripts/sciforge_audit.py)) | Not part of `commit_boundary` — the wrap-up `pipeline_audit` entry is deferred to the host; runnable via `sciforge gate wrapup` | Advisory; `gate_all.py` |
+| Hard-constraint re-injection at every boundary ([`bundle.py`](../../../kernel/sciforge/bundle.py)) | Enforced: every phase bundle ends with a verbatim recitation computed from live state | Not present: constraints live in this SKILL.md and the shared references |
+| Human checkpoints (idea pick, method approval, KILL) | Code: `Approvals`, `APPROVAL_LOG.txt`, RUNSTATE `paused_checkpoint` | Prose: the agent writes the same records and honors `human_skip` / `test_mode` |
+| 3-round fallback cap | Code: counted from the event log (`Kernel._round_count`) | Prose: the agent counts |
+| Run budget ledger (`RUN_BUDGET.json`) | Code: `init_budget` / `accrue` / `breach` at boundaries | Prose: the agent writes and checks the ledger |
+| Event-sourced resume | Code: `events.ndjson` replay (`state.recover`) | Prose: `RUNSTATE.json` is the only cursor |
+
+### Running the gates in Mode A
+
+1. Run `python3 scripts/gate_all.py {problem_id}` at every phase boundary. It runs
+   every gate that applies, preserves each gate's own SKIP / NOT_APPLICABLE
+   semantics (theory-only routes are not failed by experiment gates), and exits
+   non-zero on any FAIL / BLOCKED / ERROR.
+2. Read the `UNPROTECTED` block: those rows are guarantees that are NOT in force
+   for this run (claim anchors, REP plan compliance). Treat the run as
+   correspondingly weaker, or move to Mode B.
+3. Use `--json` when a downstream step consumes the report, `--only` / `--skip`
+   for targeted re-checks, `--offline` to skip DOI network resolution.
+4. Before declaring completion, run the battery with the workspace cursor at
+   phase 16; the wrap-up rows (`completion_gate`, `workspace_hygiene`, `s2_audit`,
+   `claim_anchor`) are the ones the kernel would enforce at that boundary.
+
+`gate_all.py` is a `scripts/` tool, not part of the skill library: the Markdown
+skills remain executable without a Python environment, at the lower assurance
+level this matrix documents. The tool reports; it cannot prevent an agent from
+advancing — only Mode B's `commit_boundary()` does that.
 
 ```
 Phase  0: load problem (freeze Q-id — INV-G1 anchor)
@@ -293,7 +365,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | Phase | Gate condition | On failure |
 |------|---------|---------|
 | 0 | Q-id is clear, well-posed, and comes from the human prompt | Ask the user to clarify the Q-id; do **not** auto-search the problem index |
-| 1 | Problem decomposes into formal statements + **v1.7.2 kernel compiles REP.json** (staged objectives + per-phase fallback conditions; `kernel/sciforge/rep.py` — SCION REP adapted) | Ask the user to clarify the problem boundary; a phase-2+ boundary without REP.json fails `rep_plan_present` |
+| 1 | Problem decomposes into formal statements + **v1.7.2 kernel compiles REP.json** (staged objectives + per-phase fallback conditions; `kernel/sciforge/rep.py` — SCION REP adapted). This is a Mode B guarantee: Mode A has no REP compiler, and `gate_all.py` reports `rep_plan_present` as UNPROTECTED | Ask the user to clarify the problem boundary; in Mode B a phase-2+ boundary without REP.json fails `rep_plan_present` |
 | 2 | At least 1 idea generated (MCTS converges) | Relax perspectives and re-evaluate; further failure escalates to BLOCKED |
 | 2.5 | Falsification attack: assumption health ≥ 6 OR no counterexample | WEAKENED → fall back to Phase 2 and regenerate; FALSIFIED → eliminated (record reason) |
 | 2.5b | Engineering Grounding report output (pipeline Phase 2.5b): ENGINEERING_GROUNDING.md generated | Required output only for HEAVY/CONSTRAINED; BLOCKED eliminates (sub-dimension = 0)
@@ -314,7 +386,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 13 | LaTeX compiles zero-warning zero-error (submission grade) | Anti-deadloop ladder: 3 attempts per-warning → BLOCKED + reason_code |
 | 14 | Cross-model review score ≥ 6/10 (boundary floor) + **v1.7 calibrated score ≥ 8 drives the ScientistTwo rebuttal loop** (score < 8 ⇒ `REBUTTAL_PLAN.json`, real supplementary experiments, ≤2 rounds, then Meta-Review {ACCEPT\|REFINE} — [s2-protocol.md §4](../../shared-references/s2-protocol.md)) + kill-argument anti-self-deception PASS | Score < 6 falls back to Phase 6 (max 4 rounds); score ∈ [6,8) ⇒ execute the rebuttal plan and re-review (wording-only = round_invalid); anti-self-deception FAIL falls back to Phase 10; **kill-argument holds (claim refuted by its own experiments) → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
 | 15 | All references pass the 3-layer anti-hallucination verification | Fail → delete fabricated references + fall back to Phase 4 and re-search |
-| 16 | Artifact archive complete + **v1.7 s2_completeness_audit PASS** (`AUDIT_TRAIL.json`: gain arithmetic + split discipline + method↔code parity ≥80% — [s2-protocol.md §6](../../shared-references/s2-protocol.md)) | Missing artifact → fall back to the relevant phase; audit FAIL → fix the arithmetic/split/parity defect (`scripts/s2_audit.py <ws>` names it) |
+| 16 | Artifact archive complete + **v1.7 s2_completeness_audit PASS** (`AUDIT_TRAIL.json`: gain arithmetic + split discipline + method↔code parity ≥80% — [s2-protocol.md §6](../../shared-references/s2-protocol.md)); claim anchors are checked here in Mode B (Mode A: `gate_all.py` reports UNPROTECTED because `NODES.json` is kernel-produced) | Missing artifact → fall back to the relevant phase; audit FAIL → fix the arithmetic/split/parity defect (`scripts/s2_audit.py <ws>` names it) |
 
 ## Fallback Contract (Bounded 3 Rounds, Universal)
 
@@ -439,7 +511,7 @@ The overall pipeline verdict = the **worst** verdict across all 26 nodes: `ERROR
 2. **Loop-backs must change state**: a phase re-entered via loop-back must consume the evidence of the previous failure (failed_ideas.json / KILL_ARGUMENT.json / the response_class from REVIEW_STATE.json) — re-running the same input unchanged is forbidden (anti-deadloop)
 3. **KILL paths must go through kill-argument**: any "switch idea" decision must first produce KILL_ARGUMENT.json (.sciforge/verdicts/) — switching ideas without a kill argument is drift, not stop-loss (the INV-G1 content hash will intercept it)
 4. **BA budget is globally shared**: the three BA trigger points L7/L9/L11 share a total budget of ≤2 rounds (from v5.3, accounted in `ba_rounds_used`/`ba_rounds_max` of `.sciforge/verdicts/RUN_BUDGET.json`; the old `.sciforge/verdicts/BA_BUDGET.json` is a read-only fallback) — not 2 rounds each — preventing three BAs from stacking into 6 idle rounds
-5. **Off-plan loopbacks are contract violations (v1.7.2)**: phase 1 compiles `REP.json` declaring each phase's fallback condition; when a loopback fires, the kernel checks `rep.fallback_consumed` — a loopback not declared in the REP fallbacks is logged as `rep_fallback: FAIL` (an improvising recovery is the failure class the REP exists to kill; fix the plan or the code, never the log).
+5. **Off-plan loopbacks are contract violations (v1.7.2)**: phase 1 compiles `REP.json` declaring each phase's fallback condition; when a loopback fires, the kernel checks `rep.fallback_consumed` — a loopback not declared in the REP fallbacks is logged as `rep_fallback: FAIL` (an improvising recovery is the failure class the REP exists to kill; fix the plan or the code, never the log). This is a Mode B mechanism; Mode A has no compiled plan (see the guarantee matrix above).
 6. **KILL requires a human checkpoint (v5.3, default ON)**: on any KILL path (L5/L7/L9/L11/L13), after the kill-argument produces `.sciforge/verdicts/KILL_ARGUMENT.json` and before returning to Phase 2 to regenerate ideas, the orchestrator must pause and present the kill-argument summary to the human, awaiting confirmation; fully automatic only when the invocation carries `kill_checkpoint=false` or `human_skip=true`. The checkpoint record is written to `.sciforge/APPROVAL_LOG.txt` (see the Boundaries section)
 
 ## Global Run Budget Ledger (v5.3 — RUN_BUDGET.json)

@@ -10,11 +10,22 @@ Stdlib only. Every event carries: seq, ts, phase, kind, payload.
 """
 from __future__ import annotations
 
+import atexit
 import hashlib
 import json
 import os
+import secrets
+import socket
+import subprocess
+import sys
+import threading
 import time
 from pathlib import Path
+
+try:  # POSIX advisory locks; the primary atomicity mechanism
+    import fcntl as _fcntl
+except ImportError:  # Windows
+    _fcntl = None
 
 
 def sha256_file(path: Path) -> str:
@@ -138,47 +149,420 @@ class RunState:
         return rs
 
 
-def holder_alive(ws: Path) -> bool:
-    """Kernel lockfile = crash detector (schema-safe: no new RUNSTATE status values)."""
-    lock = ws / ".sciforge" / "kernel.lock"
-    if not lock.exists():
+# ---------------- kernel lock (atomic, pid-reuse safe) ----------------
+#
+# v1.7.3 defect-3 fix. The old lock was a pid file probed with os.kill(pid, 0):
+# (a) a dead holder's pid can be reused by an unrelated process -> a false
+# "alive", and (b) two processes could both pass recover() before either
+# wrote the file (TOCTOU). The lock is now an OS advisory lock (fcntl.flock on
+# POSIX) held for the lifetime of the owning process, with an in-file JSON
+# identity (pid + process start time + random nonce) so a probe can detect pid
+# reuse. Stale files are harmless: correctness comes from the OS lock, never
+# from the file's existence. Plain-pid files written by v1.7.2 or earlier are
+# still understood (pid probe) for crash recovery. On Windows (no fcntl) the
+# degraded path is O_CREAT|O_EXCL creation + the same pid/start identity.
+
+LOCK_FILENAME = "kernel.lock"
+
+
+class LockHeldError(RuntimeError):
+    """Another live process already owns this workspace's kernel lock."""
+
+
+_lock_registry: dict[str, dict] = {}
+_registry_guard = threading.Lock()
+
+
+def _lock_path(ws: Path) -> Path:
+    return Path(ws) / ".sciforge" / LOCK_FILENAME
+
+
+def pid_alive(pid: int | None) -> bool:
+    """Cross-platform liveness probe. os.kill(pid, 0) is NOT safe on Windows
+    (CPython maps any non-console signal to TerminateProcess — probing would
+    kill the target), so Windows uses OpenProcess+WaitForSingleObject."""
+    if pid is None:
         return False
     try:
-        pid = int(lock.read_text().strip())
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if pid <= 0:
+        return False
+    if sys.platform.startswith("win"):
+        return _win_pid_alive(pid)
+    try:
         os.kill(pid, 0)  # 0 = liveness probe, sends nothing
-        return True
-    except (ValueError, ProcessLookupError, PermissionError):
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists but owned by another user
+    except OSError:
+        return False
+    return True
+
+
+def _win_pid_alive(pid: int) -> bool:
+    try:
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenProcess.restype = wintypes.HANDLE
+        k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        k32.WaitForSingleObject.restype = wintypes.DWORD
+        k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        k32.CloseHandle.argtypes = [wintypes.HANDLE]
+        SYNCHRONIZE = 0x00100000
+        handle = k32.OpenProcess(SYNCHRONIZE, False, pid)
+        if not handle:
+            return False
+        try:
+            return k32.WaitForSingleObject(handle, 0) == 0x102  # WAIT_TIMEOUT
+        finally:
+            k32.CloseHandle(handle)
+    except Exception:
         return False
 
 
-def take_lock(ws: Path):
-    (ws / ".sciforge" / "kernel.lock").write_text(str(os.getpid()))
+def proc_start_time(pid: int) -> str | None:
+    """Stable identity for a pid (defeats pid reuse). Linux: /proc starttime;
+    macOS/BSD: `ps -o lstart=`; Windows: GetProcessTimes via ctypes. Returns
+    None when the platform cannot answer — callers then fall back to the OS
+    lock (POSIX) or a pessimistic pid check."""
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return None
+    if pid <= 0:
+        return None
+    if sys.platform.startswith("win"):
+        return _win_proc_start(pid)
+    stat = Path(f"/proc/{pid}/stat")
+    if stat.exists():
+        try:
+            raw = stat.read_text()
+            # comm (field 2) may contain spaces/parens -> split after last ')'
+            rest = raw[raw.rfind(")") + 2:]
+            return rest.split()[19]  # field 22 = starttime
+        except (OSError, IndexError):
+            return None
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "lstart=", "-p", str(pid)],
+            capture_output=True, text=True, timeout=5,
+            env={**os.environ, "LC_ALL": "C", "LANG": "C"})
+        if out.returncode == 0 and out.stdout.strip():
+            return out.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+def _win_proc_start(pid: int) -> str | None:
+    try:
+        import ctypes
+        from ctypes import wintypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenProcess.restype = wintypes.HANDLE
+        k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        k32.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+        k32.CloseHandle.argtypes = [wintypes.HANDLE]
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        handle = k32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not handle:
+            return None
+        try:
+            creation, exit_, kernel, user = (wintypes.FILETIME() for _ in range(4))
+            ok = k32.GetProcessTimes(handle, ctypes.byref(creation), ctypes.byref(exit_),
+                                     ctypes.byref(kernel), ctypes.byref(user))
+            if not ok:
+                return None
+            return str((creation.dwHighDateTime << 32) | creation.dwLowDateTime)
+        finally:
+            k32.CloseHandle(handle)
+    except Exception:
+        return None
+
+
+def _read_lock_file(lock: Path) -> tuple[str | None, object]:
+    """-> (kind, data): ('json', dict) | ('legacy', raw text) | (None, None)."""
+    try:
+        raw = lock.read_text()
+    except OSError:
+        return None, None
+    raw = raw.strip()
+    if not raw:
+        return "json", {}
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return "legacy", raw
+    if isinstance(data, dict):
+        return "json", data
+    return "legacy", raw
+
+
+def _flock_probe(lock: Path) -> bool | None:
+    """Definitive POSIX probe: True = some live process holds the OS lock.
+    None = unsupported platform."""
+    if _fcntl is None:
+        return None
+    try:
+        fd = os.open(lock, os.O_RDWR)
+    except OSError:
+        return None
+    try:
+        try:
+            _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+        except OSError:
+            return True
+        try:
+            _fcntl.flock(fd, _fcntl.LOCK_UN)
+        except OSError:
+            pass
+        return False
+    finally:
+        os.close(fd)
+
+
+def holder_alive(ws: Path) -> bool:
+    """True only when a *live* process owns the workspace kernel lock.
+
+    New-format locks validate pid + process start time (pid reuse => False);
+    when identity is unavailable the OS flock probe is authoritative. Legacy
+    bare-pid files keep the old pid probe so pre-v1.7.3 crash recovery and its
+    regression tests behave identically."""
+    lock = _lock_path(ws)
+    kind, data = _read_lock_file(lock)
+    if kind is None:
+        return False
+    if kind == "legacy":
+        try:
+            pid = int(str(data).split()[0])
+        except (ValueError, IndexError):
+            probe = _flock_probe(lock)
+            return bool(probe) if probe is not None else False
+        return pid_alive(pid)
+    if not isinstance(data, dict) or data.get("released"):
+        return False
+    pid = data.get("pid")
+    if not isinstance(pid, int) or not pid_alive(pid):
+        return False
+    stored_start = data.get("start")
+    if stored_start is not None:
+        actual = proc_start_time(pid)
+        if actual is not None:
+            return str(actual) == str(stored_start)
+    probe = _flock_probe(lock)
+    if probe is not None:
+        return probe
+    return True  # pid alive, identity unverifiable on this platform
+
+
+def lock_owned_by_this_process(ws: Path) -> bool:
+    key = str(Path(ws).resolve())
+    with _registry_guard:
+        rec = _lock_registry.get(key)
+    if rec is None:
+        return False
+    if rec.get("fd") is not None:
+        return True  # the OS lock cannot be held by anyone else
+    kind, data = _read_lock_file(_lock_path(ws))
+    return (kind == "json" and isinstance(data, dict)
+            and data.get("nonce") == rec.get("nonce"))
+
+
+def _payload(nonce: str) -> dict:
+    return {"pid": os.getpid(), "nonce": nonce,
+            "start": proc_start_time(os.getpid()),
+            "host": socket.gethostname(), "acquired_at": time.time(),
+            "lock_version": 2}
+
+
+def _write_payload(fd: int, payload: dict) -> None:
+    os.ftruncate(fd, 0)
+    os.lseek(fd, 0, os.SEEK_SET)
+    os.write(fd, json.dumps(payload).encode())
+    os.fsync(fd)
+
+
+def take_lock(ws: Path) -> dict:
+    """Atomically acquire the workspace lock (raises LockHeldError on a live
+    holder). Reentrant for the same process+workspace: the held fd is reused.
+    Returns the lock payload (pid/nonce/start) for diagnostics."""
+    ws = Path(ws)
+    lock = _lock_path(ws)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    key = str(ws.resolve())
+    with _registry_guard:
+        existing = _lock_registry.get(key)
+    if existing is not None:
+        payload = _payload(existing["nonce"])
+        if existing.get("fd") is not None:
+            _write_payload(existing["fd"], payload)
+        return payload
+    if _fcntl is not None:
+        return _take_flock(ws, lock, key)
+    return _take_exclusive(ws, lock, key)
+
+
+def _take_flock(ws: Path, lock: Path, key: str) -> dict:
+    for _ in range(8):
+        fd = os.open(lock, os.O_RDWR | os.O_CREAT, 0o644)
+        try:
+            _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+        except OSError:
+            os.close(fd)
+            raise LockHeldError(
+                f"workspace {ws} is locked by another live kernel process")
+        # unlink-vs-lock race: the path may have been replaced while we waited
+        try:
+            st = os.stat(lock)
+        except FileNotFoundError:
+            os.close(fd)
+            continue
+        fst = os.fstat(fd)
+        if (st.st_dev, st.st_ino) != (fst.st_dev, fst.st_ino):
+            os.close(fd)
+            continue
+        nonce = secrets.token_hex(16)
+        payload = _payload(nonce)
+        try:
+            _write_payload(fd, payload)
+        except OSError:
+            os.close(fd)
+            raise
+        with _registry_guard:
+            _lock_registry[key] = {"fd": fd, "nonce": nonce, "pid": os.getpid()}
+        return payload
+    raise LockHeldError(f"workspace {ws}: lock file replaced during acquisition")
+
+
+def _take_exclusive(ws: Path, lock: Path, key: str) -> dict:
+    """Windows/degraded path: O_CREAT|O_EXCL is the atomic primitive; stale
+    files are reclaimed only when no live holder is detected."""
+    nonce = secrets.token_hex(16)
+    payload = _payload(nonce)
+    for _ in range(4):
+        try:
+            fd = os.open(lock, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        except FileExistsError:
+            if holder_alive(ws):
+                raise LockHeldError(
+                    f"workspace {ws} is locked by another live kernel process")
+            try:
+                lock.unlink()
+            except FileNotFoundError:
+                pass
+            continue
+        try:
+            os.write(fd, json.dumps(payload).encode())
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        with _registry_guard:
+            _lock_registry[key] = {"fd": None, "nonce": nonce, "pid": os.getpid()}
+        return payload
+    raise LockHeldError(f"workspace {ws}: could not acquire lock after stale-file retries")
 
 
 def release_lock(ws: Path):
+    """Release only OUR lock (never a successor's). Unlink happens before the
+    fd close so a racing opener detects the inode swap and retries."""
+    ws = Path(ws)
+    lock = _lock_path(ws)
+    key = str(ws.resolve())
+    with _registry_guard:
+        rec = _lock_registry.pop(key, None)
+    if rec is None:
+        kind, data = _read_lock_file(lock)
+        if kind == "json" and isinstance(data, dict):
+            if data.get("pid") != os.getpid():
+                return
+        elif kind == "legacy":
+            if str(data).strip() != str(os.getpid()):
+                return
+        try:
+            lock.unlink()
+        except FileNotFoundError:
+            pass
+        return
+    kind, data = _read_lock_file(lock)
+    ours = (kind == "json" and isinstance(data, dict)
+            and data.get("nonce") == rec.get("nonce"))
+    if ours:
+        try:
+            lock.unlink()
+        except FileNotFoundError:
+            pass
+    if rec.get("fd") is not None:
+        try:
+            os.close(rec["fd"])
+        except OSError:
+            pass
+
+
+def _close_registry_fds():  # pytest/daemon process teardown hygiene
+    with _registry_guard:
+        recs = list(_lock_registry.values())
+        _lock_registry.clear()
+    for rec in recs:
+        if rec.get("fd") is not None:
+            try:
+                os.close(rec["fd"])
+            except OSError:
+                pass
+
+
+atexit.register(_close_registry_fds)
+
+
+def _claim_or_owned(ws: Path) -> bool:
+    if lock_owned_by_this_process(ws):
+        return True
     try:
-        (ws / ".sciforge" / "kernel.lock").unlink()
-    except FileNotFoundError:
-        pass
+        take_lock(ws)
+        return True
+    except LockHeldError:
+        return False
 
 
 def recover(log: EventLog, rs: RunState, ws: Path) -> str:
     """Startup recovery protocol. Returns: fresh | resume | completed | wait.
 
-    Process death mid-run => lockfile orphaned => `running` status is stale,
-    replay decides the resume point (dangling boundaries are redone). Mirrors
-    SciDis: `interrupted` runs recover after process failure; DeepScientist:
-    events are replayable, so the log outranks any snapshot.
+    Process death mid-run => stale lock => `running` status is stale, replay
+    decides the resume point (dangling boundaries are redone). The lock is now
+    claimed atomically BEFORE any state/log mutation, so two processes racing
+    on the same crashed workspace cannot both return "resume" (the second gets
+    "wait"). Mirrors SciDis: `interrupted` runs recover after process failure;
+    DeepScientist: events are replayable, so the log outranks any snapshot.
     """
+    ws = Path(ws)
     if not rs.data:
-        return "fresh"
+        return "fresh" if _claim_or_owned(ws) else "wait"
     if rs.status in ("completed", "killed"):
         return "completed"
+
+    owned = lock_owned_by_this_process(ws)
+    alive = owned or holder_alive(ws)
+
     if rs.status == "paused_checkpoint" and not Approvals_pending(ws):
         # human decided elsewhere (approve wrote the log); resume into running
+        if alive and not owned:
+            return "wait"
+        if not owned and not _claim_or_owned(ws):
+            return "wait"
         rs.status = "running"
         rs.write()
-    if rs.status == "running" and not holder_alive(ws):
+        return "resume"
+
+    if rs.status == "running":
+        if owned:
+            return "resume"  # reentrant resume inside the owning process
+        if alive:
+            return "wait"  # another kernel owns this workspace
+        if not _claim_or_owned(ws):
+            return "wait"  # lost the race against another recovering process
         last = log.replay()
         uncommitted = [e for e in last if e["kind"] == "phase_done"]
         committed = {e["payload"].get("phase") for e in last if e["kind"] == "boundary_committed"}
@@ -188,12 +572,52 @@ def recover(log: EventLog, rs: RunState, ws: Path) -> str:
         log.emit(rs.data.get("current_phase", "?"), "recovered",
                  {"from": "crash", "dangling_boundaries": dangling})
         return "resume"
-    if holder_alive(ws) and rs.status == "running":
-        return "wait"  # another kernel owns this workspace
+
+    # paused_blocked / created / other intermediate states
+    if alive and not owned:
+        return "wait"
+    if not owned and not _claim_or_owned(ws):
+        return "wait"
     return "resume"
 
 
+def open_checkpoint_requests(ws: Path) -> dict[str, dict]:
+    """Kernel-issued checkpoint requests that are still open, from the event
+    ledger (the durable truth). A request is cleared only by a later
+    checkpoint_cleared / checkpoint_skipped for the same checkpoint; when both
+    carry an epoch nonce they must match. Deleting or forging the mutable
+    PENDING_APPROVAL file therefore cannot clear a real request."""
+    out: dict[str, dict] = {}
+    try:
+        events = EventLog(ws).replay()
+    except Exception:
+        return out
+    for ev in events:
+        kind = ev.get("kind")
+        pl = ev.get("payload") or {}
+        ck = pl.get("checkpoint")
+        if not ck:
+            continue
+        ck = str(ck)
+        if kind == "checkpoint_requested":
+            out[ck] = ev
+        elif kind in ("checkpoint_cleared", "checkpoint_skipped"):
+            cur = out.get(ck)
+            if cur is None:
+                continue
+            cur_nonce = (cur.get("payload") or {}).get("nonce")
+            ev_nonce = pl.get("nonce")
+            if cur_nonce and ev_nonce and cur_nonce != ev_nonce:
+                continue  # a different epoch's clear
+            out.pop(ck, None)
+    return out
+
+
 def Approvals_pending(ws: Path) -> bool:
+    """Fail-closed: a kernel-issued request that was never cleared keeps the
+    run blocked even if its approval file was deleted or hand-edited."""
+    if open_checkpoint_requests(ws):
+        return True
     d = Path(ws) / ".sciforge" / "approvals"
     if not d.exists():
         return False

@@ -110,6 +110,20 @@ class Kernel:
         except Exception:
             return None
 
+    # Gate scripts invoked by the kernel write these auxiliary verdict files
+    # into verdicts/; they are not registered artifacts (validate_verdicts
+    # --strict WARNs on unknown JSON).
+    GATE_SIDE_VERDICTS = ("DOI_GATE.json", "SUBMISSION_READY.json")
+
+    def _quarantine_gate_side_verdicts(self) -> None:
+        vd = self.ws / ".sciforge" / "verdicts"
+        ad = self.ws / ".sciforge" / "audits"
+        for name in self.GATE_SIDE_VERDICTS:
+            p = vd / name
+            if p.exists():
+                ad.mkdir(parents=True, exist_ok=True)
+                os.replace(p, ad / name)
+
     def _declare_na(self, filename: str) -> None:
         """Append a legitimately-skipped verdict file to VERIFICATION_ROUTING.na_verdicts."""
         rp = self.ws / ".sciforge" / "verdicts" / "VERIFICATION_ROUTING.json"
@@ -149,6 +163,19 @@ class Kernel:
     def _round_count(self, loopback_id: str) -> int:
         return sum(1 for e in self.log.replay()
                    if e["kind"] == "loopback" and e["payload"].get("id") == loopback_id)
+
+    def _gate_retry_count(self, pid: str) -> int:
+        """Retry rounds for a REJECTED boundary gate, counted from the event
+        log (never from memory, same crash-safe rule as loopback budgets).
+
+        v1.7.3 fix (found by the mock-host e2e harness): the retry cap used
+        `_round_count(f"gate_{pid}")`, but `_round_count` only counts
+        `loopback` events, while gate retries emit `gate_retry` — so the cap
+        never incremented and a persistently failing boundary gate looped
+        forever instead of blocking at 3 rounds.
+        """
+        return sum(1 for e in self.log.replay()
+                   if e["kind"] == "gate_retry" and e["phase"] == pid)
 
     def _ba_used(self) -> int:
         return self.budget.get("ba_rounds_used", 0)
@@ -221,12 +248,35 @@ class Kernel:
                 self._declare_na(art)
         else:
             for g in ph.get("gates", [ph["gate"]] if ph.get("gate") else []):
+                # phase 16 declares wrap_up_gates as its phase gate AND
+                # commit_boundary appends it below (once, after the final
+                # status transition). Run it only once, there.
+                if (pid == "16" and g.get("check") == "command"
+                        and g.get("cmd") == "wrap_up_gates"):
+                    continue
                 results.append(gates_mod.check(self.ws, g, pid))
+        # Kernel-invoked gate scripts write two auxiliary verdict files
+        # (DOI_GATE.json, SUBMISSION_READY.json) into verdicts/ that are NOT
+        # part of the registered artifact set. validate_verdicts --strict (from
+        # phase 5) treats them as WARN => the boundary that just ran the gate
+        # would reject itself. They are gate telemetry, not registered
+        # verdicts: move them to audits/ (preserved, auditable) before the
+        # strict validation below.
+        self._quarantine_gate_side_verdicts()
         # every boundary: registered verdicts validation (strict from phase 5)
         strict = _ord(ph) >= 5
         results.append(gates_mod.validate_verdicts(self.ws, strict=strict))
         # wrap-up gates at 16
         if pid == "16":
+            # completion_gate (inside wrap_up_gates) asserts RUNSTATE.status ==
+            # "completed" — but that transition IS this boundary. Evaluate the
+            # final gates against the post-boundary status, and roll back to
+            # the in-progress status if any gate rejects (the boundary is then
+            # NOT committed, so the run is rightly still running).
+            if self.rs.status != "completed":
+                self._pre_final_status = self.rs.status
+                self.rs.status = "completed"
+                self.rs.write()
             results.append(gates_mod.wrap_up_gates(self.ws))
         # anything that is not a clean pass/skip blocks the boundary
         # (PENDING = host has not produced the machine verdict yet — v1.4.0's
@@ -234,9 +284,15 @@ class Kernel:
         failed = [r for r in results if r.get("status") not in ("PASS", "SKIP", "NOT_APPLICABLE")]
         self.log.emit(pid, "gates", {"results": results})
         if failed:
+            if getattr(self, "_pre_final_status", None) is not None:
+                self.rs.status = self._pre_final_status
+                self.rs.write()
+                del self._pre_final_status
             # boundary NOT committed: phase stays in progress; record gate failure
             self.log.emit(pid, "gate_rejected", {"failed": failed})
             return {"committed": False, "failed": failed}
+        if getattr(self, "_pre_final_status", None) is not None:
+            del self._pre_final_status
         dur = time.time() - self.rs.data.get("phase_started_at", time.time())
         b = accrue(self.ws, phase=pid, cost_usd=v.cost_usd, duration_s=dur)
         br = breach(b)
@@ -334,6 +390,8 @@ class Kernel:
             if host in ("claude", "codex"):
                 ph["_host"] = host
                 return self._dispatch_host_bg(pid, ph, bundle)
+            if host == "mock":
+                return self._dispatch_mock(pid, ph, bundle)
             return self._dispatch_host_file(pid, bundle)  # manual: wait for done.json
         except DispatchError as e:
             self.log.emit(pid, "dispatch_error", {"error": str(e)})
@@ -418,6 +476,69 @@ class Kernel:
         return Verdict("BLOCKED", reason_code=f"await_host:{pid}",
                        notes=f"{binname} dispatched for phase {pid}")
 
+    def _dispatch_mock(self, pid, ph, bundle: Path) -> Verdict:
+        """Scripted fake host (v1.7.3): no LLM, no subprocess, real state machine.
+
+        The script file (``SCIFORGE_MOCK_SCRIPT`` or
+        ``<ws>/.sciforge/host/mock_script.json``) maps a phase id to a response:
+
+            {"verdict": "PASS", "artifacts": [...], "notes": "...",
+             "cost_usd": 0.0, "reason_code": "",
+             "files": {"relative/path": <str | dict | list>, ...},
+             "remove": ["relative/path", ...]}
+
+        A response may also be a LIST, consumed in order on repeated visits to
+        the same phase (loopback re-entry). ``"*"`` is the fallback entry.
+        Declared files are written BEFORE the boundary gates run, so the real
+        gates validate real artifact shapes; nothing here bypasses a gate.
+        """
+        script_path = Path(os.environ.get(
+            "SCIFORGE_MOCK_SCRIPT",
+            self.ws / ".sciforge" / "host" / "mock_script.json"))
+        try:
+            script = json.loads(script_path.read_text())
+        except FileNotFoundError:
+            return Verdict("ERROR", notes=f"mock host script missing: {script_path}")
+        except json.JSONDecodeError as e:
+            return Verdict("ERROR", notes=f"mock host script invalid: {e}")
+        entry = script.get(pid, script.get("*", {"verdict": "PASS"}))
+        if isinstance(entry, list):
+            visits = sum(1 for e in self.log.replay()
+                         if e["kind"] == "mock_host_dispatched" and e["phase"] == pid)
+            entry = entry[min(visits, len(entry) - 1)] if entry else {"verdict": "PASS"}
+        if not isinstance(entry, dict):
+            return Verdict("ERROR", notes=f"mock entry for phase {pid} is not an object")
+        ws_root = self.ws.resolve()
+        written, removed = [], []
+        try:
+            for rel, content in (entry.get("files") or {}).items():
+                target = (self.ws / rel).resolve()
+                target.relative_to(ws_root)  # path-escape guard
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if isinstance(content, (dict, list)):
+                    target.write_text(json.dumps(content, indent=2,
+                                                  ensure_ascii=False))
+                else:
+                    target.write_text(str(content))
+                written.append(rel)
+            for rel in (entry.get("remove") or []):
+                target = (self.ws / rel).resolve()
+                target.relative_to(ws_root)
+                if target.exists():
+                    target.unlink()
+                    removed.append(rel)
+        except (ValueError, OSError) as e:
+            return Verdict("ERROR", notes=f"mock host file error on phase {pid}: {e}")
+        self.log.emit(pid, "mock_host_dispatched",
+                      {"script": str(script_path), "files": written,
+                       "removed": removed, "bundle": str(bundle)})
+        v = Verdict(entry.get("verdict", "PASS"),
+                    entry.get("artifacts", written),
+                    entry.get("notes", ""), entry.get("cost_usd"),
+                    entry.get("reason_code", ""))
+        self.log.emit(pid, "mock_host_result", {"verdict": v.v})
+        return v
+
     def _dispatch_host_file(self, pid, bundle: Path) -> Verdict:
         """manual/bundle protocol: kernel writes a request; the driving agent answers.
 
@@ -470,21 +591,25 @@ class Kernel:
     def _checkpoint_satisfied(self, ck: str, pid: str) -> bool:
         flags = self.rs.data.get("flags", {})
         log = self.appr.log
-        if not log.exists():
-            if flags.get("human_skip"):
-                self.appr.skipped("human_skip", ck, pid, self.rs)
-                return True
-            if flags.get("test_mode"):
-                # bypass, not skip: agent does the guarded work, approval deferred
-                self.appr.skipped("test_mode_bypass", ck, pid, self.rs)
-                self.rs.data["production_ready"] = False
-                return True
-            return False
-        # approved or logged-skip for this checkpoint?
-        text = log.read_text()
-        return (f"checkpoint={ck} decision=APPROVE" in text or
+        # approved or logged-skip for THIS checkpoint?
+        text = log.read_text() if log.exists() else ""
+        if (f"checkpoint={ck} decision=APPROVE" in text or
                 f"checkpoint={ck} human_skip=True" in text or
-                f"checkpoint={ck} test_mode_bypass=True" in text)
+                f"checkpoint={ck} test_mode_bypass=True" in text):
+            return True
+        # v1.7.3 fix (found by the mock-host e2e harness): these are RUN-level
+        # flags. The old code consulted them only while no approval log existed,
+        # so the SECOND checkpoint (method-approval) blocked a human_skip run
+        # after the first checkpoint (idea-pick) had written its skip line.
+        if flags.get("human_skip"):
+            self.appr.skipped("human_skip", ck, pid, self.rs)
+            return True
+        if flags.get("test_mode"):
+            # bypass, not skip: agent does the guarded work, approval deferred
+            self.appr.skipped("test_mode_bypass", ck, pid, self.rs)
+            self.rs.data["production_ready"] = False
+            return True
+        return False
 
     def _checkpoint_payload(self, ck, pid) -> dict:
         """Summarize what the human is deciding (idea pick / method approval)."""
@@ -913,15 +1038,15 @@ class Kernel:
         # PASS/WARN/NA -> try boundary
         b = self.commit_boundary(pid, v)
         if not b["committed"]:
-            # gate rejected: bounded retry like prose fallback, kernel-enforced
-            gid = f"gate_{pid}"
-            used = self._round_count(gid)
-            self.log.emit(pid, "gate_retry", {"round": used + 1})
+            # gate rejected: bounded retry like prose fallback, kernel-enforced.
+            # Counted from the event log so a crash never resets the cap.
+            used = self._gate_retry_count(pid)
             if used >= 3:
                 self.rs.status = "paused_blocked"
                 self.rs.update(reason_code=f"unresolved_{pid}_gate")
                 self.rs.write()
                 return {"status": "blocked", "phase": pid, "reason": "gate 3-round cap"}
+            self.log.emit(pid, "gate_retry", {"round": used + 1})
             return {"status": "gate_fail", "phase": pid,
                     "failed_gates": b.get("failed", [])}
         if b.get("breach"):

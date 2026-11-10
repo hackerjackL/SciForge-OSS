@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sciforge/schemas/LEAKAGE_SCRUB.schema.json",
   "title": "LEAKAGE_SCRUB.json - pipeline-leakage scrub gate verdict",
-  "description": "Produced by /paper-writing Step 3.5 (8-class regex scrub gate, v3.3). /paper-compile refuses to compile when status != PASS (BLOCKED, reason_code: pipeline_leakage_not_scrubbed). Note: 'status' here uses the gate's own PASS|FAIL vocabulary, not the 6-state audit vocabulary.",
+  "description": "Produced by /paper-writing Step 3.5 and scripts/leakage_scan.py (12-class A-L regex scrub gate, v3.6-mech; class J = AIGC traces, class K = SCI body voice / apology-defensive register, class L = internal machinery jargon, I-frontmatter = fabricated author/affiliation block). /paper-compile refuses to compile when status != PASS (BLOCKED, reason_code: pipeline_leakage_not_scrubbed). Note: 'status' here uses the gate's own PASS|FAIL vocabulary, not the 6-state audit vocabulary.",
   "type": "object",
   "required": ["gate", "version", "status", "hits_found", "hits_scrubbed", "hits_remaining", "classes_seen", "checked_files"],
   "properties": {
@@ -12,7 +12,7 @@
     },
     "version": {
       "type": "string",
-      "description": "Gate version, e.g. v3.3. Free-form so future revisions do not break validation."
+      "description": "Gate version, e.g. v3.6-mech. Free-form so future revisions do not break validation."
     },
     "status": {
       "type": "string",
@@ -33,10 +33,10 @@
     },
     "classes_seen": {
       "type": "array",
-      "description": "Leakage classes (A-H) detected during the grep pass.",
+      "description": "Leakage classes detected during the grep pass: A-L (the 12 classes implemented by scripts/leakage_scan.py CLASSES) plus I-frontmatter (the fabricated author/affiliation sub-check of class I).",
       "items": {
         "type": "string",
-        "pattern": "^[A-H]$"
+        "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "I-frontmatter"]
       }
     },
     "checked_files": {

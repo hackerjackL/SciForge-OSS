@@ -27,7 +27,13 @@ Audit layers (Nature-level):
   A8 richness     — visual depth devices in hand-assembled SVG sources
   A9 brand leak   — no internal tool branding inside figure sources
   A10 occlusion   — wiring may not cross un-haloed text; text bboxes must
-                    not overlap (>30% vertical intrusion => FAIL)
+                    not overlap (>30% vertical intrusion => FAIL).  Two
+                    measurement paths: the SVG `<text>` model for
+                    SVG-intermediate engines, and a measured
+                    `text_layout.json` manifest (real renderer bboxes,
+                    emitted by figure_recipes) for PDF-native data plots —
+                    matplotlib/pdftocairo path-ize text, so an SVG-only
+                    audit was blind to them (v1.7.1 A10 defect).
 
 Report: figure_audit.json + PASS/WARN/FAIL verdict on stdout.
 Exit: 0 PASS, 1 WARN, 4 FAIL.
@@ -891,6 +897,14 @@ def audit_text_occlusion(svg_text: str, rep: Report) -> None:
                    for i in range(0, len(coords) - 1, 2)]
             segs.extend(zip(pts, pts[1:]))
 
+    if not texts:
+        # A glyph-outlined SVG (pdftocairo output) has no <text> at all:
+        # reporting a vacuous "0 labels, zero overlap" PASS here is exactly
+        # how A10 stayed blind to recipe figures before v1.7.3.
+        rep.add("A10", "WARN",
+                "SVG contains no <text> elements (text is outlined as glyph "
+                "paths) — text collision audit cannot see this figure; "
+                "supply a text_layout.json or an SVG with real text")
     bad = []
     for t in texts:
         if covered(t):
@@ -1152,6 +1166,224 @@ def audit_panel_alignment(figdir: Path, rep: Report) -> None:
                 f"{len(comparable)} comparable panels{note}")
 
 
+# --------------------------------------------------------------------------
+# A10 measured text layout (v1.7.3 — ARC-Bench "A10 blind to recipe figures")
+# --------------------------------------------------------------------------
+# Why this exists: matplotlib writes PDF text with Type-42 fonts
+# (pdf.fonttype=42) and render_figure derives output.svg through
+# pdftocairo, which emits glyph outlines (<use xlink:href="#glyph-...">),
+# NOT <text> elements.  The SVG bbox model above therefore saw ZERO labels
+# on every recipe/data figure and reported a vacuous PASS.  It also only ran
+# when an intermediate.svg / source*.svg existed, which recipes never keep.
+#
+# Fix: the recipe engine measures the REAL renderer bboxes of every text
+# artist (the same "post-layout 实测 renderer bbox" pattern as the v1.7.1
+# x-tick fix) and writes text_layout.json next to output.pdf.  A10 consumes
+# that manifest whenever it is present.  This is measurement, not
+# rasterization: figure output bytes are untouched (fonttype=42 alone could
+# not fix the SVG path, because pdftocairo never preserves PDF text as SVG
+# text).  Figures with neither an auditable SVG nor a manifest get an
+# explicit WARN instead of silently passing — an audit that cannot see must
+# say so.
+
+TEXT_LAYOUT_FILE = "text_layout.json"
+TEXT_LAYOUT_SCHEMA_VERSION = 1
+
+
+def _iter_text_artists(fig):
+    """Yield (artist, text) for every visible, non-empty Text in a figure.
+
+    Duck-typed on purpose (figure_audit stays import-light and does not
+    require matplotlib at module import); callers pass a live matplotlib
+    Figure from figure_recipes.
+    """
+    try:
+        artists = fig.findobj()
+    except Exception:  # noqa: BLE001 — measurement must never kill a render
+        return
+    for obj in artists:
+        if not hasattr(obj, "get_text") or not hasattr(obj, "get_window_extent"):
+            continue
+        # Legend internals: matplotlib wraps each legend label in an
+        # offsetbox TextArea whose Text is ALSO yielded by findobj().  The
+        # wrapper duplicates the same glyphs at (nearly) the same bbox, so
+        # measuring it would report the legend with itself as a collision.
+        if type(obj).__name__ == "TextArea":
+            continue
+        try:
+            if not obj.get_visible():
+                continue
+            text = obj.get_text()
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(text, str) and text.strip():
+            yield obj, text
+
+
+def _text_kind(obj) -> str:
+    """Best-effort classification (informational only)."""
+    axes = getattr(obj, "axes", None)
+    if axes is not None:
+        try:
+            if obj is getattr(axes, "title", None):
+                return "title"
+            if obj is axes.xaxis.label or obj is axes.yaxis.label:
+                return "axis_label"
+            if obj in axes.get_xticklabels() or obj in axes.get_yticklabels():
+                return "tick"
+        except Exception:  # noqa: BLE001
+            pass
+    fig = getattr(obj, "figure", None)
+    for leg in getattr(fig, "legends", []) if fig is not None else []:
+        try:
+            if obj in leg.get_texts():
+                return "legend"
+        except Exception:  # noqa: BLE001
+            pass
+    return "text"
+
+
+def collect_text_boxes(fig) -> list[dict]:
+    """Measure renderer bboxes for every visible text artist in ``fig``."""
+    try:
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+    except Exception:  # noqa: BLE001
+        return []
+    boxes: list[dict] = []
+    seen: set[tuple] = set()
+    for obj, text in _iter_text_artists(fig):
+        try:
+            bb = obj.get_window_extent(renderer=renderer)
+        except Exception:  # noqa: BLE001
+            continue
+        try:
+            x0, y0, x1, y1 = float(bb.x0), float(bb.y0), float(bb.x1), float(bb.y1)
+        except (TypeError, ValueError):
+            continue
+        if x1 <= x0 or y1 <= y0:
+            continue
+        # De-duplicate measurement aliases: the same visible label can be
+        # reachable twice through container artist trees.  Integer-rounded
+        # (text, bbox) identity merges sub-pixel duplicates without merging
+        # genuinely distinct labels.
+        key = (text.strip(), round(x0), round(y0), round(x1), round(y1))
+        if key in seen:
+            continue
+        seen.add(key)
+        boxes.append({
+            "text": text.strip()[:80],
+            "kind": _text_kind(obj),
+            "bbox_px": [round(x0, 2), round(y0, 2), round(x1, 2), round(y1, 2)],
+        })
+    return boxes
+
+
+def write_text_layout(fig, outdir: Path, source: str = "figure_recipes") -> Path | None:
+    """Write the measured text layout manifest consumed by A10.
+
+    Called by the recipe engine right before savefig.  Returns the manifest
+    path, or None when measurement is impossible (never raises: a broken
+    manifest must degrade to the explicit A10 "not auditable" WARN, not
+    abort a render).
+    """
+    outdir = Path(outdir)
+    try:
+        boxes = collect_text_boxes(fig)
+        payload = {
+            "schema_version": TEXT_LAYOUT_SCHEMA_VERSION,
+            "source": source,
+            "dpi": float(fig.dpi),
+            "figure_px": [round(float(fig.get_figwidth() * fig.dpi), 2),
+                          round(float(fig.get_figheight() * fig.dpi), 2)],
+            "texts": boxes,
+        }
+        path = outdir / TEXT_LAYOUT_FILE
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False),
+                        encoding="utf-8")
+        return path
+    except Exception:  # noqa: BLE001 — measurement is advisory to the render
+        return None
+
+
+def audit_text_layout_manifest(figdir: Path, rep: Report) -> None:
+    """A10 from measured renderer bboxes (text_layout.json).
+
+    Same collision semantics as the SVG model: a pair collides when its
+    intersection exceeds 30% of the smaller box on BOTH axes (rotated tick
+    labels overlap on one axis only and stay clean; genuinely stacked
+    labels overlap on both).  Relative thresholds make this independent of
+    dpi and figure size.
+    """
+    path = Path(figdir) / TEXT_LAYOUT_FILE
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        rep.add("A10", "WARN", f"text_layout.json unreadable ({exc}) — "
+                               "collision audit skipped")
+        return
+    if not isinstance(data, dict) or data.get("schema_version") != TEXT_LAYOUT_SCHEMA_VERSION:
+        rep.add("A10", "WARN", "text_layout.json has an unsupported schema "
+                               "version — collision audit skipped")
+        return
+    texts: list[tuple[float, float, float, float, str]] = []
+    for entry in data.get("texts") or []:
+        if not isinstance(entry, dict):
+            continue
+        bb = entry.get("bbox_px")
+        if not isinstance(bb, (list, tuple)) or len(bb) != 4:
+            continue
+        try:
+            x0, y0, x1, y1 = (float(v) for v in bb)
+        except (TypeError, ValueError):
+            continue
+        if x1 < x0:
+            x0, x1 = x1, x0
+        if y1 < y0:
+            y0, y1 = y1, y0
+        if x1 <= x0 or y1 <= y0:
+            continue
+        texts.append((x0, y0, x1, y1, str(entry.get("text", ""))[:24]))
+    if not texts:
+        rep.add("A10", "WARN", "text_layout.json contains no measurable "
+                               "text — collision audit is blind to this "
+                               "figure")
+        return
+    if len(texts) < 2:
+        rep.add("A10", "PASS",
+                f"measured text layout: {len(texts)} label(s) — no pair to "
+                "collide")
+        return
+    overlaps = []
+    for i in range(len(texts)):
+        for j in range(i + 1, len(texts)):
+            a, b = texts[i], texts[j]
+            ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+            iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+            if ix <= 0 or iy <= 0:
+                continue
+            smaller_w = min(a[2] - a[0], b[2] - b[0])
+            smaller_h = min(a[3] - a[1], b[3] - b[1])
+            if smaller_w <= 0 or smaller_h <= 0:
+                continue
+            if ix > 0.30 * smaller_w and iy > 0.30 * smaller_h:
+                overlaps.append(f"'{a[4]}' vs '{b[4]}'")
+                lower = b if b[1] >= a[1] else a
+                shift = iy + 4
+                rep.add_fix(
+                    "A10",
+                    f"move label '{lower[4]}' down by {shift:.0f}px, or "
+                    f"re-anchor it to clear "
+                    f"'{(a if lower is b else b)[4]}'")
+    if overlaps:
+        rep.add("A10", "FAIL", f"{len(overlaps)} measured text-overlap "
+                f"pair(s): " + "; ".join(overlaps[:4]) + " — see "
+                "suggested_fixes")
+    else:
+        rep.add("A10", "PASS", f"{len(texts)} measured labels, zero "
+                               "text-on-text overlap")
+
+
 def audit_figure(figdir: Path) -> Report:
     figdir = Path(figdir)
     rep = Report()
@@ -1188,6 +1420,18 @@ def audit_figure(figdir: Path) -> Report:
     if svg is not None and svg.is_file():
         audit_text_occlusion(svg.read_text(encoding="utf-8", errors="replace"),
                              rep)
+    if (figdir / TEXT_LAYOUT_FILE).is_file():
+        # PDF-native data plots: real renderer bboxes (figure_recipes).
+        audit_text_layout_manifest(figdir, rep)
+    elif svg is None:
+        # Neither an SVG with <text> nor a measured manifest: say so
+        # explicitly.  A silent PASS here is exactly the v1.7.1 "A10 was
+        # blind to every recipe figure" failure mode.
+        rep.add("A10", "WARN",
+                "no auditable text geometry (no intermediate/source SVG and "
+                "no text_layout.json) — collision audit could not see this "
+                "figure; render via the recipe engine or supply an SVG "
+                "intermediate")
     return rep
 
 

@@ -469,3 +469,62 @@ def test_original_sixteen_expectations_present():
         "socket.connect to raw host (python)",
     ):
         assert expected in names
+
+
+# ---------------------------------------------------------------------------
+# F10 — v1.7.3 host-side allowlist provenance (B07 self-planted allowlist)
+#
+# In skill mode the agent is also the operator: it can write an allowlist
+# into its own workspace and pass it via --allow.  An allowlist that
+# resolves inside the agent-writable zone (outermost project marker:
+# .sciforge/, .git, pyproject.toml, package.json) is untrusted — SEC-012
+# (BLOCKED) and the underlying finding is NOT exempted.  Planted files are
+# reported even when unused (SEC-108, WARN).  An operator allowlist kept
+# outside the zone keeps working.
+# ---------------------------------------------------------------------------
+
+def _make_zone(root: Path) -> Path:
+    (root / ".sciforge").mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def test_f10_planted_allowlist_passed_explicitly_is_blocked(tmp_path):
+    _make_zone(tmp_path)
+    allow = write_allow(tmp_path, ["host:evil.example"])
+    rep = scan(tmp_path, EGRESS_SNIPPET, allow=allow)
+    ids = rule_ids(rep)
+    assert rep["verdict"] == secscan.BLOCKED
+    assert {"SEC-012", "SEC-108", "SEC-003"} <= ids
+    assert rep["allowlist_source"]["trusted"] is False
+
+
+def test_f10_planted_allowlist_reported_when_unused(tmp_path):
+    _make_zone(tmp_path)
+    write_allow(tmp_path, ["host:evil.example"])
+    rep = scan(tmp_path, "import json\nprint(json.dumps({}))\n")
+    assert rep["verdict"] == secscan.WARN
+    assert "SEC-108" in rule_ids(rep)
+    assert "SEC-003" not in rule_ids(rep)
+    assert rep["security_events"]
+
+
+def test_f10_operator_allowlist_outside_zone_still_exempts(tmp_path):
+    ws = _make_zone(tmp_path / "ws")
+    allow = tmp_path / "operator" / "allow.txt"
+    allow.parent.mkdir()
+    allow.write_text("host:evil.example\n", encoding="utf-8")
+    rep = scan(ws, EGRESS_SNIPPET, allow=allow)
+    ids = rule_ids(rep)
+    assert rep["verdict"] == secscan.WARN
+    assert "SEC-003" not in ids
+    assert "SEC-012" not in ids
+    assert rep["allowlist_source"]["trusted"] is True
+
+
+def test_f10_prose_files_are_not_mistaken_for_allowlists(tmp_path):
+    _make_zone(tmp_path)
+    (tmp_path / "allowlist_discussion.txt").write_text(
+        "The allowlist is described in the design doc.\n", encoding="utf-8")
+    rep = scan(tmp_path, "import json\nprint(json.dumps({}))\n")
+    assert rep["verdict"] == secscan.PASS
+    assert "SEC-108" not in rule_ids(rep)

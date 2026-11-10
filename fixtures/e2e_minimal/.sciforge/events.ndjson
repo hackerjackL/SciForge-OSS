@@ -1,0 +1,116 @@
+{"seq": 1, "ts": 1786320003.0, "phase": "0", "kind": "run_started", "payload": {"run_id": "Q001", "problem": "Does estimator X (sample mean) have lower sampling variance than estimator Y (sample median) when estimating the population mean of a Gaussian distribution from i.i.d. samples?", "effort": "lite"}}
+{"seq": 2, "ts": 1786320006.0, "phase": "0", "kind": "phase_entered", "payload": {"skill": null, "mode": "MUST"}}
+{"seq": 3, "ts": 1786320009.0, "phase": "0", "kind": "gates", "payload": {"results": [{"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 4, "ts": 1786320012.0, "phase": "0", "kind": "phase_done", "payload": {"phase": "0", "verdict": "PASS", "artifacts": [".sciforge/verdicts/PROBLEM_HASH.txt"]}}
+{"seq": 5, "ts": 1786320015.0, "phase": "0", "kind": "boundary_committed", "payload": {"phase": "0", "verdict": "PASS"}}
+{"seq": 6, "ts": 1786320018.0, "phase": "1", "kind": "phase_entered", "payload": {"skill": null, "mode": "MUST"}}
+{"seq": 7, "ts": 1786320021.0, "phase": "1", "kind": "gates", "payload": {"results": [{"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 8, "ts": 1786320024.0, "phase": "1", "kind": "phase_done", "payload": {"phase": "1", "verdict": "PASS", "artifacts": [".sciforge/audits/REP.json"]}}
+{"seq": 9, "ts": 1786320027.0, "phase": "1", "kind": "boundary_committed", "payload": {"phase": "1", "verdict": "PASS"}}
+{"seq": 10, "ts": 1786320030.0, "phase": "1a", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/domain-signature/SKILL.md", "mode": "OPTIONAL"}}
+{"seq": 11, "ts": 1786320033.0, "phase": "1a", "kind": "gates", "payload": {"results": [{"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 12, "ts": 1786320036.0, "phase": "1a", "kind": "phase_done", "payload": {"phase": "1a", "verdict": "PASS", "artifacts": []}}
+{"seq": 13, "ts": 1786320039.0, "phase": "1a", "kind": "boundary_committed", "payload": {"phase": "1a", "verdict": "PASS"}}
+{"seq": 14, "ts": 1786320042.0, "phase": "1b", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/domain-learner/SKILL.md", "mode": "MUST"}}
+{"seq": 15, "ts": 1786320045.0, "phase": "1b", "kind": "gates", "payload": {"results": [{"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 16, "ts": 1786320048.0, "phase": "1b", "kind": "phase_done", "payload": {"phase": "1b", "verdict": "PASS", "artifacts": []}}
+{"seq": 17, "ts": 1786320051.0, "phase": "1b", "kind": "boundary_committed", "payload": {"phase": "1b", "verdict": "PASS"}}
+{"seq": 18, "ts": 1786320054.0, "phase": "4broad", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/universal-retrieval/SKILL.md", "mode": "MUST"}}
+{"seq": 19, "ts": 1786320057.0, "phase": "4broad", "kind": "gates", "payload": {"results": [{"gate": "gap_gate", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 20, "ts": 1786320060.0, "phase": "4broad", "kind": "phase_done", "payload": {"phase": "4broad", "verdict": "PASS", "artifacts": []}}
+{"seq": 21, "ts": 1786320063.0, "phase": "4broad", "kind": "boundary_committed", "payload": {"phase": "4broad", "verdict": "PASS"}}
+{"seq": 22, "ts": 1786320066.0, "phase": "2", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/idea-discovery/SKILL.md", "mode": "MUST"}}
+{"seq": 23, "ts": 1786320069.0, "phase": "2", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "file:literature/GAP_REPORT.md", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 24, "ts": 1786320072.0, "phase": "2", "kind": "phase_done", "payload": {"phase": "2", "verdict": "PASS", "artifacts": []}}
+{"seq": 25, "ts": 1786320075.0, "phase": "2", "kind": "boundary_committed", "payload": {"phase": "2", "verdict": "PASS"}}
+{"seq": 26, "ts": 1786320078.0, "phase": "2.5", "kind": "phase_entered", "payload": {"skill": "skills/support/adversarial-falsification/SKILL.md", "mode": "MUST"}}
+{"seq": 27, "ts": 1786320081.0, "phase": "2.5", "kind": "loopback", "payload": {"id": "L1", "target": "2", "round": 1, "exploration_seed": null, "rep_fallback": "PASS"}}
+{"seq": 28, "ts": 1786320084.0, "phase": "2", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/idea-discovery/SKILL.md", "mode": "MUST"}}
+{"seq": 29, "ts": 1786320087.0, "phase": "2", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "file:literature/GAP_REPORT.md", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 30, "ts": 1786320090.0, "phase": "2", "kind": "phase_done", "payload": {"phase": "2", "verdict": "PASS", "artifacts": []}}
+{"seq": 31, "ts": 1786320093.0, "phase": "2", "kind": "boundary_committed", "payload": {"phase": "2", "verdict": "PASS"}}
+{"seq": 32, "ts": 1786320096.0, "phase": "2.5", "kind": "phase_entered", "payload": {"skill": "skills/support/adversarial-falsification/SKILL.md", "mode": "MUST"}}
+{"seq": 33, "ts": 1786320099.0, "phase": "2.5", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 34, "ts": 1786320102.0, "phase": "2.5", "kind": "phase_done", "payload": {"phase": "2.5", "verdict": "PASS", "artifacts": []}}
+{"seq": 35, "ts": 1786320105.0, "phase": "2.5", "kind": "boundary_committed", "payload": {"phase": "2.5", "verdict": "PASS"}}
+{"seq": 36, "ts": 1786320108.0, "phase": "2.5b", "kind": "phase_entered", "payload": {"skill": "skills/support/adversarial-falsification/SKILL.md", "mode": "MUST"}}
+{"seq": 37, "ts": 1786320111.0, "phase": "2.5b", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 38, "ts": 1786320114.0, "phase": "2.5b", "kind": "phase_done", "payload": {"phase": "2.5b", "verdict": "PASS", "artifacts": []}}
+{"seq": 39, "ts": 1786320117.0, "phase": "2.5b", "kind": "boundary_committed", "payload": {"phase": "2.5b", "verdict": "PASS"}}
+{"seq": 40, "ts": 1786320120.0, "phase": "3", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/novelty-check/SKILL.md", "mode": "MUST"}}
+{"seq": 41, "ts": 1786320123.0, "phase": "3", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 42, "ts": 1786320126.0, "phase": "3", "kind": "phase_done", "payload": {"phase": "3", "verdict": "PASS", "artifacts": []}}
+{"seq": 43, "ts": 1786320129.0, "phase": "3", "kind": "boundary_committed", "payload": {"phase": "3", "verdict": "PASS"}}
+{"seq": 44, "ts": 1786320132.0, "phase": "4targeted", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/universal-retrieval/SKILL.md", "mode": "MUST"}}
+{"seq": 45, "ts": 1786320135.0, "phase": "4targeted", "kind": "gates", "payload": {"results": [{"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 46, "ts": 1786320138.0, "phase": "4targeted", "kind": "phase_done", "payload": {"phase": "4targeted", "verdict": "PASS", "artifacts": []}}
+{"seq": 47, "ts": 1786320141.0, "phase": "4targeted", "kind": "boundary_committed", "payload": {"phase": "4targeted", "verdict": "PASS"}}
+{"seq": 48, "ts": 1786320144.0, "phase": "5", "kind": "phase_entered", "payload": {"skill": "skills/support/method-registry/SKILL.md", "mode": "MUST"}}
+{"seq": 49, "ts": 1786320147.0, "phase": "5", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": ".sciforge/verdicts/REGISTRY_HASH.txt", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 50, "ts": 1786320150.0, "phase": "5", "kind": "phase_done", "payload": {"phase": "5", "verdict": "PASS", "artifacts": []}}
+{"seq": 51, "ts": 1786320153.0, "phase": "5", "kind": "boundary_committed", "payload": {"phase": "5", "verdict": "PASS"}}
+{"seq": 52, "ts": 1786320156.0, "phase": "6", "kind": "phase_entered", "payload": {"skill": "skills/support/experiment-execution/SKILL.md", "mode": "MUST"}}
+{"seq": 53, "ts": 1786320159.0, "phase": "6", "kind": "routed", "payload": {"route": "hybrid", "na_verdicts": []}}
+{"seq": 54, "ts": 1786320162.0, "phase": "6", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 55, "ts": 1786320165.0, "phase": "6", "kind": "phase_done", "payload": {"phase": "6", "verdict": "PASS", "artifacts": [".sciforge/verdicts/VERIFICATION_ROUTING.json"]}}
+{"seq": 56, "ts": 1786320168.0, "phase": "6", "kind": "boundary_committed", "payload": {"phase": "6", "verdict": "PASS"}}
+{"seq": 57, "ts": 1786320171.0, "phase": "6a", "kind": "phase_entered", "payload": {"skill": "skills/support/theory-derivation/SKILL.md", "mode": "ROUTED"}}
+{"seq": 58, "ts": 1786320174.0, "phase": "6a", "kind": "gates", "payload": {"results": [{"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 59, "ts": 1786320177.0, "phase": "6a", "kind": "phase_done", "payload": {"phase": "6a", "verdict": "PASS", "artifacts": []}}
+{"seq": 60, "ts": 1786320180.0, "phase": "6a", "kind": "boundary_committed", "payload": {"phase": "6a", "verdict": "PASS"}}
+{"seq": 61, "ts": 1786320183.0, "phase": "6b", "kind": "phase_entered", "payload": {"skill": "skills/support/experiment-execution/SKILL.md", "mode": "ROUTED"}}
+{"seq": 62, "ts": 1786320186.0, "phase": "6b", "kind": "nodes_registered", "payload": {"n": 1, "anchored": 0}}
+{"seq": 63, "ts": 1786320189.0, "phase": "6b", "kind": "gates", "payload": {"results": [{"gate": "RESULT.json", "status": "PASS"}, {"gate": "security_scan", "status": "PASS"}, {"gate": "dep_gate", "status": "PASS"}, {"gate": "integrity_monitor", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 64, "ts": 1786320192.0, "phase": "6b", "kind": "phase_done", "payload": {"phase": "6b", "verdict": "PASS", "artifacts": []}}
+{"seq": 65, "ts": 1786320195.0, "phase": "6b", "kind": "boundary_committed", "payload": {"phase": "6b", "verdict": "PASS"}}
+{"seq": 66, "ts": 1786320198.0, "phase": "6c", "kind": "phase_entered", "payload": {"skill": "skills/support/experiment-execution/SKILL.md", "mode": "ROUTED"}}
+{"seq": 67, "ts": 1786320201.0, "phase": "6c", "kind": "nodes_registered", "payload": {"n": 0, "anchored": 0}}
+{"seq": 68, "ts": 1786320204.0, "phase": "6c", "kind": "gates", "payload": {"results": [{"gate": "STATUS.json", "status": "PASS"}, {"gate": "security_scan", "status": "PASS"}, {"gate": "smoke_gate", "status": "PASS"}, {"gate": "dep_gate", "status": "PASS"}, {"gate": "integrity_monitor", "status": "PASS"}, {"gate": "s2_ladder", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 69, "ts": 1786320207.0, "phase": "6c", "kind": "phase_done", "payload": {"phase": "6c", "verdict": "PASS", "artifacts": []}}
+{"seq": 70, "ts": 1786320210.0, "phase": "6c", "kind": "boundary_committed", "payload": {"phase": "6c", "verdict": "PASS"}}
+{"seq": 71, "ts": 1786320213.0, "phase": "7", "kind": "phase_entered", "payload": {"skill": "skills/support/leakage-audit/SKILL.md", "mode": "MUST"}}
+{"seq": 72, "ts": 1786320216.0, "phase": "7", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 73, "ts": 1786320219.0, "phase": "7", "kind": "phase_done", "payload": {"phase": "7", "verdict": "PASS", "artifacts": []}}
+{"seq": 74, "ts": 1786320222.0, "phase": "7", "kind": "boundary_committed", "payload": {"phase": "7", "verdict": "PASS"}}
+{"seq": 75, "ts": 1786320225.0, "phase": "8", "kind": "phase_entered", "payload": {"skill": "skills/support/logic-verification/SKILL.md", "mode": "MUST"}}
+{"seq": 76, "ts": 1786320228.0, "phase": "8", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 77, "ts": 1786320231.0, "phase": "8", "kind": "phase_done", "payload": {"phase": "8", "verdict": "PASS", "artifacts": []}}
+{"seq": 78, "ts": 1786320234.0, "phase": "8", "kind": "boundary_committed", "payload": {"phase": "8", "verdict": "PASS"}}
+{"seq": 79, "ts": 1786320237.0, "phase": "9", "kind": "phase_entered", "payload": {"skill": "skills/support/invariant-check/SKILL.md", "mode": "MUST"}}
+{"seq": 80, "ts": 1786320240.0, "phase": "9", "kind": "invariant_check_native", "payload": {"overall": "PASS"}}
+{"seq": 81, "ts": 1786320243.0, "phase": "9", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 82, "ts": 1786320246.0, "phase": "9", "kind": "phase_done", "payload": {"phase": "9", "verdict": "PASS", "artifacts": [".sciforge/verdicts/INVARIANT_CHECK.json"]}}
+{"seq": 83, "ts": 1786320249.0, "phase": "9", "kind": "boundary_committed", "payload": {"phase": "9", "verdict": "PASS"}}
+{"seq": 84, "ts": 1786320252.0, "phase": "10", "kind": "phase_entered", "payload": {"skill": "skills/support/result-to-claim/SKILL.md", "mode": "MUST"}}
+{"seq": 85, "ts": 1786320255.0, "phase": "10", "kind": "nodes_registered", "payload": {"n": 0, "anchored": 1}}
+{"seq": 86, "ts": 1786320258.0, "phase": "10", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "file:.sciforge/audits/CLAIMS_FROM_RESULTS.md", "status": "PASS"}, {"gate": "arb_verify", "status": "PASS"}, {"gate": "s2_ablation", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 87, "ts": 1786320261.0, "phase": "10", "kind": "phase_done", "payload": {"phase": "10", "verdict": "PASS", "artifacts": []}}
+{"seq": 88, "ts": 1786320264.0, "phase": "10", "kind": "boundary_committed", "payload": {"phase": "10", "verdict": "PASS"}}
+{"seq": 89, "ts": 1786320267.0, "phase": "11", "kind": "phase_entered", "payload": {"skill": "skills/meta-skills/unified-plotting/SKILL.md", "mode": "MUST"}}
+{"seq": 90, "ts": 1786320270.0, "phase": "11", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "render_audit", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 91, "ts": 1786320273.0, "phase": "11", "kind": "phase_done", "payload": {"phase": "11", "verdict": "PASS", "artifacts": []}}
+{"seq": 92, "ts": 1786320276.0, "phase": "11", "kind": "boundary_committed", "payload": {"phase": "11", "verdict": "PASS"}}
+{"seq": 93, "ts": 1786320279.0, "phase": "12", "kind": "phase_entered", "payload": {"skill": "skills/support/paper-writing/SKILL.md", "mode": "MUST"}}
+{"seq": 94, "ts": 1786320282.0, "phase": "12", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "quality_gate", "status": "PASS"}, {"gate": "fantasy_gate", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 95, "ts": 1786320285.0, "phase": "12", "kind": "phase_done", "payload": {"phase": "12", "verdict": "PASS", "artifacts": []}}
+{"seq": 96, "ts": 1786320288.0, "phase": "12", "kind": "boundary_committed", "payload": {"phase": "12", "verdict": "PASS"}}
+{"seq": 97, "ts": 1786320291.0, "phase": "13", "kind": "phase_entered", "payload": {"skill": "skills/support/paper-compile/SKILL.md", "mode": "MUST"}}
+{"seq": 98, "ts": 1786320294.0, "phase": "13", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "leakage_scan", "status": "PASS"}, {"gate": "compile_audit", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 99, "ts": 1786320297.0, "phase": "13", "kind": "phase_done", "payload": {"phase": "13", "verdict": "PASS", "artifacts": []}}
+{"seq": 100, "ts": 1786320300.0, "phase": "13", "kind": "boundary_committed", "payload": {"phase": "13", "verdict": "PASS"}}
+{"seq": 101, "ts": 1786320303.0, "phase": "14", "kind": "phase_entered", "payload": {"skill": "skills/support/auto-review-loop/SKILL.md", "mode": "MUST"}}
+{"seq": 102, "ts": 1786320306.0, "phase": "14", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "REVIEW_STATE.json", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 103, "ts": 1786320309.0, "phase": "14", "kind": "phase_done", "payload": {"phase": "14", "verdict": "PASS", "artifacts": []}}
+{"seq": 104, "ts": 1786320312.0, "phase": "14", "kind": "boundary_committed", "payload": {"phase": "14", "verdict": "PASS"}}
+{"seq": 105, "ts": 1786320315.0, "phase": "15", "kind": "phase_entered", "payload": {"skill": "skills/support/citation-audit/SKILL.md", "mode": "MUST"}}
+{"seq": 106, "ts": 1786320318.0, "phase": "15", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "citation_audit", "status": "PASS"}, {"gate": "citation_support", "status": "PASS"}, {"gate": "doi_gate", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 107, "ts": 1786320321.0, "phase": "15", "kind": "phase_done", "payload": {"phase": "15", "verdict": "PASS", "artifacts": []}}
+{"seq": 108, "ts": 1786320324.0, "phase": "15", "kind": "boundary_committed", "payload": {"phase": "15", "verdict": "PASS"}}
+{"seq": 109, "ts": 1786320327.0, "phase": "15.5", "kind": "phase_entered", "payload": {"skill": "skills/support/publishability-score/SKILL.md", "mode": "MUST"}}
+{"seq": 110, "ts": 1786320330.0, "phase": "15.5", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "fairness_gate", "status": "PASS"}, {"gate": "submission_ready", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 111, "ts": 1786320333.0, "phase": "15.5", "kind": "phase_done", "payload": {"phase": "15.5", "verdict": "PASS", "artifacts": []}}
+{"seq": 112, "ts": 1786320336.0, "phase": "15.5", "kind": "boundary_committed", "payload": {"phase": "15.5", "verdict": "PASS"}}
+{"seq": 113, "ts": 1786320339.0, "phase": "16", "kind": "phase_entered", "payload": {"skill": null, "mode": "MUST"}}
+{"seq": 114, "ts": 1786320342.0, "phase": "16", "kind": "gates", "payload": {"results": [{"gate": "rep_plan_present", "status": "PASS"}, {"gate": "validate_verdicts", "status": "PASS"}]}}
+{"seq": 115, "ts": 1786320345.0, "phase": "16", "kind": "phase_done", "payload": {"phase": "16", "verdict": "PASS", "artifacts": ["output/RUN_PREPRINT.md", "output/LESSONS.json"]}}
+{"seq": 116, "ts": 1786320348.0, "phase": "16", "kind": "boundary_committed", "payload": {"phase": "16", "verdict": "PASS"}}

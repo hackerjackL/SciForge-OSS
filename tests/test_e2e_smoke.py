@@ -13,7 +13,14 @@ possible, on the minimal fixture in ``fixtures/e2e_minimal/``:
   d. the workspace stage directories match the tree in
      skills/shared-references/output-protocol.md exactly (both directions);
   e. skills/orchestrator/auto-pipeline/SKILL.md documents the same
-     node set as kernel/config/phasegraph.json (guards against silent drops).
+     node set as kernel/config/phasegraph.json (guards against silent drops);
+  f. the v1.7.2 machine-artifact layer is attached to the fixture, in the exact
+     shape the kernel writes it: events.ndjson (event-sourced history, one L1
+     loopback), nodes/NODES.json (content-addressed experiment node),
+     nodes/CLAIM_ANCHORS.json (resolved claim -> node), audits/REP.json
+     (compiled run plan + fallback conditions). These turn the mechanism gates
+     (claim_anchor_gate, rep_plan_present, loopback budget) from SKIP into
+     real executions on the fixture.
 
 Authorities (read-only; this test never modifies them):
   - workspace tree:  skills/shared-references/output-protocol.md
@@ -33,6 +40,8 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_DIR = REPO_ROOT / "fixtures" / "e2e_minimal"
@@ -99,6 +108,29 @@ EXPECTED_VERDICT_FILES = frozenset({
     "PROBLEM_HASH.txt",
     "REGISTRY_HASH.txt",
 })
+
+# v1.7.2 machine artifacts, in the exact paths/shapes the kernel writes them
+# (kernel/sciforge/{state,nodes,rep}.py). They make the mechanism gates real
+# on this fixture instead of permanently SKIPping.
+EVENTS_LOG = SCIFORGE_DIR / "events.ndjson"
+NODE_REGISTRY = SCIFORGE_DIR / "nodes" / "NODES.json"
+CLAIM_ANCHORS = SCIFORGE_DIR / "nodes" / "CLAIM_ANCHORS.json"
+REP_PLAN = SCIFORGE_DIR / "audits" / "REP.json"
+CLAIMS_FROM_RESULTS = SCIFORGE_DIR / "audits" / "CLAIMS_FROM_RESULTS.md"
+FIXTURE_EXPERIMENT_RESULT = (FIXTURE_DIR / "experiments" / "toy" / "main"
+                             / "RESULT.json")
+
+
+def _kernel_modules():
+    """Import the kernel on 3.10+; skip cleanly on the repo's system 3.9."""
+    if sys.version_info < (3, 10):
+        pytest.skip("kernel requires Python >= 3.10 (X | Y syntax)")
+    kernel_dir = str(REPO_ROOT / "kernel")
+    if kernel_dir not in sys.path:
+        sys.path.insert(0, kernel_dir)
+    from sciforge import nodes, rep, state  # noqa: PLC0415
+    from sciforge.pipeline import Kernel  # noqa: PLC0415
+    return nodes, rep, state, Kernel
 
 
 def run_toy(outdir: Path) -> dict:
@@ -374,3 +406,126 @@ def test_pipeline_skill_documents_expected_phase_graph():
         f"Phase Mode Table drifts from phasegraph.json: "
         f"missing={sorted(missing)}, extra={sorted(extra)}"
     )
+
+
+# ---------------------------------------------------------------------------
+# (f) v1.7.2 machine artifacts: events / nodes / claim anchors / REP plan
+#
+# Until v1.7.3 the fixture carried only the final verdict set, so every gate
+# backed by the v1.7.2 mechanisms (claim anchors, REP plan presence, loopback
+# budgets counted from the event log) reported SKIP on it and their artifact
+# shapes were never exercised. These tests pin the kernel-written shapes.
+# ---------------------------------------------------------------------------
+
+def test_fixture_ships_v172_machine_artifacts():
+    """All six machine artifacts exist and the event stream is kernel-shaped."""
+    for path in (EVENTS_LOG, NODE_REGISTRY, CLAIM_ANCHORS, REP_PLAN,
+                 CLAIMS_FROM_RESULTS, FIXTURE_EXPERIMENT_RESULT):
+        assert path.is_file(), f"missing v1.7.2 machine artifact: {path}"
+
+    events = [json.loads(line) for line in
+              EVENTS_LOG.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert events, "events.ndjson is empty"
+    # EventLog emits strictly increasing seq starting at 1; replay relies on it.
+    assert [e["seq"] for e in events] == list(range(1, len(events) + 1))
+    for event in events:
+        assert set(event) >= {"seq", "ts", "phase", "kind", "payload"}
+        assert isinstance(event["payload"], dict)
+        assert float(event["ts"]) > 0
+    # A completed run commits every phase's boundary exactly once, except the
+    # re-entered phase in the recorded L1 loopback (phase 2).
+    committed = [e["payload"]["phase"] for e in events
+                 if e["kind"] == "boundary_committed"]
+    assert set(committed) == set(EXPECTED_PHASE_IDS)
+    assert committed.count("2") == 2
+    loopbacks = [e for e in events if e["kind"] == "loopback"]
+    assert len(loopbacks) == 1
+    assert loopbacks[0]["payload"]["id"] == "L1"
+    assert loopbacks[0]["payload"]["target"] == "2"
+    assert loopbacks[0]["payload"]["rep_fallback"] == "PASS"
+
+
+def test_fixture_rep_plan_executes_and_passes():
+    """rep_plan_present: a real compiled plan (26 objectives, fallbacks)."""
+    nodes_mod, rep_mod, _state, _Kernel = _kernel_modules()
+    plan = rep_mod.check_plan(FIXTURE_DIR)
+    # PASS, never SKIP: phase 1 actually ran in the fixture's history.
+    assert plan["status"] == "PASS"
+    assert plan["objectives"] == EXPECTED_PHASE_COUNT
+    assert plan["fallbacks"] >= 1
+    rep_doc = json.loads(REP_PLAN.read_text(encoding="utf-8"))
+    assert rep_doc["schema_version"] == "1.0"
+    assert len(rep_doc["objectives"]) == EXPECTED_PHASE_COUNT
+    assert "2.5" in rep_doc["fallbacks"]  # the L1 loopback's phase
+    # declared fallback is consumable; an off-plan recovery is a violation
+    assert rep_mod.fallback_consumed(FIXTURE_DIR, "2.5", "L1")["status"] == "PASS"
+    assert rep_mod.fallback_consumed(FIXTURE_DIR, "1b", "L1")["status"] == "FAIL"
+
+
+def test_fixture_nodes_and_claim_anchors_are_hash_stable():
+    """NODES.json holds content-addressed nodes; anchors resolve without drift."""
+    nodes_mod, _rep, _state, _Kernel = _kernel_modules()
+    registry = nodes_mod.load(FIXTURE_DIR)
+    assert registry["schema_version"] == "1.0"
+    assert registry["nodes"], "node registry is empty"
+    for node in registry["nodes"]:
+        assert re.fullmatch(r"n\d{3}", node["id"])
+        assert node["kind"] and node["phase"] and node["reexec_cmd"]
+        assert node["outputs_sha"], "node records no output hashes"
+        for rel, expected in node["outputs_sha"].items():
+            actual = nodes_mod.sha256_file(FIXTURE_DIR / rel)
+            assert actual == expected, f"node output hash drifted: {rel}"
+
+    anchors = nodes_mod.load_anchors(FIXTURE_DIR)
+    assert anchors, "claim anchors are empty"
+    assert all(a["resolved"] is True for a in anchors)
+    assert all(a["node_id"] for a in anchors)
+    assert nodes_mod.verify_anchors(FIXTURE_DIR) == []
+
+
+def test_fixture_claim_anchor_gate_executes_and_passes():
+    """claim_anchor_gate leaves SKIP and validates the fixture's real chain."""
+    _kernel_modules()  # 3.10+ guard: the gate script imports kernel nodes.py
+    proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "claim_anchor_gate.py"),
+         str(FIXTURE_DIR)],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "claim_anchor PASS" in proc.stdout
+    assert "SKIP" not in proc.stdout
+
+
+def test_fixture_event_log_reconstructs_loopback_budget(tmp_path):
+    """A Kernel recovers the L1 round count from events, not from memory."""
+    _nodes, _rep, state_mod, Kernel = _kernel_modules()
+    copy = tmp_path / "Q001"
+    shutil.copytree(FIXTURE_DIR, copy)
+    kernel = Kernel(copy)
+    assert kernel._round_count("L1") == 1
+    # a completed run is terminal: recovery must not restart or mutate it
+    assert state_mod.recover(state_mod.EventLog(copy), state_mod.RunState(copy),
+                             copy) == "completed"
+
+
+def test_fixture_s2_gates_execute_and_pass(tmp_path):
+    """Adding the experiment record obliges the S2 gate battery: the ladder,
+    the ablation ledger and the completeness audit must execute and PASS on a
+    copy of the fixture (they used to SKIP when no experiment existed)."""
+    _kernel_modules()
+    copy = tmp_path / "Q001"
+    shutil.copytree(FIXTURE_DIR, copy)
+    cases = (("s2_ladder_gate.py", "s2_ladder PASS"),
+             ("s2_ablation_gate.py", "s2_ablation PASS"),
+             ("s2_audit.py", "s2_audit PASS"))
+    for script, marker in cases:
+        proc = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "scripts" / script), str(copy)],
+            capture_output=True, text=True, timeout=120,
+        )
+        assert proc.returncode == 0, f"{script}:\n{proc.stdout}{proc.stderr}"
+        assert marker in proc.stdout, f"{script}:\n{proc.stdout}"
+        assert "SKIP" not in proc.stdout.splitlines()[0], proc.stdout
+    # s2_audit's side effect lands in the copy, never in the checked-in fixture
+    assert (copy / ".sciforge" / "audits" / "AUDIT_TRAIL.json").exists()
+    assert not (FIXTURE_DIR / ".sciforge" / "audits" / "AUDIT_TRAIL.json").exists()

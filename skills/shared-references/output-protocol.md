@@ -96,7 +96,7 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   ├── experiments/    ←   experiment scripts (toy/full/ablation/hyperparameter, incl. group_<name>/)
 │   ├── figures/        ←   rendering scripts (render.py / spec.d2 / *.composite.json)
 │   └── utils/          ←   shared utility functions
-├── experiments/        ← experiment-execution artifacts (RESULT.json/data; scripts go to src/experiments/)
+├── experiments/        ← experiment-execution artifacts (RESULT.json / STATUS.json / {group}.SMOKE.json / data; scripts go to src/experiments/)
 ├── logs/               ← [experiment & training logs ONLY] (v6.0: "logs" restored to its plain meaning)
 │   ├── experiments/    ←   {experiment_id}.log (stdout/stderr tee) + STATUS.json summary mirror
 │   └── checkpoints/    ←   model/training checkpoints of experiment runs

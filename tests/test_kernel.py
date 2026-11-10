@@ -7,6 +7,7 @@ ci_check never fails on version grounds. Run on 3.12 venv for real coverage:
 from __future__ import annotations
 
 import json
+import hashlib
 import sys
 import tempfile
 import time
@@ -889,11 +890,18 @@ def test_smoke_gate_blocks_missing_smoke(tmp_path: Path):
 
 def test_smoke_gate_passes_with_real_smoke(tmp_path: Path):
     g = tmp_path / "experiments" / "full" / "g1"; g.mkdir(parents=True)
-    (g / "DISPATCH.json").write_text("{}")
+    # The gate re-executes the declared slice, so "real smoke" has to mean a
+    # script that exists and is hash-bound (v1.7.3 positive-evidence rule).
+    src = 'print("smoke ok")\n'
+    (g / "run.py").write_text(src)
+    (g / "DISPATCH.json").write_text(json.dumps(
+        {"script": "experiments/full/g1/run.py"}))
     (g / "STATUS.json").write_text(json.dumps({"state": "done"}))
     (g / "g1.SMOKE.json").write_text(json.dumps({
         "experiment_id": "g1", "smoke_scale": "1-step", "smoke_result": "PASS",
         "fail_code": None, "fix_attempts": 0, "status_row_written": True,
+        "script": "experiments/full/g1/run.py",
+        "script_sha256": hashlib.sha256(src.encode()).hexdigest(),
         "executed_at": "2026-09-26T10:00:00Z", "duration_seconds": 12}))
     r = gates.check(tmp_path, {"check": "command", "cmd": "smoke_gate"}, "6c")
     assert r["status"] == "PASS", r

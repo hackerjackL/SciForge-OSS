@@ -252,9 +252,32 @@ def check(ws: Path, gate: dict, phase: str) -> dict:
             return {"gate": "dep_gate", "status": "PASS" if p.returncode == 0 else "FAIL",
                     "exit": p.returncode, "output": (p.stdout + p.stderr)[-2000:]}
         if name == "smoke_gate":
-            p = run_py("scripts/smoke_gate.py", [str(ws)])
-            return {"gate": "smoke_gate", "status": "PASS" if p.returncode == 0 else "FAIL",
-                    "exit": p.returncode, "output": (p.stdout + p.stderr)[-1500:]}
+            # smoke_gate exits 0 for PASS, WARN and SKIP alike: WARN is a
+            # disclosure ("re-execution was not possible — no script hash, no
+            # sandbox, script gone"), deliberately non-blocking so that runs
+            # whose .SMOKE.json predates the hash contract are not stranded.
+            # Exit code alone would fold that disclosure into a bare PASS, so
+            # read the gate's own verdict and carry it into the boundary
+            # record (events.ndjson) where it stays auditable. `status` keeps
+            # the exit-code meaning: WARN must not become a boundary refusal,
+            # which is what commit_boundary would do with it.
+            p = run_py("scripts/smoke_gate.py", [str(ws), "--json"])
+            out = p.stdout + p.stderr
+            rec: dict = {"gate": "smoke_gate",
+                         "status": "PASS" if p.returncode == 0 else "FAIL",
+                         "exit": p.returncode, "output": out[-1500:]}
+            try:
+                doc = json.loads(p.stdout)
+            except Exception:
+                doc = None
+            if isinstance(doc, dict):
+                gv = doc.get("verdict")
+                if gv in ("PASS", "WARN", "SKIP"):
+                    rec["smoke_verdict"] = gv
+                reasons = doc.get("reason_codes") or []
+                if gv == "WARN" and reasons:
+                    rec["smoke_disclosure"] = ",".join(str(r) for r in reasons[:8])
+            return rec
         if name == "s2_ladder":
             # v1.7 ScientistTwo §3.2: subset→full ladder + 3-state critic at 6c
             p = run_py("scripts/s2_ladder_gate.py", [str(ws)])

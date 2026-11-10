@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "claims": [
+    {
+      "claim_id": "C1",
+      "node_id": "n001",
+      "tex_file": "paper/main.tex",
+      "line": 0,
+      "resolved": true,
+      "evidence_refs": [],
+      "context": "C1 — variance ordering (polarity positive)"
+    }
+  ]
+}

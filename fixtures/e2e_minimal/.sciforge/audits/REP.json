@@ -1,0 +1,359 @@
+{
+  "schema_version": "1.0",
+  "compiled_at": 1786320004.0,
+  "route": "hybrid",
+  "evidence_type": "simulational",
+  "discipline": "strict",
+  "claim_mode": "attribution",
+  "objectives": [
+    {
+      "phase": "0",
+      "name": "load-problem",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [
+        "RUN_BUDGET.json",
+        "PROBLEM_HASH.txt"
+      ],
+      "inherited": false
+    },
+    {
+      "phase": "1",
+      "name": "understand-decompose",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "1a",
+      "name": "domain-signature",
+      "mode": "OPTIONAL",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "1b",
+      "name": "domain-learner",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "4broad",
+      "name": "retrieval-broad-wave",
+      "mode": "MUST",
+      "verify": [
+        "gap_gate"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "2",
+      "name": "idea-discovery",
+      "mode": "MUST",
+      "verify": [
+        "file"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "2.5",
+      "name": "adversarial-falsification",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "2.5b",
+      "name": "engineering-grounding",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "3",
+      "name": "novelty-check",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "4targeted",
+      "name": "retrieval-targeted-waves",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "5",
+      "name": "method-registry",
+      "mode": "MUST",
+      "verify": [
+        "hash"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "6",
+      "name": "verification-routing",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [
+        "VERIFICATION_ROUTING.json"
+      ],
+      "inherited": false
+    },
+    {
+      "phase": "6a",
+      "name": "theory-derivation",
+      "mode": "ROUTED",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "6b",
+      "name": "experiment-toy",
+      "mode": "ROUTED",
+      "verify": [
+        "verdict_field",
+        "security_scan",
+        "dep_gate",
+        "integrity_monitor"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "6c",
+      "name": "experiment-full",
+      "mode": "ROUTED",
+      "verify": [
+        "verdict_field",
+        "security_scan",
+        "smoke_gate",
+        "dep_gate",
+        "integrity_monitor",
+        "s2_ladder"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "7",
+      "name": "leakage-audit",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "8",
+      "name": "logic-verification",
+      "mode": "MUST",
+      "verify": [],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "9",
+      "name": "invariant-check",
+      "mode": "MUST",
+      "verify": [
+        "hash_match"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "10",
+      "name": "result-to-claim",
+      "mode": "MUST",
+      "verify": [
+        "file",
+        "arb_verify",
+        "s2_ablation"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "11",
+      "name": "unified-plotting",
+      "mode": "MUST",
+      "verify": [
+        "render_audit"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "12",
+      "name": "paper-writing",
+      "mode": "MUST",
+      "verify": [
+        "quality_gate",
+        "fantasy_gate"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "13",
+      "name": "paper-compile",
+      "mode": "MUST",
+      "verify": [
+        "leakage_scan",
+        "compile_audit"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "14",
+      "name": "auto-review-loop",
+      "mode": "MUST",
+      "verify": [
+        "verdict_field"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "15",
+      "name": "citation-audit",
+      "mode": "MUST",
+      "verify": [
+        "citation_audit",
+        "citation_support",
+        "doi_gate"
+      ],
+      "artifacts": [],
+      "inherited": false
+    },
+    {
+      "phase": "15.5",
+      "name": "publishability-score",
+      "mode": "MUST",
+      "verify": [
+        "fairness_gate",
+        "submission_ready"
+      ],
+      "artifacts": [
+        "PUBLISHABILITY_SCORE.json"
+      ],
+      "inherited": false
+    },
+    {
+      "phase": "16",
+      "name": "final-assembly",
+      "mode": "MUST",
+      "verify": [
+        "wrap_up_gates"
+      ],
+      "artifacts": [
+        "RUN_PREPRINT.md",
+        "LESSONS.json"
+      ],
+      "inherited": false
+    }
+  ],
+  "fallbacks": {
+    "2": {
+      "on": "no_survivor",
+      "target": "2",
+      "budget": 1,
+      "condition": "verdict no_survivor at phase 2 with budget left; consume prior failure evidence"
+    },
+    "2.5": {
+      "on": "WEAKENED",
+      "target": "2",
+      "budget": 3,
+      "condition": "verdict WEAKENED at phase 2.5 with budget left; consume prior failure evidence"
+    },
+    "6b": {
+      "on": "FAIL",
+      "target": "5-or-2",
+      "budget": 2,
+      "condition": "verdict FAIL at phase 6b with budget left; consume prior failure evidence"
+    },
+    "6c": {
+      "on": "BA_FAIL",
+      "target": "2",
+      "budget": 2,
+      "condition": "verdict BA_FAIL at phase 6c with budget left; consume prior failure evidence"
+    },
+    "7": {
+      "on": "CRITICAL",
+      "target": "5",
+      "budget": 3,
+      "condition": "verdict CRITICAL at phase 7 with budget left; consume prior failure evidence"
+    },
+    "8": {
+      "on": "FATAL",
+      "target": "6",
+      "budget": 3,
+      "condition": "verdict FATAL at phase 8 with budget left; consume prior failure evidence",
+      "ba": {
+        "target": "2",
+        "budget": 2,
+        "shared": "ba"
+      }
+    },
+    "13": {
+      "on": "PAGE_OVERFLOW",
+      "target": "12",
+      "budget": -1,
+      "condition": "verdict PAGE_OVERFLOW at phase 13 with budget left; consume prior failure evidence"
+    },
+    "14": {
+      "on": "score_lt_6",
+      "target": "6",
+      "budget": 4,
+      "condition": "verdict score_lt_6 at phase 14 with budget left; consume prior failure evidence",
+      "ba": {
+        "target": "2",
+        "budget": 2,
+        "shared": "ba"
+      }
+    }
+  },
+  "budgets": {
+    "lite": {
+      "wall_clock_seconds_max": 43200,
+      "api_cost_usd_max": 10.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    },
+    "balanced": {
+      "wall_clock_seconds_max": 172800,
+      "api_cost_usd_max": 40.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    },
+    "max": {
+      "wall_clock_seconds_max": 345600,
+      "api_cost_usd_max": 120.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    },
+    "beast": {
+      "wall_clock_seconds_max": 864000,
+      "api_cost_usd_max": 400.0,
+      "pivot_count_max": 2,
+      "ba_rounds_max": 2
+    }
+  },
+  "intake": false,
+  "signature": false
+}

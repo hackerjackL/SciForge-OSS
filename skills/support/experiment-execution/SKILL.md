@@ -3,7 +3,7 @@ name: experiment-execution
 description: "Two-stage experiments (toy→full+background) with v3.2 proxy auto-mount + async dataset download + v3.4 Step 0d.0 local benchmark registry check (avoid re-download) + Step 5.0 full-code smoke gate (1-step end-to-end, writes .SMOKE.json, wired into ordered chain before dispatch). Phase 6b/6c. Invoke for any computational/experimental verification."
 type: support-skill
 role: experiment-runner
-version: 1.7.2
+version: 1.7.3
 ---
 
 # Experiment Execution (SciForge-OSS — Toy + Full + Background Dispatch)
@@ -446,11 +446,63 @@ python3 scripts/security_scan.py src/experiments/full/{script}.py   # add --json
 
    All fix paths are bounded to **1 retry** — the smoke gate is not a debugging loop; if 1 fix doesn't clear it, the full dispatch is `BLOCKED` with the failure code, surfacing to the human. Never dispatch a full experiment whose 1-step smoke fails twice.
 
-4. **Smoke artifact**: write `experiments/full/{experiment_id}.SMOKE.json`:
+4. **Smoke artifact**: write `{group}.SMOKE.json` under the directory that holds the group's `DISPATCH.json` / `STATUS.json` (`experiments/full/<group>/<group>.SMOKE.json`; for a flat dispatch directly under `experiments/full/`, the group id is `full`). The record is load-bearing evidence, not a status note — `scripts/smoke_gate.py` (run by the 6c boundary, or by `gate_all.py` in Mode A) re-validates it and re-executes the slice. The full contract is in "Smoke artifact contract (v1.7.3)" below. Minimum shape:
    ```json
-   {"experiment_id":"...","smoke_scale":"1-step","smoke_result":"PASS|FAIL","fail_code":"<code or null>","fix_attempts":0,"status_row_written":true,"executed_at":"<ISO8601>","duration_seconds":<n>}
+   {"experiment_id":"...","smoke_scale":"1-step","smoke_result":"PASS|FAIL","fail_code":"<code or null>","fix_attempts":0,"status_row_written":true,"script":"src/experiments/full/{script}.py","script_sha256":"<64-hex sha256 of the exact script bytes>","smoke_args":["--max-steps","1"],"executed_at":"<ISO8601>","duration_seconds":<n>}
    ```
    Phase 10 (`/result-to-claim`) reads this — if `smoke_result=FAIL` and a full DISPATCH.json exists anyway, that's an invariant violation (Phase 9 INV-check catches it).
+
+#### Smoke artifact contract (v1.7.3)
+
+`scripts/smoke_gate.py` is the consumer; the field names below are exactly what it reads. A record that merely says `"smoke_result": "PASS"` is accepted only as legacy evidence: the gate then degrades to a WARN because provenance cannot be proven. A record that carries `script` + `script_sha256` is **re-executed** in the kernel sandbox, and any non-zero exit, Python traceback, or timeout is a FAIL.
+
+| Field | Type | Required by the gate | Meaning |
+|---|---|---|---|
+| `smoke_result` | string | **yes** — record check | Exactly `"PASS"` for a passing smoke; anything else fails the record check |
+| `status_row_written` | boolean | **yes** — record check | Exactly `true`: the slice wrote its STATUS.json row |
+| `script` | string | **yes in practice** | Workspace-relative path of the tested script (`script_path` / `target_script` are accepted aliases). Without it the gate falls back to the sibling `DISPATCH.json`, `EXPERIMENT_MATRIX.json` `groups[].script`, then filename conventions |
+| `script_sha256` | string | **yes in practice** | 64-hex SHA-256 of the exact script bytes (`script_sha` / `code_sha` are accepted aliases; a `sha256:` prefix and uppercase are normalized). A dict `{filename: hash}` is also parsed |
+| `smoke_args` | list or shell string | strongly recommended | Arguments appended to `python <script>`; must be the same 1-step slice the agent ran. If omitted, the gate auto-detects a step-cap flag (`--max-steps`, `--max_steps`, `--steps`, `--max-epochs`, `--max_epochs`, `--epochs`, `--max-batches`, `--max_batches`, `--limit`) and passes `<flag> 1`; if none is found it executes uncapped and records `no_step_cap_flag` |
+| `smoke_cmd` | string or argv list | optional | Full command template overriding `python <script> <smoke_args>`. Placeholders: `{python}` (the running interpreter), `{script}`, `{workspace}`, `{group}`. `reexec_cmd` is an accepted alias |
+| `executed_at` | ISO-8601 string | **yes in practice** | When the smoke ran. Without a hash, the gate compares it with the script mtime (a script newer than the record is FAIL) |
+| `fail_code` | string or null | no | One of the four failure codes above; `null` on PASS |
+| `experiment_id`, `smoke_scale`, `fix_attempts`, `duration_seconds` | — | no | Human/Phase-10 metadata; the gate does not read them |
+
+`smoke_cmd` and `smoke_args` may also be declared in the sibling `DISPATCH.json` as a fallback; the `.SMOKE.json` value wins.
+
+`timeout_seconds` in this file is **not read**. The re-execution timeout is the gate's own `--timeout` (default 90 s per group, capped at 600 s), the total budget is `--total-timeout` (default 300 s), and at most `--max-executions` (default 8) slices run. Keep the smoke itself inside the 60 s foreground budget; the gate timeout only bounds the kernel's verification re-run.
+
+**Compute the hash after the script is final and before the smoke runs**, then run the smoke on exactly those bytes:
+
+```bash
+# Portable (any Python 3)
+python3 -c "import hashlib,pathlib,sys;print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())" src/experiments/full/{script}.py
+# Linux
+sha256sum src/experiments/full/{script}.py
+# macOS
+shasum -a 256 src/experiments/full/{script}.py
+```
+
+Store only the 64 lowercase hex characters in `script_sha256`. **Any subsequent edit — a bug fix, a flag change, even a comment — invalidates the recorded hash; the gate reports `stale_smoke_script_hash_mismatch` and FAILs.** Recompute the hash and re-run the smoke. Never hand-edit the hash to match a modified script: that converts the gate into a rubber stamp.
+
+**How the gate decides** (so a WARN is never mistaken for a pass):
+
+| Condition | Result |
+|---|---|
+| hash matches the script on disk | freshness PASS |
+| hash differs from the script on disk | FAIL `stale_smoke_script_hash_mismatch` |
+| no hash, `executed_at` older than the script mtime | FAIL `stale_smoke_script_newer_than_smoke` |
+| no hash, no usable timestamp | WARN `smoke_no_script_hash` / `smoke_unbound_to_script` |
+| script path missing | WARN `smoke_script_missing` |
+| sandbox unavailable | WARN `sandbox_unavailable` (never PASS) |
+| the verifier itself runs with `--no-exec` | WARN `reexec_disabled` |
+| the verification budget is exhausted | WARN `execution_budget_exhausted` |
+| re-execution exits non-zero / prints a traceback / times out | FAIL `smoke_nonzero_exit` / `smoke_traceback` / `smoke_timeout` |
+| the script fails `security_scan.py` before re-execution | FAIL `security_scan_blocked` |
+
+The re-execution runs with `cwd` = workspace, `SCIFORGE_SMOKE=1`, `MPLBACKEND=Agg`, and the kernel on `PYTHONPATH`. A smoke that only passes because of an interactive shell state will fail here — that is the point.
+
+**Naming discipline**: put the record beside the group's own `DISPATCH.json` / `STATUS.json` and name it after the group (`<group>/<group>.SMOKE.json`). A record at the `experiments/full/` root is a fallback; a single global record covering a single-group run is disclosed as `smoke_matched_by_fallback`. With several dispatched groups, write one record per group — a group with no matching record fails the gate with `missing_smoke`.
 
 **Boundaries**:
 - The smoke runs at **1 step, NOT 1% of steps** — it validates runnability, not convergence. Running 1% would itself take minutes on a full-scale job; 1 step is seconds.

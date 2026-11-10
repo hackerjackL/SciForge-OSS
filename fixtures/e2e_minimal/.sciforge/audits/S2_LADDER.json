@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "problem_id": "Q001",
+  "metric": {
+    "name": "variance_ratio",
+    "direction": "minimize"
+  },
+  "subset": {
+    "baseline": {"value": 1.0},
+    "candidate": {"value": 0.7}
+  },
+  "fullset": {
+    "baseline": {"value": 1.0},
+    "candidate": {"value": 0.637},
+    "verified": true
+  },
+  "critic": {
+    "state": "GOOD",
+    "engineer_rounds": 0
+  },
+  "relative_gain_pct": 36.3
+}

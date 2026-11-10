@@ -40,6 +40,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sciforge_style as st  # noqa: E402
+import figure_audit  # noqa: E402  (A10 measured-layout manifest — v1.7.3)
 
 import matplotlib  # noqa: E402
 matplotlib.use("Agg")
@@ -92,6 +93,9 @@ def _finish(fig, ax, spec: Path | dict, outdir: Path):
     # categorical x-tick collision fix, run LAST (legend placed, figure laid
     # out). No-op for numeric axes — the gap test never trips on them.
     _fit_xticklabels(fig, ax)
+    # v1.7.3: measured text boxes for A10 (matplotlib/pdftocairo path-ize
+    # text, so the SVG <text> audit never saw recipe figures).
+    figure_audit.write_text_layout(fig, outdir)
     fig.savefig(outdir / "output.pdf")
     plt.close(fig)
 
@@ -263,6 +267,7 @@ def _heatmap(spec, outdir):
         ax.text(-0.16, 1.08, f"({spec['panel_label']})", transform=ax.transAxes,
                 fontsize=st.NATURE_FLOOR["title"], fontweight="bold")
     _fit_yticklabels(fig, ax)   # dense row labels must not stack
+    figure_audit.write_text_layout(fig, outdir)  # A10 measured layout (v1.7.3)
     fig.savefig(outdir / "output.pdf")
     plt.close(fig)
 
@@ -541,6 +546,7 @@ def _panel(spec, outdir):
     # the gap test, so this is a no-op for line/scatter/hist panels.
     for _i, ax in assignments:
         _fit_xticklabels(fig, ax)
+    figure_audit.write_text_layout(fig, outdir)  # A10 measured layout (v1.7.3)
     fig.savefig(outdir / "output.pdf")
     _write_panel_manifest(fig, [ax for _, ax in assignments], spec, outdir)
     plt.close(fig)

@@ -12,10 +12,51 @@ This guide is the entry for **Mode A**. Since v1.5.0 the repo splits *knowledge*
 
 | Mode | Who runs the loop | How you (the agent) participate | Guarantees |
 |------|------------------|--------------------------------|------------|
-| **A — skills-only (host agent)** | **You** read this guide + the phase `SKILL.md`s and execute `/auto-pipeline` turn by turn | Full autonomy; you are the orchestrator | gates are advisory (you self-run `scripts/*`) — the original behavior |
-| **B — runtime kernel** | `kernel/` Python state machine (`sciforge run --host claude\|codex`) dispatches you **per phase** | You receive a pointer-load bundle (`.sciforge/refine-logs/phase_<id>.bundle.md`) and return a JSON verdict; the kernel enforces every gate and refuses to advance past a failure | mechanical gates, event-sourced resume, HITL as code, real token cost |
+| **A — skills-only (host agent)** | **You** read this guide + the phase `SKILL.md`s and execute `/auto-pipeline` turn by turn | Full autonomy; you are the orchestrator | Gates are advisory: the scripts exist and the contracts require them, but you must invoke them. Two gate families cannot run at all — claim anchors and REP-plan compliance — because their inputs (`NODES.json`, `REP.json`) are produced only by the kernel. Run `python3 scripts/gate_all.py <workspace>` for the full battery; it reports those two as `UNPROTECTED`. |
+| **B — runtime kernel** | `kernel/` Python state machine (`sciforge run --host claude\|codex`) dispatches you **per phase** | You receive a pointer-load bundle (`.sciforge/refine-logs/phase_<id>.bundle.md`) and return a JSON verdict; the kernel enforces every gate and refuses to advance past a failure | Every gate is enforced inside `commit_boundary()`, boundaries are event-sourced and resumable, HITL checkpoints and the 3-round cap are code, token cost is measured |
 
 In Mode B you never have to remember the contracts — the kernel recites the hard constraints into your bundle at every boundary, runs the validators, and blocks bad transitions. Everything below still describes the DAG semantics you execute in either mode.
+
+### Guarantee matrix (v1.7.3)
+
+The DAG is identical across modes; the enforcement strength is not. **Enforced** means a failed gate blocks the state transition. **Advisory** means the script exists and the contract requires it, but skipping it does not mechanically stop the run. **Not in force** means the input artifact is produced only by the kernel, so the check SKIPs or has nothing to inspect. Every row is verifiable in `kernel/config/phasegraph.json`, `kernel/sciforge/gates.py`, and the named script.
+
+| Gate / mechanism (source) | Mode B — kernel | Mode A — skills-only |
+|---|---|---|
+| Verdict schema validation ([`scripts/validate_verdicts.py`](scripts/validate_verdicts.py)) | Enforced at every boundary; `--strict` from phase 5; `--strict --require-complete` at wrap-up | Advisory; `gate_all.py` runs it |
+| REP plan + off-plan loopback detection ([`kernel/sciforge/rep.py`](kernel/sciforge/rep.py)) | Enforced: compiled at phase 1, `check_plan` on every boundary from phase 2. A fired loopback's `fallback_consumed` result is recorded in the event log — an off-plan loopback is recorded, not blocked | Not in force: nothing compiles `REP.json`; `gate_all.py` reports `rep_plan_present` as UNPROTECTED |
+| Node registry + claim anchors ([`kernel/sciforge/nodes.py`](kernel/sciforge/nodes.py), [`scripts/claim_anchor_gate.py`](scripts/claim_anchor_gate.py)) | Enforced: nodes auto-registered after 6b/6c/10, claims anchored after 10, gate run at wrap-up (16) | Not in force: `NODES.json` is never written, so the gate SKIPs; `gate_all.py` reports UNPROTECTED whenever claims or experiment evidence exist |
+| Node fork / resume from a node (`sciforge fork`) | Available (`nodes.fork`) | Not available |
+| Method registry hash lock (`REGISTRY_HASH.txt`) | Enforced at 5 by the `hash` gate (missing/BLOCKED/malformed refuses the boundary) | Advisory: the method-registry skill writes it; `gate_all.py` validates the file in either canonical location |
+| INV-G1 problem anchor (`PROBLEM_HASH.txt`) | Enforced at 9 by `hash_match` against the `problem_hash` frozen in RUNSTATE | Partly protected: the invariant-check skill writes the hash file, but RUNSTATE carries no frozen reference by default, so `gate_all.py` reports `inv_g1` as UNPROTECTED unless the workspace records one |
+| Security scan of agent scripts ([`scripts/security_scan.py`](scripts/security_scan.py)) | Enforced at 6b/6c over `src/**/*.py` + `experiments/**/*.py`; a BLOCKED-class finding refuses the boundary | Advisory; `gate_all.py` runs the same scan |
+| Dependency allowlist ([`scripts/dep_gate.py`](scripts/dep_gate.py)) | Enforced at 6b/6c | Advisory; `gate_all.py` |
+| Pre-execution integrity monitor ([`kernel/sciforge/s2/monitor.py`](kernel/sciforge/s2/monitor.py), [`scripts/s2_integrity_gate.py`](scripts/s2_integrity_gate.py)) | Enforced at 6b/6c; the semantic D1 tier runs only when a provider gateway is configured | Advisory: the CLI runs the deterministic D2/D3 core; D1 needs `--strict-llm` and configured providers (`gate_all.py --integrity-llm`) |
+| Smoke gate ([`scripts/smoke_gate.py`](scripts/smoke_gate.py)) | Enforced at 6c | Advisory; `gate_all.py` |
+| Subset→full ladder ([`scripts/s2_ladder_gate.py`](scripts/s2_ladder_gate.py)) | Enforced at 6c | Advisory; `gate_all.py` |
+| Ablation ledger ([`scripts/s2_ablation_gate.py`](scripts/s2_ablation_gate.py)) | Enforced at 10 | Advisory; `gate_all.py` |
+| Certified-interval claims ([`scripts/arb_verify.py`](scripts/arb_verify.py)) | Enforced at 10 | Advisory; `gate_all.py` |
+| TDAL score ([`scripts/tdal_compute.py`](scripts/tdal_compute.py)) | Not a gate: the kernel never invokes it | Not a gate; `gate_all.py` reports it as INFO |
+| Figure embedding + renderer audit ([`scripts/check_figure_embedding.py`](scripts/check_figure_embedding.py)) | Enforced at 11 | Advisory; `gate_all.py` |
+| Figure presentation ([`scripts/figure_style_gate.py`](scripts/figure_style_gate.py)) | Enforced at 11 | Advisory; `gate_all.py` |
+| Quality-gate marker (`QUALITY_GATE.json`) | Enforced at 12 (a missing marker FAILs the boundary) | Advisory: the agent must write the marker; `gate_all.py` checks presence |
+| Fantasy-prevention ([`scripts/fantasy_gate.py`](scripts/fantasy_gate.py)) | Enforced at 12 | Advisory; `gate_all.py` |
+| Pipeline-leakage scrub ([`scripts/leakage_scan.py`](scripts/leakage_scan.py)) | Enforced at 13 (classes A–L, writes `LEAKAGE_SCRUB.json`) | Advisory; `gate_all.py` |
+| Compile audit (`PAPER_COMPILE.json` + `LEAKAGE_SCRUB.json`) | Enforced at 13; compile warnings are hard only under `discipline=strict`, disclosed under balanced/lean | Advisory: the agent must write the marker; `gate_all.py` re-checks the same conditions |
+| Citation-audit marker (`CITATION_AUDIT.json`) | Enforced at 15 | Advisory; `gate_all.py` checks presence |
+| Sentence-level citation support ([`scripts/citation_support.py`](scripts/citation_support.py)) | Enforced at 15 | Advisory; `gate_all.py` |
+| DOI resolution ([`scripts/doi_gate.py`](scripts/doi_gate.py)) | Enforced at 15 (network resolution; unresolved entries are dropped) | Advisory; `gate_all.py` (`--offline` is structure-only and weaker) |
+| Fairness ledger ([`scripts/fairness_gate.py`](scripts/fairness_gate.py)) | Enforced at 15.5 (exit 3 = no ledger → SKIP). Cross-validation of split hashes / seed counts / budget against raw evidence is always in force, because RUNSTATE and the event log exist | Advisory; `gate_all.py`. With no co-located raw evidence (`scope=ledger_only`) the cross-validation layer cannot run, so `gate_all.py` reports UNPROTECTED instead of PASS |
+| Submission readiness ([`scripts/submission_ready.py`](scripts/submission_ready.py)) | Enforced at 15.5: READY/MINOR_REV pass (exit 0); MAJOR_REV (exit 1 → WARN) **and** NOT_READY (exit 2 → FAIL) both block the boundary, since WARN is not in the pass set {PASS, SKIP, NOT_APPLICABLE} | Same tiers; `gate_all.py` fails on both MAJOR_REV and NOT_READY so the two modes cannot disagree about submittability |
+| Wrap-up completeness (`s2_audit`, `workspace_hygiene`, `completion_gate`, `claim_anchor`) | Enforced at 16 (`wrap_up_gates`) | Advisory; `gate_all.py` |
+| Single-entry mechanical audit ([`scripts/sciforge_audit.py`](scripts/sciforge_audit.py)) | Not part of `commit_boundary` — the wrap-up `pipeline_audit` entry is deferred to the host; runnable via `sciforge gate wrapup` | Advisory; `gate_all.py` |
+| Hard-constraint re-injection at every boundary ([`kernel/sciforge/bundle.py`](kernel/sciforge/bundle.py)) | Enforced: every phase bundle ends with a verbatim recitation computed from live state | Not present: constraints live in the SKILL contracts and shared references |
+| Human checkpoints (idea pick, method approval, KILL) | Code: `Approvals`, `APPROVAL_LOG.txt`, RUNSTATE `paused_checkpoint` | Prose: the agent writes the same records and honors `human_skip` / `test_mode` |
+| 3-round fallback cap | Code: counted from the event log (`Kernel._round_count`) | Prose: the agent counts |
+| Run budget ledger (`RUN_BUDGET.json`) | Code: `init_budget` / `accrue` / `breach` at boundaries | Prose: the agent writes and checks the ledger |
+| Event-sourced resume | Code: `events.ndjson` replay (`state.recover`) | Prose: `RUNSTATE.json` is the only cursor |
+
+**Using Mode A with the strongest available assurance.** Run `python3 scripts/gate_all.py <workspace>` at every phase boundary; it runs every gate that applies, preserves each gate's own SKIP / NOT_APPLICABLE semantics (theory-only routes are not failed by experiment gates), and prints an `UNPROTECTED` list naming the guarantees that are not in force. If a run needs claim-anchor protection or REP-plan compliance, use Mode B — `gate_all.py` cannot create those guarantees, it only reports their absence. `gate_all.py` is a `scripts/` tool: the Markdown skills remain executable without a Python environment, at the lower assurance level above.
 
 ## Quick Start
 

@@ -3,7 +3,7 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.2-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.3-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -427,6 +427,8 @@ SciForge-OSS/
 ## 质量门
 
 管线由机器可校验的门控守护，而不是文字承诺。
+
+**两种模式的强制力不同（v1.7.3）。** kernel 模式（`sciforge run`）下，所有边界门控都在 `commit_boundary()` 内强制执行：审计失败则状态机拒绝推进。纯 skills 模式（宿主 agent 直读 `/auto-pipeline`）下，门是建议性的——同一套脚本仍在，但必须由 agent 主动调用；最多有三项检查会在内核产出的参照产物缺失时报告 `UNPROTECTED`：claim 锚点（`NODES.json`）、REP 计划合规（`REP.json`）、以及 INV-G1 冻结基准比对（`RUNSTATE.problem_hash`）。运行 `python3 scripts/gate_all.py <workspace>`（[`scripts/gate_all.py`](scripts/gate_all.py)）可获得一次性报告，显式列出所有 `UNPROTECTED` 保证，而不是安静跳过。完整矩阵见 [`skills/orchestrator/auto-pipeline/SKILL.md`](skills/orchestrator/auto-pipeline/SKILL.md)。
 
 | 门控 | 执行者 |
 |------|--------|

@@ -1,0 +1,7 @@
+{
+  "experiment_id": "toy_q001_e2e_fixture",
+  "stage": "toy",
+  "group": "main",
+  "command": "python3 ../../../toy_experiment/run_toy.py .",
+  "seeds": [42, 43, 44]
+}

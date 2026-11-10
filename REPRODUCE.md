@@ -21,16 +21,18 @@ brew install graphviz librsvg poppler  # Linux: apt 等价，见 scripts/plottin
 .venv/bin/python scripts/plotting/render_figure.py --doctor
 ```
 
+`.venv/bin/python` 若是指向已卸载解释器的断链，上面第一条命令会以裸 shell 的 "no such file or directory" 失败且不说明原因；`scripts/ci_check.py` 的环境检查会先检出断链，打印目标路径、site-packages 是否完好，以及修复命令（重指 symlink 或重建 venv）。
+
 ## 1. 门系统（全部门在真实工作）
 
 ```bash
-# verdict schema 校验（fixture 21/21 PASS）
+# verdict schema 校验（fixture 24/24 PASS）
 .venv/bin/python scripts/validate_verdicts.py fixtures/e2e_minimal/.sciforge/verdicts --strict --require-complete
-# 安全扫描自测（25/25）
+# 安全扫描自测（26/26）
 .venv/bin/python scripts/security_scan.py --self-test
 # gap 判别门（好报告 PASS，含糊报告 FAIL——防空洞 gap 驱动幻觉选题）
 .venv/bin/python scripts/gap_gate.py <your-run>
-# 泄漏扫描（10 类，含伪造 frontmatter）
+# 泄漏扫描（12 类 A–L；K = SCI 正文语域，L = 内部机制行话，另含伪造 frontmatter 的 I-frontmatter 子类）
 .venv/bin/python scripts/leakage_scan.py <your-run>
 # 全仓 CI 门（链接/版本/绘图/测试）
 .venv/bin/python scripts/ci_check.py
@@ -85,17 +87,33 @@ node bin/sciforge.js run --workspace ./runs/Q001 --problem "..." --host claude -
 ```bash
 docker build -t sciforge .
 docker run --rm -v $PWD:/work -w /work sciforge run --workspace /work/r --problem "..." --host manual
-# 或裸机：nohup node bin/sciforge.js serve --archive ./runs &   # loopback :4510
-curl localhost:4510/health
-curl -X POST localhost:4510/runs -d '{"problem":"..."}'
+# 或裸机：daemon 只监听 loopback :4510；--workers N 起 N 个并发 worker（默认 1）
+nohup node bin/sciforge.js serve --archive ./runs --workers 2 > /tmp/sciforge-daemon.log 2>&1 &
+curl localhost:4510/health          # 只读端点，无需 token
+
+# 启动时生成一次性 token，落盘 <archive>/.sciforge-daemon/token（权限 0600）；每次重启换新
+TOKEN=$(cat runs/.sciforge-daemon/token)
+# 所有改变状态的端点都要求 Bearer token（也接受 X-SciForge-Token: <token>）
+curl -H "Authorization: Bearer $TOKEN" -X POST localhost:4510/runs \
+     -d '{"problem":"...","run_id":"Q001"}'
+curl localhost:4510/runs/Q001          # 只读：RUNSTATE + 事件计数 + 队列状态
+curl -H "Authorization: Bearer $TOKEN" -X POST \
+     localhost:4510/runs/Q001/approve -d '{"checkpoint":"idea-pick"}'
+curl -H "Authorization: Bearer $TOKEN" -X POST localhost:4510/runs/Q001/resume
+curl -H "Authorization: Bearer $TOKEN" -X POST localhost:4510/runs/Q001/cancel
 ```
+
+- 只读 GET 端点开放：`/health`、`/runs`（`?state=queued` 可过滤）、`/runs/<id>`、`/daily`；所有 POST（入队、approve/deny、resume、cancel）无 token 返回 401，token 错误返回 403。
+- 持久队列是 SQLite（`<archive>/.sciforge-daemon/queue.sqlite3`，重启不丢）；`<archive>/queue.json` 只是派生镜像，可删。daemon 重启时会回收死 worker 留下的 running 行。
+- token 每次启动都重新生成，重启后客户端需要重新读取 token 文件。
+
 GPU/NPU：镜像内 `detect_device.py` 自动 cuda/rocm/npu/mps/cpu；NPU allow-list 作业模式见 `scripts/` 与 AGENTS.md。
 
 ## 7. 单元测试（全部机制）
 
 ```bash
 .venv/bin/python -m pytest tests/test_kernel.py -q     # kernel 70 项
-.venv/bin/python -m pytest tests/ -q                   # 全仓 413 项（macOS Python 3.14 实测全绿）
+.venv/bin/python -m pytest tests/ -q                   # 全仓 567 项（macOS Python 3.14 实测全绿）
 ```
 
 ## 已知边界（诚实）

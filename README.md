@@ -3,7 +3,7 @@
 > **[English](README.md)** | **[中文](README.zh.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.2-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.3-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -418,6 +418,8 @@ SciForge-OSS/
 ## Quality gates
 
 The pipeline is guarded by machine-checkable gates, not prose promises.
+
+**Enforcement differs by mode (v1.7.3).** In kernel mode (`sciforge run`) the boundary gates are enforced inside `commit_boundary()`: a run cannot advance past a failing audit. In skills-only mode (`/auto-pipeline` read by a host agent) the gates are advisory — the same scripts exist, but the agent must invoke them, and up to three checks report `UNPROTECTED` when their kernel-produced reference artifact is absent: claim anchors (`NODES.json`), REP-plan compliance (`REP.json`), and the INV-G1 frozen-reference comparison (`RUNSTATE.problem_hash`). Run `python3 scripts/gate_all.py <workspace>` ([`scripts/gate_all.py`](scripts/gate_all.py)) for a one-shot report that lists every `UNPROTECTED` guarantee explicitly instead of skipping it silently. Full matrix: [`skills/orchestrator/auto-pipeline/SKILL.md`](skills/orchestrator/auto-pipeline/SKILL.md).
 
 | Gate | What enforces it |
 |------|------------------|

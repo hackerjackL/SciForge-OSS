@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "problem_id": "Q001",
+  "metric": {
+    "name": "error",
+    "direction": "minimize"
+  },
+  "plans": [
+    {"id": "A1", "component": "estimator_x", "hypothesis": "removing the mean estimator removes the effect", "metric": "error", "status": "executed"},
+    {"id": "A2", "component": "estimator_y", "hypothesis": "removing the median baseline removes the contrast", "metric": "error", "status": "executed"},
+    {"id": "A3", "component": "seed_policy", "hypothesis": "a single seed inflates the error", "metric": "error", "status": "executed"},
+    {"id": "A4", "component": "sample_size", "hypothesis": "n below 21 changes the ordering", "metric": "error", "status": "executed"},
+    {"id": "A5", "component": "known_answer_band", "hypothesis": "removing the band hides the ratio drift", "metric": "error", "status": "executed"}
+  ],
+  "results": [
+    {"plan": "A1", "prev_value": 0.9, "new_value": 0.8, "decision": "GOOD"},
+    {"plan": "A2", "prev_value": 0.8, "new_value": 0.78, "decision": "GOOD"},
+    {"plan": "A3", "prev_value": 0.78, "new_value": 0.76, "decision": "GOOD"},
+    {"plan": "A4", "prev_value": 0.76, "new_value": 0.74, "decision": "GOOD"},
+    {"plan": "A5", "prev_value": 0.74, "new_value": 0.72, "decision": "GOOD"}
+  ],
+  "current_best": 0.72
+}

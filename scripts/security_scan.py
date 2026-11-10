@@ -48,6 +48,8 @@ BLOCKED class (run refused; never auto-bypassed):
   SEC-009  crontab/at modification (crontab -l is exempt)
   SEC-010  sudo usage
   SEC-011  docker/podman run with --privileged
+  SEC-012  allowlist source inside the agent-writable workspace: exemptions
+           refused (v1.7.3 B07 self-planted-allowlist defense)
 
 WARN class (recorded; may proceed only with a logged justification):
   SEC-101  subprocess with shell=True
@@ -57,6 +59,8 @@ WARN class (recorded; may proceed only with a logged justification):
   SEC-105  broad glob/variable deletes (rm -rf "$VAR", rm -rf *)
   SEC-106  pip install inside the script (supply-chain note)
   SEC-107  any network egress at all — recorded even when allowlisted
+  SEC-108  allowlist-like file planted in the agent-writable workspace
+           (reported even when unused; never auto-consumed)
 
 Allowlist
 ---------
@@ -75,12 +79,39 @@ Every loaded exemption is echoed in the report so it is auditable. A host
 allowlist clears only SEC-003/SEC-107: it never exonerates credential access
 (SEC-001) or exfiltration dataflow (SEC-002).
 
+Host-side provenance (v1.7.3, B07 self-planted-allowlist defect)
+----------------------------------------------------------------
+In skill mode the agent is both researcher and operator: it can write an
+allowlist file into its own workspace and pass it via --allow itself. No
+in-band flag can prove a human typed the command, so provenance is decided
+structurally — by WHERE the allowlist lives:
+
+  * The agent-writable zone is the outermost ancestor of the scanned script
+    carrying a project marker (`.sciforge/` run workspace, `.git`,
+    `pyproject.toml`, `package.json`). Bare scratch directories with no
+    marker stay trusted, so operator-issued --allow files in temp dirs keep
+    working.
+  * An --allow file whose RESOLVED path lies inside that zone is UNTRUSTED:
+    its exemptions are refused and the scan is BLOCKED with SEC-012. The
+    scan then proceeds without any exemption, so e.g. SEC-003 still fires.
+  * Any allowlist-shaped file planted in the scanned directory or in an
+    ancestor up to the zone root is reported as a security event (SEC-108,
+    WARN) even when it is never passed to --allow — a planted file is an
+    attempted bypass and must be visible in the audit trail.
+
+The report carries `allowlist_source` (path / trusted / zone_root / reason)
+so a host can tell an operator-issued allowlist from an agent-planted one.
+
 Deliberate non-goals / known limits (static scanner): httpx/aiohttp/ftplib/
 smtplib/websocket egress, eval of non-network strings, bare `ssh myhost`
 without a dot/@ in the target, kernel/socket tricks not going through the
 stdlib calls above, and multi-line command assembly via untracked variables
 (the unresolved-host case is blocked, not exonerated, so the fail-closed side
-of this limit is safe). String literals are scanned even inside docstrings —
+of this limit is safe). Allowlist provenance is structural: an agent with
+host-wide write access OUTSIDE every marked project/workspace tree could
+still place a file there — no in-band flag can prove a human typed the
+command, so the host must keep the scanner and the zone markers outside the
+agent's write scope. String literals are scanned even inside docstrings —
 the scanner deliberately does not reason about which strings are "live"; a
 script that merely documents a credential path should rewrite the comment
 rather than expect an exemption.
@@ -119,6 +150,7 @@ RULE_DESC = {
     "SEC-009": "crontab/at modification",
     "SEC-010": "sudo usage",
     "SEC-011": "docker/podman run --privileged",
+    "SEC-012": "allowlist source inside the agent-writable workspace",
     "SEC-101": "subprocess with shell=True",
     "SEC-102": "os.system/os.popen",
     "SEC-103": "pickle deserialization",
@@ -126,6 +158,7 @@ RULE_DESC = {
     "SEC-105": "broad glob/variable delete",
     "SEC-106": "pip install inside script (supply chain)",
     "SEC-107": "network egress (recorded, even if allowlisted)",
+    "SEC-108": "allowlist-like file planted in the workspace",
 }
 
 # --------------------------------------------------------------------------
@@ -961,6 +994,155 @@ def load_allowlist(path: Path):
     return hosts, patterns, entries
 
 
+# --------------------------------------------------------------------------
+# Host-side allowlist provenance (v1.7.3 — B07 self-planted-allowlist defense)
+# --------------------------------------------------------------------------
+
+# A project marker turns an ancestor directory into the agent-writable zone.
+# `.sciforge/` is the SciForge run-workspace marker; `.git` / `pyproject.toml`
+# / `package.json` identify a repository checkout.  Bare scratch directories
+# (no marker) stay trusted so operator-issued --allow files in temp dirs keep
+# working; the outermost marker wins (repo root over a nested run workspace),
+# which is exactly where the ARC-Bench agent planted its allowlist.
+WORKSPACE_MARKERS = (".sciforge", ".git", "pyproject.toml", "package.json")
+
+# File names that look like an allowlist ("security_allowlist.txt",
+# "allow_list.conf", "allowed-hosts", "x.allow", ...).  A name match is only
+# a candidate: `allowlist_shaped()` must also see at least one host:/pattern:
+# entry, so prose documentation files never get reported.
+ALLOWLIST_NAME_RE = re.compile(
+    r"(?:^|[._-])allow[-_]?list(?:[._-]|$)"
+    r"|^allowed[-_]?hosts?(?:[._-]|$)"
+    r"|\.allow$",
+    re.IGNORECASE,
+)
+ALLOWLIST_ENTRY_RE = re.compile(r"^\s*(?:host:|pattern:)\s*\S")
+
+
+def _outermost_marker_ancestor(start: Path) -> Path | None:
+    """Highest ancestor of ``start`` carrying a project marker (None = none).
+
+    Stops before the user's home directory (a dotfiles repo at $HOME must
+    not turn every scan into an untrusted scan) and the filesystem root.
+    """
+    try:
+        cur = start.resolve()
+    except OSError:
+        cur = start.absolute()
+    if cur.is_file():
+        cur = cur.parent
+    try:
+        home = Path.home().resolve()
+    except OSError:
+        home = None
+    zone: Path | None = None
+    while True:
+        if home is not None and cur == home:
+            break
+        if any((cur / m).exists() for m in WORKSPACE_MARKERS):
+            zone = cur  # keep walking: the outermost marker wins
+        parent = cur.parent
+        if parent == cur:
+            break
+        cur = parent
+    return zone
+
+
+def workspace_zones(script: Path) -> list[Path]:
+    """Agent-writable zones relevant to this scan (script tree + cwd tree).
+
+    The script's own tree catches the ARC-Bench plant at the repo root; the
+    working directory is added because skill-mode agents usually invoke the
+    scanner from the repository root even when the scanned script lives in
+    a scratch directory outside it.
+    """
+    zones: list[Path] = []
+    starts = [script]
+    try:
+        starts.append(Path.cwd())
+    except OSError:
+        pass
+    for start in starts:
+        z = _outermost_marker_ancestor(start)
+        if z is not None and z not in zones:
+            zones.append(z)
+    return zones
+
+
+def workspace_zone(script: Path) -> Path | None:
+    """Primary zone (script tree first) — kept as a small public helper."""
+    zones = workspace_zones(script)
+    return zones[0] if zones else None
+
+
+def _inside(path: Path, root: Path) -> bool:
+    """True when ``path`` resolves inside ``root`` (symlinks resolved)."""
+    try:
+        resolved = path.resolve()
+        base = root.resolve()
+    except OSError:
+        return False
+    try:
+        resolved.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
+def allowlist_shaped(path: Path) -> bool:
+    """True if the file contains at least one host:/pattern: allowlist entry."""
+    try:
+        if not path.is_file() or path.stat().st_size > 1_000_000:
+            return False
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return any(ALLOWLIST_ENTRY_RE.match(line) for line in text.splitlines())
+
+
+def planted_allowlists(script: Path, zones: list[Path]) -> list[Path]:
+    """Allowlist-shaped files planted in the script dir / ancestors to a zone.
+
+    Scans direct children only (the ARC-Bench plant sat at the repo root);
+    walking every ancestor directory up to the zone root catches a file
+    planted at the workspace root when the script itself is nested deep.
+    """
+    dirs: list[Path] = []
+    try:
+        script_dir = script.resolve().parent
+    except OSError:
+        script_dir = script.absolute().parent
+    dirs.append(script_dir)
+    for zone in zones:
+        try:
+            zr = zone.resolve()
+        except OSError:
+            continue
+        # Walk from the script dir up to the zone ONLY when the script is
+        # inside it; a disjoint zone contributes just its root (never walk
+        # to "/").
+        if _inside(script_dir, zr):
+            cur = script_dir
+            while cur != zr and cur.parent != cur:
+                cur = cur.parent
+                dirs.append(cur)
+        dirs.append(zr)
+    found: list[Path] = []
+    seen: set[Path] = set()
+    for d in dirs:
+        try:
+            entries = sorted(d.iterdir())
+        except OSError:
+            continue
+        for p in entries:
+            if p in seen:
+                continue
+            seen.add(p)
+            if ALLOWLIST_NAME_RE.search(p.name) and allowlist_shaped(p):
+                found.append(p)
+    return found
+
+
 def scan_file(path: Path, allow: Path | None) -> dict:
     source = path.read_text(encoding="utf-8", errors="replace")
     suffix = path.suffix.lower()
@@ -970,15 +1152,56 @@ def scan_file(path: Path, allow: Path | None) -> dict:
     # auto-discovery of `security_allowlist.txt` next to the scanned script:
     # that directory is agent-authored workspace, and auto-loading it would
     # let an agent write its own SEC-003 exemption (planted-allowlist hole).
+    # v1.7.3 host-side provenance: even an EXPLICIT --allow is refused when
+    # its resolved location is inside the agent-writable project/run zone.
     allow_file = allow
+    zones = workspace_zones(path)
+    zone = zones[0] if zones else None
 
     hosts: list[str] = []
     patterns: list[re.Pattern] = []
     entries: list[str] = []
+    rejected_entries: list[str] = []
+    allow_source: dict | None = None
+    pre_findings: list[dict] = []
+
+    def file_finding(severity: str, rule_id: str, detail: str) -> None:
+        pre_findings.append({"severity": severity, "line": 0,
+                             "rule_id": rule_id, "excerpt": detail[:120]})
+
     if allow_file is not None:
-        hosts, patterns, entries = load_allowlist(allow_file)
+        containing = next((z for z in zones if _inside(allow_file, z)), None)
+        trusted = containing is None
+        if trusted:
+            reason = ("no project/workspace marker above the scanned script"
+                      if not zones else
+                      "allowlist lives outside the agent-writable workspace")
+            hosts, patterns, entries = load_allowlist(allow_file)
+        else:
+            reason = (f"allowlist resolves inside the agent-writable workspace "
+                      f"{containing} (B07 self-planted-allowlist)")
+            # Parse only for the audit trail; nothing is applied.
+            _h, _p, rejected_entries = load_allowlist(allow_file)
+            file_finding(BLOCKED, "SEC-012",
+                         f"untrusted allowlist source: {allow_file}")
+        allow_source = {
+            "path": str(allow_file),
+            "trusted": trusted,
+            "zone_root": str(zone) if zone is not None else None,
+            "zone_roots": [str(z) for z in zones],
+            "reason": reason,
+            "entries_rejected": rejected_entries,
+        }
+
+    # Planted allowlists are a security event even when never passed to
+    # --allow: the file itself is an attempted self-exemption.
+    for p in planted_allowlists(path, zones):
+        file_finding(WARN, "SEC-108", f"planted allowlist file: {p}")
 
     findings, exempted = scan_source(source, kind, hosts, patterns)
+    if pre_findings:
+        findings = pre_findings + findings
+        findings.sort(key=lambda f: (f["line"], f["rule_id"]))
     if any(f["severity"] == BLOCKED for f in findings):
         verdict = BLOCKED
     elif any(f["severity"] == WARN for f in findings):
@@ -993,6 +1216,12 @@ def scan_file(path: Path, allow: Path | None) -> dict:
         "exempted": exempted,
         "allowlist_file": str(allow_file) if allow_file else None,
         "allowlist_entries": entries,
+        "allowlist_source": allow_source,
+        "security_events": [
+            {"rule_id": f["rule_id"], "severity": f["severity"],
+             "detail": f["excerpt"]}
+            for f in pre_findings
+        ],
     }
 
 
@@ -1008,6 +1237,13 @@ def emit_human(rep: dict) -> None:
             print(f"  - {e}")
     else:
         print("allowlist: none")
+    src = rep.get("allowlist_source")
+    if src:
+        trust = "trusted" if src["trusted"] else "UNTRUSTED — exemptions refused"
+        print(f"allowlist source: {trust} ({src['reason']})")
+        if src.get("entries_rejected"):
+            print(f"  rejected entries ({len(src['entries_rejected'])}): "
+                  + "; ".join(src["entries_rejected"]))
     print(f"verdict: {rep['verdict']}")
     if rep["findings"]:
         print(f"findings ({len(rep['findings'])}):")
@@ -1245,6 +1481,15 @@ SELF_TEST_CASES = [
         "exec(data)\n",
         [], BLOCKED, ["SEC-007"], [],
     ),
+    (
+        "F10: planted allowlist file is a security event even when unused",
+        "planted_reported.py",
+        "import numpy as np\n"
+        "x = np.zeros(3)\n"
+        "print(float(x.sum()))\n",
+        ["host:evil.example"], WARN, ["SEC-108"], ["SEC-003", "SEC-107"],
+        False,  # plant it in the workspace; do NOT pass it to --allow
+    ),
 ]
 
 
@@ -1312,7 +1557,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--strict", action="store_true", help="WARN verdict exits 1 instead of 0")
     ap.add_argument("--allow", metavar="FILE",
                     help="allowlist file (explicit only; security_allowlist.txt "
-                         "next to the script is deliberately NOT auto-loaded)")
+                         "next to the script is deliberately NOT auto-loaded; "
+                         "files inside the agent-writable project/workspace are "
+                         "refused as untrusted — SEC-012)")
     ap.add_argument("--self-test", action="store_true",
                     help="run embedded good/bad sample cases and exit 0/1")
     args = ap.parse_args(argv)

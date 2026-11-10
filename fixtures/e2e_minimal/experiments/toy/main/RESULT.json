@@ -1,0 +1,65 @@
+{
+  "core_claim_tested": "sample mean has lower sampling variance than sample median for the mean of N(0,1), n=21",
+  "core_claim_validated": true,
+  "execution_time_seconds": 0.006,
+  "experiment_id": "toy_q001_e2e_fixture",
+  "gate_logic": "all_metrics_pass",
+  "kill_signal": null,
+  "metrics": {
+    "expected_ratio_2_over_pi": 0.63662,
+    "n_samples": 21,
+    "n_trials_per_seed": 400,
+    "per_seed": [
+      {
+        "mean_has_lower_variance": true,
+        "seed": 42,
+        "var_mean": 0.05005,
+        "var_median": 0.077855
+      },
+      {
+        "mean_has_lower_variance": true,
+        "seed": 43,
+        "var_mean": 0.037879,
+        "var_median": 0.070475
+      },
+      {
+        "mean_has_lower_variance": true,
+        "seed": 44,
+        "var_mean": 0.050741,
+        "var_median": 0.075621
+      }
+    ],
+    "pooled_var_mean": 0.046223,
+    "pooled_var_median": 0.07465,
+    "variance_ratio": 0.6192
+  },
+  "reasoning_chain_validated": true,
+  "recommendation": "PROCEED_TO_FULL",
+  "result_summary": {
+    "primary_metric": {
+      "metric_name": "variance_ratio",
+      "metric_value": 0.6192,
+      "passed": true,
+      "threshold": "< 1.0"
+    },
+    "secondary_metrics": [
+      {
+        "metric_name": "per_seed_direction",
+        "metric_value": 3,
+        "passed": true,
+        "threshold": "== 3"
+      },
+      {
+        "metric_name": "known_answer_band",
+        "metric_value": 0.6192,
+        "passed": true,
+        "threshold": "inside (0.35, 0.95)"
+      }
+    ]
+  },
+  "scale_ratio": 1.0,
+  "seeds_used": 3,
+  "stage": "toy",
+  "status": "PASS",
+  "success_criteria": "per-seed and pooled Var(mean) < Var(median); pooled ratio Var(mean)/Var(median) inside sanity band (0.35, 0.95) around 2/pi"
+}

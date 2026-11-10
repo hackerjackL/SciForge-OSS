@@ -36,8 +36,14 @@ def sandbox_cmd(workspace: Path, net: bool = False) -> list[str] | None:
     if sysname == "Darwin":
         if not shutil.which("sandbox-exec"):
             return None
+        # `(allow signal *)` is rejected outright on macOS 27 (Seatbelt parses
+        # the wildcard as an invalid subpath and exits `illegal argument`), and
+        # without `process-exec` the sandboxed interpreter cannot even be
+        # exec'd. Both were measured on Darwin 27.0.1; the profile below runs
+        # the interpreter and its subprocesses while keeping the write scope.
         prof = (
-            "(version 1)(allow file-read*)(allow process-fork)(allow signal *)"
+            "(version 1)(allow file-read*)(allow process-fork)"
+            "(allow process-exec)(allow signal)"
             f"(allow file-write* (subpath \"{ws}\")(subpath \"/tmp\"))"
             + ("(allow network*)" if net else "(deny network*)")
         )

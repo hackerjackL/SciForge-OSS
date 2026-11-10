@@ -43,6 +43,16 @@ build/
 # SciForge runtime
 .sciforge/
 !fixtures/e2e_minimal/.sciforge/
+# The exception above re-includes everything under the fixture's .sciforge/,
+# so gate side-effects written when an audit runs against the fixture would be
+# tracked as if they were fixture content. AUDIT_TRAIL.json was already
+# untracked once for exactly this reason (c74157a); keep both runtime products
+# out. The fixture's own declared artifacts stay tracked.
+fixtures/e2e_minimal/.sciforge/audits/AUDIT_TRAIL.json
+fixtures/e2e_minimal/.sciforge/audits/INTEGRITY_MONITOR.json
+# daemon runtime state: SQLite queue + per-start auth token + derived queue mirror
+.sciforge-daemon/
+queue.json
 review-stage/
 derivations/
 paper/

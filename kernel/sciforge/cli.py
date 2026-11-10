@@ -18,7 +18,7 @@ from .approvals import Approvals
 from .execution import dispatch, group_status, plan_device, sandbox_cmd, worker_pool
 from .gates import run_py
 from .pipeline import Kernel
-from .state import EventLog, RunState, recover
+from .state import EventLog, LockHeldError, RunState, recover
 
 
 def main(argv=None) -> int:
@@ -102,6 +102,9 @@ def main(argv=None) -> int:
     p_srv.add_argument("--host-agent", choices=["manual", "claude", "codex"], default="manual")
     p_srv.add_argument("--effort", default="balanced",
                        choices=["lite", "balanced", "max", "beast"])
+    p_srv.add_argument("--workers", type=int, default=1,
+                       help="concurrent run workers (each run gets its own workspace "
+                            "and kernel lock; default 1 = budget isolation)")
 
     p_ca = sub.add_parser("cache", help="verified-reference cache (S24)")
     p_ca.add_argument("what", choices=["lookup", "put", "stats"])
@@ -187,7 +190,8 @@ def main(argv=None) -> int:
         return 0
     if a.cmd == "serve":
         from .daemon import serve
-        serve(a.archive, port=a.port, run_host=a.host_agent, effort=a.effort)
+        serve(a.archive, port=a.port, run_host=a.host_agent, effort=a.effort,
+              concurrency=a.workers)
         return 0
     if a.cmd == "cache":
         from . import litcache
@@ -261,9 +265,14 @@ def cmd_run(a) -> int:
     host = a.host
     if host == "auto":
         host = "claude" if shutil.which("claude") else ("codex" if shutil.which("codex") else "manual")
-    k.start(a.run_id, a.problem or "(resume)", a.effort, host=host,
-            test_mode=a.test_mode, human_skip=a.human_skip,
-            discipline=a.discipline, claim_mode=a.claim_mode)
+    try:
+        k.start(a.run_id, a.problem or "(resume)", a.effort, host=host,
+                test_mode=a.test_mode, human_skip=a.human_skip,
+                discipline=a.discipline, claim_mode=a.claim_mode)
+    except LockHeldError as e:
+        print(json.dumps({"status": "blocked", "reason": "workspace_locked",
+                          "error": str(e)}, indent=2))
+        return 2
     if a.loop:
         r = k.run(max_steps=a.max_steps)
     else:
@@ -305,18 +314,11 @@ def cmd_approve(a) -> int:
     if not a.checkpoint:
         print(json.dumps(pend, indent=2, ensure_ascii=False)); return 0
     rs = RunState(a.workspace)
+    # decide() emits the checkpoint_cleared event (with the decision epoch) and
+    # moves RUNSTATE back to running; no second, unverified clear is written.
     rec = ap_.decide(a.checkpoint, not a.deny, decided_by=f"cli@{time.strftime('%H:%M')}",
                      rs=rs, note=a.note)
     print(json.dumps(rec, indent=2, ensure_ascii=False))
-    # advance past the checkpoint into the gated phase
-    if not a.deny:
-        from .pipeline import Kernel
-        k = Kernel(a.workspace)
-        nxt = k.rs.data.get("current_phase")
-        k.log.emit(nxt, "checkpoint_cleared", {"checkpoint": a.checkpoint})
-        if k.rs.status == "paused_checkpoint" and not ap_.pending_records():
-            k.rs.status = "running"
-            k.rs.write()
     return 0
 
 
@@ -351,9 +353,18 @@ def cmd_doctor(a) -> int:
             __import__(m); checks[m] = True
         except Exception:
             checks[m] = False
-    # repo gates self-test
-    ci = run_py("scripts/ci_check.py", ["--quiet"]) if (Path(__file__).resolve().parents[2] / "scripts" / "ci_check.py").exists() else None
-    checks["ci_check_available"] = ci is not None
+    # repo gates self-test (quick leg: no pytest run). Previously this passed
+    # `--quiet`, a flag ci_check did not define, so argparse exited 2 and the
+    # result was reported as "available" purely because the object existed —
+    # the check never actually ran. Report the real exit status.
+    ci_script = Path(__file__).resolve().parents[2] / "scripts" / "ci_check.py"
+    if ci_script.exists():
+        ci = run_py("scripts/ci_check.py", ["--quick"])
+        checks["ci_check_available"] = True
+        checks["ci_check_quick_pass"] = ci.returncode == 0
+    else:
+        checks["ci_check_available"] = False
+        checks["ci_check_quick_pass"] = False
     print(json.dumps(checks, indent=2, default=str))
     return 0 if checks["python_ok"] else 1
 

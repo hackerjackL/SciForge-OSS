@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """SciForge-OSS single CI entry point (python3 stdlib only, zero deps).
 
-Runs four checks and prints a PASS/FAIL summary table:
+Runs five checks and prints a PASS/FAIL summary table:
 
+  0. environment          `.venv/bin/python` must actually run: a dangling
+                          interpreter symlink (e.g. the target interpreter
+                          was uninstalled) fails REPRODUCE.md step 0 with a
+                          bare shell "no such file or directory" that never
+                          names the real cause.  No `.venv` at all is the
+                          normal CI-container case and PASSES.  Broken links
+                          are reported with the target, whether
+                          site-packages is intact, and the exact fix.
   1. markdown-links       every .md file in the repo (skipping .git):
                           relative markdown links ](path) and <img src>
                           targets must exist on disk. Anchors (#...) are
@@ -25,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import py_compile
 import re
 import subprocess
@@ -244,6 +253,138 @@ def check_plotting(root: Path) -> tuple[bool, list[str]]:
     return (ok, messages)
 
 
+def _venv_interpreter(venv: Path) -> Path:
+    return venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
+def _site_packages(venv: Path) -> tuple[str | None, int]:
+    """(best site-packages dir, entry count) — empty when none exists."""
+    best: str | None = None
+    count = 0
+    candidates = list((venv / "lib").glob("python*/site-packages")) \
+        if (venv / "lib").is_dir() else []
+    win = venv / "Lib" / "site-packages"  # Windows venv layout
+    if win.is_dir():
+        candidates.append(win)
+    for d in sorted(candidates):
+        if not d.is_dir():
+            continue
+        entries = [p for p in d.iterdir()
+                   if p.name != "__pycache__" and not p.name.startswith(".")]
+        if len(entries) >= count:
+            best, count = str(d), len(entries)
+    return best, count
+
+
+def check_environment(root: Path) -> tuple[bool, list[str]]:
+    """Return (ok, messages). Verify the repo-local venv is actually usable.
+
+    Reproducibility contract: REPRODUCE.md step 0 runs `.venv/bin/python`.
+    When that path is a symlink to an interpreter that no longer exists
+    (e.g. a conda install was removed), the shell reports only "no such
+    file or directory" — nothing points at the real cause, and every later
+    step is unreachable.  This check turns that silent breakage into an
+    actionable FAIL.
+
+    Severity: a broken `.venv` is a development-environment failure, not a
+    product-quality one, but it blocks the documented reproduction path, so
+    it FAILS.  No `.venv` at all is normal for CI containers running a
+    system Python and PASSES explicitly.
+    """
+    venv = root / ".venv"
+    if not venv.exists():
+        return (True, [f"no .venv — using the running interpreter "
+                       f"({sys.executable}); normal for CI containers"])
+
+    py = _venv_interpreter(venv)
+    site_dir, pkg_count = _site_packages(venv)
+    cfg = venv / "pyvenv.cfg"
+    if site_dir:
+        site_note = f"site-packages intact: {site_dir} ({pkg_count} entries)"
+    else:
+        site_note = "no lib/python*/site-packages directory found"
+
+    fix_hint = (
+        "fix: point the link at a matching interpreter — "
+        "ln -sfn \"$(command -v pythonX.Y)\" .venv/bin/python "
+        "(X.Y must match the lib/pythonX.Y directory, or imports vanish); "
+        "or recreate: python3 -m venv .venv && "
+        ".venv/bin/pip install -r requirements.txt")
+
+    if py.is_symlink() and not py.exists():
+        try:
+            target = os.readlink(py)
+        except OSError:
+            target = "<unreadable>"
+        return (False, [
+            f"BROKEN .venv interpreter symlink: {py} -> {target} "
+            "(the target does not exist)",
+            f"{site_note} — the packages are fine; only the interpreter "
+            "link is broken",
+            "this is why REPRODUCE.md step 0 dies with the shell's "
+            "'no such file or directory' instead of naming the real cause",
+            fix_hint,
+        ])
+
+    if not py.exists():
+        if cfg.is_file() or site_dir:
+            return (False, [
+                f".venv exists but its interpreter is missing ({py})",
+                site_note,
+                "a partial/broken venv cannot run REPRODUCE.md step 0",
+                fix_hint,
+            ])
+        return (True, [f".venv/ exists but is not a virtualenv "
+                       f"(no {py.name}, no pyvenv.cfg) — ignored"])
+
+    if not os.access(py, os.X_OK):
+        return (False, [
+            f".venv interpreter is not executable: {py}",
+            site_note,
+            fix_hint,
+        ])
+
+    try:
+        proc = subprocess.run(
+            [str(py), "-c",
+             "import sys; print('%d.%d' % sys.version_info[:2]); "
+             "print(sys.version.split()[0])"],
+            capture_output=True, text=True, timeout=120, cwd=root,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return (False, [
+            f".venv interpreter cannot run: {py} ({exc})",
+            site_note,
+            fix_hint,
+        ])
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-2:]
+        return (False, [
+            f".venv interpreter failed to run (exit {proc.returncode}): {py}",
+            " | ".join(line.strip() for line in tail) or "no stderr",
+            site_note,
+            fix_hint,
+        ])
+
+    lines = [ln.strip() for ln in proc.stdout.splitlines() if ln.strip()]
+    abi = lines[0] if lines else ""
+    version = lines[1] if len(lines) > 1 else "unknown"
+    site_norm = (site_dir or "").replace("\\", "/").lower()
+    if abi and "python" in site_norm and f"python{abi}" not in site_norm:
+        return (False, [
+            f".venv interpreter is Python {version} but its packages live "
+            f"under {site_dir}",
+            "a venv interpreter must match the lib/pythonX.Y directory or "
+            "every installed package silently becomes unimportable",
+            f"fix: ln -sfn \"$(command -v python{abi})\" .venv/bin/python",
+        ])
+    return (True, [
+        f".venv interpreter healthy: Python {version} ({py})",
+        site_note,
+        f"ci_check is running under {sys.executable}",
+    ])
+
+
 def check_test_suite(root: Path) -> tuple[bool, list[str]]:
     """Return (ok, messages). Execute the repo's own gates end-to-end.
 
@@ -305,13 +446,18 @@ def check_test_suite(root: Path) -> tuple[bool, list[str]]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="ci_check.py",
-        description="SciForge-OSS single CI entry point: markdown link "
-                    "scan + version consistency + plotting module + "
-                    "test suite.",
+        description="SciForge-OSS single CI entry point: environment "
+                    "health + markdown link scan + version consistency + "
+                    "plotting module + test suite.",
     )
     parser.add_argument(
         "--repo-root", type=Path, default=DEFAULT_ROOT,
         help="repository root to check (default: parent of scripts/)",
+    )
+    parser.add_argument(
+        "--quick", "--quiet", action="store_true", dest="quick",
+        help="skip the test suite (the slow leg) — for `sciforge doctor` "
+             "and other fast self-checks; `submit` still runs the full set",
     )
     args = parser.parse_args(argv)
     root: Path = args.repo_root.resolve()
@@ -322,11 +468,14 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     checks = {
+        "environment": lambda: check_environment(root),
         "markdown-links": lambda: check_markdown_links(root),
         "version-consistency": lambda: check_version_consistency(root),
         "plotting-module": lambda: check_plotting(root),
         "test-suite": lambda: check_test_suite(root),
     }
+    if args.quick:
+        checks.pop("test-suite")
 
     results: dict[str, tuple[bool, list[str]]] = {}
     for name, fn in checks.items():

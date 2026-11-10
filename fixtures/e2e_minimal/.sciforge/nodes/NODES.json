@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "nodes": [
+    {
+      "id": "n001",
+      "kind": "toy",
+      "phase": "6b",
+      "status": "pass",
+      "code_sha": {
+        "RESULT.json": "9f91c251c5d23420cd5f639aa3903e58e1fe842dc4d4521031e56f09188961c9"
+      },
+      "inputs_sha": {
+        "experiments/toy/main": "5a96153876b8a01fa70ccca7e1af658fa7e44d495006ca41986810d17de16f48"
+      },
+      "outputs_sha": {
+        "experiments/toy/main/RESULT.json": "9f91c251c5d23420cd5f639aa3903e58e1fe842dc4d4521031e56f09188961c9",
+        "experiments/toy/main/DISPATCH.json": "44e0b8df03499bd1bf6a5f0e3cd78ded37cad8917750e4897f6a5257b0bf19ea"
+      },
+      "reexec_cmd": "cd experiments/toy/main && run (see DISPATCH.json)",
+      "claim_ids": [],
+      "parent": null,
+      "ts": 1786320200.0
+    }
+  ]
+}

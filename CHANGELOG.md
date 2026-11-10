@@ -2,6 +2,63 @@
 
 > **Historical naming note**: entries before v1.7.2 may say “21-phase”. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; entries below are preserved as written.
 
+## [1.7.3] - 2026-11-11 定版：门从自报变互证 + 工厂化运行时 + 端到端 harness（五 agent 并行还债）
+
+> 版本主题：**把"agent 说什么就是什么"的门升级为与磁盘证据对账，把单工位 daemon 升级为可持续生产的多 worker 工厂，并让 26 节点 DAG 第一次拥有不依赖 LLM 的端到端回归**。本轮全部是 v1.7.2 记档在案的债（CHANGELOG 三处"留 v1.8"）+ 深度勘察实证缺口，**基线 449 → 568 测试全绿，ci_check PASS，security_scan --self-test 26/26**。方法：六个并行 agent 按零重叠文件所有权分工（A–F）+ 一个独立验证 agent 对抗复核 + 统筹收口。
+
+### A. 端到端 harness（治"26 节点 DAG 从未被自动化覆盖"）
+- **`host="mock"` 脚本化假宿主**（`pipeline.py`）：按 phase id 从 JSON 脚本表返回 verdict 并落盘声明产物，真实 `Kernel` 状态机可在 CI 内跑完全部 26 节点，零 LLM、零网络。`tests/test_mock_host_e2e.py`（8 项）覆盖：hybrid 路由 happy path（`validate_verdicts --strict --require-complete` 24/24 + wrap-up 全门）、L1 回卷 3 轮（预算从 events.ndjson 重建，耗尽后 `paused_blocked`，KILL_DECISIONS 记 budget_left 2/1/0）、off-plan fallback 判 FAIL、门拒绝 3 轮上限后 blocked、崩溃后 `recover()` 精确续跑、v1.7.2 六机制真被执行。
+- **harness 当场抓出并修复 4 个真实状态机缺陷**（这是本项最大价值）：① `gate_retry` 上限**从未生效**——`_round_count` 只数 `loopback` 事件，失败门实际无限重试；② `human_skip` 在第二个检查点失效（approval log 一旦存在就不再读 run 级 flag）；③ 终局 16 边界**永远无法提交**（completion_gate 要求 RUNSTATE 已 completed，而该转换正是这个边界本身）→ 改为 wrap-up 前置 provisional completed、任一门失败即回滚；④ `doi_gate`/`submission_ready` 把未注册的辅助 verdict 写进 `verdicts/`，`--strict` 视为 WARN → 15/15.5/16 边界被自己拦死 → kernel 在校验前隔离到 `audits/`。
+- **`fixtures/e2e_minimal/` 接通 v1.7.2 六机制**（原记档债"e2e fixture 与新机制双向脱钩"）：补 `events.ndjson`（116 事件/27 次 boundary_committed）、`nodes/NODES.json`、`nodes/CLAIM_ANCHORS.json`、`audits/REP.json`、`audits/CLAIMS_FROM_RESULTS.md`、`experiments/toy/**` 与 `audits/{S2_LADDER,ABLATION_LEDGER}.json`——**全部由 kernel 真实生成函数产出，非手写**；s2_ladder/s2_ablation/s2_audit 在该 fixture 上从 SKIP 变真执行。
+
+### B. 门互证化（治"自报型门"，v1.6「证据可验证」主线的最后一公里）
+- **`fairness_gate.py` 交叉验证**（+761 行）：六项公平性此前**全部读自 agent 自写的 ledger 字段**。新增 `evidence_crossvalidation`——split 哈希对账（EVALUATION_PROTOCOL/RESULT/STATUS/events 声明 vs NODES 节点 sha256 vs data 下真实 manifest）、种子数对账（STATUS/RESULT/逐 seed 目录/NODES/events 的独立执行痕迹）、预算对账（RUN_BUDGET 墙钟 vs 真实耗时）。对不上账 FAIL；无法对账 WARN + reason_code；纯 ledger 工作区保持既有语义并显式披露 `scope=ledger_only`。
+- **`smoke_gate.py` 真执行**（+604 行）：此前只查 `.SMOKE.json` 存在且 `smoke_result=PASS`——写个空文件就能过。现在核对 `script`+`script_sha256`+`executed_at` 与磁盘脚本（**脚本改过而记录陈旧 = stale smoke → FAIL**），并在内核沙箱内限时真跑（非零退出/traceback/超时 → FAIL）。无法真执行（脚本缺失、无哈希、沙箱不可用）明确 WARN + reason_code，**绝不假 PASS**。
+- **`submission_ready.py` 去 offline**：v1.7.1 的"严格 DOI"卖点此前在最终分层时传 `--offline`，实际未联网校验。现在默认走 `doi_gate.check(offline=False)`，transporter 复用 litcache（30d/6h TTL）+ limiter（CrossRef 间隔与 429 冷却）+ 全局预算与逐请求超时；离线/不可达/预算耗尽时披露 `doi_online_unverified` 并把 READY **封顶为 MINOR_REV**，绝不静默 PASS。
+- `tests/test_gate_crossvalidation.py`（29 项，正向 7 / 负向 22，其中 8 项是"必须 WARN/披露而非 PASS"的降级路径）。
+
+### C. daemon 工厂化（治持续生产的单点与安全隐患）
+- **持久队列 + 多 worker**：run 队列落 SQLite（`<archive>/.sciforge-daemon/queue.sqlite3`，重启不丢、`run_id` 主键天然去重），worker 以 `BEGIN IMMEDIATE` 原子领取并带租约心跳；启动时按「pid 存活 + 工作区锁持有」判定孤儿行并重新入队（3 次上限转 failed）；单 run 异常双层隔离，崩溃 run 写 `paused_blocked + reason_code=daemon_worker_crash` 并释放锁，不再留悬挂 RUNSTATE。`serve --workers N`（默认 1，保持预算隔离；能力已就绪）。
+- **控制面认证**（修真实安全缺陷）：此前 loopback 上**任何本机进程都能 POST `/approve` 替人类点同意**，绕过不可协商的人工检查点。现在启动生成一次性 token 落 0600 文件，所有 POST（`/runs`、`/approve`、`/deny`、新增 `/runs/<id>/resume`、`/runs/<id>/cancel`）强制 `Authorization: Bearer`（或 `X-SciForge-Token`）——缺失 401、不匹配 403；只读 GET 保持开放；`decided_by` 由服务端按真实来源写入，忽略请求体伪造。
+- **锁竞态修复**：`take_lock`/`holder_alive` 此前用 pid 文件 + `kill(pid,0)`——pid 复用误判、两进程可同时通过 `recover()`（TOCTOU）。改为 POSIX `flock(LOCK_EX|LOCK_NB)` 全程持有（进程死亡自动释放）+ inode 复核防 unlink 竞态；Windows 降级 `O_CREAT|O_EXCL`；锁文件存 pid+进程启动时间+随机 nonce 免疫 pid 复用；`recover()` 改为先原子抢锁再改状态。顺带修掉 Windows 上 `os.kill(pid,0)` 会**真的杀进程**的隐患。
+- **审批防伪**：审批以事件账本 epoch（nonce）为准——伪造 PENDING 无法批、删文件/手改 APPROVED 仍保持阻塞；`APPROVAL_LOG.txt` 经 `_VerifiedLog` 过滤，**手写 APPROVE 行不算数**。
+- **跨进程限流**：`limiter.py` 新增可选 SQLite 后端（`shared_db=` / `SCIFORGE_LIMITER_DB`），429 冷却跨进程共享；`serve()` 自动注入，worker/子进程共享同一冷却；无 `shared_db` 时行为零变化。
+- `tests/test_daemon_factory.py`（30 项，含负向：无 token `/approve` → 401、错误 token → 403、4 进程抢锁仅 1 个 OK、伪造 PENDING/手写 APPROVAL_LOG 均不能自批）。
+
+### D. 三笔记档债清偿
+- **B07 host 侧 allowlist 自植检测**（`security_scan.py`，ARC-Bench 实测事故：执行 agent 在仓库根自植 allowlist 给自己开豁免，"运动员兼裁判"）：新增结构化 provenance 判定——以脚本/cwd 的最外层项目标记祖先（`.sciforge`/`.git`/`pyproject.toml`/`package.json`）为 agent 可写区；`--allow` 解析后落在区内 → **SEC-012 BLOCKED 且豁免完全不生效**（SEC-003 照常触发）；区内任何 allowlist 形状文件（名字匹配 + `host:`/`pattern:` 内容确认，散文不误报）→ SEC-108 WARN + `security_events`。无项目标记的裸临时目录保持 trusted（不误伤 operator）。已知边界写入模块 docstring：项目标记区之外仍可放置"trusted" allowlist——无带内机制能证明人类意图，结构解是宿主把 scanner/标记置于 agent 写权限外。
+- **A10 碰撞审计对 recipe 图复明**（`figure_audit.py` + `figure_recipes.py`）：五篇 ARC-Bench 论文主图标签全粘连而审计全 PASS 的根因是 A10 解析 SVG `<text>`，而 recipe 图的 SVG 由 pdftocairo 从 PDF 生成、文字是 glyph `<use>` 而非 `<text>`——**审计跑了但什么都没看见**。实测确认 `pdf.fonttype=42` 早已设置，故 fonttype 路线在当前管线不成立；改走**实测几何路线**：`figure_recipes` 在 savefig 前实测所有 text artist 的 renderer bbox 写 `text_layout.json`，A10 消费该 manifest（30%×30% 相对阈值，旋转刻度/图例 TextArea 去重）；无几何可审计时显式 WARN 而非静默 PASS。**图输出字节零变化**（with/without manifest 的 `output.pdf` SHA256 实测一致）。验收：80 行长标签 heatmap → FAIL（157 对重叠）；v1.7.1 自动旋转后的 6 长标签 bar → PASS；line/forest/panel/scatter/hist/heatmap 全 recipe 原型零误报。**新 A10 首战即抓到真阳性**：panel-grid + 长分类标签时图级 legend 与 90° 旋转 x 刻度真实重叠（已渲染 PNG 目检确认），属 `figure_recipes` bottom band 未预留旋转标签高度，记档待修。
+- **环境断链自检**（`ci_check.py` 新增 environment 检查，第一项执行）：本机 `.venv/bin/python` 曾是指向已卸载 miniconda 的断链，导致 REPRODUCE.md 第一条命令以裸 shell "no such file or directory" 失败且不说明真因。现在检出断链/缺解释器/不可执行/启动失败/ABI 与 `lib/pythonX.Y` 不匹配，输出链接目标、site-packages 是否完好及条数、具体修复命令；**无 `.venv` → PASS**（CI 容器正常路径），非 venv 的 `.venv` 目录忽略。
+- `tests/test_v173_debts.py`（23 项）+ `tests/test_security_scan_bypasses.py` 追加 4 项红队测试（既有 31 项零改动）；`security_scan --self-test` 25 → 26 项。
+
+### E. 双模式保证矩阵（治"Mode A 用户以为有全套门"）
+- 深度勘察实证：**v1.7.2 的一批关键门只在 Mode B（内核）生效，Mode A（宿主直读技能库）下静默 SKIP 或纯靠 prose 自觉，而文档从未声明这个差异**。`claim_anchor_gate`（NODES.json 只由内核产出）、`rep_plan_present`（没人编译 REP.json）、`integrity_monitor` D1 层、节点自动注册/fork、6b/6c 的 `security_scan` 强制、边界处硬约束逐字再注入——全部如此。一个用 Claude Code 直读技能库的用户会以为自己有 claim 锚保护，其实没有。
+- `AGENT_GUIDE.md` / `auto-pipeline/SKILL.md` / `CLAUDE.md` 新增 29 行**保证矩阵**（Enforced / Advisory / Not in force 三档，每行标注源文件可核验），并在双 README 合入摘要段。
+- **`scripts/gate_all.py`**（新建，Mode A 一键门入口）：清点并接入 29 个门，按 RUNSTATE 相位游标做可用性门控，保留各门自身 SKIP 语义（theory-only 实验门全 SKIP）；`--json`/`--only`/`--skip`/`--offline`/`--integrity-llm`/`--timeout`/`--list`。**关键设计：把"结构性不可用"与"通过"区分开**——引入 `UNPROTECTED` 报告态（覆盖 `claim_anchor`/`rep_plan_present`/`inv_g1`），报告末尾单独列出「本轮未生效的保证」，而不是安静 SKIP。
+- 核实代码后修正了 10 处与勘察结论不符的事实，其中 4 处值得记档：**REP off-plan loopback 是"记录违约"而非"拒绝推进"**；`integrity_monitor` 的 fail-closed 只针对 LLM 层调用失败，未配置 provider 时只跑确定性 D2/D3 且可 PASS；**claim 锚在 theory-only 下两个模式都失效**（`auto_register` 只扫 `experiments/**/RESULT.json`）——这不只是 Mode A 的缺口；`sciforge_audit` 并非内核强制（`wrap_up_gates` 里 `pipeline_audit` 固定 SKIP "deferred to host"）；`tdal_compute` **不是门**（kernel 无任何调用点），`gate_all` 以 INFO 报告。
+
+### 统筹收口：跨 agent 移交项（kernel 侧）
+- **macOS 27 沙箱修复**（`execution.py`）：`(allow signal *)` 在 Darwin 27.0.1 被 Seatbelt 直接判非法（`illegal argument: #<* PROCEDURE 52>`），且缺 `process-exec` 时**被沙箱包裹的解释器根本无法 exec**——即整个内核沙箱路径在本机长期不可用（此前 `dispatch`/smoke 只能走 WARN 降级，故未被察觉）。改为 `(allow process-exec)(allow signal)`，实测 `sandbox_cmd` 下解释器与子进程均 rc=0。这是 B 项 smoke 真执行的前置条件。
+- **smoke_gate 的 verdict 不再被 exit code 吞掉**（`gates.py`）：该门 exit 0 同时覆盖 PASS/WARN/SKIP，仅按 exit code 映射会把披露信息丢失。改为读 `--json` 的真实 verdict，写入 `smoke_verdict`/`smoke_disclosure` 进边界记录（events.ndjson 可审计），而 `status` 保持 exit-code 语义（WARN→PASS、FAIL→FAIL）——因为 `commit_boundary` 只放行 {PASS,SKIP,N-A}，若把 WARN 直接映射为 status=WARN 会拦死所有 `.SMOKE.json` 尚为旧形状（无 hash 但脚本存在、仍可真执行验证）的 run。**注意**：真正"零正面证据"（未绑定脚本 / 脚本缺失 / 无可执行命令）的绕过路径由下方"独立验证 agent 修点 1"在门内部直接判 FAIL（exit 2）关闭，不依赖这条映射；本条只负责让"环境无法执行"这类诚实披露可见而不阻断。
+- **`doctor` 的 ci_check 自检此前是 no-op**（`cli.py` + `ci_check.py`）：doctor 传 `--quiet`，而 ci_check **不定义该参数** → argparse exit 2，`ci_check_available` 只判断对象存在，等于从不检查。ci_check 新增 `--quick`（别名 `--quiet`，跳过 test-suite 这条慢腿），doctor 改为报告真实 `ci_check_quick_pass`。
+
+### 独立验证 agent 的 FAIL 判定与三点修复（对抗复核闭环）
+提交前另起一个独立验证 agent，明确要求"反驳而非确认"。它对全部交付做对抗复核，判 **FAIL** 并抓出三个必修点——全部经统筹二次核实属实后修复：
+- **修点 1：smoke 门"零正面证据"可绕过 6c 边界**（`smoke_gate.py`）。原实现把"记录未绑定任何脚本"（`smoke_unbound_to_script`）与"声明了脚本但文件缺失"（`smoke_script_missing`）都判 WARN（exit 0）。由于 `script`/`script_sha256` 是 agent 可控字段，少写两个字段即可既不执行任何代码、又不被校验地越过 6c——P0 第 3 项"真执行"只关闭了诚实记录路径，未关闭"少写元数据"路径。修复：引入**正面证据规则**——一个 smoke 组除非 (a) 记录的 sha256 与磁盘脚本字节匹配，或 (b) 切片被真正重执行（含沙箱外执行，另行披露），否则 `smoke_no_positive_evidence` → FAIL。环境/调用方造成的未执行（`sandbox_unavailable`/`sandbox_execution_failed`/`reexec_disabled`/`execution_budget_exhausted`/`security_scan_unavailable`）仍为 WARN——这些是 agent 无法伪造的诚实披露。新增绕过探针测试 `test_smoke_unbound_record_cannot_ride_the_boundary`；`test_smoke_missing_script` 由 WARN 改判 FAIL（其原意"not passes"被更强满足）。
+- **修点 2：保证矩阵对 submission_ready 的陈述与 kernel 行为相反**（`AGENT_GUIDE.md` + `auto-pipeline/SKILL.md` + `gate_all.py`）。矩阵两处写"MAJOR_REV is WARN (does not block)"，但 `submission_ready` 的 MAJOR_REV→exit 1，`gates.py:219` 映射为 WARN，而 WARN **不在** `commit_boundary` 放行集 {PASS,SKIP,NOT_APPLICABLE} → **Mode B 实际阻断 15.5 边界**（与 `gates.py:215` 注释、CHANGELOG 1.7.1"MAJOR+ 阻断"一致）。修复：文档改为如实描述阻断行为；并消除 `gate_all` 的模式不对称——MAJOR_REV 在 Mode A 也报 FAIL（`reason_code=major_revision_required` 保留档位区分），使两模式对"是否可投"不再给出矛盾结论。
+- **修点 3：版本叙述滞留**（`package.json` description、`CLAUDE.md:4/30`）。版本钉只改了 version 字段，`description` 仍写 `framework v1.7.2`、`CLAUDE.md` 仍写"runtime (v1.7.2)"与"Version 1.7.2 is pinned"（后者已成假话，且 CLAUDE.md 是每轮注入 agent 的项目记忆）。修复：全部更新为 1.7.3；顺带订正 CLAUDE.md 过期事实——图审计 A1–A10→**A1–A11**、Mode A 结构性失效门补 `inv_g1` 与 fairness `ledger_only`。
+- **附带采纳**：`fairness_gate` 的 `scope=ledger_only`（有 ledger 但无同位原始证据，交叉验证层无法运行）在 `gate_all` 中由 PASS 升为 **UNPROTECTED**——Mode B 因 RUNSTATE/events 必然存在而免疫，但 Mode A 下无证据的 ledger 否则会显示为干净的 PASS。UNPROTECTED 覆盖门由 3 个增至 4 个（claim_anchor / rep_plan_present / inv_g1 / fairness）。
+- 验证 agent 同时**证实门未被偷偷改松**：smoke 的 WARN→PASS 映射语义未变（仅增可审计字段）、fairness 六检、security BLOCKED 类永不被 pattern 豁免、submission_ready 离线封顶 MINOR_REV 而非静默 PASS、daemon 认证/锁/限流经真实起进程 + 多进程压测有效、沙箱修复实测 rc=0、kernel 33 模块在禁用 site-packages 下 `python -S` 导入零失败（stdlib-only 成立）。
+- **教训记档**：统筹在收口期直接对 `fixtures/e2e_minimal` 跑 `gate_all`，触发 `s2_audit`/`integrity_monitor` 副作用写出 `AUDIT_TRAIL.json`/`INTEGRITY_MONITOR.json`，被 `test_e2e_smoke.py:531`（断言 checked-in fixture 不留审计副作用）**正确拦下**。这是门在真实工作的证据；`.gitignore` 已加针对性排除以防复发，并清理了磁盘副作用。批量门应跑在 `tmp_path` 复制体上，不跑在入库 fixture 上。
+
+### 记档未做（诚实清单）
+- **事件日志完整性**：同用户 agent 仍可直接向 `events.ndjson` 追加 `checkpoint_cleared`/`phase_done` 伪造推进；`pipeline._checkpoint_satisfied` 仍信任 RUNSTATE 里可写的 `human_skip`/`test_mode`。结构解是 EventLog 哈希链/MAC + 把两 flag 固化为 run 启动事件的不可变 epoch（涉及 state 与多个消费方，留下轮）。
+- **F 发现但非本轮所有权内的记档项**：`smoke_gate._find_smoke` 第 4 条匹配（`experiments/full/` 根级 smoke）在多组场景下可能让一个根级 `.SMOKE.json` 覆盖多组，与其 docstring"one file must not launder the others"不完全一致；`leakage_scan` docstring 写 v3.5 而实际 verdict version 是 v3.6-mech；`paper-writing/SKILL.md` 仍写"8 leakage classes / v3.3"与 scanner 的 A–L 漂移。均留下轮。
+- **A10 新抓到的 panel-grid legend 与旋转刻度重叠**：属 `figure_recipes` bottom band 布局债，非本轮范围。
+- `nodes.py` 只记 `ts` 无每节点耗时，故预算对账目前用 STATUS/RESULT 耗时；如需按节点对账需补 `started_at`/`finished_at`/`duration_s`。
+- `--workers` 默认仍为 1（预算隔离优先）；默认并行需先确认资源/预算策略。
+- v1.8 候选池的 P1/P2/P3 项（LLM mutator 接线、评审异构性机械检查、事件重放增量化、PRODUCTION_LEDGER、program 模式、dispatch_backend colab seam、校准实测批）本轮未启动。
+
 ## [1.7.2] - 2026-10-02 定版：研究 OS 层（XScientist ARA + SCION REP 适配）+ 多 agent 对抗评审修复
 
 > 版本主题：**把研究运行变成可 fork 的工件，把计划变成编译产物，把 claim 变成有锚的证据**。协议形态适配自 `smileformylove/XScientist`（Apache-2.0，归属记录在案）与 SCION REP（arXiv:2607.03863，无公开仓库，概念自实现）；全部实现为原创 SciForge 代码，stdlib-only。**444+ 全绿，ci_check PASS**。
