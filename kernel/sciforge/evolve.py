@@ -75,6 +75,104 @@ class Patch(dict):
         return hashlib.sha256(self.text().encode()).hexdigest()[:16]
 
 
+# ---------------- mechanical patch validation (the RSI safety floor) ----------------
+# Every mutator output — template, provider-backed, human-authored — passes through
+# `sanitize_patch` before any evaluation. This is deliberately NOT a prompt request:
+# an LLM (or a prompt-injected skill file) can ask to edit the measuring instrument;
+# this function is where that request dies. Prefix-only checks are not enough:
+# "skills/../../kernel/sciforge/evolve.py" starts with the allowed prefix, so path
+# normalization is part of the guard.
+
+MAX_OLD_CHARS = 4000
+MAX_NEW_CHARS = 8000
+
+
+def _safe_relpath(path: str) -> bool:
+    """Repo-relative, normalized, no traversal / absolute / windows-drive forms."""
+    if not path or path.startswith(("/", "\\")) or "\\" in path or "\x00" in path:
+        return False
+    parts = path.split("/")
+    if any(p in ("", ".", "..") for p in parts):
+        return False
+    if ":" in parts[0]:  # C:..., also blocks scheme-ish prefixes
+        return False
+    return True
+
+
+def op_error(op, root: Path | None = None) -> str | None:
+    """Return a reason code when `op` may not be applied; None when it is valid.
+
+    `root` (optional) additionally checks that the anchor file exists and that
+    `old` is a verbatim substring of it. Structural + frozen-path checks are
+    always on; they are the part the security tests pin down.
+    """
+    if not isinstance(op, dict):
+        return "malformed_op"
+    path, old, new = op.get("path"), op.get("old"), op.get("new")
+    if not (isinstance(path, str) and isinstance(old, str) and isinstance(new, str)):
+        return "malformed_op"
+    if not _safe_relpath(path):
+        return "unsafe_path"
+    if not editable(path):
+        return "frozen_path"
+    if not old.strip():
+        return "empty_anchor"
+    if old == new:
+        return "no_change"
+    if len(old) > MAX_OLD_CHARS:
+        return "anchor_too_large"
+    if len(new) > MAX_NEW_CHARS:
+        return "op_too_large"
+    if root is not None:
+        f = Path(root) / path
+        if not f.exists():
+            return "missing_file"
+        try:
+            content = f.read_text()
+        except OSError:
+            return "unreadable_file"
+        if old not in content:
+            return "anchor_not_found"
+    return None
+
+
+def validate_patch(patch, *, root: Path | None = None) -> list[dict]:
+    """List every invalid op as {index, path, reason}; empty list = valid patch."""
+    ops = patch.get("ops") if isinstance(patch, dict) else None
+    if not isinstance(ops, list):
+        return [{"index": None, "path": None, "reason": "ops_not_list"}]
+    bad = []
+    for i, op in enumerate(ops):
+        why = op_error(op, root=root)
+        if why:
+            bad.append({"index": i,
+                        "path": op.get("path") if isinstance(op, dict) else None,
+                        "reason": why})
+    return bad
+
+
+def sanitize_patch(patch, *, root: Path | None = None) -> tuple[Patch, list[dict]]:
+    """Mechanically drop invalid ops; return (clean Patch, rejections).
+
+    Used by EvolutionRun._mutate for EVERY mutator (defense in depth), by the
+    provider-backed mutator before spending an evaluation, and by `submit`
+    (which refuses wholesale instead of silently stripping).
+    """
+    ops = patch.get("ops") if isinstance(patch, dict) else None
+    if not isinstance(ops, list):
+        return Patch({"ops": []}), [{"index": None, "path": None, "reason": "ops_not_list"}]
+    kept, rejected = [], []
+    for i, op in enumerate(ops):
+        why = op_error(op, root=root)
+        if why:
+            rejected.append({"index": i,
+                             "path": op.get("path") if isinstance(op, dict) else None,
+                             "reason": why})
+        else:
+            kept.append(op)
+    return Patch({"ops": kept}), rejected
+
+
 # ---------------- apply / verify ----------------
 def apply_patch(ws: Path, patch: Patch, *, checkout: Path | None = None) -> dict:
     """Apply ops to a scratch copy; validate edits against frozen paths.
@@ -170,10 +268,11 @@ class JudgeDomain(Domain):
             ops_desc.append(f"- file {op['path']}\n  anchor: {op['old'][:120]}\n"
                             f"  ADDITION (the whole change): {op['new'][:500]}\n"
                             f"  rationale: {op.get('rationale', '')}")
-        prompt = ("Candidate patch (the change is an appended RSI note; judge the "
-                  "ADDITION only — does it turn a stall signal into a sharper, "
-                  "actionable, machine-checkable instruction, or is it empty/vague/"
-                  "weakening/placeholder-garbage?):\n" + "\n".join(ops_desc) +
+        prompt = ("Candidate patch (a skill-text edit — provider-mutated, often an "
+                  "appended RSI note; judge the ADDITION only — does it turn a stall "
+                  "signal into a sharper, actionable, machine-checkable instruction, "
+                  "or is it empty/vague/weakening/placeholder-garbage?):\n"
+                  + "\n".join(ops_desc) +
                   "\n\nReply ONLY JSON: {\"score\": <0-10>, \"rationale\": \"...\"}")
         try:
             text, rec = self.providers.complete("grading", system, prompt, temperature=0.0,
@@ -415,6 +514,10 @@ class EvolutionRun:
             f.write(json.dumps(ev, ensure_ascii=False) + "\n")
         return ev
 
+    def note(self, kind, **kw):
+        """Public replayable annotation (mutator disclosure, guard stats)."""
+        return self._emit(kind, **kw)
+
     def run(self) -> dict:
         pr = probe(self.domain, self.seed, random.Random(42))
         self._emit("probe", **pr)
@@ -466,7 +569,24 @@ class EvolutionRun:
                 "history": self.results}
 
     def _mutate(self, parent: Patch, inspire) -> list[Patch]:
-        return [self.mutator(parent, inspire)]
+        """All mutator output crosses the mechanical guard before evaluation.
+
+        A mutator (LLM or otherwise) may propose edits to tests/kernel/scripts;
+        `sanitize_patch` strips them here even if a mutator-level bug let them
+        through. Rejected ops are recorded in the run's NDJSON trail; an
+        all-rejected mutation becomes an empty patch, which `apply_patch`
+        refuses (score 0) — never a free pass against the pristine tree.
+        """
+        produced = self.mutator(parent, inspire)
+        cands = [produced] if isinstance(produced, dict) else list(produced)
+        out = []
+        for cand in cands:
+            clean, rejected = sanitize_patch(cand)
+            if rejected:
+                self._emit("mutation_guarded", rejected=rejected,
+                           proposed=len(cand.get("ops") or []) if isinstance(cand, dict) else None)
+            out.append(clean)
+        return out
 
     def _evaluate(self, patch: Patch, parent_idx: int, *, shard="gate", apply=True) -> float:
         """Apply to the scratch checkout, score mechanically, revert — the pristine

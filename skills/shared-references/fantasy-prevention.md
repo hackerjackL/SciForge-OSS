@@ -31,7 +31,7 @@ If NO → Check if the claim has a citation
 ### Gate 2: Citation Verifiability
 
 ```
-Check: Is every citation backed by a 3-layer verified reference?
+Check: Is every citation backed by a reference that passed the mandatory arXiv existence + CrossRef DOI/metadata layers (Semantic Scholar Layer 3 when reachable, degradation disclosed in CITATION_AUDIT.json)?
 If YES → PASS
 If NO → FANTASY (citation is fabricated)
 ```

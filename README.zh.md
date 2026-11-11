@@ -3,7 +3,7 @@
 > **[中文](README.zh.md)** | **[English](README.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.3-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.4-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -58,7 +58,7 @@ SciForge-OSS 提炼出 **4 个通用元技能**（Meta-Skills），以不变应�
 |--------|------|------|
 | **Dynamic Sandbox** | 计算引擎 | 运行任意 Python/Julia 科学计算（NumPy/SciPy/SymPy）——无 GPU 训练，仅数值 sanity check |
 | **Dynamic Tooling** | 工具工厂 | 运行时发现工具不足时，动态编写并注册临时工具 |
-| **Universal Retrieval** | 文献检索 | 多源学术搜索（arXiv/S2/CrossRef/PubMed/Web/OpenAlex）+ 3 层防幻觉验证 |
+| **Universal Retrieval** | 文献检索 | 多源学术搜索（arXiv/S2/CrossRef/PubMed/Web/OpenAlex）+ 多层防幻觉验证（arXiv 存在性 + CrossRef DOI/元数据为强制两层；Semantic Scholar 第 3 层可达时运行，降级须显式披露） |
 | **Unified Plotting** | 图表渲染 | 结构化数据 → 出版级矢量图（SVG/PDF）；多巴胺色系（Layer 1，色盲可辨校验的高饱和盘）+ viridis/magma/cividis 数据热图（Layer 2） |
 
 ## Runtime Kernel（introduced v1.5.0）
@@ -305,7 +305,7 @@ Phase 11: /unified-plotting — 出版级图（MUST）
 Phase 12: /paper-writing — elsarticle 模板 + 管线泄漏擦洗
 Phase 13: /paper-compile — 零警告零错误编译（MUST）
 Phase 14: /auto-review-loop — 跨模型评审 + kill-argument（MUST）
-Phase 15: /citation-audit — 三层引用 + DOI 审计
+Phase 15: /citation-audit — 多层引用 + DOI 审计（arXiv 存在性 + CrossRef DOI/元数据强制；Semantic Scholar 第 3 层可达时运行，降级须显式披露）
 Phase 15.5: /publishability-score — 6 维可发表性门
 Phase 16: 最终组装 + 产物归档
 ```
@@ -363,7 +363,7 @@ SciForge-OSS/
 │   ├── meta-skills/                        ← 8 个元技能
 │   │   ├── dynamic-sandbox/SKILL.md        ← 计算沙盒（数值 sanity check，无 GPU）
 │   │   ├── dynamic-tooling/SKILL.md        ← 工具制造
-│   │   ├── universal-retrieval/SKILL.md    ← 学术检索 + 3 层防幻觉（6 源）
+│   │   ├── universal-retrieval/SKILL.md    ← 学术检索 + 多层防幻觉（6 源）
 │   │   ├── unified-plotting/SKILL.md       ← 矢量图表渲染（多巴胺 + Layer 2 数据热图）
 │   │   ├── idea-discovery/SKILL.md         ← [DAG] 多视角创意 + MCTS 迭代
 │   │   ├── novelty-check/SKILL.md          ← [DAG] 新颖性验证+淘汰
@@ -380,7 +380,7 @@ SciForge-OSS/
 │   │   ├── result-to-claim/SKILL.md        ← 3 保真度 claim 门控
 │   │   ├── quality-gate/SKILL.md           ← 终极前置写作门（universal QF-G* + SD-G*）
 │   │   ├── auto-review-loop/SKILL.md       ← 跨模型迭代评审 + kill-argument 反自欺
-│   │   ├── citation-audit/SKILL.md         ← 最终 3 层引用防幻觉验证
+│   │   ├── citation-audit/SKILL.md         ← 最终多层引用防幻觉验证
 │   │   ├── kill-argument/SKILL.md          ← 反自欺练习（kill your own argument）
 │   │   ├── experiment-execution/SKILL.md   ← toy + full + 后台派发 + 安全门
 │   │   ├── adversarial-falsification/SKILL.md ← Phase 2.5 对抗证伪
@@ -395,7 +395,7 @@ SciForge-OSS/
 │       ├── idea-dag-schema.md              ← DAG 节点 schema
 │       ├── mcts-search-protocol.md         ← MCTS 迭代协议（UCB1 + 有界轮次）
 │       ├── multi-fidelity-evaluation.md    ← 3 保真度筛选
-│       ├── citation-discipline.md          ← 3 层防幻觉引用验证协议
+│       ├── citation-discipline.md          ← 多层防幻觉引用验证协议
 │       ├── assurance-contract.md           ← 6 态判定 schema（PASS/WARN/FAIL/...）
 │       ├── venue-profiles.md              ← 单一统一 elsarticle 模板 spec
 │       ├── venue-checklists.md            ← 单一通用 pre-submission checklist

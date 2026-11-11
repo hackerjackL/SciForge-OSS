@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Machine pipeline-leakage + AIGC-trace scan (S26) — the code-enforced v3.5 scrub gate.
+"""Machine pipeline-leakage + AIGC-trace scan (S26) — the code-enforced v3.6-mech scrub gate.
 
-paper-writing Step 3.5 defines the 8 (+1) leakage classes as prose; low-capability
-hosts run the greps inconsistently. This script implements the SAME classes as a
-mechanical scanner (stdlib regex only) and writes the registered verdict file
+paper-writing Step 3.5 defines the 12 (+1) leakage classes (A-L plus the
+I-frontmatter fabricated-author sub-check) as prose; low-capability hosts run the
+greps inconsistently. This script implements the SAME classes as a mechanical
+scanner (stdlib regex only) and writes the registered verdict file
 paper/LEAKAGE_SCRUB.json + .sciforge/verdicts/LEAKAGE_SCRUB.json so:
   - the kernel boundary gate (phase 13) refuses to advance while hits remain,
   - validate_verdicts checks the machine verdict against the schema,

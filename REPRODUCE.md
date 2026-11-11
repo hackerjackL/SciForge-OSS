@@ -25,7 +25,20 @@ brew install graphviz librsvg poppler  # Linux: apt 等价，见 scripts/plottin
 
 ## 1. 门系统（全部门在真实工作）
 
+Mode A（纯 skills、无内核边界）的推荐入口是 `gate_all.py`：一次调用跑完该 workspace 适用的全部门并打印一张表（Mode B 仍由内核 `commit_boundary()` 在边界强制，本脚本只是事后报告，不把 Mode A 变成 Mode B）。结构性无法在 Mode A 生效的门（依赖内核产物的 `REP.json`/`NODES.json`/`RUNSTATE.problem_hash`，或只有自报 ledger、无同址原始证据的 fairness 交叉验证）会报 `UNPROTECTED`——意思是**该保证在本 run 中不存在**，既不是 PASS 也不是普通 SKIP，必须当作未受保护项阅读。
+
 ```bash
+# Mode A 一键门（推荐）：--list 先看门名与相位
+.venv/bin/python scripts/gate_all.py --list
+.venv/bin/python scripts/gate_all.py <your-run>                 # 表格报告
+.venv/bin/python scripts/gate_all.py <your-run> --json          # 机器可读
+.venv/bin/python scripts/gate_all.py <your-run> --only doi_gate,citation_support
+.venv/bin/python scripts/gate_all.py <your-run> --skip tdal_compute
+.venv/bin/python scripts/gate_all.py <your-run> --offline       # doi_gate 只做结构检查，不联网
+.venv/bin/python scripts/gate_all.py <your-run> --integrity-llm # 额外跑 integrity 的语义 D1 层（需 provider）
+.venv/bin/python scripts/gate_all.py <your-run> --timeout 600   # 单门超时（秒）
+# 退出码：0 = 无 FAIL/BLOCKED/ERROR；1 = 至少一个；2 = 用法错误
+
 # verdict schema 校验（fixture 24/24 PASS）
 .venv/bin/python scripts/validate_verdicts.py fixtures/e2e_minimal/.sciforge/verdicts --strict --require-complete
 # 安全扫描自测（26/26）
@@ -112,8 +125,8 @@ GPU/NPU：镜像内 `detect_device.py` 自动 cuda/rocm/npu/mps/cpu；NPU allow-
 ## 7. 单元测试（全部机制）
 
 ```bash
-.venv/bin/python -m pytest tests/test_kernel.py -q     # kernel 70 项
-.venv/bin/python -m pytest tests/ -q                   # 全仓 567 项（macOS Python 3.14 实测全绿）
+.venv/bin/python -m pytest tests/test_kernel.py -q     # kernel 子集
+.venv/bin/python -m pytest tests/ -q                   # 全仓测试（数量以运行输出为准；基线随版本增长，macOS Python 3.14 实测全绿）
 ```
 
 ## 已知边界（诚实）

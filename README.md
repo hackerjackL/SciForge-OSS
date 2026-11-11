@@ -3,7 +3,7 @@
 > **[English](README.md)** | **[中文](README.zh.md)**
 
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.3-green.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.4-green.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![GitHub](https://img.shields.io/badge/repo-gitcode-blue)](https://gitcode.com/GewisLab/SciForge-OSS)
 [![AI for Science](https://img.shields.io/badge/AI%20for-Science-ff69b4)](https://gitcode.com/GewisLab/SciForge-OSS)
@@ -58,7 +58,7 @@ SciForge-OSS distills **4 universal meta-skills**, handling any problem with one
 |------------|------|-------------|
 | **Dynamic Sandbox** | Compute engine | Run arbitrary Python/Julia scientific computation (NumPy/SciPy/SymPy) — numerical sanity check |
 | **Dynamic Tooling** | Tool factory | When tools are insufficient at runtime, dynamically write and register temporary tools |
-| **Universal Retrieval** | Literature search | Multi-source academic search (arXiv/S2/CrossRef/PubMed/Web/OpenAlex) + 3-layer anti-hallucination verification |
+| **Universal Retrieval** | Literature search | Multi-source academic search (arXiv/S2/CrossRef/PubMed/Web/OpenAlex) + multi-layer anti-hallucination verification (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable, degradation disclosed) |
 | **Unified Plotting** | Figure rendering | Structured data → publication-quality vector figures (PDF+SVG); dopamine palette (Layer 1, CVD-verified high-saturation) + viridis/magma/cividis data colormaps (Layer 2) |
 
 ## Runtime kernel (introduced v1.5.0)
@@ -281,7 +281,7 @@ Phase 11: /unified-plotting — publication figures (MUST)
 Phase 12: /paper-writing — elsarticle template + pipeline-leakage scrub
 Phase 13: /paper-compile — zero-warning zero-error compile (MUST)
 Phase 14: /auto-review-loop — cross-model review + kill-argument (MUST)
-Phase 15: /citation-audit — 3-layer citation + DOI audit
+Phase 15: /citation-audit — multi-layer citation + DOI audit (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable)
 Phase 15.5: /publishability-score — 6-dimension publishability gate
 Phase 16: final assembly + cleanliness audit
 ```
@@ -370,7 +370,7 @@ SciForge-OSS/
 │   │   └── auto-pipeline/SKILL.md   # the single entry orchestrator (26-node DAG loop)
 │   ├── meta-skills/                 # 8 universal meta-skills
 │   │   ├── idea-discovery/          # MCTS-enhanced idea generation (4 perspectives incl. empirical)
-│   │   ├── universal-retrieval/     # literature search + 3-layer anti-hallucination (mihomo proxy)
+│   │   ├── universal-retrieval/     # literature search + multi-layer anti-hallucination (mihomo proxy)
 │   │   ├── unified-plotting/        # publication-quality figures (PDF+SVG dual; 16:9; d2 for diagrams)
 │   │   ├── dynamic-sandbox/         # lightweight numerical sanity checks (Python/numpy)
 │   │   ├── dynamic-tooling/         # on-the-fly tooling for the sandbox
@@ -390,7 +390,7 @@ SciForge-OSS/
 │   │   ├── invariant-check/         # INV-G1 verification
 │   │   ├── kill-argument/           # anti-self-deception
 │   │   ├── method-registry/         # method registry + hash lock
-│   │   ├── citation-audit/          # final 3-layer citation verification
+│   │   ├── citation-audit/          # final multi-layer citation verification
 │   │   ├── adversarial-falsification/  # adversarial falsification
 │   │   ├── publishability-score/    # 6-dim publishability score
 │   │   └── rebuttal/                # point-by-point rebuttal letter after rejection
@@ -402,7 +402,7 @@ SciForge-OSS/
 │       ├── figure-quality-contract.md  # 16:9, PDF+SVG dual, Nature readability, d2 pipeline
 │       ├── project-architecture-contract.md  # GitHub-style project tree + cleanliness audit
 │       ├── background-dispatch-protocol.md     # >5min background dispatch
-│       ├── citation-discipline.md   # 3-layer anti-hallucination
+│       ├── citation-discipline.md   # multi-layer anti-hallucination
 │       ├── writing-principles.md    # academic writing + per-domain style contract
 │       ├── discipline-writing.md    # universal section-by-section guide
 │       ├── color-themes.md          # Dopamine (Layer 1) + viridis/magma/cividis (Layer 2)

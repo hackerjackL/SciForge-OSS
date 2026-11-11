@@ -657,3 +657,68 @@ def test_mock_adapter_consumes_scripted_list_per_visit(tmp_path, monkeypatch):
     seen = [k._dispatch_mock("1a", k.graph.phases["1a"], ws / "b.md").v
             for _ in range(3)]
     assert seen == ["PASS", "WARN", "WARN"]
+
+
+# --- v1.7.4: the two non-negotiable human checkpoints cannot be self-approved ---
+
+def _run_to_first_checkpoint(ws: Path) -> Kernel:
+    """Drive the real state machine to the idea-pick checkpoint (phase 3 -> 4)
+    with human approval required (human_skip=False)."""
+    k = Kernel(ws)
+    k.start(RUN_ID, PROBLEM, "lite", host="mock")  # NOT human_skip
+    k._providers = HostModeProviders()
+    _install_script(ws, scenario())
+    result = k.run(max_steps=200)
+    assert result["status"] == "blocked_checkpoint", result
+    assert k.rs.status == "paused_checkpoint"
+    return k
+
+
+def test_runstate_flag_tamper_cannot_self_approve_checkpoint(tmp_path, monkeypatch):
+    """NEGATIVE (defect 1, full state machine): editing RUNSTATE.json's
+    flags.human_skip no longer clears the idea-pick checkpoint."""
+    _offline_env(monkeypatch)
+    ws = tmp_path / "runstate-tamper"
+    k = _run_to_first_checkpoint(ws)
+
+    # the agent flips the writable snapshot and restarts the kernel view
+    k.rs.data.setdefault("flags", {})["human_skip"] = True
+    k.rs.data["flags"]["test_mode"] = True
+    k.rs.write()
+    k2 = Kernel(ws)
+    k2._providers = HostModeProviders()
+    assert k2._checkpoint_satisfied("idea-pick", "3") is False
+    assert k2.step()["status"] == "blocked_checkpoint"
+
+    # a genuine human decision still advances the run
+    k2.appr.decide("idea-pick", True, "fixture-human", k2.rs)
+    assert k2.rs.status == "running"
+
+
+def test_forged_checkpoint_cleared_cannot_advance_a_paused_run(tmp_path, monkeypatch):
+    """NEGATIVE (defect 2, full state machine): appending a bare
+    checkpoint_cleared event is detected and never advances the run."""
+    import time
+    _offline_env(monkeypatch)
+    ws = tmp_path / "forged-clear"
+    k = _run_to_first_checkpoint(ws)
+
+    n = len(k.log.replay())
+    with open(ws / ".sciforge" / "events.ndjson", "a", encoding="utf-8") as f:
+        f.write(json.dumps({"seq": n + 1, "ts": time.time(), "phase": "3",
+                            "kind": "checkpoint_cleared",
+                            "payload": {"checkpoint": "idea-pick"}}) + "\n")
+
+    integ = state.EventLog(ws).verify_chain()
+    assert integ["ok"] is False and integ["broken_at"] == n
+    assert k._checkpoint_satisfied("idea-pick", "3") is False
+    assert k.step()["status"] == "blocked_checkpoint"
+    assert k.rs.status == "paused_checkpoint"
+
+    # recovery / restart refuses to trust the tampered ledger
+    state.release_lock(ws)
+    k.rs.status = "running"
+    k.rs.write()
+    assert state.recover(state.EventLog(ws), k.rs, ws) == "integrity_broken"
+    assert k.rs.status == "paused_blocked"
+    assert k.rs.data["reason_code"] == "event_log_integrity_broken"

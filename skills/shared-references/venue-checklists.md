@@ -23,7 +23,7 @@ Across every OSS output, the following are usually expected:
 - **enough derivation detail for reproduction** — every theorem/lemma carries a proof or a pointer to the Appendix proof; every numerical claim has preserved code + seed
 - **honest limitations and scope boundaries** — Section 6 (Discussion) must surface what the result does NOT prove, not just what it does
 - **clear mapping from claims to evidence** — every claim in Abstract/Introduction maps to a Section 4 (Theory) or Section 5 (Results) item
-- **3-layer-verified citations only** — every `\cite{key}` resolves to an entry in `literature/references.bib` that passed the arXiv → CrossRef → Semantic Scholar verification (see `citation-discipline.md`)
+- **Multi-layer-verified citations only** — every `\cite{key}` resolves to an entry in `literature/references.bib` that passed the mandatory arXiv existence + CrossRef DOI/metadata layers; Semantic Scholar Layer 3 runs whenever reachable and any degradation is disclosed in `CITATION_AUDIT.json` (see `citation-discipline.md`)
 
 ---
 
@@ -77,12 +77,12 @@ Apply this checklist to every OSS paper draft, regardless of the problem it addr
 - [ ] Significance stars (when relevant): `***` p<0.01, `**` p<0.05, `*` p<0.10 — convention stated once in a caption note
 - [ ] Every table cites its data source in the caption
 
-### 3.6 Citation checklist (3-layer anti-hallucination)
+### 3.6 Citation checklist (multi-layer anti-hallucination)
 
 - [ ] Every `key` in `\cite{key}` exists in `literature/references.bib`
 - [ ] `.bib` entries all carry the `verification_status: verified` tag from `/universal-retrieval`
 - [ ] No `\cite{forthcoming}`, `\cite{TODO}`, `\cite{arxiv:TODO}` — no unverified references
-- [ ] Run `/citation-audit` on the final draft — every cite re-resolves to a live arXiv/CrossRef/S2 source
+- [ ] Run `/citation-audit` on the final draft — every cite re-resolves to a live arXiv/CrossRef source, plus Semantic Scholar when reachable (degraded mode disclosed in `CITATION_AUDIT.json`)
 
 ### 3.7 Compile checklist (`/paper-compile` — zero warnings zero errors)
 
@@ -133,6 +133,6 @@ If the human user **later** wants to submit the OSS output to a specific journal
 
 - [`venue-profiles.md`](venue-profiles.md) — the single elsarticle template spec (no venue families)
 - [`discipline-writing.md`](discipline-writing.md) — universal section-by-section writing guide
-- [`citation-discipline.md`](citation-discipline.md) — 3-layer anti-hallucination citation verification protocol
+- [`citation-discipline.md`](citation-discipline.md) — multi-layer anti-hallucination citation verification protocol
 - [`color-themes.md`](color-themes.md) — dopamine palette (Layer 1) + viridis/magma/cividis data colormaps (Layer 2)
 - [`assurance-contract.md`](assurance-contract.md) — PASS/WARN/FAIL/ERROR verdict schema

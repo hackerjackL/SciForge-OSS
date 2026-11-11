@@ -187,3 +187,59 @@ def test_lint_schema_rejects_unsupported_keywords():
     assert any("$ref" in e for e in errors)
     assert vv.lint_schema({"type": "object",
                            "properties": {"a": {"type": "string"}}}) == []
+
+
+# ---------------------------------------------------------------------------
+# v1.7.4 — citation verification-depth disclosure must be internally
+# consistent. Claiming 3 layers while reporting Layer 3 unavailable is a
+# fabricated audit record, caught mechanically rather than in prose.
+# ---------------------------------------------------------------------------
+
+def _citation_errors(**fields):
+    data = {"verdict": "PASS"}
+    data.update(fields)
+    return [e for e in vv.post_checks("CITATION_AUDIT.json", data)
+            if "verification_depth" in e or "layers_verified" in e]
+
+
+def test_claiming_three_layers_while_layer3_unavailable_is_rejected():
+    errs = _citation_errors(
+        verification_depth="3-layer",
+        layers_verified=["arxiv", "crossref", "semantic_scholar"],
+        layer3_status="unavailable_rate_limited")
+    assert errs and any("contradicts" in e for e in errs)
+
+
+def test_degraded_depth_may_not_claim_semantic_scholar():
+    errs = _citation_errors(
+        verification_depth="2-layer-degraded",
+        layers_verified=["arxiv", "crossref", "semantic_scholar"],
+        layer3_status="unavailable_network")
+    assert errs and any("claims semantic_scholar" in e for e in errs)
+
+
+def test_degraded_depth_still_requires_the_two_mandatory_layers():
+    errs = _citation_errors(verification_depth="2-layer-degraded",
+                            layers_verified=["crossref"],
+                            layer3_status="unavailable_network")
+    assert errs and any("two mandatory layers" in e for e in errs)
+
+
+def test_honest_degraded_disclosure_passes():
+    assert _citation_errors(
+        verification_depth="2-layer-degraded",
+        layers_verified=["arxiv", "crossref"],
+        layer3_status="unavailable_rate_limited",
+        layer3_detail="HTTP 429 after 3 attempts") == []
+
+
+def test_genuine_three_layer_passes():
+    assert _citation_errors(
+        verification_depth="3-layer",
+        layers_verified=["arxiv", "crossref", "semantic_scholar"],
+        layer3_status="verified") == []
+
+
+def test_pre_v174_artifact_without_depth_fields_is_untouched():
+    """Backward compat: the check only fires when a depth is declared."""
+    assert _citation_errors() == []

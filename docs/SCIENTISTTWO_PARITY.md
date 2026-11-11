@@ -13,7 +13,7 @@
 | 输入 | 107 个 ICLR/NeurIPS/ICML **已接收论文**的问题定义 + 官方 codebase | 自带问题 / 26-node DAG（旧称 21-phase）；**v1.7 起有 CPU demo 子 bench** |
 | 产出 | 86/107 成功（80.4%），平均相对人类 SOTA **+25.2%** | DEMO-RK4 单例 + bench 4/4 PROMOTED（demo 级） |
 | 评审 | ScholarPeer 7.5±1.3，接收率 91.9%；Stanford Agentic Reviewer 72.1% | 跨模型面板 + 分数驱动 rebuttal（**v1.7 起锚点校准 + <8 必 rebuttal**） |
-| 完整性审计 | 重跑代码 / reward-hacking / 1814 引文零幻觉 / **方法-代码逐行比对** | 3 层引用 + leakage/fantasy（v1.7 补上 **增益算术 + 划分纪律 + 方法↔代码 token 对齐**） |
+| 完整性审计 | 重跑代码 / reward-hacking / 1814 引文零幻觉 / **方法-代码逐行比对** | 多层引用核验（arXiv + CrossRef 强制，Semantic Scholar 第 3 层可达时运行、不可达时披露降级）+ leakage/fantasy（v1.7 补上 **增益算术 + 划分纪律 + 方法↔代码 token 对齐**） |
 | 成本 | $3765 / 2–3 天每篇（idea refinement + 评审循环为大头） | RUN_BUDGET 真记账；单机 host-mode 近零成本（产出亦 demo 级） |
 | 代码 | **闭源**（GitHub 仅项目页 + 86 篇 PDF） | 全开源（本轮起含对标层） |
 

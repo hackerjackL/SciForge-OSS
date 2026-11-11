@@ -1,6 +1,6 @@
 ---
 name: paper-compile
-version: 1.7.3
+version: 1.7.4
 description: "Compile LaTeX (elsarticle) to submission-ready PDF with zero-warnings policy + anti-deadloop escalation + table/figure overflow checks. v3.4 Step 1.5 pipeline-leakage scrub gate consumer (refuses to compile if LEAKAGE_SCRUB.json missing/FAIL, defense-in-depth re-scan). Phase 13. Invoke after paper-writing to produce main.pdf."
 type: reference-skill
 role: latex-compiler
@@ -37,7 +37,7 @@ Compile the LaTeX paper in `paper/` into a submission-ready PDF, auto-fix any co
 ## Required Workspace
 
 - `paper/main.tex` — master LaTeX file (must exist, copied from `skills/support/paper-writing/templates/default/main.tex`)
-- `paper/references.bib` — bibliography (should exist, 3-layer-verified per `citation-discipline.md`)
+- `paper/references.bib` — bibliography (should exist, multi-layer-verified per `citation-discipline.md`: arXiv existence + CrossRef DOI/metadata mandatory, Semantic Scholar Layer 3 when reachable)
 - `paper/sections/*.tex` — section sources (should exist)
 - `paper/figures/` — figure assets (PDF preferred; SVG acceptable when AI-direct-generated)
 
@@ -95,7 +95,7 @@ If compilation fails, read `compile.log` and fix common errors:
 - Check if the file exists with a different extension (.svg vs .pdf). Update the `\includegraphics` path.
 
 **Citation undefined** (`LaTeX Warning: Citation 'smith2024' undefined`)
-- Add the missing entry to `references.bib` (must be 3-layer-verified first) or fix the citation key.
+- Add the missing entry to `references.bib` (must pass multi-layer verification first: arXiv existence + CrossRef DOI/metadata mandatory, Semantic Scholar Layer 3 when reachable with any degradation disclosed in `CITATION_AUDIT.json`) or fix the citation key.
 
 **`[VERIFY]` markers in text**
 - Search for `[VERIFY]` markers left by `/paper-writing`. These indicate unverified citations or facts. Resolve the correct information or flag to the user.

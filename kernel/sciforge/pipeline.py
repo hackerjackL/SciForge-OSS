@@ -188,24 +188,33 @@ class Kernel:
         recov = recover(self.log, self.rs, self.ws)
         if recov == "wait":
             raise DispatchError("another kernel process holds this workspace")
+        if recov == "integrity_broken":
+            raise DispatchError(
+                "event log hash chain is broken (forged or edited events); "
+                "run is paused_blocked with reason_code=event_log_integrity_broken")
         if recov == "completed":
             raise DispatchError(f"run already {self.rs.status}; use a fresh workspace")
         if recov in ("fresh", "stale"):
             rs = self.rs  # reuse bound instance (EventLog/Approvals share self.ws)
             rs.data = {}
             RunState.open_workspace(self.ws, run_id, problem)  # dirs + guard
+            # RUN-level flags. The authoritative copy is the run_started event
+            # payload emitted below (append-only); the RUNSTATE copy is display
+            # only and is NEVER the trust source for checkpoint bypass
+            # (v1.7.4: RUNSTATE.json is a plain writable snapshot).
+            flags_doc = {"test_mode": test_mode, "human_skip": human_skip,
+                         "mode": mode,
+                         # v1.7.1: constraint tier + narrative mode,
+                         # kernel-owned and re-injected at every
+                         # boundary (see gates.discipline / bundle)
+                         "discipline": discipline if discipline in
+                         ("strict", "balanced", "lean") else "strict",
+                         "claim_mode": claim_mode if claim_mode in
+                         ("sota", "attribution") else "attribution"}
             rs.data.update({"schema_version": "2.0", "run_id": run_id,
                             "problem_id": run_id, "problem": problem, "effort": effort,
                             "host": host or "manual",
-                            "flags": {"test_mode": test_mode, "human_skip": human_skip,
-                                      "mode": mode,
-                                      # v1.7.1: constraint tier + narrative mode,
-                                      # kernel-owned and re-injected at every
-                                      # boundary (see gates.discipline / bundle)
-                                      "discipline": discipline if discipline in
-                                      ("strict", "balanced", "lean") else "strict",
-                                      "claim_mode": claim_mode if claim_mode in
-                                      ("sota", "attribution") else "attribution"},
+                            "flags": dict(flags_doc),
                             "created_at": time.time()})
             rs.status = "running"
             rs.update(phase="0", next_action="freeze problem anchor")
@@ -220,7 +229,13 @@ class Kernel:
             rs.data["problem_hash"] = digest
             rs.write()
             init_budget(self.ws, run_id, effort, self.graph.limits)
-            self.log.emit("0", "run_started", {"run_id": run_id, "problem": problem, "effort": effort})
+            # The run-level flags live HERE as an immutable, append-only fact.
+            # _checkpoint_satisfied() reads only the FIRST run_started event;
+            # a later forged duplicate cannot override it, and rewriting
+            # RUNSTATE's flags cannot bypass a human checkpoint.
+            self.log.emit("0", "run_started",
+                          {"run_id": run_id, "problem": problem, "effort": effort,
+                           "flags": dict(flags_doc)})
             take_lock(self.ws)
         else:
             self.log.emit(self.rs.data.get("current_phase", "?"), "resumed",
@@ -588,8 +603,34 @@ class Kernel:
         return Verdict("ERROR", notes=f"no verdict JSON in host output: {raw[:200]}")
 
     # ---------------- checkpoints & kill ----------------
+    def _run_flags(self) -> dict:
+        """Run-level flags from the authoritative run_started event.
+
+        v1.7.4 (defect: self-approval): these flags used to be read from
+        RUNSTATE.json, a plain writable snapshot — flipping
+        `flags.human_skip=true` there silently cleared both non-negotiable
+        human checkpoints. The trust source is now the FIRST `run_started`
+        event in the append-only log (emitted by start()), which a later
+        forged duplicate cannot override.
+
+        Backward compatibility is deliberately conservative: a legacy run
+        whose run_started predates the flags field (or has no flags object)
+        yields {} — i.e. human_skip/test_mode are FALSE and a human must
+        approve. An old run may wait once more; it can never be auto-cleared.
+        """
+        for ev in self.log.replay():
+            if ev.get("kind") == "run_started":
+                payload = ev.get("payload") or {}
+                flags = payload.get("flags")
+                return flags if isinstance(flags, dict) else {}
+        return {}
+
     def _checkpoint_satisfied(self, ck: str, pid: str) -> bool:
-        flags = self.rs.data.get("flags", {})
+        # Defense in depth: a broken hash chain means the approval evidence
+        # itself cannot be trusted, so no checkpoint is satisfied.
+        if not self.log.verify_chain().get("ok", True):
+            return False
+        flags = self._run_flags()
         log = self.appr.log
         # approved or logged-skip for THIS checkpoint?
         text = log.read_text() if log.exists() else ""
@@ -601,10 +642,11 @@ class Kernel:
         # flags. The old code consulted them only while no approval log existed,
         # so the SECOND checkpoint (method-approval) blocked a human_skip run
         # after the first checkpoint (idea-pick) had written its skip line.
-        if flags.get("human_skip"):
+        # v1.7.4: the flags come from the run_started event, not RUNSTATE.
+        if flags.get("human_skip") is True:
             self.appr.skipped("human_skip", ck, pid, self.rs)
             return True
-        if flags.get("test_mode"):
+        if flags.get("test_mode") is True:
             # bypass, not skip: agent does the guarded work, approval deferred
             self.appr.skipped("test_mode_bypass", ck, pid, self.rs)
             self.rs.data["production_ready"] = False
@@ -625,10 +667,15 @@ class Kernel:
         return out
 
     def kill_checkpoint(self, pid: str, kill_payload: dict) -> Verdict:
-        """v5.3 KILL human checkpoint, default ON (unless flags delegate)."""
-        flags = self.rs.data.get("flags", {})
+        """v5.3 KILL human checkpoint, default ON (unless flags delegate).
+
+        v1.7.4: `human_skip` is read from the run_started event, same trust
+        source as _checkpoint_satisfied, so editing RUNSTATE cannot delegate
+        this checkpoint either.
+        """
+        flags = self._run_flags()
         ck = "kill-confirmation"
-        if flags.get("human_skip") or os.environ.get("SCIFORGE_KILL_CHECKPOINT") == "0":
+        if flags.get("human_skip") is True or os.environ.get("SCIFORGE_KILL_CHECKPOINT") == "0":
             self.appr.skipped("human_skip", ck, pid, self.rs)
             return Verdict("PASS", notes="kill checkpoint delegated")
         if self.appr.log.exists() and f"checkpoint={ck} decision=APPROVE" in self.appr.log.read_text():
@@ -769,6 +816,13 @@ class Kernel:
               "rebuttal_required": panel.get("rebuttal_required", False),
               "rebuttal_threshold": panel.get("rebuttal_threshold"),
               "meta_review": panel.get("meta_review"),
+              # v1.7.4: forward the panel-independence disclosure into the
+              # registered verdict. REVIEW_PANEL.json is unregistered telemetry;
+              # downstream gates (submission_ready) read REVIEW_STATE, so a
+              # homogeneous panel — "cross-model" review that is really one
+              # model sampled N times — must be visible there too.
+              "panel_independence": panel.get("panel_independence"),
+              "independence_warning": panel.get("independence_warning"),
               "panel_source": "kernel/sciforge/review.py (S20 cross-model)"}
         (self.ws / ".sciforge" / "verdicts" / "REVIEW_STATE.json").write_text(
             json.dumps(rs, indent=2, ensure_ascii=False))

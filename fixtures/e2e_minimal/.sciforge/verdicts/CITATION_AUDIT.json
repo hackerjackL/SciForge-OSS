@@ -2,7 +2,11 @@
   "audit_skill": "citation-audit",
   "verdict": "PASS",
   "reason_code": "all_entries_keep",
-  "summary": "2 bibliography entries audited; all 3 verification layers (context, metadata, existence) pass; every entry KEEP.",
+  "summary": "2 bibliography entries audited; all three audit axes (existence, metadata, context) pass; every entry KEEP. Retrieval depth: arXiv + CrossRef verified; Semantic Scholar unavailable (rate limited), disclosed as 2-layer degraded.",
+  "verification_depth": "2-layer-degraded",
+  "layers_verified": ["arxiv", "crossref"],
+  "layer3_status": "unavailable_rate_limited",
+  "layer3_detail": "Semantic Scholar returned HTTP 429 on all attempts; the two mandatory layers verified every entry, so no reference remains unverified.",
   "audited_input_hashes": {
     "PROBLEM.md": "sha256:c50b0f8358cb3097ce89730b3e6b1be89149c74ac7f548cbbee282f495fdfbcb",
     "METHOD_REGISTRY_SNIPPET.md": "sha256:2aad820cbf564f3d9590d755d551b0062b3e9e24e6aaacc4364102e4dbb3ee69"

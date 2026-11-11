@@ -45,6 +45,14 @@ Cross-field invariants (post-checks)
 3. Budget floor hard rules (experiment-execution SKILL.md): budget_floor
    ``satisfied == false`` forbids ``verdict: PASS`` (only IN_PROGRESS or
    BLOCKED allowed), and ``verdict: PASS`` requires ``completion_justification``.
+4. Kill-argument verdict mapping: ``verdict: PASS`` requires
+   ``details.counts.still_unresolved == 0``.
+5. Citation verification depth (v1.7.4): when ``CITATION_AUDIT.json`` declares
+   ``verification_depth`` / ``layers_verified`` / ``layer3_status``, they must
+   agree — ``3-layer`` cannot coexist with an ``unavailable_*`` Layer 3, and
+   ``2-layer-degraded`` must not claim ``semantic_scholar`` while still listing
+   the two mandatory layers. Claiming a layer that did not run is a fabricated
+   audit record. Artifacts carrying none of these fields are unaffected.
 
 Supported JSON-Schema subset (stdlib-only validator, no `jsonschema` package)
 ------------------------------------------------------------------------------
@@ -364,6 +372,57 @@ def post_checks(filename, data):
                     "(unresolved points force FAIL/WARN per the verdict mapping)"
                     % (unresolved,)
                 )
+
+    if filename == "CITATION_AUDIT.json" and isinstance(data, dict):
+        # v1.7.4: the degraded-verification disclosure must be internally
+        # consistent. Claiming 3 layers while reporting Layer 3 unavailable is a
+        # fabricated audit record — the exact failure class the disclosure
+        # exists to prevent, so it is caught mechanically rather than in prose.
+        # All four fields are optional (pre-v1.7.4 artifacts carry none), so the
+        # check only fires on artifacts that actually declare a depth.
+        depth = data.get("verification_depth")
+        layers = data.get("layers_verified")
+        l3 = data.get("layer3_status")
+        if depth is not None or layers is not None or l3 is not None:
+            l3_unavailable = isinstance(l3, str) and l3.startswith("unavailable_")
+            s2_claimed = isinstance(layers, list) and "semantic_scholar" in layers
+            if depth == "3-layer":
+                if l3_unavailable:
+                    errors.append(
+                        "verification_depth=3-layer contradicts layer3_status=%r "
+                        "(a layer that did not run cannot be claimed; report "
+                        "2-layer-degraded and keep the disclosure)" % (l3,)
+                    )
+                if l3 not in (None, "verified", "not_required"):
+                    errors.append(
+                        "verification_depth=3-layer requires layer3_status of "
+                        "verified/not_required, got %r" % (l3,)
+                    )
+                if isinstance(layers, list) and "semantic_scholar" not in layers:
+                    errors.append(
+                        "verification_depth=3-layer but layers_verified omits "
+                        "semantic_scholar: %r" % (layers,)
+                    )
+            elif depth == "2-layer-degraded":
+                if s2_claimed:
+                    errors.append(
+                        "verification_depth=2-layer-degraded but layers_verified "
+                        "claims semantic_scholar: %r" % (layers,)
+                    )
+                if l3 is not None and not l3_unavailable and l3 != "not_attempted":
+                    errors.append(
+                        "verification_depth=2-layer-degraded requires an "
+                        "unavailable_* or not_attempted layer3_status, got %r "
+                        "(a degraded depth with a passing Layer 3 is not a "
+                        "degradation)" % (l3,)
+                    )
+                if isinstance(layers, list) and not (
+                        {"arxiv", "crossref"} <= set(layers)):
+                    errors.append(
+                        "verification_depth=2-layer-degraded still requires the "
+                        "two mandatory layers (arxiv, crossref) in "
+                        "layers_verified, got %r" % (layers,)
+                    )
 
     return errors
 

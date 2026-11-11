@@ -19,6 +19,7 @@ fabricated one fails.
 """
 from __future__ import annotations
 
+import datetime
 import hashlib
 import json
 import sys
@@ -181,10 +182,15 @@ def _smoke_ws(tmp_path: Path, script_src: str, *, record_hash: bool = True,
     if write_script:
         script.write_text(script_src)
     sha = hashlib.sha256(script.read_bytes()).hexdigest() if write_script else ""
+    # Dynamic timestamp: a hard-coded date turns the hashless-record test into
+    # a time bomb once the wall clock passes it (the script is written "now",
+    # so a fixed past executed_at reads as stale_smoke_script_newer_than_smoke).
+    executed_at = datetime.datetime.now(datetime.timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ")
     smoke = {"experiment_id": "g1", "smoke_scale": "1-step",
              "smoke_result": smoke_result, "fail_code": None,
              "fix_attempts": 0, "status_row_written": True,
-             "executed_at": "2026-11-11T00:00:00Z",
+             "executed_at": executed_at,
              "script": "experiments/full/g1/run.py"}
     if record_hash:
         smoke["script_sha256"] = recorded_sha or sha
@@ -466,3 +472,50 @@ def test_submission_ready_discloses_offline_doi(tmp_path: Path, monkeypatch):
     assert doc["doi_verification"]["mode"] == "offline"
     assert "doi_online_unverified" in doc["disclosures"]
     assert doc["tier"] in ("MINOR_REV", "MAJOR_REV")
+
+# ---------------------------------------------------------------------------
+# v1.7.4 — review-panel independence reaches the submission tier as a
+# disclosure (never as a soft item: the shipped default config is homogeneous,
+# so scoring it as soft would make READY unreachable by construction)
+# ---------------------------------------------------------------------------
+
+def _review_state(ws: Path, panel_independence) -> None:
+    d = ws / ".sciforge" / "verdicts"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "REVIEW_STATE.json").write_text(json.dumps({
+        "round": 1, "threadId": "T", "status": "completed", "difficulty": "medium",
+        "last_score": 8.5, "last_verdict": "ready", "pending_derivations": [],
+        "timestamp": "2026-11-11T00:00:00Z", "response_class": [],
+        "round_invalid": False, "panel_independence": panel_independence}))
+
+
+def test_homogeneous_panel_is_disclosed_not_penalised(tmp_path: Path, monkeypatch):
+    ws = _submission_ws(tmp_path,
+                        "@article{a2024, title={Something Real About Widgets}, "
+                        "doi={10.1000/xyz}}\n")
+    _review_state(ws, {"status": "homogeneous_degraded", "distinct_models": 1,
+                       "adjudicator_distinct": False})
+    monkeypatch.setattr(sr, "_run", lambda *a, **k: 0)
+    import subprocess
+    monkeypatch.setattr(subprocess, "run",
+                        lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
+    doc = sr.check(ws, offline=True)
+    assert "review_panel_homogeneous_degraded" in doc["disclosures"]
+    assert "adjudicator_not_distinct" in doc["disclosures"]
+    # the disclosure must not leak into soft items (which drive the tier)
+    assert not [s for s in doc["soft"] if "panel" in s or "independen" in s]
+
+
+def test_heterogeneous_panel_adds_no_disclosure(tmp_path: Path, monkeypatch):
+    ws = _submission_ws(tmp_path,
+                        "@article{a2024, title={Something Real About Widgets}, "
+                        "doi={10.1000/xyz}}\n")
+    _review_state(ws, {"status": "heterogeneous", "distinct_models": 3,
+                       "adjudicator_distinct": True})
+    monkeypatch.setattr(sr, "_run", lambda *a, **k: 0)
+    import subprocess
+    monkeypatch.setattr(subprocess, "run",
+                        lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
+    doc = sr.check(ws, offline=True)
+    assert not [d for d in doc["disclosures"] if "review_panel" in d]
+    assert "adjudicator_not_distinct" not in doc["disclosures"]

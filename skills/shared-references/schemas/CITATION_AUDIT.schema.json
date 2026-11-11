@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "sciforge/schemas/CITATION_AUDIT.schema.json",
-  "title": "CITATION_AUDIT.json - 3-layer citation verification verdict",
-  "description": "Produced by /citation-audit ('Submission Artifact Emission' section in its SKILL.md), which always emits this artifact - a paper with no .bib or no \\cite usage emits NOT_APPLICABLE. Conforms to the assurance-contract.md audit envelope; per-entry ledger lives under details.per_entry. Top-level verdict derived from per-entry verdicts per the decision table.",
+  "title": "CITATION_AUDIT.json - multi-layer citation verification verdict",
+  "description": "Produced by /citation-audit ('Submission Artifact Emission' section in its SKILL.md), which always emits this artifact - a paper with no .bib or no \\cite usage emits NOT_APPLICABLE. Conforms to the assurance-contract.md audit envelope; per-entry ledger lives under details.per_entry. Top-level verdict derived from per-entry verdicts per the decision table. v1.7.4: the top-level verification_depth / layers_verified / layer3_status / layer3_detail fields record which verification layers actually executed, so a Semantic Scholar outage degrades the audit to two layers WITH an explicit disclosure instead of a silent or fabricated 3-layer claim. The fields are optional in the schema for backward compatibility with pre-v1.7.4 artifacts, but mandatory in every new emission per the citation-audit SKILL.md contract.",
   "type": "object",
   "required": [
     "audit_skill",
@@ -57,6 +57,36 @@
     "generated_at": {
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$"
+    },
+    "verification_depth": {
+      "type": "string",
+      "enum": ["3-layer", "2-layer-degraded", "not_attempted"],
+      "description": "Audit-level depth actually achieved. '3-layer': Layers 1-2 ran and Layer 3 was available (layer3_status verified or not_required). '2-layer-degraded': Layer 3 was unavailable; entries were checked against arXiv + CrossRef only, and layer3_status records why. 'not_attempted': no verification depth was achieved (NOT_APPLICABLE / BLOCKED / ERROR runs). Mandatory in every emission from v1.7.4 on."
+    },
+    "layers_verified": {
+      "type": "array",
+      "description": "The verification layers that actually executed in this audit. A listed layer ran; it does not assert that every entry passed it (per-entry outcomes live in details.per_entry). An empty array is the honest value when verification_depth is not_attempted.",
+      "items": {
+        "type": "string",
+        "enum": ["arxiv", "crossref", "semantic_scholar"]
+      }
+    },
+    "layer3_status": {
+      "type": "string",
+      "enum": [
+        "verified",
+        "not_required",
+        "unavailable_rate_limited",
+        "unavailable_network",
+        "unavailable_no_credentials",
+        "unavailable_error",
+        "not_attempted"
+      ],
+      "description": "Layer 3 (Semantic Scholar) outcome. 'verified': it ran and its verdicts are recorded. 'not_required': Layers 1-2 resolved every entry, so no Layer 3 query was necessary. 'unavailable_rate_limited': HTTP 429 / quota exhausted after the retry budget. 'unavailable_network': timeout / DNS / connection / 5xx after retries. 'unavailable_no_credentials': anonymous access refused and no API key configured. 'unavailable_error': the provider returned an unparseable or error payload. 'not_attempted': the audit never reached Layer 3 (NOT_APPLICABLE / BLOCKED / ERROR)."
+    },
+    "layer3_detail": {
+      "type": "string",
+      "description": "Raw cause behind a non-verified layer3_status (e.g. 'HTTP 429 from api.semanticscholar.org after 3 attempts'), so the disclosure itself is auditable. Absent or empty only when layer3_status is 'verified' or 'not_required'."
     },
     "details": {
       "type": "object",

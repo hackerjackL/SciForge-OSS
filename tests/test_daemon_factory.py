@@ -723,3 +723,55 @@ def test_limiter_env_var_wires_shared_backend(tmp_path: Path, monkeypatch):
         assert lim.wait_time("k") > 0.2
     finally:
         lim_mod.reset_default_limiter()
+
+# ---------------- v1.7.4: crash recording must not mask a broken event chain ----
+
+def test_record_crash_reports_integrity_break_over_worker_crash(tmp_path, monkeypatch):
+    """A crash on a tampered ledger records event_log_integrity_broken, not
+    daemon_worker_crash: the integrity failure is the more important fact, and
+    appending a daemon_error event to a compromised log would extend it."""
+    ws = tmp_path / "runs" / "TAMP"
+    (ws / ".sciforge").mkdir(parents=True)
+    rs = RunState(ws)
+    rs.data = {"run_id": "TAMP", "problem": "x", "current_phase": "2"}
+    rs.status = "running"
+    rs.write()
+    log = state.EventLog(ws)
+    log.emit("2", "phase_entered", {})
+    n = len(log.replay())
+    # tamper: rewrite a middle event's payload, breaking its hash
+    evs = [json.loads(l) for l in
+           (ws / ".sciforge" / "events.ndjson").read_text().splitlines() if l.strip()]
+    evs[0]["payload"]["tampered"] = True
+    (ws / ".sciforge" / "events.ndjson").write_text(
+        "\n".join(json.dumps(e) for e in evs) + "\n")
+    assert state.EventLog(ws).verify_chain()["ok"] is False
+
+    d = _daemon(tmp_path)
+    d._record_crash(ws, "TAMP", "worker died")
+
+    rs2 = RunState(ws)
+    assert rs2.status == "paused_blocked"
+    assert rs2.data.get("reason_code") == "event_log_integrity_broken"
+    # the compromised ledger was NOT extended
+    assert len(state.EventLog(ws).replay()) == n
+
+
+def test_record_crash_still_labels_plain_worker_crash(tmp_path):
+    """Regression guard: a healthy chain keeps the normal daemon_worker_crash
+    label, so the integrity branch did not swallow the ordinary path."""
+    ws = tmp_path / "runs" / "OK"
+    (ws / ".sciforge").mkdir(parents=True)
+    rs = RunState(ws)
+    rs.data = {"run_id": "OK", "problem": "x", "current_phase": "1"}
+    rs.status = "running"
+    rs.write()
+    state.EventLog(ws).emit("1", "phase_entered", {})
+
+    d = _daemon(tmp_path)
+    d._record_crash(ws, "OK", "boom")
+
+    rs2 = RunState(ws)
+    assert rs2.data.get("reason_code") == "daemon_worker_crash"
+    kinds = [e["kind"] for e in state.EventLog(ws).replay()]
+    assert "daemon_error" in kinds

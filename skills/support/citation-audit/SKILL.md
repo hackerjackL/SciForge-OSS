@@ -1,7 +1,7 @@
 ---
 name: citation-audit
-version: 1.7.3
-description: "Final 3-layer citation verification (existence + metadata + context) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
+version: 1.7.4
+description: "Final multi-layer citation verification across existence, metadata and context axes (arXiv + CrossRef lookups; Semantic Scholar Layer 3 when reachable, with explicit degraded-mode disclosure) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
 type: reference-skill
 role: bibliographic-integrity-auditor
 ---
@@ -10,12 +10,14 @@ role: bibliographic-integrity-auditor
 
 ## Quick Reference
 
-- **Purpose**: Final 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar)
+- **Purpose**: Final anti-hallucination citation verification across three axes (EXISTENCE, METADATA, CONTEXT), backed by arXiv + CrossRef lookups (Semantic Scholar Layer 3 when reachable)
 - **Input**: paper/main.tex + literature/references.bib
 - **Output**: CITATION_AUDIT.md + CITATION_AUDIT.json
 - **Key**: Every \cite{key} must resolve to a verified .bib entry
 
-Verify every `\cite{...}` in a paper against three independent layers: existence, metadata correctness, and context appropriateness. This is the bibliographic-integrity layer of SciForge's evidence-and-claim assurance stack.
+Verify every `\cite{...}` in a paper against three independent axes: existence, metadata correctness, and context appropriateness. This is the bibliographic-integrity layer of SciForge's evidence-and-claim assurance stack.
+
+> **Terminology (v1.7.4)**: this skill's "three axes" (EXISTENCE / METADATA / CONTEXT) are not the same thing as the retrieval "three layers" (arXiv / CrossRef / Semantic Scholar) of `citation-discipline.md`. The three axes always run. The retrieval layers are evidence sources: arXiv + CrossRef are mandatory, Semantic Scholar is the optional Layer 3, and the depth actually achieved is recorded in `CITATION_AUDIT.json` (§Verification Depth below).
 
 ## Use When
 
@@ -33,7 +35,7 @@ Typical prompts:
 
 ## Job
 
-For every cited bibliographic entry, invoke a fresh cross-model reviewer with web/OpenAlex/arXiv/CrossRef lookup to verify (1) the cited paper actually exists at the claimed DOI / arXiv ID / venue, (2) author names / year / venue / title match canonical sources, and (3) the cited paper actually supports the claim it is being used to support. The non-negotiable goal: catch hallucinated authors, wrong years, fabricated venues, version mismatches, and — most dangerously — wrong-context citations where a real paper is cited to support a claim it does not actually establish.
+For every cited bibliographic entry, invoke a fresh cross-model reviewer with web/OpenAlex/arXiv/CrossRef lookup (plus Semantic Scholar when reachable) to verify (1) the cited paper actually exists at the claimed DOI / arXiv ID / venue, (2) author names / year / venue / title match canonical sources, and (3) the cited paper actually supports the claim it is being used to support. The non-negotiable goal: catch hallucinated authors, wrong years, fabricated venues, version mismatches, and — most dangerously — wrong-context citations where a real paper is cited to support a claim it does not actually establish.
 
 ## What This Skill Catches
 
@@ -86,7 +88,7 @@ For each **cited** bib entry — i.e., each key in `cited_keys` with at least on
 
 The reviewer prompt structure:
 
-- Role: auditing a bibliographic entry, using web/OpenAlex/arXiv/CrossRef search
+- Role: auditing a bibliographic entry, using web/OpenAlex/arXiv/CrossRef search (Semantic Scholar when reachable)
 - Inputs: the bib entry, plus all extracted contexts where this entry is cited, plus the target venue
 - Verify three axes:
   1. **EXISTENCE**: does this paper exist at the claimed DOI / arXiv ID / venue? Output: YES / NO / UNCERTAIN, with the verifying URL. Search OpenAlex / CrossRef / arXiv / the publisher site before emitting NO.
@@ -249,6 +251,25 @@ The audit semantics are **unchanged**: existence + metadata + context-appropriat
 - The top-level `verdict` decision table is **unchanged**: a wrong-context cite still produces `FAIL` with `reason_code: wrong_context`. Soft-only does not silence the finding; it only constrains the action layer.
 - `soft-only` composes with `--uncited`: both flags can be set together. Uncited entries remain detect-only and are not subject to soft-only translation (there is no citing sentence to soften).
 
+## Verification Depth and Degraded Mode (v1.7.4 — mandatory disclosure)
+
+The three audit axes always run. Which **retrieval layers** actually executed is a separate, machine-readable fact that every emission must record. Two layers (arXiv existence + CrossRef DOI/metadata) already block fabricated references, the dominant threat; Layer 3 (Semantic Scholar fuzzy match plus venue/citation-count cross-checks) adds evidence, and its absence is disclosed rather than papered over.
+
+`CITATION_AUDIT.json` MUST carry these top-level fields on every run (schema: `skills/shared-references/schemas/CITATION_AUDIT.schema.json`):
+
+| Field | Allowed values | Meaning |
+|-------|----------------|---------|
+| `verification_depth` | `3-layer` / `2-layer-degraded` / `not_attempted` | Depth actually achieved |
+| `layers_verified` | subset of `["arxiv", "crossref", "semantic_scholar"]` | Layers that actually executed; a listed layer ran, but per-entry outcomes live in `details.per_entry` |
+| `layer3_status` | `verified` / `not_required` / `unavailable_rate_limited` / `unavailable_network` / `unavailable_no_credentials` / `unavailable_error` / `not_attempted` | Layer 3 outcome; `unavailable_*` marks a degraded audit |
+| `layer3_detail` | free string | Raw cause (e.g. `HTTP 429 from api.semanticscholar.org after 3 attempts`) |
+
+Rules:
+- **Degraded ≠ unverified**: `verification_depth: "2-layer-degraded"` means every audited entry was checked against arXiv + CrossRef; it does not mean the references are unverified, and it does not by itself change the entry verdicts.
+- **Never claim a layer that did not run**: writing `verification_depth: "3-layer"` or `layer3_status: "verified"` when Layer 3 was unavailable is a fabricated audit record — worse than a citation error. Such a verdict is a contract violation and MUST be treated as `FAIL` by the parent/verifier.
+- **`not_attempted` is the honest value** for `NOT_APPLICABLE` (no citations), `BLOCKED` (unreadable bib) and `ERROR` (reviewer failure) runs: `verification_depth: "not_attempted"`, `layers_verified: []`, `layer3_status: "not_attempted"`.
+- **Recovery**: when S2 becomes reachable (API key configured in `SEMANTIC_SCHOLAR_API_KEY`/`S2_API_KEY` and sent as `x-api-key`, or the rate limit lifts), re-run Layer 3 for the entries verified in degraded mode and upgrade the fields to `3-layer`.
+
 ## Submission Artifact Emission
 
 This skill **always** writes `paper/CITATION_AUDIT.json`, regardless of caller or detector outcome. A paper with no `.bib` file or no `\cite{...}` usage emits verdict `NOT_APPLICABLE`; silent skip is forbidden. `paper-writing` Phase 6 and the verifier both rely on this artifact existing at a predictable path.
@@ -271,6 +292,10 @@ The artifact conforms to the schema in [`shared-references/assurance-contract.md
   "reviewer_model":   "<model>",
   "reviewer_reasoning": "xhigh",
   "generated_at":     "<UTC ISO-8601>",
+  "verification_depth":  "3-layer | 2-layer-degraded | not_attempted",
+  "layers_verified":     ["arxiv", "crossref"],
+  "layer3_status":       "verified | not_required | unavailable_rate_limited | unavailable_network | unavailable_no_credentials | unavailable_error | not_attempted",
+  "layer3_detail":       "<raw cause; only when layer3_status starts with unavailable_>",
   "details": {
     "total_entries":  29,
     "per_entry":      [ { "key": "madaan2023selfrefine",
@@ -300,6 +325,8 @@ Hash the **declared input set** actually passed to this audit: the `.bib` file, 
 
 The `--uncited` flag does **not** appear in this table: uncited entries are advisory only and never alter the top-level verdict or reason_code.
 
+`verification_depth` also does **not** appear in this table: a degraded audit keeps the entry-level verdict semantics (every entry was still checked on all three axes against arXiv + CrossRef) and discloses the missing retrieval layer through the depth fields. A verdict that omits those fields, or that claims `3-layer` while `layer3_status` is `unavailable_*`, is a contract violation.
+
 **Metadata precedence**: metadata-drift warnings are FIX-level (WARN), not FAIL — they reflect metadata drift, not hallucination or wrong-context. The reviewer's per-entry `note` field MUST include the corrected metadata so the user can apply the FIX directly.
 
 ## Output Protocols
@@ -319,12 +346,14 @@ The `--uncited` flag does **not** appear in this table: uncited entries are advi
 - Silently skip writing `CITATION_AUDIT.json` — the artifact is mandatory regardless of outcome.
 - Auto-enable uncited detection — it is opt-in only; never block on uncited entries.
 - Mutate any `.bib` file while `--soft-only` is set.
+- Emit a depth claim that did not happen — `verification_depth: "3-layer"` / `layer3_status: "verified"` require Layer 3 to have actually run.
 - Emit REMOVE based solely on one lookup source returning no result — fall back to additional sources (OpenAlex / CrossRef / arXiv / publisher site) first.
 
 **Always**:
 
 - Treat wrong-context citations as more dangerous than metadata typos.
 - Emit `CITATION_AUDIT.json` with a verdict for every run.
+- Record `verification_depth`, `layers_verified`, `layer3_status` and (when non-verified) `layer3_detail` on every emission.
 - Preserve existing callers' output exactly when `--uncited` is not set.
 - Run once per submission — the audit is wall-clock expensive (web lookups for each entry).
 - Use the canonical author/year/venue/title forms returned by the lookup sources before metadata comparison (see Step 3 reviewer prompt).
@@ -339,7 +368,7 @@ The `--uncited` flag does **not** appear in this table: uncited entries are advi
 
 ## Closure discipline (v1.4.0)
 
-The audit MUST NOT close while FIX items remain unresolved: every FIX (author-list correction, context mis-attribution, weak citation) is either repaired (re-verify via the 3-layer chain) or explicitly declared `unfixable` with a reason (e.g., source metadata genuinely absent). Silent carry-over of FIX items into the final manuscript is a contract violation — the eval gate treats unresolved FIX items as a blocked citation audit.
+The audit MUST NOT close while FIX items remain unresolved: every FIX (author-list correction, context mis-attribution, weak citation) is either repaired (re-verify through the retrieval chain: arXiv → CrossRef, plus Semantic Scholar when reachable) or explicitly declared `unfixable` with a reason (e.g., source metadata genuinely absent). Silent carry-over of FIX items into the final manuscript is a contract violation — the eval gate treats unresolved FIX items as a blocked citation audit.
 
 ## Output Shape
 
@@ -382,7 +411,9 @@ Together: code → result → claim → cited claim. Each layer has cross-family
 
 Re-verifying the same canonical references every run wastes time on long tasks. Keep a local
 `verified_papers.json` cache (key: DOI/arXiv-id → {layers passed, timestamp, metadata}); a ref
-verified within the TTL (e.g. 90 days) skips Layers 1-2 and only re-checks Layer 3 (context)
-against the current manuscript. A cache miss or any drift falls back to the full 3-layer chain.
+verified within the TTL (e.g. 90 days) skips the existence/metadata re-check and only re-checks
+the CONTEXT axis against the current manuscript. A cache miss or any drift falls back to the
+full retrieval chain (arXiv → CrossRef, plus Semantic Scholar when reachable).
 The cache never weakens verification: existence/metadata are re-checked on TTL expiry and any
-FIX invalidates the entry.
+FIX invalidates the entry. Cache hits do not exempt the run from the depth disclosure: if
+Layer 3 is unavailable, `verification_depth` is still `2-layer-degraded`.

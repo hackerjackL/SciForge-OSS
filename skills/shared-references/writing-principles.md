@@ -193,7 +193,7 @@ vague ones; delete any sentence that does not advance the argument.
 
 - Related work written as a pile-up of papers → cluster by topic, not by chronology
 - Dishonest discussion → must state what the results do not prove
-- Unverified citations → every citation passes the 3-layer anti-hallucination verification
+- Unverified citations → every citation passes multi-layer anti-hallucination verification (arXiv existence + CrossRef DOI/metadata mandatory; Semantic Scholar Layer 3 when reachable, 2-layer degraded mode disclosed)
 - Overclaiming → the claim scope must match the evidence scope
 
 ## Pre-submission checklist

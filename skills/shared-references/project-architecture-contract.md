@@ -33,7 +33,7 @@ Every run (auto-pipeline OR partial) produces artifacts under this fixed tree at
 │       ├── LOGIC_VERIFICATION.md / LEAKAGE_AUDIT.md / INVARIANT_CHECK.md (narratives)
 │       ├── CLAIMS_FROM_RESULTS.md        ← 3-fidelity claim gate narrative (Phase 10)
 │       ├── AUTO_REVIEW.md                ← cross-model review narrative (Phase 14)
-│       └── CITATION_AUDIT.md             ← 3-layer citation audit narrative (Phase 15)
+│       └── CITATION_AUDIT.md             ← multi-layer citation audit narrative (Phase 15)
 │
 ├── literature/
 │   ├── landscape_report.md               ← literature survey (broad wave)

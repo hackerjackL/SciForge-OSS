@@ -53,7 +53,7 @@
 Every named dataset, optimizer, metric, model architecture, statistical
 test, and software tool gets a citation (or a version statement) at first
 use. Unnamed borrowing ("a standard bootstrap") is how reviewers find
-sloppiness. The bib source is the 3-layer-verified list only — a missing
+sloppiness. The bib source is the multi-layer-verified list only — a missing
 verification is dropped with disclosure, never guessed.
 
 ## 4. Figure/table caption discipline

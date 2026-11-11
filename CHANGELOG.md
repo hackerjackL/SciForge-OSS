@@ -2,6 +2,78 @@
 
 > **Historical naming note**: entries before v1.7.2 may say “21-phase”. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; entries below are preserved as written.
 
+## [1.7.4] - 2026-11-11 定版：信任根加固 + 进化引擎接真 + 引用验证如实降级
+
+> 版本主题：**v1.7.3 让门与磁盘证据对账，v1.7.4 让"信任根本身"不可伪造，并把两处仍是脚手架的卖点接成真货**。本轮清掉 v1.7.3 记档在案的全部高优先级债 + 一处实测发现的运行时阻塞。**基线 568 → 744 测试全绿，ci_check PASS，security_scan --self-test 26/26，fixture 严格校验 24/24**。方法：四个并行 agent（G–J）按零重叠文件所有权分工 + 统筹收口跨 agent 移交项。
+
+### G. 事件日志哈希链 + run flags 不可变（治"agent 可自批不可协商的人工检查点"）
+
+- **人工检查点此前可被一个字段绕过**：`_checkpoint_satisfied()` 从 `self.rs.data["flags"]` 读 `human_skip`/`test_mode`，而 RUNSTATE.json 是磁盘上普通可写 JSON——agent 改一个布尔值即可让 Phase 3→4（选 idea）与 Phase 5→6（批方法注册表）两个文档反复声明"non-negotiable"的检查点自动放行。**这是 v1.7.3 修"第二个检查点失效"时扩大的攻击面**（原先只有第一个检查点读该字段，修完一致性后两个都读）。
+- 修法：`start()` 把 run 级 flags 冻结进 append-only 的 `run_started` 事件（`pipeline.py`），新增 `_run_flags()` **只读第一条** `run_started`（后追加的伪造副本无法覆盖）；`_checkpoint_satisfied()` / `kill_checkpoint()` 不再读 RUNSTATE 的 flags（快照仅留展示用途），判定用 `is True`。
+- **事件日志加 sha256 链式哈希**（`state.py`）：每条事件带 `prev_hash`（首条为 GENESIS）+ `hash`（覆盖 seq/ts/phase/kind/payload/prev_hash 的规范化 sha256）。此前 `events.ndjson` 无任何完整性保护（hmac/hashlib 链式相关代码 0 处），而它是"权威状态重建来源"——loopback 预算、审批状态、flags 全从它重放，追加一行伪造的 `checkpoint_cleared` 即可凭空推进管线。
+- `EventLog.verify_chain()` 返回 `{ok, legacy, total, broken_at, broken_seq, reason, head_hash}`；`replay(strict=True)` 抛 `EventChainError`；`recover()` **建状态前先验链**，断裂则 RUNSTATE 置 `paused_blocked` + `reason_code=event_log_integrity_broken`、返回新值 `integrity_broken`，`Kernel.start()` 抛 `DispatchError`。`open_checkpoint_requests()` 改为 fail-closed：链断时 clear/skip 证据本身不可信，所有已签发请求保持 open。
+- **向后兼容**（项目硬约束"旧工作区可迁移"）：无链字段的旧日志判 `legacy=True, ok=True` 并照常续跑，新事件继续以 legacy 形状追加（绝不产生"legacy 前缀 + 链式后缀"的混合日志，那会被判断裂）；旧 `run_started` 无 flags 时 `_run_flags()` 返回 `{}` → `human_skip=false`，即**宁可让旧 run 多等一次人工确认，绝不默认放行**。torn write 保持 skip 并继续。
+- **增量重放**（治每步 O(n) 全量重读）：EventLog 维护已解析列表 + 文件偏移 + 头部哈希，`replay()` 只读尾部新行而返回契约不变。处理截断（size < offset）、inode 替换、已消费前缀被原地改写（均回退全量重读）、torn 末行（跳过且不消费，后续补全仍能读到）、多实例各自独立偏移。实测 2000 事件日志 200 次 replay 共 4ms、0 次重复解析。
+- **fixture 重新生成**：加链后 `fixtures/e2e_minimal/.sciforge/events.ndjson` 会变遗留格式，故用 `host="mock"` 真实 `Kernel` 跑完 26 节点重新生成（**非手写、非手工补哈希**）：168 事件、27 次 boundary_committed（26 节点 + L1 重入 2）、1 次 L1 loopback（target=2, rep_fallback=PASS）、两检查点各有 requested+cleared、链完整。
+- 测试 +12（负向 5：RUNSTATE 篡改 ×2、伪造 `checkpoint_cleared` ×2、中间事件 payload 篡改 ×1；正向/兼容/性能 7）。**统筹实测伪造攻击**：断链 + 追加伪造 cleared/skipped 后 `approvals_pending` 仍 True、`_checkpoint_satisfied` 仍 False、`recover()` 返回 `integrity_broken`；对照真人 `decide(approve)` 仍正常放行。
+- 未引入 HMAC/密钥：威胁模型是同 uid（agent 与内核同用户），sha256 链防的是低成本追加伪造并使篡改可检测；**整文件重算哈希不在防护范围**（需密钥才能防），已在模块内注明。
+
+### H. 评审面板独立性机械披露（治"跨模型审稿团实为同模型三次采样"）
+
+- **缺陷**：`review.py` 的 `_default_personas()` 三个人格（methods/novelty/repro hawk）全部 `role:"review"`，而 `providers.json` 里 review/adjudication/grading **三个角色都指向 anthropic/claude-opus-4-8** → 所谓"3 个不同 provider 的独立盲审"实际是同一模型带三种 bias 提示词采样三次，"分歧时由不同模型仲裁"也是同模型自裁。`review.py` 文件 docstring 承诺的 "DIFFERENT backends/models" 无任何机械保证，也无任何地方披露这个事实。
+- 为什么严重：独立性是这套机制的全部价值来源。同模型三次采样的 variance 反映采样噪声而非真实审稿分歧，而 `reviewloop.py` 用分数阈值 8 触发 rebuttal、`adjudicate()` 用 `spread >= 4` 触发仲裁——两个判据在同模型情形下统计含义完全不同，下游 `submission_ready` 又引用评审分。
+- 修法：新增公开函数 `panel_independence(providers, personas)`，逐 persona 解析实际 `(backend, model)`（优先 `Providers.model_for()` 含 `SCIFORGE_MODEL` 覆盖，回退 roles 映射，解析不出记 `unknown` **而非猜测**，host_mode 记 `host/host`）；`review_paper` 在真实调用后用每次返回的 `CallRecord.backend/model` **覆盖**静态配置（gateway/override 场景）再重算。
+- 状态判定：`heterogeneous`（distinct_models ≥ 2）/ `homogeneous_degraded`（same_model、single_reviewer、routing_unresolved、no_reviewers）/ `host_mode`。写入 `REVIEW_PANEL.json` 的 `panel_independence`（含 `distinct_models`/`distinct_backends`/逐 reviewer `{id,role,backend,model,source,resolved}`/`adjudicator`/`adjudicator_distinct`/`adjudicator_shared_with`）+ 顶层 `independence_warning`（homogeneous/host 时必非空）+ `disclosures`（`panel_independence_degraded`/`panel_host_mode`/`adjudicator_not_distinct`）。
+- **同模型不改变 verdict、不 FAIL、不放松任何门，只披露**——host mode 是项目明确支持的合法形态，很多用户只有一个 key。`adjudicate()`/`adjudicate_cross()` 三个返回路径均新增仲裁者披露。host_mode 下 `review_paper` 不再制造 N 个伪错误，直接返回 `REVIEW_FAILED + reason_code=host_mode` 且不发起任何 completion 调用。
+- `providers.json` 的 `comment` 扩写为配置即文档（说明默认同模型 → `homogeneous_degraded`，要真异构需把 review 与 adjudication 指向不同 backend/model）；**所有默认 role/backend/model 未动**。`review.py` 文件 docstring 改为如实描述（默认同模型时是带 bias 的多次独立采样，配了不同 backend 才是真异构），消除与代码相反的承诺。
+- 测试 +14（负向 6：默认同模型 → `homogeneous_degraded` 且 `distinct_models==1`、host_mode/None-provider、routing 不可解析不得冒充异构、自仲裁披露；正向 5；兼容/回归 3）。
+
+### I. RSI 变异器接真 + submit 分支隔离（治"最大卖点上最空心的点"）
+
+- **缺陷**：`evolve_cli.py:35` 的 `_demo_mutator()` 在 **5 条硬编码文案**里轮换（追加到 patch 的 `new` 文本后），其 docstring 自认 "Real deployment replaces this with `provider.complete('ideation', ...)`"。整套 PUCT + MAP-Elites 搜索、三分片防作弊、probe 预检、评分器冻结——这套精密进化机器搜索的候选空间就是这 5 条文案的排列组合。README 宣称 skill 库级 RSI（竞品无人做到），实际变异器是 demo。
+- 修法：接线真 LLM 变异器（`LLMMutator` / `_extract_patch_payload` / `build_mutator`），走 `providers.complete("ideation", ...)`。prompt 含 ①最近 3 个 run 的真实审计信号（gate_rejections/loopbacks/warns）②parent patch 的 path/old/new ③从 pristine 文件按 anchor 截取的上下文窗口 ④MAP-Elites inspiration 候选 ⑤严格输出 schema 与冻结路径规则。
+- **健壮解析（刻意不复用 pipeline 的脆弱做法）**：v1.7.3 已发现 `_parse_verdict_json` "从噪声 stdout 抓最后一个含 verdict 的 JSON"可被巧合 JSON 伪造。此处规则：唯一 fenced block → 解析；整段 JSON → 解析；否则平衡括号扫描且**必须恰好一个** distinct patch 对象，多个即 `ambiguous_*` 错误（绝不静默取最后一个）；`empty_reply`/`invalid_fenced_json`/`no_patch_json` 显式报错。失败重试 1 次（追加更严格指令），再失败降级 demo。
+- **FROZEN_PREFIXES 机械强制**（不靠 prompt 求它别改）：`evolve.py:102-117` `op_error`→`editable()`→`frozen_path`（含 `..`/绝对路径/盘符/反斜杠的 `unsafe_path`）、`:154` `sanitize_patch`（LLM 每次生成 + EvolutionRun 每次变异复用）、`:571-584` `EvolutionRun._mutate` 对**任何** mutator（含未来被注入的）输出过闸并写 `mutation_guarded` 事件、`:177` `apply_patch` 既有拒绝、`evolve_cli.py:314` 逐 op 校验 + `:458` shard_check + `:548` submit 整体拒绝（不静默剥离）。
+- **降级必披露**（沿用 v1.7.3 范式）：`mutator.mode` ∈ {`llm`,`demo_template`}、`mutator.disclosure` ∈ {`llm_ideation_mutation`, `llm_ideation_mutation_with_demo_fallback:<parse_failure|provider_error>`, `demo_template:<host_mode|no_provider|forced_by_env>`}，另带 `degraded`/`fallbacks`/`rejected_ops`/`last_error`/`usage`；同时写 NDJSON `mutator_selected`/`mutator_summary` 与扩展 meta.json。`_demo_mutator` **保留**（无 key 环境仍能跑通进化循环 + 测试注入点）。
+- **submit 分支隔离**：此前直接向真库 commit。现在默认 `git checkout -b evolve/<run_id>`（重名加时间戳，run_id 做 ref 字符消毒）→ 应用 patch → 在该分支跑完整 ci_check → 仅提交分支 → 切回原分支（detached 用 `--detach` 回去），输出 diffstat/changed_files 与 review/merge/push/pr 命令，meta 置 `BRANCH_READY`；dirty 工作树（仅跟踪文件）拒绝，CI/commit 失败回滚并删空分支。`--direct` 或 `SCIFORGE_EVOLVE_DIRECT=1` 才沿用旧的直提当前分支（无人值守 CI 用）。scratch 目录支持 `SCIFORGE_EVO_WORKSPACE` / `evolve.json`（原硬编码 /tmp，daemon 重启即丢）。
+- `JudgeDomain` 提示词泛化一行（不再假定"只判追加的 RSI note"）。测试 +23（含 4 个安全测试：冻结路径混合注入、纯冻结 op 降级、路径穿越/绝对路径、EvolutionRun 通用守卫；另有 untracked 不阻塞、dirty 拒绝、CI 失败回滚、分支名消毒）。
+
+### J. 引用验证如实降级 + 4 个记档小债
+
+- **触发现场**：实测 Semantic Scholar API 持续 429（走代理与直连各 3 次全 429），且**全仓代码无任何地方读 S2 API key**；对照组 CrossRef 200、arXiv 200、OpenAlex 200（无 key）。硬规则 5 要求"每条引用过 3 层验证"，第 3 层在当前环境根本跑不了。
+- 用户决策：**降为"arXiv + CrossRef 两层 + 显式披露"**，不静默跳过、不改用 OpenAlex（改协议范围更大）。沿用 v1.7.3 建立的"降级必披露"范式（doi_gate 离线披露 `doi_online_unverified` 并封顶 MINOR_REV；fairness 无证据披露 `scope=ledger_only`；smoke 无法执行 WARN + reason_code）。
+- `CITATION_AUDIT.json` 顶层新增 4 个披露字段（schema 同步，**保持可选**以兼容旧产物与 fixture）：`verification_depth` ∈ {`3-layer`,`2-layer-degraded`,`not_attempted`}、`layers_verified`（数组 ⊆ [arxiv,crossref,semantic_scholar]）、`layer3_status` ∈ {verified, not_required, unavailable_rate_limited, unavailable_network, unavailable_no_credentials, unavailable_error, not_attempted}、`layer3_detail`（自由文本，如 `HTTP 429 after 3 attempts`）。语义：`2-layer-degraded` = 每条都用两层核过（**≠ 未验证**），只是第 3 层没跑。
+- **澄清一处长期概念混用**：`citation-audit` 里的 "three layers" 指三个**审计轴** EXISTENCE/METADATA/CONTEXT（始终全跑），不是 arXiv/CrossRef/S2 三个**检索层**；原文 "skips Layers 1-2 and only re-checks Layer 3 (context)" 把两者混为一谈。契约改为明确区分"轴"与"检索层"。
+- 术语全仓统一为 **multi-layer**（原 "3-layer"）：`citation-audit`/`universal-retrieval`/`paper-writing`/`citation-discipline`/`venue-checklists`/`paper-compile`/`writing-principles`/`output-protocol`/`fantasy-prevention`/`artifact-registry`/`paper-modes`/`paper-voice-contract`/`discipline-writing`/`project-architecture-contract`/`venue-profiles`/根 `SKILL.md`/`AGENT_GUIDE.md`/双 `README`/`docs/agents/sciforge-researcher.md`/`docs/SCIENTISTTWO_PARITY.md`。**质量门表（`auto-pipeline/SKILL.md:374`）仍保持 non-skippable**：门照跑，通过条件改为"两层完成 + 第 3 层完成或已披露降级"。
+- **披露一致性升级为机械门**（统筹补，`validate_verdicts.py` post_checks 第 5 条）：`3-layer` 与 `unavailable_*` 的 layer3_status 共存、或 `2-layer-degraded` 却声称 `semantic_scholar`、或降级却缺 arxiv/crossref 任一强制层 → **FAIL**（"声称跑了没跑的层"= 捏造审计记录，比引用错误更严重）。未声明任何深度字段的旧产物不受影响。实测 6 种形状：伪造 3 层拦、降级却称 s2 拦、降级缺 arxiv 拦、诚实降级放、真 3 层放、旧产物放。
+- 4 个小债：**(a)** `smoke_gate._find_smoke` 收紧——一条 smoke 记录只归属一个组（`consumed` 集合），根级无名记录兜底仅限单组运行，多组时根级文件必须名字绑定该组（`<group>.SMOKE.json`），堵住"一份根级记录洗白多组"（与其 docstring "one file must not launder the others" 对齐）；`_ungrouped` 形态仍合法。**(b)** `paper-writing/SKILL.md` 的泄漏类描述从"8 类 / v3.3"更新为 12 类 A–L + I-frontmatter / v3.6-mech，并明确 `leakage_scan.CLASSES` 才是权威正则。**(c)** `leakage_scan.py` docstring 版本 v3.5 → v3.6-mech（与实际写出的 verdict version 一致）。**(d)** `REPRODUCE.md` 第 1 节补 `gate_all.py` 入口、全部真实选项与退出码、`UNPROTECTED` 含义。
+- 防漂移测试：`tests/test_schema_leakage_classes.py` 风格的动态派生（从 scanner 源码推导类集合与运行期 version，文档缺类或版本漂移即失败）+ `tests/test_citation_layer_wording.py`（95 项：全仓禁止无条件 3 层断言、协议文档必须携带新契约词、披露词汇表必须与 schema enum 一致、**编排门必须仍 non-skippable**、降级必须被要求披露）。测试 +20。
+- 顺带修一个**既有定时炸弹**：`test_smoke_hashless_record_warns` 的 `executed_at` 硬编码为 `2026-11-11T00:00:00Z`，UTC 过 00:00:02 后必然 FAIL（用 HEAD 版 smoke_gate 复现了同样失败，证明与本轮改动无关）→ 改为运行时 UTC。
+
+### 统筹收口：跨 agent 移交项与集成接缝
+
+- **`pipeline._native_review` 转发独立性披露进注册 verdict**：`REVIEW_PANEL.json` 是未注册遥测，而下游门读 `REVIEW_STATE.json`——不转发则 H 的披露写了没人看。新增 `panel_independence` + `independence_warning` 两字段（schema `additionalProperties: true`，实测带新字段仍过严格校验）。
+- **`submission_ready` 消费独立性披露**：`homogeneous_degraded`/`host_mode` → 记入 `disclosures`（`review_panel_<status>`、`adjudicator_not_distinct`）。**刻意不放进 `soft`**：soft 项驱动 tier，而项目自带的默认 `providers.json` 就是同模型配置，计分会让默认配置永远拿不到 READY（把合法形态判成缺陷=误报）。实测披露生效且 `soft` 未被污染。
+- **`daemon._record_crash` 验链优先**：崩溃分支原先无条件把 RUNSTATE 写成 `daemon_worker_crash`，会**掩盖**更重要的断链事实并向已受损日志追加事件。现在先 `verify_chain()`：断裂 → 只记 `event_log_integrity_broken` 且**不碰日志**；完好 → 照旧记 crash + emit 事件。实测空日志与 legacy 日志均 `ok=True`，不误伤正常崩溃路径。
+- **`cli.cmd_run` 补 `DispatchError` 捕获**：`start()` 对三种不可续跑情形（工作区被占、链断裂、run 已终态）抛 `DispatchError`，此前直接吐原始 traceback——**恰恰是完整性那条最需要被机械读取的情形**。现在输出结构化 JSON（`status/reason/error`）+ exit 2，reason ∈ {`event_log_integrity_broken`, `workspace_locked`, `run_not_resumable`, `dispatch_error`}；daemon 侧本已正确捕获。实测断链工作区：exit 2 + 可解析 JSON + 正确 reason。
+- **`cli submit --direct` flag 注册**：`evolve_cli` 读 `getattr(a,"direct",False)` 但 CLI 从未注册该参数 → 旧的直提行为只能靠环境变量触达。已补 flag + help。
+- **macOS 27 沙箱修复的下游确认**：v1.7.3 修的 `(allow signal *)` → `(allow process-exec)(allow signal)` 是本轮 smoke 真执行的前置条件，I/J 的沙箱内重执行路径均依赖它。
+- **文档与代码一致性巡检**：`CLAUDE.md` 版本陈述同步 1.7.4，并补 5 条本轮亲历 gotcha（events.ndjson 已哈希链、**绝不可手改或手工重生成 fixture 的事件日志**；run flags 读事件不读 RUNSTATE；**绝不对入库 fixture 跑 gate_all/s2_audit/integrity_monitor**，副作用会污染 checked-in fixture 且被测试断言拦下；评审面板独立性是披露而非强制；`.venv` 断链由 ci_check environment 腿检出）。图审计范围订正 A1–A10 → A1–A11。`package.json` description 同步（v1.7.3 轮曾因 description 滞留被判 FAIL，本轮主动修）。
+
+- **fixture 补齐引用披露字段，让新 post-check 真被演练**：`fixtures/e2e_minimal/.sciforge/verdicts/CITATION_AUDIT.json` 原先没有 `verification_depth`/`layers_verified`/`layer3_status`/`layer3_detail`——四个字段都是可选的（为兼容旧产物），于是 J 新加的伪造检测 post-check 在入库 fixture 上**一次也没被执行过**。现补为如实的降级形状（`2-layer-degraded` + `unavailable_rate_limited`，两层已验证全部条目），并订正 summary 里"3 verification layers (context, metadata, existence)"的**轴/层混用**——那三个是审计轴，不是 arXiv/CrossRef/S2 检索层。实测：fixture 严格校验仍 24/24；把 depth 改成 `3-layer` 而保留 `unavailable_*` 时，post-check 三条规则同时命中并判 FAIL。
+- **移交项逐条复核（多数已由 owner 自行闭环）**：G/H/I/J 的移交清单写在各自中途快照上，统筹逐条实测后确认 `--direct` flag、`cmd_run` 的 `DispatchError` 捕获、`_native_review` 转发、`daemon` 验链优先、`validate_verdicts` post-check、以及 13 处文档"3 层强制"漂移**均已在最终交付中修好**；精确扫描后剩余的 "3-layer" 命中全部是反伪造警告（正确保留）、多保真度阶梯（Low/Mid/High，与引用无关）或历史条目。四债对抗实测：篡改 RUNSTATE 的 `human_skip` 后检查点仍 False（flags 来自 `run_started` 事件）；追加伪造 `checkpoint_cleared` → `verify_chain` 报 `broken_seq=99` 且检查点 False；默认配置面板如实报 `homogeneous_degraded`/`distinct_models=1`/`adjudicator_distinct=False`；`validate_patch` 对 `tests/`、`kernel/`、`../../etc/passwd` 三类越界分别判 `frozen_path`/`frozen_path`/`unsafe_path`。
+
+### 记档未做（诚实清单）
+- **`approvals.py::_verified_marks` 仍直接信任断链日志里的 clear/skip 行**：当前被 `_checkpoint_satisfied` 的链守卫与 `state.open_checkpoint_requests` 的 fail-closed 兜住（统筹已实测伪造攻击无效），但建议其 owner 直接用 `verify_chain()` 结果过滤，去掉这层间接依赖。
+- **EventLog.emit 未加跨进程 flock**：单进程内已用 sync-before-emit 保证链接正确；若未来 daemon 允许两个进程写同一 workspace 日志，会因 prev_hash 分叉被判断裂（**会显式报错而非静默通过**），需要时再加锁。
+- **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。
+- **`gate_all.py`/`fairness_gate.py` 读 events.ndjson 时不报告完整性**：建议把 `event_log_integrity_broken` 暴露为门判定。
+- **A10 上轮新抓到的 panel-grid legend 与旋转刻度重叠**：属 `figure_recipes` bottom band 布局债，仍未修。
+- `nodes.py` 只记 `ts` 无每节点耗时，fairness 预算对账仍用 STATUS/RESULT 耗时。
+- `--workers` 默认仍为 1（预算隔离优先）；`propose.py` 的信号尚未压缩成结构化 digest；`golden.py` 仍 4 题且未加"mutator 不触碰冻结路径"用例。
+- **第三方评审通道**（ScholarPeer / Stanford Agentic Reviewer）仍是 seam，未接入——它同时能天然满足评审异构性。
+- v1.8 候选池剩余项（事件重放增量化已完成；PRODUCTION_LEDGER 生产账本、program 模式链式选题、dispatch_backend colab seam、校准实测批、句级蕴含半、S2 滚雪球召回）本轮未启动。
+
 ## [1.7.3] - 2026-11-11 定版：门从自报变互证 + 工厂化运行时 + 端到端 harness（五 agent 并行还债）
 
 > 版本主题：**把"agent 说什么就是什么"的门升级为与磁盘证据对账，把单工位 daemon 升级为可持续生产的多 worker 工厂，并让 26 节点 DAG 第一次拥有不依赖 LLM 的端到端回归**。本轮全部是 v1.7.2 记档在案的债（CHANGELOG 三处"留 v1.8"）+ 深度勘察实证缺口，**基线 449 → 568 测试全绿，ci_check PASS，security_scan --self-test 26/26**。方法：六个并行 agent 按零重叠文件所有权分工（A–F）+ 一个独立验证 agent 对抗复核 + 统筹收口。

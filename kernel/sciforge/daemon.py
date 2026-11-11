@@ -468,14 +468,24 @@ class Daemon:
         try:
             rs = RunState(ws)
             if rs.data and rs.status not in ("completed", "killed"):
-                rs.status = "paused_blocked"
-                rs.update(reason_code="daemon_worker_crash")
-                rs.write()
                 from .state import EventLog
-                EventLog(ws).emit(rs.data.get("current_phase", "?"),
-                                  "daemon_error",
-                                  {"error": error, "run_id": rid,
-                                   "worker_crash": True})
+                log = EventLog(ws)
+                # A broken chain outranks the crash as the reason to record:
+                # labelling a tampered run "daemon_worker_crash" would hide the
+                # integrity failure, and appending to a compromised ledger
+                # extends it. Report the break and leave the log untouched.
+                if log.verify_chain().get("ok", True):
+                    rs.status = "paused_blocked"
+                    rs.update(reason_code="daemon_worker_crash")
+                    rs.write()
+                    log.emit(rs.data.get("current_phase", "?"),
+                             "daemon_error",
+                             {"error": error, "run_id": rid,
+                              "worker_crash": True})
+                else:
+                    rs.status = "paused_blocked"
+                    rs.update(reason_code="event_log_integrity_broken")
+                    rs.write()
         except Exception:
             pass
         try:

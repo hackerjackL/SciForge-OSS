@@ -1189,3 +1189,283 @@ def test_dep_gate_allows_declared_and_stdlib(tmp_path: Path):
 def test_dep_gate_skip_no_code(tmp_path: Path):
     r = gates.check(tmp_path, {"check": "command", "cmd": "dep_gate"}, "6b")
     assert r["status"] == "PASS", r  # SKIP exit 0
+
+
+# ---------------- v1.7.4: event-log hash chain + incremental replay ----------------
+# Defect 1: RUNSTATE flags were the trust source for the two non-negotiable
+# human checkpoints, so editing the writable RUNSTATE.json self-approved them.
+# Defect 2: events.ndjson had no integrity protection, so a bare appended
+# `checkpoint_cleared` / `phase_done` line could advance a run.
+# Defect 3: replay() re-read and re-parsed the whole log on every call.
+
+def _events_path(ws: Path) -> Path:
+    return ws / ".sciforge" / "events.ndjson"
+
+
+def _read_events(ws: Path) -> list[dict]:
+    return [json.loads(line) for line in
+            _events_path(ws).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _write_events(ws: Path, events: list[dict]) -> None:
+    _events_path(ws).write_text(
+        "\n".join(json.dumps(e, ensure_ascii=False) for e in events) + "\n",
+        encoding="utf-8")
+
+
+def test_run_started_event_is_the_flag_authority(tmp_path: Path):
+    """start() freezes the run flags into the append-only run_started event."""
+    k = Kernel(tmp_path)
+    k.start("IF0", "x", "lite", host="manual", human_skip=True)
+    started = [e for e in k.log.replay() if e["kind"] == "run_started"]
+    assert len(started) == 1
+    assert started[0]["payload"]["flags"]["human_skip"] is True
+    assert started[0]["payload"]["flags"]["test_mode"] is False
+    assert k._run_flags()["human_skip"] is True
+    assert k.log.verify_chain()["ok"] is True
+
+
+def test_checkpoint_ignores_human_skip_flag_in_runstate(tmp_path: Path):
+    """NEGATIVE (defect 1): flipping flags in the writable RUNSTATE snapshot no
+    longer satisfies a human checkpoint — the run_started event is the only
+    trust source."""
+    k = Kernel(tmp_path)
+    k.start("IF1", "x", "lite", host="manual")  # human_skip=False, test_mode=False
+    assert k._checkpoint_satisfied("idea-pick", "3") is False
+
+    # The agent edits the mutable snapshot exactly as the defect described.
+    k.rs.data.setdefault("flags", {})["human_skip"] = True
+    k.rs.data["flags"]["test_mode"] = True
+    k.rs.write()
+
+    k2 = Kernel(tmp_path)  # fresh process view, RUNSTATE reloaded from disk
+    assert k2.rs.data["flags"]["human_skip"] is True  # tamper is visible...
+    assert k2._run_flags()["human_skip"] is False     # ...but never trusted
+    assert k2._checkpoint_satisfied("idea-pick", "3") is False
+    assert k2._checkpoint_satisfied("method-approval", "5") is False
+    # the kill checkpoint reads the same authority
+    v = k2.kill_checkpoint("2.5b", {"kill": False})
+    assert v.v == "BLOCKED" and v.reason_code == "kill_checkpoint"
+
+    # positive control: the SAME flag passed to start() does satisfy
+    k3 = Kernel(tmp_path / "legit")
+    k3.start("IF1b", "x", "lite", host="manual", human_skip=True)
+    assert k3._checkpoint_satisfied("idea-pick", "3") is True
+
+
+def test_legacy_run_started_without_flags_is_conservative(tmp_path: Path):
+    """Backward compat: a pre-v1.7.4 run_started has no flags. It must be read
+    as human_skip=false (ask a human), never as a bypass — even when the
+    RUNSTATE snapshot claims otherwise. The chainless log stays replayable."""
+    k = Kernel(tmp_path)
+    k.start("IF2", "x", "lite", host="manual")
+    events = _read_events(tmp_path)
+    for ev in events:
+        ev.pop("prev_hash", None)
+        ev.pop("hash", None)
+        if ev["kind"] == "run_started":
+            ev["payload"].pop("flags", None)
+    _write_events(tmp_path, events)
+    rs = json.loads((tmp_path / ".sciforge" / "RUNSTATE.json").read_text())
+    rs["flags"] = {"human_skip": True, "test_mode": True}
+    (tmp_path / ".sciforge" / "RUNSTATE.json").write_text(json.dumps(rs))
+
+    k2 = Kernel(tmp_path)
+    integ = k2.log.verify_chain()
+    assert integ["ok"] is True and integ["legacy"] is True
+    assert k2._run_flags() == {}
+    assert k2._checkpoint_satisfied("idea-pick", "3") is False
+    assert k2._checkpoint_satisfied("method-approval", "5") is False
+
+
+def test_legacy_log_continues_in_legacy_mode_and_verifies(tmp_path: Path):
+    """A chainless log is recognised as legacy (not as a break) and remains
+    usable; new events keep the legacy shape so the log never becomes mixed."""
+    (tmp_path / ".sciforge").mkdir(parents=True)
+    _write_events(tmp_path, [
+        {"seq": 1, "ts": 1.0, "phase": "0", "kind": "run_started",
+         "payload": {"run_id": "OLD"}},
+        {"seq": 2, "ts": 2.0, "phase": "0", "kind": "phase_entered", "payload": {}},
+    ])
+    log = state.EventLog(tmp_path)
+    assert [e["kind"] for e in log.replay()] == ["run_started", "phase_entered"]
+    integ = log.verify_chain()
+    assert integ["ok"] is True and integ["legacy"] is True
+    ev = log.emit("0", "still_legacy", {})
+    assert "prev_hash" not in ev and "hash" not in ev
+    assert log.verify_chain()["legacy"] is True
+    assert log.verify_chain()["ok"] is True
+
+
+def test_forged_checkpoint_cleared_append_is_detected_and_rejected(tmp_path: Path):
+    """NEGATIVE (defect 2): appending a bare checkpoint_cleared line (the
+    cheapest forgery: no hash chain fields) is detected at that exact index,
+    and recover() refuses to trust/rebuild the run."""
+    from sciforge.pipeline import DispatchError
+
+    k = Kernel(tmp_path)
+    k.start("IF3", "x", "lite", host="manual")
+    k.appr.request("idea-pick", "3", {"digest": "x"}, k.rs)  # a real open epoch
+    n = len(k.log.replay())
+    with open(_events_path(tmp_path), "a", encoding="utf-8") as f:
+        f.write(json.dumps({"seq": n + 1, "ts": time.time(), "phase": "3",
+                            "kind": "checkpoint_cleared",
+                            "payload": {"checkpoint": "idea-pick"}}) + "\n")
+
+    fresh = state.EventLog(tmp_path)
+    integ = fresh.verify_chain()
+    assert integ["ok"] is False
+    assert integ["broken_at"] == n              # first break position
+    assert integ["broken_seq"] == n + 1
+    assert "chain fields missing" in integ["reason"]
+    with pytest.raises(state.EventChainError):
+        fresh.replay(strict=True)
+
+    # The forged clear must not close the kernel-issued request.
+    assert state.Approvals_pending(tmp_path) is True
+
+    # Recovery refuses the tampered log instead of rebuilding from it.
+    state.release_lock(tmp_path)
+    k.rs.status = "running"
+    k.rs.write()
+    action = state.recover(state.EventLog(tmp_path), k.rs, tmp_path)
+    assert action == "integrity_broken"
+    assert k.rs.status == "paused_blocked"
+    assert k.rs.data["reason_code"] == "event_log_integrity_broken"
+    with pytest.raises(DispatchError):
+        Kernel(tmp_path).start("IF3b", "x", "lite", host="manual")
+
+
+def test_tampered_middle_event_reports_first_break(tmp_path: Path):
+    """NEGATIVE (defect 2): editing a middle event's payload is detected at
+    exactly that event (seq reported), and the run cannot be restarted."""
+    from sciforge.pipeline import DispatchError
+
+    k = Kernel(tmp_path)
+    k.start("IF4", "x", "lite", host="manual")
+    for i in range(4):
+        k.log.emit("0", "probe", {"i": i})
+    events = _read_events(tmp_path)
+    target = 3  # middle event, not the tail
+    events[target]["payload"]["i"] = 999
+    _write_events(tmp_path, events)
+
+    integ = state.EventLog(tmp_path).verify_chain()
+    assert integ["ok"] is False
+    assert integ["broken_at"] == target
+    assert integ["broken_seq"] == events[target]["seq"]
+    assert "content tampered" in integ["reason"]
+
+    state.release_lock(tmp_path)
+    with pytest.raises(DispatchError):
+        Kernel(tmp_path).start("IF4b", "x", "lite", host="manual")
+
+
+def test_replay_incremental_parses_only_the_new_tail(tmp_path: Path):
+    """Defect 3: replay() must not re-read/re-parse the whole log each step,
+    and two instances on the same file must not contaminate each other."""
+    k = Kernel(tmp_path)
+    k.start("IF5", "x", "lite", host="manual")
+    k.log.emit("0", "a", {})
+    first = k.log.replay()
+    parsed = k.log._parse_count
+    assert parsed == len(first)
+    assert k.log.replay() == first
+    assert k.log.replay() == first
+    assert k.log._parse_count == parsed  # cache hit: nothing re-parsed
+
+    other = state.EventLog(tmp_path)    # independent instance/offset
+    other.emit("0", "b", {})
+    other.emit("0", "c", {})
+    events = k.log.replay()
+    assert k.log._parse_count == parsed + 2  # only the appended tail
+    assert len(events) == parsed + 2
+    assert [e["seq"] for e in events] == list(range(1, len(events) + 1))
+    assert [e["kind"] for e in events][-2:] == ["b", "c"]
+    assert k.log.verify_chain()["ok"] is True
+    # the other instance's offset is untouched by our replay
+    assert len(other.replay()) == len(events)
+
+
+def test_replay_rereads_fully_after_truncation_or_replacement(tmp_path: Path):
+    """Defect 3: an invalidated offset (truncated/rewritten file) must fall
+    back to a full re-read instead of returning a stale cache."""
+    k = Kernel(tmp_path)
+    k.start("IF6", "x", "lite", host="manual")
+    k.log.emit("0", "a", {})
+    assert len(k.log.replay()) >= 2
+    _write_events(tmp_path, [{"seq": 1, "ts": 1.0, "phase": "0",
+                              "kind": "run_started",
+                              "payload": {"run_id": "REPLACED"}}])
+    events = k.log.replay()
+    assert len(events) == 1
+    assert events[0]["payload"]["run_id"] == "REPLACED"
+    assert k.log.integrity()["legacy"] is True  # freshly parsed legacy content
+
+
+def test_replay_skips_torn_tail_and_recovers_after_a_completed_write(tmp_path: Path):
+    """Defect 3: a crash-truncated final line is skipped (old semantics) and
+    left pending, so a later completed write is still ingested."""
+    k = Kernel(tmp_path)
+    k.start("IF7", "x", "lite", host="manual")
+    with open(_events_path(tmp_path), "a", encoding="utf-8") as f:
+        f.write('{"seq": 2, "ts": 1.0, "phase": "0", "kind": "half')
+    assert [e["kind"] for e in k.log.replay()] == ["run_started"]
+    assert k.log.verify_chain()["ok"] is True  # torn line is not a chain break
+
+    ev = k.log.emit("0", "after_torn", {})
+    kinds = [e["kind"] for e in k.log.replay()]
+    assert kinds == ["run_started", "after_torn"]
+    assert ev["seq"] == 2  # torn fragment did not consume a sequence number
+    assert k.log.verify_chain()["ok"] is True
+
+
+# ---------------- v1.7.4: the CLI must keep its JSON contract ----------------
+# start() raises DispatchError for the three non-resumable conditions; cmd_run
+# used to let it escape as a raw traceback, which is worst for the integrity
+# case — the one a caller most needs to read mechanically.
+
+def _run_args(ws: Path, **kw):
+    import argparse
+    base = {"workspace": ws, "run_id": "CLI1", "problem": "x", "effort": "lite",
+            "host": "manual", "test_mode": False, "human_skip": False,
+            "discipline": "strict", "claim_mode": "attribution",
+            "loop": False, "max_steps": 5}
+    base.update(kw)
+    return argparse.Namespace(**base)
+
+
+def _tamper_chain(ws: Path) -> None:
+    p = ws / ".sciforge" / "events.ndjson"
+    evs = [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
+    evs[0]["payload"]["tampered"] = True
+    p.write_text("\n".join(json.dumps(e) for e in evs) + "\n")
+
+
+def test_cli_reports_broken_chain_as_json_not_traceback(tmp_path, capsys):
+    from sciforge import cli
+    k = Kernel(tmp_path)
+    k.start("CLI1", "x", "lite", host="manual")
+    state.release_lock(tmp_path)
+    _tamper_chain(tmp_path)
+
+    rc = cli.cmd_run(_run_args(tmp_path, run_id="CLI2"))
+    assert rc == 2
+    out = capsys.readouterr().out
+    doc = json.loads(out)  # must parse: no traceback leaked to stdout
+    assert doc["status"] == "blocked"
+    assert doc["reason"] == "event_log_integrity_broken"
+
+
+def test_cli_reason_codes_cover_every_dispatch_error(tmp_path, capsys):
+    """Each non-resumable condition maps to a distinct machine-readable reason."""
+    from sciforge import cli
+    # (a) run already terminal -> not resumable
+    k = Kernel(tmp_path)
+    k.start("CLI3", "x", "lite", host="manual")
+    k.rs.status = "completed"
+    k.rs.write()
+    state.release_lock(tmp_path)
+    rc = cli.cmd_run(_run_args(tmp_path, run_id="CLI4"))
+    doc = json.loads(capsys.readouterr().out)
+    assert rc == 2 and doc["reason"] == "run_not_resumable"

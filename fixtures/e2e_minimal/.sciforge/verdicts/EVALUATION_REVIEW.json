@@ -13,7 +13,7 @@
     "novelty_positioning": "delta vs closest citation defended",
     "soundness": "derivation machine-verified",
     "clarity_reproducibility": "artifacts support rerun",
-    "citation_integrity": "all refs 3-layer verified"
+    "citation_integrity": "all refs traceable to verified references; no fabricated entries"
   },
   "fatal_flaws": [],
   "required_revisions": [

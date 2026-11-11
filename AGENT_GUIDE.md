@@ -78,7 +78,7 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 |------|-------|------|
 | **Orchestrator** | `/auto-pipeline` | Single entry — 26-node DAG research loop on one problem (EG at Phase 2.5b) |
 | **Meta-skill** | `/idea-discovery` | Generate + pre-screen 8-12 idea candidates via MCTS (4 rounds) |
-| **Meta-skill** | `/universal-retrieval` | Literature survey + 3-layer anti-hallucination citation verification |
+| **Meta-skill** | `/universal-retrieval` | Literature survey + multi-layer anti-hallucination citation verification (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable) |
 | **Meta-skill** | `/unified-plotting` | Render publication-quality figures (dopamine palette + Layer 2 data colormaps) |
 | **Meta-skill** | `/dynamic-sandbox` | Lightweight numerical sanity checks (Python/numpy, no GPU) |
 | **Meta-skill** | `/dynamic-tooling` | On-the-fly tooling for the sandbox |
@@ -96,7 +96,7 @@ The human user supplies the specific problem. OSS does **not** auto-search any p
 | **Support** | `/paper-writing` | Compose the paper in the unified `elsarticle` template |
 | **Support** | `/paper-compile` | Compile LaTeX → PDF (zero warnings zero errors, anti-deadloop) |
 | **Support** | `/auto-review-loop` | Autonomous iterative improvement via cross-model reviewer |
-| **Support** | `/citation-audit` | Final 3-layer citation verification on the paper draft |
+| **Support** | `/citation-audit` | Final multi-layer citation verification on the paper draft |
 | **Support** | `/kill-argument` | Anti-self-deception exercise (kill your own argument) |
 | **Support** | `/adversarial-falsification` | Phase 2.5 falsification gate (hypothesis scoring + counterexamples) |
 | **Support** | `/publishability-score` | 6-dim final publishability evaluation (v2.2) |
@@ -132,7 +132,7 @@ Phase 11: /unified-plotting — publication figures (MUST)
 Phase 12: /paper-writing — elsarticle template + pipeline-leakage scrub
 Phase 13: /paper-compile — zero-warning zero-error compile (MUST)
 Phase 14: /auto-review-loop — cross-model review + kill-argument (MUST)
-Phase 15: /citation-audit — 3-layer citation + DOI audit
+Phase 15: /citation-audit — multi-layer citation + DOI audit (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable, degraded mode disclosed)
 Phase 15.5: /publishability-score — 6-dimension publishability gate
 Phase 16: final assembly + artifact archival
 ```
@@ -171,7 +171,7 @@ OSS is **discipline-agnostic by design**. There is no DISCIPLINE_CONTEXT block w
 | `idea-dag-schema.md` | DAG node schema (Phase 2) | Copied from main SciForge (discipline-agnostic) |
 | `mcts-search-protocol.md` | MCTS iteration protocol (Phase 2) | Copied from main SciForge (UCB1 + bounded rounds) |
 | `multi-fidelity-evaluation.md` | 3-fidelity filter (Phase 10) | Copied from main SciForge (OSS uses `general` row only) |
-| `citation-discipline.md` | 3-layer anti-hallucination citation verification | Copied from main SciForge (universal) |
+| `citation-discipline.md` | Multi-layer anti-hallucination citation verification | Copied from main SciForge (universal) |
 | `assurance-contract.md` | 6-state verdict schema (PASS/WARN/FAIL/NOT_APPLICABLE/BLOCKED/ERROR) | Copied from main SciForge (universal) |
 | `output-manifest.md` + `output-versioning.md` | Product structure + versioning | Copied from main SciForge (universal) |
 | `reviewer-independence.md` + `reviewer-routing.md` + `review-tracing.md` | Cross-model reviewer contracts | Copied from main SciForge (universal) |

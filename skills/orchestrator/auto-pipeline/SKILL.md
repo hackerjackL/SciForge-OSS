@@ -1,6 +1,6 @@
 ---
 name: auto-pipeline
-version: 1.7.3
+version: 1.7.4
 description: "SciForge-OSS autonomous 26-node research pipeline: one scientific question → submission-ready paper. Idea discovery → theory derivation → experiments → logic/leakage audits → paper writing → compile → cross-model review → citation audit. v3.4 adds: human_skip=true (production-grade checkpoint skip), figure budget + composite/group figures, Reproducibility/Data Availability statements, LaTeX pipeline-leakage scrub gate. Invoke when the user wants a complete end-to-end research run on a specific problem or Q-id. Single-question per invocation (does not auto-iterate over all problems). Calls sub-skills (domain-learner, idea-discovery, novelty-check, universal-retrieval, theory-derivation, experiment-execution, leakage-audit, logic-verification, paper-writing, paper-compile, auto-review-loop, citation-audit) via use_skill during the run."
 argument-hint: "[Q-id or research question] — effort: lite|balanced|max|beast, human_skip: true|false, test_mode: true|false"
 type: orchestrator
@@ -37,7 +37,7 @@ Typical prompts:
 Orchestrate a complete 26-node DAG research loop. The non-negotiable goals:
 1. **Each question runs the complete loop** — no phase skipped, regardless of how simple the problem seems
 2. **Each phase produces a verifiable artifact** — the pipeline is documented by output files, not promises
-3. **Every citation is real** — the 3-layer anti-hallucination protocol is mandatory (see [`citation-discipline.md`](../../shared-references/citation-discipline.md))
+3. **Every citation is real** — multi-layer citation verification is mandatory: arXiv existence + CrossRef DOI/metadata are the two required retrieval layers; Semantic Scholar fuzzy matching is Layer 3 and runs whenever reachable (send `SEMANTIC_SCHOLAR_API_KEY`/`S2_API_KEY` as `x-api-key` when configured). When Layer 3 is unavailable (429/quota, network, no credentials) the audit degrades to two layers (`verification_depth: "2-layer-degraded"`) and MUST disclose it in `CITATION_AUDIT.json` (`verification_depth` + `layers_verified` + `layer3_status` + `layer3_detail`); claiming 3 layers that did not run is a fabricated audit record (see [`citation-discipline.md`](../../shared-references/citation-discipline.md))
 4. **Every conclusion is logic-verified** — no unsupported assertion survives to the final paper
 5. **The pipeline is self-correcting** — if any phase fails or produces WARN/FAIL, auto-fallback to the relevant prior phase (bounded 3 rounds)
 6. **INV-G1 PROBLEM_ANCHOR_FREEZE** — the Q-id supplied by the human is frozen at Phase 0 and referenced in every downstream phase (see [`../invariant-check/SKILL.md`](../../support/invariant-check/SKILL.md))
@@ -298,7 +298,7 @@ Phase 11: /unified-plotting — publication figures (MUST)
 Phase 12: /paper-writing — elsarticle template + pipeline-leakage scrub
 Phase 13: /paper-compile — zero-warning zero-error compile (MUST)
 Phase 14: /auto-review-loop — cross-model review + kill-argument (MUST)
-Phase 15: /citation-audit — 3-layer citation + DOI audit
+Phase 15: /citation-audit — multi-layer citation + DOI audit (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable, degraded mode disclosed)
 Phase 15.5: /publishability-score — 6-dimension publishability gate
 Phase 16: final assembly + artifact archival + RUN_PREPRINT
 ```
@@ -371,7 +371,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 2.5b | Engineering Grounding report output (pipeline Phase 2.5b): ENGINEERING_GROUNDING.md generated | Required output only for HEAVY/CONSTRAINED; BLOCKED eliminates (sub-dimension = 0)
 | 3 | DAG converges to 1 survivor (≥ 0.6 idea-fit) | Relax strictness and re-evaluate; further failure escalates to BLOCKED |
 | — | **Forced human approval**: pick the final idea from the survivors | Wait for human confirmation; the agent cannot self-select |
-| 4 | Literature search complete + 3-layer verification passed + screening-chain (truth+completeness) integrity check PASS | v2.2: **non-skippable** — must run even for theory-only (theory problems need a duplication check to avoid re-proving known results); if empty WARN but continue (literature requires manual remediation); screening-chain check: every reference has ≥ 1 verification layer + no orphan references + references cover the core claims |
+| 4 | Literature search complete + multi-layer citation verification passed (arXiv existence + CrossRef DOI/metadata mandatory; Semantic Scholar Layer 3 completed or its absence disclosed in `CITATION_AUDIT.json`) + screening-chain (truth+completeness) integrity check PASS | v2.2: **non-skippable** — must run even for theory-only (theory problems need a duplication check to avoid re-proving known results); if empty WARN but continue (literature requires manual remediation); screening-chain check: every reference has the mandatory arXiv + CrossRef layers recorded (or a disclosed Layer 3 degradation) + no orphan references + references cover the core claims |
 | 5 | Method registry built + hash lock + **forced human approval** | Ask the user to approve Section 3; the agent cannot self-approve |
 | 6 | SymPy derivation succeeds + step-by-step machine verification PASS | Fall back to Phase 1 (max 3 rounds) |
 | 6b | Toy experiment RESULT.json status=PASS + core_claim_validated=true | **v5.1**: FAIL → KILL-or-PIVOT decision (triggered only when significantly negative and reproducible on ≥2 seeds: PIVOT back to Phase 5 to re-register the method (budget ≤2) / KILL → kill argument → back to Phase 2 for a new idea); TIMEOUT/ERROR → 1 retry; INCONCLUSIVE → 1 redesign retry |
@@ -385,7 +385,7 @@ Not all phases apply to all problems. Each phase has a **mode** that determines 
 | 12 | Paper non-empty + unified elsarticle template + all citations come from the verified list | If empty fall back to Phase 1; template violation falls back to Phase 12 |
 | 13 | LaTeX compiles zero-warning zero-error (submission grade) | Anti-deadloop ladder: 3 attempts per-warning → BLOCKED + reason_code |
 | 14 | Cross-model review score ≥ 6/10 (boundary floor) + **v1.7 calibrated score ≥ 8 drives the ScientistTwo rebuttal loop** (score < 8 ⇒ `REBUTTAL_PLAN.json`, real supplementary experiments, ≤2 rounds, then Meta-Review {ACCEPT\|REFINE} — [s2-protocol.md §4](../../shared-references/s2-protocol.md)) + kill-argument anti-self-deception PASS | Score < 6 falls back to Phase 6 (max 4 rounds); score ∈ [6,8) ⇒ execute the rebuttal plan and re-review (wording-only = round_invalid); anti-self-deception FAIL falls back to Phase 10; **kill-argument holds (claim refuted by its own experiments) → v2.2.1 BA back to Phase 2** (bounded 2 rounds) |
-| 15 | All references pass the 3-layer anti-hallucination verification | Fail → delete fabricated references + fall back to Phase 4 and re-search |
+| 15 | All references pass multi-layer anti-hallucination verification across the three audit axes (EXISTENCE / METADATA / CONTEXT); arXiv + CrossRef mandatory, Semantic Scholar Layer 3 completed or its absence disclosed in `CITATION_AUDIT.json` | Fail → delete fabricated references + fall back to Phase 4 and re-search |
 | 16 | Artifact archive complete + **v1.7 s2_completeness_audit PASS** (`AUDIT_TRAIL.json`: gain arithmetic + split discipline + method↔code parity ≥80% — [s2-protocol.md §6](../../shared-references/s2-protocol.md)); claim anchors are checked here in Mode B (Mode A: `gate_all.py` reports UNPROTECTED because `NODES.json` is kernel-produced) | Missing artifact → fall back to the relevant phase; audit FAIL → fix the arithmetic/split/parity defect (`scripts/s2_audit.py <ws>` names it) |
 
 ## Fallback Contract (Bounded 3 Rounds, Universal)

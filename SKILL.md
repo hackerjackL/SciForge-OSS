@@ -2,7 +2,7 @@
 name: sciforge-oss
 type: skill-package
 role: ai-scientist-framework
-version: 1.7.3
+version: 1.7.4
 description: "SciForge — Skill-driven universal research runtime (v1.7.2: ScientistTwo parity + AAR anti-Goodhart layer — subset→full-set experiment ladder with 3-state Critic as a 6c boundary gate, 5–6-plan ablation ledger + strict AblCritic at phase 10, score<8 rebuttal loop + Meta-Review {ACCEPT|REFINE}, anchor-calibrated review scores, reward-hacking + method↔code parity completeness audit at wrap-up, exploration-guaranteed idea evolution, CPU-only bench/s2demo in the ScientistTwo mold). Knowledge layer: pure-Markdown Skill Library (26-node DAG, 27 sub-skills, 31+ contracts, any scientific idea → submission-ready SCI paper). v1.6.0 made evidence verifiable (kernel-enforced security scan, TDAL joint confidence, fantasy 5-gate, Arb certified intervals, sentence-level citation support, SMOKE gate, injection sanitizer, rate limiter, dual-timer). v1.5.0 added the split: *what to do* stays in Markdown; *how it is enforced* moves into the optional kernel/ (Python >= 3.10, stdlib-only): code state machine (phasegraph.json), event-sourced resume (kill -9 recoverable), mechanical gates in the control flow (validate_verdicts/security_scan/gap_gate/leakage_scan figure+compile gates — silent gate-skipping is structurally impossible), HITL checkpoints as data, role-tiered providers with real token accounting, sandbox experiment dispatch (Seatbelt/bwrap), worker pool, cross-model review panel with adjudication, headless serve daemon — and the RSI evolution layer (PUCT + MAP-Elites search over SKILL.md patches, three-shard held-out scoring, pre-flight probe, scorer freeze, human merge through full CI with auto-rollback). Two modes: A) skills-only — any Markdown agent runs /auto-pipeline as before; B) skills+kernel — sciforge run --host claude|codex. Absorbs openJiuwen/ScienceDiscovery + AI-Scientist v2 + EvoScientist + DeepScientist + STORM + ScientistTwo (arXiv:2609.19644) lessons. Headless-first: macOS/Linux, Docker included, no UI anywhere."
 entry: skills/orchestrator/auto-pipeline/SKILL.md
 license: PolyForm-Noncommercial-1.0.0
@@ -33,7 +33,7 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic, runtime
 
 ### Meta-Skills
 - `/idea-discovery` — MCTS-enhanced research idea generation
-- `/universal-retrieval` — literature retrieval + 3-layer anti-hallucination citation verification
+- `/universal-retrieval` — literature retrieval + multi-layer anti-hallucination citation verification (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable, degraded mode disclosed)
 - `/unified-plotting` — publication-grade figure rendering (dopamine palette, CVD-verified)
 - `/dynamic-sandbox` — lightweight numerical verification sandbox (Python/NumPy)
 - `/dynamic-tooling` — dynamic tool authoring and registration
@@ -53,7 +53,7 @@ tags: [ai-scientist, research, latex, open-science, discipline-agnostic, runtime
 - `/logic-verification` — 6-dimension logic-consistency audit
 - `/result-to-claim` — 3-fidelity claim gate
 - `/leakage-audit` — Type I/IV leakage audit
-- `/citation-audit` — final 3-layer citation verification
+- `/citation-audit` — final multi-layer citation verification (three audit axes; arXiv + CrossRef mandatory, Semantic Scholar Layer 3 when reachable)
 - `/invariant-check` — INV-G1 invariant verification
 - `/kill-argument` — anti-self-deception argument
 - `/method-registry` — methodology registry (mandatory human approval)

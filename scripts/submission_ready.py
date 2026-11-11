@@ -445,6 +445,25 @@ def check(ws: Path, *, offline: bool = False, doi_db=None,
             soft.append(f"review score {score} < 6 boundary")
         elif score < 8 and not (ws / ".sciforge" / "audits" / "REBUTTAL_PLAN.json").exists():
             soft.append("score < 8 without a documented rebuttal round")
+        # v1.7.4: surface the panel-independence disclosure. A homogeneous panel
+        # ("cross-model" review that is one model sampled N times, including the
+        # shipped default where review/adjudication/grading share one model) is a
+        # weaker guarantee, not a defect — so it is disclosed, never counted as a
+        # soft item. Scoring it as soft would make the default configuration
+        # permanently unable to reach READY.
+        pi = rv.get("panel_independence")
+        if isinstance(pi, dict):
+            status = pi.get("status")
+            if status and status != "heterogeneous":
+                code = f"review_panel_{status}"
+                if code not in disclosures:
+                    disclosures.append(code)
+            if pi.get("adjudicator_distinct") is False and \
+                    "adjudicator_not_distinct" not in disclosures:
+                disclosures.append("adjudicator_not_distinct")
+        elif rv.get("independence_warning"):
+            if "review_panel_independence_unreported" not in disclosures:
+                disclosures.append("review_panel_independence_unreported")
     except Exception:
         soft.append("REVIEW_STATE.json missing")
     # --- soft: hygiene

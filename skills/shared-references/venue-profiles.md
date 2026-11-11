@@ -11,7 +11,7 @@
 > - **DOI automation, Zenodo/OSF archival, public data deposition**.
 > - **Pre-registration (AEA/OSF/AsPredicted)**, **ORCID**, **CRediT author-contribution**, **COI** statements.
 >
-> **What IS our job (content + code rigor — the focus of this v3.2 upgrade)**: every claim has support; every citation is real (3-layer anti-hallucination); every conclusion is logic-verified; experiment code is leakage-audited + dry-run-gated; the contribution is honestly positioned against the current research frontier; the reviewer-independence layer breaks domain blind spots. These are the content/code quality bars that determine whether a senior researcher can *use* the draft — and they are what v3.2 strengthens.
+> **What IS our job (content + code rigor — the focus of this v3.2 upgrade)**: every claim has support; every citation is real (multi-layer anti-hallucination verification); every conclusion is logic-verified; experiment code is leakage-audited + dry-run-gated; the contribution is honestly positioned against the current research frontier; the reviewer-independence layer breaks domain blind spots. These are the content/code quality bars that determine whether a senior researcher can *use* the draft — and they are what v3.2 strengthens.
 >
 > **v2.1 — Mode selector on top of the single skeleton**: the section *set* (which sections, which order, theorem/figure emphasis, page band) is chosen by a **5-mode selector** (`theory`/`experiment`/`computational`/`survey`/`hybrid`) driven by `verification_type` + `evidence_type` from `domain-signature.json`. One skeleton, one document class, five section-layout modes, zero discipline hardcode. See [`paper-modes.md`](paper-modes.md).
 
@@ -116,6 +116,6 @@ If a run needs a convention not in the unified template (e.g., a specific theore
 ## See Also
 
 - [`writing-principles.md`](writing-principles.md) — academic writing style guide (universal)
-- [`citation-discipline.md`](citation-discipline.md) — 3-layer anti-hallucination citation verification protocol
+- [`citation-discipline.md`](citation-discipline.md) — multi-layer anti-hallucination citation verification protocol
 - [`color-themes.md`](color-themes.md) — dopamine palette + Layer 2 data-encoding colormaps
 - [`assurance-contract.md`](assurance-contract.md) — PASS/WARN/FAIL/ERROR verdict schema

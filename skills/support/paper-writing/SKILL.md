@@ -1,7 +1,7 @@
 ---
 name: paper-writing
-version: 1.7.3
-description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (8-class regex, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
+version: 1.7.4
+description: "Compose the academic paper from research artifacts via unified elsarticle template + 5-mode selector + v3.2 frontier-gap-consuming Introduction. v3.4 adds: Step 3.5 pipeline-leakage scrub gate (12-class regex A-L plus the I-frontmatter sub-check, scanner v3.6-mech, writes LEAKAGE_SCRUB.json), Step 4.5 Reproducibility + Data Availability statements (neutral supplementary/ archive), figure-budget check in self-review. Phase 12. Invoke when research artifacts are ready to assemble the manuscript."
 type: support-skill
 role: paper-composer
 ---
@@ -53,7 +53,7 @@ The non-negotiable goals:
 
 The paper directory (default `paper/`):
 - `paper/main.tex` — master LaTeX file (copied from `skills/support/paper-writing/templates/default/main.tex` on first run)
-- `paper/references.bib` — bibliography (from `/universal-retrieval`, 3-layer-verified)
+- `paper/references.bib` — bibliography (from `/universal-retrieval`: arXiv + CrossRef verified; Semantic Scholar Layer 3 when reachable, with the degraded-mode disclosure recorded when it is not)
 - `paper/sections/*.tex` — section sources
 - `paper/figures/` — figure assets (from `/unified-plotting`)
 - `paper/math_commands.tex` — shared notation (copied from the unified template)
@@ -179,7 +179,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 - **Negative-result discipline (v5.0, hardened v1.4.0)**: the contributions list includes ONLY results that positively support the main thesis (claims with `polarity: positive`). Any `polarity: boundary` or `polarity: negative` entry from `CLAIMS_FROM_RESULTS.md` appearing in contributions/Abstract/body conclusion → self-review FAIL (`reason_code: negative_result_as_contribution`). A limit, boundary, calibration, "honest validation boundary", or "we report these boundaries rather than conceal them" statement is NOT a contribution — it is a scope/limitation and goes ONLY into Limitations/Discussion as a boundary condition. Banned contribution framings (any of these as a `\item` in the contributions list → FAIL): "Honest validation boundaries", "honest limit", "we report these boundaries", "structurally non-calibratable", "coarse models report J=0", or any item whose load-bearing content is a failure/absence rather than a positive result. Local negative results go only into Limitations/Discussion; a primary-experiment-level negative should already have triggered KILL-or-PIVOT upstream and must not flow into the writing stage — if it did, return to `/experiment-execution`, do not write
 - End with the paper structure roadmap
 
-> **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the 3-layer citation discipline forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".
+> **v3.2 — Introduction MUST consume `FRONTIER_GAP.md` (the gap is not improvised)**: the "State the gap clearly" + "List contributions" bullets are no longer agent-improvised. They are sourced verbatim from `refine-logs/FRONTIER_GAP.md` (Phase 3 `/novelty-check`): the frontier-baseline paragraph → Introduction §1 (context+problem); the falsifiable delta claim → Introduction contributions list; the 3 why-not-before reasons → Introduction "why this is timely" paragraph. If `FRONTIER_GAP.md` is absent, the Introduction MUST emit the marker `[needs-frontier-positioning]` at each of those 3 points and the paper verdict is downgraded to `WARN` (`frontier_positioning_missing: true` in `PAPER_PLAN.md`) — the agent NEVER fabricates a frontier baseline or delta from memory (that is the exact hallucination the citation-discipline protocol forbids, and the exact "empty AI Intro" failure mode v3.2 exists to eliminate). The `FRONTIER_MAP.json` node graph lets the Introduction cite the specific SOTA nodes by key — `\cite{smith2024}` for the baseline, not "prior work".
 
 **Related Work:**
 - Group by theme, not by paper
@@ -216,7 +216,7 @@ Follow [`discipline-writing.md`](../../shared-references/discipline-writing.md) 
 - End with a forward-looking statement
 
 **References:**
-- Only papers from `literature/references.bib` (3-layer-verified)
+- Only papers from `literature/references.bib` (multi-layer verified: arXiv + CrossRef required; Semantic Scholar Layer 3 when reachable, degraded mode disclosed)
 - Use consistent citation format (`\cite{}` for numeric, `\citep{}`/`\citet{}` for author-year — never mix)
 - Every reference must be cited in the body
 - Auto-generated from `.bib` via `\bibliography{references}` — never hand-edit the references section
@@ -230,39 +230,43 @@ After writing, verify:
 4. **Every equation** with a `\label{eq:}` is referenced via `\cref{eq:label}`
 5. **No citations outside the verified list** — no `\cite{TODO}`, no `\cite{forthcoming}`
 
-### Step 3.5: Pipeline-Leakage Scrub Gate (v3.3 — MANDATORY before compile, blocks submission)
+### Step 3.5: Pipeline-Leakage Scrub Gate (v3.6-mech — MANDATORY before compile, blocks submission)
 
-> **Why this exists (honest gap)**: two real test runs (Q-HARM-001, Q-SGD-BS-GAP) shipped LaTeX with `\path{derivations/Q-HARM-001/derivation.py}`, "logic audit (6 dimensions, 20-category taxonomy) reports 0 FATAL/0 CRITICAL", "INV-G1 freeze verified", "Morandi palette", "Phase 6b toy stage" directly in the manuscript body — a reviewer reading these immediately desk-rejects as an AI pipeline dump. The old Step 2 even *encouraged* it ("Reference the derivation script for reproducibility"). This gate catches and scrubs all 8 leakage classes before compile. It is MANDATORY: a paper that fails this gate is `FAIL` regardless of any other quality, and `/paper-compile` MUST refuse to compile it.
+> **Why this exists (honest gap)**: two real test runs (Q-HARM-001, Q-SGD-BS-GAP) shipped LaTeX with `\path{derivations/Q-HARM-001/derivation.py}`, "logic audit (6 dimensions, 20-category taxonomy) reports 0 FATAL/0 CRITICAL", "INV-G1 freeze verified", "Morandi palette", "Phase 6b toy stage" directly in the manuscript body — a reviewer reading these immediately desk-rejects as an AI pipeline dump. The old Step 2 even *encouraged* it ("Reference the derivation script for reproducibility"). This gate catches and scrubs all 12 leakage classes (A–L, plus the `I-frontmatter` sub-check) before compile. It is MANDATORY: a paper that fails this gate is `FAIL` regardless of any other quality, and `/paper-compile` MUST refuse to compile it.
 
 **Runs after Step 3 (cross-ref check), before Step 4 (generate output). Wired into the ordered chain, not buried — a paper cannot reach compile without passing.**
 
-**Procedure — grep all `.tex` files (main.tex + sections/*.tex + math_commands.tex preamble comments) for the 8 leakage classes; each hit MUST be rewritten to neutral academic prose or removed:**
+**The scanner is the authority.** `scripts/leakage_scan.py` implements these classes as stdlib regexes and writes the verdict at scanner version `v3.6-mech`. The table below is the human-readable map of what each class catches; the `CLASSES` table in the scanner is the exact pattern set, and a test (`tests/test_v174_debts.py`) fails if the two drift apart. A host that rewrites prose must still finish with the scanner reporting zero hits.
 
-| Class | Forbidden pattern (regex) | Required rewrite |
-|-------|---------------------------|------------------|
-| **A. Internal artifact paths** | `\\(path\|texttt\|verb)\{?` containing `derivations/`, `experiments/`, `methods/`, `refine-logs/`, `.sciforge/audits/`, `.sciforge/verdicts/`, `.sciforge/logs/`, `literature/`, `src/`, `.py`, `RESULT\.json`, `STATUS\.json`, `DISPATCH\.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_GAP`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE\.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
-| **B. Phase / pipeline jargon** | `Phase [0-9]`, `toy stage`, `toy_gate`, `background dispatch`, `nohup`, `tmux`, `systemd`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: ?(lite\|balanced\|max\|beast)`, `role.?switch`, `senior.?reviewer`, `adversarial.?falsification` | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
-| **C. Audit-skill verdicts** | `Type I (LEAKY\|CLEAN\|WEAK)`, `Type IV (ESCAPE\|CLOSED\|N/A)`, `INV-G[0-9]`, `0 FATAL\|0 CRITICAL\|0 MAJOR.*MINOR`, `6 dimensions.*20.category`, `fidelity.*symbolic\|numerical\|qualitative`, `assurance.?contract` | Rewrite as neutral verification language ("All symbolic and numerical checks pass"; no taxonomy counts, no verdict enums) |
-| **D. Pipeline identifiers** | `Q-[A-Z]+-[A-Z0-9]+`, `INV-G[0-9]`, `problem.?anchor`, `Q-id`, `domain.?signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
-| **E. Rendering pipeline in captions** | `Morandi`, `morandi`, `dopamine palette`, `dopamine`, `viridis`, `magma`, `cividis`, `plasma`, `16:9`, `render\.py`, `input_data\.json`, `color.?palette`, `chroma` | Remove — captions describe the science ("remainder decay on a log–log scale"), never the rendering toolchain |
-| **F. Internal config / debug** | `hbox_warnings`, `overfull.*pt`, `font_embedding`, `microtypesetup`, compile.log fragments, `COMPILE_REPORT`, `PAPER_PLAN` references in body | These belong in `paper/COMPILE_REPORT.json` (engineering sidecar), NEVER in the manuscript body |
-| **G. Draft comments** | `%.*Q-`, `%.*Phase`, `%.*verification_type`, `%.*evidence_type`, `%.*mode:`, `%.*INV` | Remove all internal-identifier comments from preamble/section headers; keep only standard academic comments (`% section title`) |
-| **H. Frontmatter leak** | `verification_type`, `evidence_type`, `mode:`, `INV-G` in main.tex preamble comments or PAPER_PLAN exposed in body | main.tex preamble comment must be a neutral title only (`% Harmonic series remainder asymptotics`), never `% Q-HARM-001: ... (verification_type=theory-only)` |
-| **I. Tool/brand leak + fabricated frontmatter (v1.4.0)** | `SciForge`, `sci[- ]?forge`, `AutoFigure`, `render_figure`, `AtomCode`, `AgentRxiv`, `elsarticle` (in body prose), and any non-placeholder `\author{...}`/`\affiliation{...}` that names the framework instead of real authors | The manuscript must never name the tool that produced it; author/affiliation are either real (human-supplied) or the explicit `[... to be completed at submission]` placeholders. Rewrite/remove |
+| Class | What it catches | Required rewrite |
+|-------|-----------------|------------------|
+| **A** | Internal artifact paths in `\path`/`\texttt`/`\verb`: `derivations/`, `experiments/`, `methods/`, `refine-logs`, `.sciforge`, `literature/`, `src/`, `.py`, `RESULT.json`, `STATUS.json`, `DISPATCH.json`, `METHOD_REGISTRY`, `REGISTRY_HASH`, `APPROVAL_LOG`, `FRONTIER_MAP`, `BLINDSPOT_CHECK`, `SMOKE.json`, `PIPELINE_STATUS` | Rewrite as a neutral reproducibility statement (Step 4.5) depositing scripts in a supplementary archive — "All verification scripts are provided as supplementary material" — NEVER the live path |
+| **B** | Phase / pipeline jargon: `Phase N`, `toy_stage`, `toy_gate`, `background dispatch`, `nohup`, `MCTS`, `DAG`, `evidence_type`, `verification_type`, `test_mode`, `effort: lite/balanced/max/beast`, role switch, senior reviewer, adversarial falsification | Rewrite as standard scientific language ("the symbolic verification", "the numerical experiment"); pipeline phase numbers are never academic content |
+| **C** | Audit-skill verdicts: `Type I (LEAKY\|CLEAN\|WEAK)`, `Type IV (ESCAPE\|...)`, `INV-G#`, `0 FATAL`, `6 dimensions ... 20-category`, fidelity symbolic/numerical/qualitative, `assurance_contract` | Rewrite as neutral verification language ("All symbolic and numerical checks pass"; no taxonomy counts, no verdict enums) |
+| **D** | Pipeline identifiers: `Q-XXX-###`, `problem_anchor`, `Q-id`, `domain_signature` | Remove entirely — the paper has a title, not a pipeline run identifier |
+| **E** | Rendering pipeline in captions: `Morandi`/`morandi`, `dopamine palette`/`dopamine`, `viridis`, `magma colormap`, `16:9`, `render.py`, `input_data.json`, `color_palette`, `chroma` | Remove — captions describe the science ("remainder decay on a log–log scale"), never the rendering toolchain |
+| **F** | Internal config / debug: `hbox_warnings`, `overfull ... pt`, `font_embedding`, `microtypesetup`, `COMPILE_REPORT`, `PAPER_PLAN` references in body | These belong in `paper/COMPILE_REPORT.json` (engineering sidecar), NEVER in the manuscript body |
+| **G** | Draft comments: a comment line carrying `Q-`, `Phase`, `verification_type`, `evidence_type`, `mode:`, `INV-` | Remove all internal-identifier comments from preamble/section headers; keep only standard academic comments (`% section title`) |
+| **H** | Frontmatter comments: `verification_type`, `evidence_type`, `mode:`, `INV-G` in main.tex preamble comments | main.tex preamble comment must be a neutral title only (`% Harmonic series remainder asymptotics`), never `% Q-HARM-001: ... (verification_type=theory-only)` |
+| **I** | Tool/brand leak: `SciForge`, `sci-forge`, `AutoFigure`, `render_figure`, `AtomCode`, `AgentRxiv` | The manuscript must never name the tool that produced it. Rewrite/remove |
+| **I-frontmatter** | Fabricated frontmatter: a non-placeholder `\affiliation{...}` paired with `\author{...}` (placeholder forms like `[... to be completed at submission]` are allowed) | Author/affiliation are either real (human-supplied) or explicit submission placeholders |
+| **J** | AIGC trace phrases: `delve`, `tapestry`, `It is worth noting`, `In conclusion, this comprehensive`, `navigate the complexities`, `As an AI`, `stem from ... moreover`, `unlock the power/potential/secret` | Rewrite in specific, concrete academic prose; no filler connectives |
+| **K** | Apology / defensive register (writing-principles §0.6): `apologize`/`apology`, `unfortunately`, `regrettably`, `sadly`, `it is a pity`, `we are sorry`, `we failed`, `admittedly`, `it should be admitted`, `we must acknowledge`, `we hope (that\|future)`, `hopefully`, `our work has/suffers from limitations`, and unbounded `may be limited by` | Delete the apology; state the bounded regime fact. Limitations is a regime ledger, not a confession |
+| **L** | Internal machinery jargon: `SciForge`, `phase N`, `RUNSTATE`, `our/the/run workspace`, `kernel-enforced`, `promotion gate`, `engineer rounds`, `three-state critic`, `regime ledger`, `integrity monitor`, `rebuttal loop`, `calibrated panel`, `gate exit/PASS/passed`, `s2 ladder/ablation/audit`, `verdict file/json`, `the s2/ladder/ablation/smoke/security gate` | Describe the science, not this system's machinery. Legitimate scientific vocabulary (ladder as a method name, held-out, pre-registered, ablation) is not a hit |
 
 **Scrub procedure**:
-1. `grep -rnE "<patterns above>" paper/main.tex paper/sections/*.tex paper/math_commands.tex` — collect every hit.
+1. Run the mechanical scanner: `python3 scripts/leakage_scan.py <workspace> --write-verdict`. It scans every `.tex` under `paper/` (main.tex, sections/*.tex, preamble comments) and writes `paper/LEAKAGE_SCRUB.json` plus, when `.sciforge/verdicts/` exists, `.sciforge/verdicts/LEAKAGE_SCRUB.json`. The scanner's `CLASSES` table — not a hand-transcribed grep — is authoritative.
 2. For each hit, apply the required rewrite (column 3). If no neutral rewrite is possible (e.g., a debug log fragment), delete the sentence entirely.
-3. **Re-grep** after rewrite — zero hits required to pass. Any remaining hit is a `FAIL`.
-4. Write `paper/LEAKAGE_SCRUB.json`:
+3. **Re-run the scanner** after rewriting — zero hits required to pass. Any remaining hit is a `FAIL`.
+4. The verdict the scanner writes carries `version: "v3.6-mech"` and enumerates every class seen in `classes_seen` (`A`–`L`, plus `I-frontmatter`):
    ```json
-   {"gate":"pipeline-leakage-scrub","version":"v3.3","status":"PASS|FAIL","hits_found":<n>,"hits_scrubbed":<n>,"hits_remaining":<m>,"classes_seen":["A","C",...],"scrubbed_to":"neutral academic prose","checked_files":["main.tex","sections/*.tex","math_commands.tex"]}
+   {"gate":"pipeline-leakage-scrub","version":"v3.6-mech","status":"PASS|FAIL","hits_found":<n>,"hits_scrubbed":<n>,"hits_remaining":<m>,"classes_seen":["A","C",...],"scrubbed_to":"neutral academic prose","checked_files":["paper/main.tex","..."]}
    ```
 5. **`/paper-compile` consumes this file** — if `status != PASS`, compile refuses to run (`BLOCKED, reason_code: pipeline_leakage_not_scrubbed`). The scrub gate is the single hard wall between internal engineering and the academic manuscript.
 
 **Boundaries**:
 - `paper/PAPER_PLAN.md` is an **engineering planning document** — it is NOT compiled into the PDF and is NOT referenced from the manuscript body. It stays in `paper/` for the agent's own use but must never appear in `\input{}` or `\include{}` chains. A `\input{PAPER_PLAN}` in main.tex is a `FAIL`.
-- The scrub gate is **additive to** the 3-layer citation discipline — it catches pipeline jargon, not citation hallucination (that's `/citation-audit`'s job).
+- The scrub gate is **additive to** the citation-discipline protocol — it catches pipeline jargon, not citation hallucination (that's `/citation-audit`'s job).
 - Reproducibility is NOT sacrificed — Step 5 (Reproducibility Statement) deposits the actual scripts/data in a supplementary archive with a neutral name (`supplementary/` or a Zenodo bundle), referenced as "supplementary material". The internal paths are the agent's workspace, not the reader's concern.
 - This gate is the **single biggest submission-blocking lever** — a paper with perfect science but `\path{derivations/...}` in the body is desk-rejected. It is non-negotiable.
 
@@ -338,7 +342,7 @@ Before declaring the draft ready, perform a self-review:
 
 - **Always load the unified `elsarticle` template.** Never hand-write the preamble. Never use `revtex`/`optica`/`IEEEtran`/`iclr`/`icml`/`neurips` document classes — OSS has one template only.
 - **Never mix citation styles.** Pick numeric (`\cite{}`) OR author-year (`\citep{}`/`\citet{}`) at the start and keep it throughout.
-- **Only verified citations.** Every `\cite{key}` must resolve to a `references.bib` entry that passed the 3-layer verification (see [`citation-discipline.md`](../../shared-references/citation-discipline.md)). No `\cite{TODO}`, no `\cite{forthcoming}`, no fabricated references.
+- **Only verified citations.** Every `\cite{key}` must resolve to a `references.bib` entry that passed the multi-layer verification — arXiv + CrossRef mandatory, Semantic Scholar Layer 3 when reachable, with a degraded-mode disclosure when it is not (see [`citation-discipline.md`](../../shared-references/citation-discipline.md) and the depth fields in `/citation-audit`). No `\cite{TODO}`, no `\cite{forthcoming}`, no fabricated references.
 - **Every claim has support.** Either a `\cite{}` to verified literature OR a `\cref{eq:}`/`\cref{fig:}` to a derivation/verification artifact. No unsupported assertions.
 - **No venue-specific adaptation during drafting.** Venue adaptation (page limit trim, bibliography style switch, cover letter) is deferred to submission time per [`venue-profiles.md`](../../shared-references/venue-profiles.md). During drafting, use the unified template with the unified page target.
 - **This skill does NOT compile.** Producing the PDF is `/paper-compile`'s job. This skill only produces the LaTeX source.
@@ -381,7 +385,7 @@ The final output is:
     → /paper-writing                ← you are here
         → /paper-compile (compiles main.tex → main.pdf)
         → /auto-review-loop (cross-model review of the draft)
-        → /citation-audit (final 3-layer citation verification)
+        → /citation-audit (final citation verification: existence / metadata / context axes)
 ```
 
 ## See Also
@@ -390,7 +394,7 @@ The final output is:
 - [`../shared-references/discipline-writing.md`](../../shared-references/discipline-writing.md) — universal section-by-section writing guide
 - [`../shared-references/paper-voice-contract.md`](../../shared-references/paper-voice-contract.md) — v1.7.1 submission-grade prose discipline (PaperOrchestra + 86-paper S2 corpus: claim tracing, caption discipline, negative-vocabulary list, anti-inflation bands)
 - [`../shared-references/writing-principles.md`](../../shared-references/writing-principles.md) — academic writing style (universal)
-- [`../shared-references/citation-discipline.md`](../../shared-references/citation-discipline.md) — 3-layer anti-hallucination citation verification
+- [`../shared-references/citation-discipline.md`](../../shared-references/citation-discipline.md) — anti-hallucination citation verification (3 layers when available; 2-layer degraded mode disclosed)
 - [`../shared-references/color-themes.md`](../../shared-references/color-themes.md) — dopamine palette (Layer 1, CVD-verified) + viridis/magma/cividis data colormaps (Layer 2)
 - [`../paper-compile/SKILL.md`](../paper-compile/SKILL.md) — compiles the LaTeX source this skill produces
 - [`../shared-references/discipline-context.md`](../../shared-references/discipline-context.md) — OSS single-row (`general`) discipline contract

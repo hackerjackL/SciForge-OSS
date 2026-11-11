@@ -1,7 +1,7 @@
 ---
 name: universal-retrieval
-version: 1.7.3
-description: "Literature search + 3-layer anti-hallucination citation verification (arXiv→CrossRef→Semantic Scholar) + v3.2 proxy auto-mount + filter-chain integrity audit + v6.0 wave protocol (broad wave mines GAP_REPORT.md, targeted waves per surviving idea). Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
+version: 1.7.4
+description: "Literature search + multi-layer anti-hallucination citation verification (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable, 2-layer degraded mode explicitly disclosed) + v3.2 proxy auto-mount + filter-chain integrity audit + v6.0 wave protocol (broad wave mines GAP_REPORT.md, targeted waves per surviving idea). Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
 type: reference-skill
 role: academic-retriever
 ---
@@ -10,10 +10,10 @@ role: academic-retriever
 
 ## Quick Reference
 
-- **Purpose**: Multi-source academic search + 3-layer anti-hallucination citation verification
+- **Purpose**: Multi-source academic search + multi-layer anti-hallucination citation verification (arXiv + CrossRef required; Semantic Scholar Layer 3 when reachable)
 - **Input**: Search query (+ wave mode: broad | targeted)
 - **Output**: references.bib + landscape_report.md + VERIFICATION_LOG.md + **GAP_REPORT.md (broad wave)** + **TARGETED_WAVE_LOG.md (targeted waves)**
-- **Key**: 6 sources (arXiv→S2→CrossRef→PubMed→Web→OpenAlex); every citation must pass verification; v6.0 gap chain: literature is the upstream of ideas, not their filter
+- **Key**: 6 sources (arXiv→S2→CrossRef→PubMed→Web→OpenAlex); every citation must pass the two mandatory layers (arXiv existence + CrossRef DOI/metadata); Layer 3 (Semantic Scholar fuzzy match) runs whenever reachable and its absence is disclosed, never silently skipped; v6.0 gap chain: literature is the upstream of ideas, not their filter
 
 ## Use When
 
@@ -37,7 +37,7 @@ Provide a unified multi-source academic search interface that routes queries to 
 Non-negotiable goals:
 1. **Every paper in the output carries a real-existence verification tag** — no paper is included on faith
 2. **No paper is silently dropped** — every candidate paper is either verified or explicitly marked unverifiable
-3. **The 3-layer anti-hallucination protocol is mandatory** — arXiv batch check → CrossRef DOI → Semantic Scholar fuzzy match
+3. **The anti-hallucination protocol is mandatory** — arXiv batch check → CrossRef DOI are the two required layers; Semantic Scholar fuzzy match is Layer 3 and runs whenever reachable. When Layer 3 is unavailable the audit degrades to two layers and MUST record the disclosure (§Verification Depth and Degraded Mode), never a silent or fabricated 3-layer claim
 4. **Every citation carries a verifiable DOI or arXiv ID** — no "forthcoming"/"submitted" entries without verification
 
 ## Wave Protocol (v6.0 gap chain — literature first, ideas second)
@@ -57,13 +57,13 @@ Non-negotiable goals:
    | GAP-05 | generalization_blank | <results shown only for Z; extension unknown> | @g2025 | low |
    ```
 
-   Rules: every gap carries ≥1 verified cite key from `references.bib` (no gap may rest on an unverified or absent paper — the 3-layer protocol applies to gap evidence too); `gap_type` ∈ {contradiction, unsolved_node, method_blank, data_blank, generalization_blank}; `landscape_report.md` §Gap identification and GAP_REPORT.md must agree (the report is the narrative, GAP_REPORT.md the machine-anchored list).
+   Rules: every gap carries ≥1 verified cite key from `references.bib` (no gap may rest on an unverified or absent paper — the verification protocol and its degraded-mode disclosure apply to gap evidence too); `gap_type` ∈ {contradiction, unsolved_node, method_blank, data_blank, generalization_blank}; `landscape_report.md` §Gap identification and GAP_REPORT.md must agree (the report is the narrative, GAP_REPORT.md the machine-anchored list).
 2. **Gap anchoring hand-off**: `/idea-discovery` consumes GAP_REPORT.md — every promoted idea must cite a gap-id (or a capped `exploratory` slot); idea-scoring before GAP_REPORT.md is readable is forbidden (`pending-literature`, see auto-pipeline Group A).
-3. **Targeted waves** (after MCTS selection, before Phase 3 novelty collision): one retrieval wave per surviving idea, seeded by its anchored gap + idea-specific keywords; new papers pass the same 3-layer verification and are appended to `references.bib` / `verified_papers.json`; each wave is logged as one append-only entry in `literature/TARGETED_WAVE_LOG.md` (idea-id → gap-id → queries → papers added → collision pre-check note). Targeted waves that find a direct duplicate of the idea must say so in the log — `/novelty-check` reads it.
+3. **Targeted waves** (after MCTS selection, before Phase 3 novelty collision): one retrieval wave per surviving idea, seeded by its anchored gap + idea-specific keywords; new papers pass the same verification protocol (and inherit/refresh the run's `verification_depth` disclosure) and are appended to `references.bib` / `verified_papers.json`; each wave is logged as one append-only entry in `literature/TARGETED_WAVE_LOG.md` (idea-id → gap-id → queries → papers added → collision pre-check note). Targeted waves that find a direct duplicate of the idea must say so in the log — `/novelty-check` reads it.
 
 ## Data Sources
 
-Search in priority order. All sources are optional — if a source is unavailable, skip it silently and continue to the next.
+Search in priority order. Search sources are optional — if one is unavailable, continue to the next, but **record it in `unavailable_sources`** (VERIFICATION_LOG.md + FILTER_CHAIN_AUDIT.json). A missing source is disclosed, never silently dropped; for Semantic Scholar specifically the Layer 3 rules in §Verification Depth and Degraded Mode apply.
 
 | Priority | Source | Provides | Coverage |
 |--------|----|---------|---------|
@@ -74,32 +74,53 @@ Search in priority order. All sources are optional — if a source is unavailabl
 | 5 | **Web Search** | General web + Google Scholar | Anything not covered by the APIs above |
 | 6 | **OpenAlex API** | Open scholarly graph, author disambiguation | All disciplines, best for citation networks |
 
-## 3-Layer Anti-Hallucination Verification Protocol
+## Anti-Hallucination Verification Protocol (3 layers when available)
 
 Every candidate paper **must** pass the layers below before entering the final report:
 
-### Layer 1: arXiv Batch Verification
+### Layer 1: arXiv Batch Verification (required)
 - Collect the arXiv IDs of all candidate papers
 - Query `http://export.arxiv.org/api/query` in batches of 40 IDs
 - Verify: title, authors, abstract, categories are consistent
 - Status: `verified` / `unverified` / `error`
 
-### Layer 2: CrossRef DOI Verification
+### Layer 2: CrossRef DOI Verification (required)
 - For papers with a DOI, query `https://api.crossref.org/works/{doi}`
 - Verify: DOI resolves, title matches, at least one author matches
 - Status: `verified` / `unverified` / `error`
 
-### Layer 3: Semantic Scholar Fuzzy Match
+### Layer 3: Semantic Scholar Fuzzy Match (when reachable)
 - For papers not verified by Layers 1-2, query the Semantic Scholar API by title
 - Use fuzzy matching (threshold ≥ 0.6)
 - Verify: at least 2 metadata fields match (authors, year, venue, title)
 - Status: `verified` / `unverified` / `error`
+- **Credentials**: if `SEMANTIC_SCHOLAR_API_KEY` or `S2_API_KEY` is set in the environment, send it as the `x-api-key` header (an authenticated quota is the documented cure for 429s). No code in this repo reads the key for you — the host agent must attach the header on every S2 request
+- **Retry budget**: 3 attempts with backoff; a persistent 429 is `unavailable_rate_limited`, a timeout/DNS/5xx is `unavailable_network`
+
+### Verification Depth and Degraded Mode (v1.7.4 — disclosure is mandatory)
+
+Two layers (arXiv existence + CrossRef DOI/metadata) already block fabricated references, which is the dominant threat. Layer 3 adds fuzzy title matching plus venue/citation-count cross-checks. When Layer 3 cannot run, the audit **degrades to two layers and records exactly that** — the audit is not "unverified", and it is never reported as 3-layer.
+
+Every run MUST write this telemetry to `literature/VERIFICATION_LOG.md` and to the `verification` object of `literature/FILTER_CHAIN_AUDIT.json` (and downstream to `CITATION_AUDIT.json` at Phase 15):
+
+| Field | Allowed values | Meaning |
+|-------|----------------|---------|
+| `verification_depth` | `3-layer` / `2-layer-degraded` / `not_attempted` | Depth actually achieved this run |
+| `layers_verified` | subset of `["arxiv", "crossref", "semantic_scholar"]` | Layers that actually executed (a listed layer ran; it does not assert every entry passed it) |
+| `layer3_status` | `verified` / `not_required` / `unavailable_rate_limited` / `unavailable_network` / `unavailable_no_credentials` / `unavailable_error` / `not_attempted` | Layer 3 outcome and, when unavailable, why |
+| `layer3_detail` | free string | Raw cause (e.g. `HTTP 429 from api.semanticscholar.org after 3 attempts`) so the disclosure itself is auditable |
+
+Rules:
+- **Degraded ≠ unverified.** A `2-layer-degraded` PASS means every entry passed at least one **available** layer (arXiv or CrossRef). Entries that would have needed Layer 3 stay `unverified` in `unverified_papers.json`; they are never promoted on the author's word.
+- **Never fabricate the audit record.** Writing `verification_depth: "3-layer"` (or `layer3_status: "verified"`) when Layer 3 did not run is worse than a citation error — it is a falsified audit. Treat any such mismatch as `FAIL`.
+- **Disclosure, not a verdict change.** Degraded depth does not by itself change `audit_verdict`; the telemetry above is the machine record, and `unavailable_sources` lists `semantic_scholar`. A PASS is only ever "every entry passed at least one available layer".
+- **Recovery is mandatory.** When S2 becomes reachable again (API key configured, rate limit lifted), re-run Layer 3 for the entries verified in degraded mode, upgrade `verification_depth` to `3-layer`, and clear the disclosure.
 
 ### Final Verdict
-- `PASS` — passes at least 2 of the 3 layers
+- `PASS` — passes at least 2 of the available layers (in degraded mode: arXiv + CrossRef)
 - `WARN` — passes 1 layer, or partial match in 2 layers
 - `BLOCKED` — passes 0 layers, or fatal mismatch
-- `ERROR` — API failure, cannot determine
+- `ERROR` — API failure, cannot determine (record `verification_depth: "not_attempted"`)
 
 ## OSS Single-Activity-Bar Strategy (upgrade supplement)
 
@@ -109,7 +130,7 @@ OSS is discipline-agnostic and real research problems span 10+ fields, so **sour
 - **Recency hard gate (v5.0 — prevents "stale literature")**: **papers from the last 2 years must be ≥ 40%** of retrieved results (`recency_ratio` written to `landscape_report.md` and to verification output `time_span.recency_ratio`). If below → WARN + **automatically trigger one re-retrieval with a narrower window** (`min_year = current year - 2`, merged and deduplicated with original results); if still <40% after re-retrieval and the direction is active → mark `recency_gap` and report to the caller (this signal is consumed by the `/novelty-check` collision audit). Exception: classical/foundational fields (e.g., classical-theorem textual research in pure mathematics) may tolerate low recency, but the reason must be stated in the report
 - **Unified source priority** (priority 1-6 in the table above, no discipline switching)
 - **Unified retrieval count** `max_papers=30` (the main repo varies by discipline; OSS is unified)
-- **Unified verification level** `verification_level=full` (the 3-layer anti-hallucination protocol is mandatory; no discipline downgrade path)
+- **Unified verification level** `verification_level=full` (the anti-hallucination protocol is mandatory; no discipline downgrade path. `full` means arXiv + CrossRef always, Layer 3 whenever reachable, with the degraded-mode disclosure of §Verification Depth when it is not)
 
 **OSS has no `discipline-context` source-priority override** — see the OSS one-line contract in [`discipline-context.md`](../../shared-references/discipline-context.md): all problems uniformly use the `general` row, i.e., the unified priority above. If you encounter legacy code migrated from the main repo that references `DISCIPLINE_CONTEXT.source_priorities`, **delete that branch** — OSS has no such discipline-switching logic.
 
@@ -154,9 +175,9 @@ This skill **does not assume a fixed proxy port**; at startup it autonomously pr
 After literature search completes and before entering Phase 5, the **filter-chain integrity audit** must pass — verifying that the filtered citations are both "real" and "complete":
 
 ### Authenticity check (every citation is real)
-- Every `references.bib` entry passes at least 1 of the 3 verification layers (arxiv/s2/crossref) — see the 3-layer protocol above
+- Every `references.bib` entry passes at least 1 of the **available** verification layers — in normal mode arXiv/CrossRef/S2, in degraded mode arXiv/CrossRef only. An entry that could only have been verified by Layer 3 stays `unverified`
 - No `\cite{TODO}`, `\cite{forthcoming}`, or hand-written BibTeX (except special handling for books/technical reports)
-- `VERIFICATION_LOG.md` records the verification status + layers passed for each entry
+- `VERIFICATION_LOG.md` records the verification status + layers passed for each entry, plus the run-level `verification` telemetry of §Verification Depth and Degraded Mode
 
 ### Completeness check (coverage is complete)
 - **Core claim coverage**: every core claim of the idea in `FINAL_PROPOSAL.md` is supported by at least 1 citation OR marked `[needs-citation]` for human follow-up
@@ -180,9 +201,17 @@ The filter-chain integrity audit writes to `literature/FILTER_CHAIN_AUDIT.json`:
     "time_span": {"min_year": ..., "max_year": ..., "concentration_warn": bool}
   },
   "unavailable_sources": ["arxiv" | "s2" | ...],
+  "verification": {
+    "depth": "3-layer | 2-layer-degraded | not_attempted",
+    "layers_verified": ["arxiv", "crossref"],
+    "layer3_status": "verified | not_required | unavailable_rate_limited | unavailable_network | unavailable_no_credentials | unavailable_error | not_attempted",
+    "layer3_detail": "raw cause when Layer 3 is unavailable"
+  },
   "recommendation": "PROCEED | NEEDS_HUMAN_LIT_supplement | BLOCKED"
 }
 ```
+
+- Degraded depth is disclosed by `verification` + `unavailable_sources`; it does not by itself change `audit_verdict`. A PASS always means every entry passed at least one available layer.
 
 - `PASS` → Phase 5 proceeds
 - `WARN` → Phase 5 proceeds, but the `NEEDS_HUMAN_LIT_supplement` flag is recorded in `.sciforge/logs/pipeline.log` and the `.sciforge/PIPELINE_STATUS.md` execution report (human supplements the literature later)
@@ -195,7 +224,7 @@ The filter-chain integrity audit writes to `literature/FILTER_CHAIN_AUDIT.json`:
 | `sources` | list | `["arxiv", "semantic_scholar", "crossref", "pubmed", "web", "openalex"]` | Which sources to search — OSS defaults to all 6 sources (the main repo defaults to 4; OpenAlex was added in a main-repo upgrade; OSS already includes it) |
 | `max_papers` | int | `30` | Maximum papers in the final output (OSS unified, does not vary by discipline) |
 | `min_year` | int | `2020` | Earliest publication year considered (OSS unified absolute year, not discipline-specific citation windows) |
-| `verification_level` | enum | `full` | `full` (3 layers, OSS mandatory default), `quick` (arXiv only), `none` (no verification, **not recommended in OSS** — breaks the downstream `/citation-audit` 3-layer contract) |
+| `verification_level` | enum | `full` | `full` (arXiv + CrossRef required, Layer 3 when reachable — OSS mandatory default), `quick` (arXiv only), `none` (no verification, **not recommended in OSS** — breaks the downstream `/citation-audit` evidence contract) |
 
 ## Steps
 
@@ -212,24 +241,24 @@ Extract from the request:
 
 Execute searches in priority order:
 1. arXiv API — structured query with category filters
-2. Semantic Scholar — filtered by research field
+2. Semantic Scholar — filtered by research field (when reachable; otherwise record `unavailable_sources`)
 3. CrossRef — DOI-based metadata query
 4. Web Search — topics not covered by the academic APIs
 
 Deduplicate by arXiv ID or DOI.
 
-### Step 3: 3-Layer Verification
+### Step 3: Multi-Layer Verification
 
-Run the 3-layer verification protocol on every candidate paper:
+Run the verification protocol on every candidate paper:
 1. If it has an arXiv ID → Layer 1 (arXiv)
 2. If it has a DOI → Layer 2 (CrossRef)
-3. If still unverified → Layer 3 (Semantic Scholar)
-4. Compute the final verdict
+3. If still unverified → Layer 3 (Semantic Scholar), **when reachable**; if S2 is down, record the §Verification Depth disclosure and leave the entry `unverified` rather than promoting it
+4. Compute the final verdict and write the `verification` telemetry
 
 **Special handling:**
 - Books: verify via CrossRef ISBN query
 - Technical reports: verify via web search + institutional repositories
-- Conference papers: verify via Semantic Scholar venue filters
+- Conference papers: verify via Semantic Scholar venue filters when reachable; otherwise use the publisher site / CrossRef DOI record
 
 ### Step 4: Synthesize the Survey Report
 
@@ -264,6 +293,6 @@ For each verified paper:
 
 ## Shared Contract References
 
-- [citation-discipline](../../shared-references/citation-discipline.md) — 3-layer anti-hallucination verification protocol
+- [citation-discipline](../../shared-references/citation-discipline.md) — anti-hallucination verification protocol (3 layers when available; 2-layer degraded mode disclosed per §Verification Depth)
 - [discipline-context](../../shared-references/discipline-context.md) — discipline-aware search routing
 - [output-manifest](../../shared-references/output-manifest.md) — artifact structure contract

@@ -48,7 +48,7 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   ├── KILL_ARGUMENT.json          ← kill argument (kill-argument)
 │   │   ├── PAPER_CLAIM_AUDIT.json      ← paper-claim consistency (paper-writing self-check)
 │   │   ├── LEAKAGE_SCRUB.json          ← LaTeX leakage scrub gate (paper-writing §3.5)
-│   │   ├── CITATION_AUDIT.json         ← 3-layer citation verification (citation-audit)
+│   │   ├── CITATION_AUDIT.json         ← multi-layer citation verification + depth disclosure (citation-audit)
 │   │   ├── INVARIANT_CHECK.json        ← invariant-check result (invariant-check; narrative report lives in .sciforge/audits/)
 │   │   ├── PUBLISHABILITY_SCORE.json   ← final publishability score (publishability-score)
 │   │   ├── RUN_BUDGET.json             ← global run-budget ledger (v5.3: wall_clock/api_cost/pivot_count/ba_used;
@@ -72,7 +72,7 @@ After every write, append one row to `.sciforge/MANIFEST.md`:
 │   │   ├── CLAIMS_FROM_RESULTS.md ← 3-fidelity claim gate narrative (result-to-claim)
 │   │   ├── FINAL_VERDICT.md / STAGNATION_REPORT.md / QUALITY_FLOOR_REPORT.md / SELF_DECEPTION_REPORT.md ← quality-gate reports
 │   │   ├── AUTO_REVIEW.md         ← cross-model review narrative (auto-review-loop)
-│   │   ├── CITATION_AUDIT.md      ← 3-layer citation audit narrative (citation-audit)
+│   │   ├── CITATION_AUDIT.md      ← multi-layer citation audit narrative (citation-audit)
 │   │   ├── S2_LADDER.json / ABLATION_LEDGER.json / REBUTTAL_PLAN.json / CALIBRATION.json / AUDIT_TRAIL.json / IDEA_EVOLUTION.json / REVIEW_PANEL.json ← v1.7 ScientistTwo parity kernel-machine audits (gate-checked by scripts/s2_*.py; same unregistered class as REVIEW_PANEL.json — NOT verdicts, so validate_verdicts does not demand them)
 │   │   ├── REP.json  ← v1.7.2 run Research Execution Plan (kernel compiles at phase 1: staged objectives + fallback conditions; rep.py)
 │   │   └── (see .sciforge/nodes/ below) NODES.json / CLAIM_ANCHORS.json  ← v1.7.2 XScientist-ARA node registry + claim→node anchors (kernel auto-registers at 6b/6c/10; gates: claim_anchor_gate, sciforge fork)

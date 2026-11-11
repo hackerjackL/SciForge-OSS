@@ -7,6 +7,23 @@ ScienceDiscovery's events.ndjson + `interrupted` lifecycle and DeepScientist's
 replayable quest state, but for our 26-node DAG.
 
 Stdlib only. Every event carries: seq, ts, phase, kind, payload.
+
+v1.7.4 integrity + performance:
+  - Events written by this module carry a sha256 hash chain (`prev_hash` +
+    `hash` over seq/ts/phase/kind/payload/prev_hash). A same-user agent can no
+    longer advance the pipeline by appending a bare `checkpoint_cleared` /
+    `phase_done` line: the chain check detects the forged/missing link and
+    `recover()` refuses to trust the log. Legacy logs (pre-v1.7.4, no chain
+    fields) are recognised explicitly and still replay (marked `legacy`);
+    chain-less events are never mistaken for a break. This is tamper-EVIDENT,
+    not tamper-proof: no secret is involved, so a determined agent that
+    rewrites the whole file with a recomputed chain is out of this threat
+    model (same uid; the same agent could patch this source file).
+  - `replay()` is incremental: it keeps the parsed event list and the file
+    offset in memory and only reads/parses the newly appended tail. A
+    truncated/replaced file invalidates the offset and falls back to a full
+    re-read; a torn final line is skipped (and left pending) exactly as the
+    old full-scan code did.
 """
 from __future__ import annotations
 
@@ -36,45 +53,313 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+# Fixed anchor for the first chained event (conventional all-zero digest).
+GENESIS_HASH = "0" * 64
+
+# The fields an event's own hash commits to. `hash` is excluded (it is the
+# digest itself); everything else that identifies the event is covered.
+_HASHED_FIELDS = ("seq", "ts", "phase", "kind", "payload", "prev_hash")
+
+
+def event_hash(ev: dict) -> str:
+    """Canonical digest of an event's committed fields (key order independent)."""
+    core = {k: ev.get(k) for k in _HASHED_FIELDS}
+    if core.get("payload") is None:
+        core["payload"] = {}
+    blob = json.dumps(core, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+class EventChainError(RuntimeError):
+    """A chained event log failed verification (forgery / tampering)."""
+
+    def __init__(self, integrity: dict):
+        self.integrity = integrity or {}
+        super().__init__(
+            "event log hash chain broken at index "
+            f"{self.integrity.get('broken_at')} (seq "
+            f"{self.integrity.get('broken_seq')}): "
+            f"{self.integrity.get('reason')}")
+
+
+def _seq_of(ev: dict):
+    try:
+        return int(ev.get("seq"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_event_lines(raw: bytes) -> list[dict]:
+    """All parseable events from raw NDJSON bytes (torn lines skipped)."""
+    out: list[dict] = []
+    for line in raw.split(b"\n"):
+        text = line.strip()
+        if not text:
+            continue
+        try:
+            ev = json.loads(text.decode("utf-8", errors="replace"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            continue  # torn write during crash; skip, keep replaying
+        if isinstance(ev, dict):
+            out.append(ev)
+    return out
+
+
+def _verify_events(events: list[dict]) -> dict:
+    """Validate a parsed event sequence. Pure; used by verify_chain().
+
+    Returns ok/legacy/total/broken_at(0-based index)/broken_seq/reason/head_hash.
+    A log with NO chain fields anywhere is a legitimate legacy log (pre-v1.7.4)
+    and verifies as `legacy: True, ok: True`. Once chain fields appear, every
+    event must carry a valid link — a missing/mismatched link, or a chainless
+    event after a chained one, is a break (first one reported).
+    """
+    out = {"ok": True, "legacy": False, "total": len(events),
+           "broken_at": None, "broken_seq": None, "reason": "",
+           "head_hash": GENESIS_HASH}
+    if not events:
+        return out
+    if not any(("prev_hash" in e) or ("hash" in e) for e in events):
+        out["legacy"] = True
+        return out
+    prev = GENESIS_HASH
+    for i, ev in enumerate(events):
+        if "prev_hash" not in ev or "hash" not in ev:
+            out.update(ok=False, broken_at=i, broken_seq=_seq_of(ev),
+                       reason="chain fields missing (mixed or forged event)")
+            return out
+        if ev.get("prev_hash") != prev:
+            out.update(ok=False, broken_at=i, broken_seq=_seq_of(ev),
+                       reason="prev_hash mismatch (event inserted/reordered)")
+            return out
+        if event_hash(ev) != ev.get("hash"):
+            out.update(ok=False, broken_at=i, broken_seq=_seq_of(ev),
+                       reason="event hash mismatch (content tampered)")
+            return out
+        prev = ev["hash"]
+    out["head_hash"] = prev
+    return out
+
+
 class EventLog:
-    """Append-only NDJSON event stream; replay = authoritative state rebuild."""
+    """Append-only NDJSON event stream; replay = authoritative state rebuild.
+
+    Incremental: the parsed events + byte offset are cached per instance, so
+    replay() only reads the tail appended since the previous call. Instances
+    never share mutable state — two EventLogs on the same file each track their
+    own offset and re-synchronise from disk before every emit/replay.
+    """
 
     def __init__(self, ws: Path):
         self.ws = Path(ws)
         self.path = self.ws / ".sciforge" / "events.ndjson"
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._seq = 0
-        if self.path.exists():
-            with open(self.path) as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        try:
-                            self._seq = max(self._seq, int(json.loads(line)["seq"]))
-                        except Exception:
-                            pass
+        self._parse_count = 0  # test/diagnostics: cumulative, survives resets
+        self._reset()
+        self._sync()
 
+    # ---- internal cache ----
+    def _reset(self) -> None:
+        self._events: list[dict] = []
+        self._seq = 0
+        self._offset = 0
+        self._file_id = None
+        self._prefix_len = 0
+        self._prefix_sig = None
+        self._head_hash = GENESIS_HASH
+        self._legacy = False
+        self._chain_ok = True
+        self._broken_at = None
+        self._broken_seq = None
+        self._break_reason = ""
+
+    def _mark_broken(self, idx: int, ev: dict, reason: str) -> None:
+        if self._chain_ok:  # report the FIRST break only
+            self._chain_ok = False
+            self._broken_at = idx
+            self._broken_seq = _seq_of(ev)
+            self._break_reason = reason
+
+    def _absorb(self, ev: dict) -> None:
+        """Append one parsed event to the cache and extend the chain state."""
+        idx = len(self._events)
+        self._events.append(ev)
+        self._parse_count += 1
+        seq = _seq_of(ev)
+        if seq is not None:
+            self._seq = max(self._seq, seq)
+        chained = ("prev_hash" in ev) or ("hash" in ev)
+        if idx == 0 and not chained:
+            self._legacy = True
+            self._head_hash = GENESIS_HASH
+            return
+        if self._legacy:
+            if chained:
+                self._mark_broken(idx, ev,
+                                  "chained event appended to a legacy log")
+            return
+        if "prev_hash" not in ev or "hash" not in ev:
+            self._mark_broken(idx, ev,
+                              "chain fields missing (mixed or forged event)")
+        elif ev.get("prev_hash") != self._head_hash:
+            self._mark_broken(idx, ev,
+                              "prev_hash mismatch (event inserted/reordered)")
+        elif event_hash(ev) != ev.get("hash"):
+            self._mark_broken(idx, ev,
+                              "event hash mismatch (content tampered)")
+        if isinstance(ev.get("hash"), str):
+            # Follow the stored link even after a break: subsequent events are
+            # judged against what is on disk, not against our expectation.
+            self._head_hash = ev["hash"]
+
+    def _prefix_signature(self, n: int):
+        """sha256 of the first n bytes (n bounded by the consumed prefix)."""
+        if n <= 0:
+            return hashlib.sha256(b"").hexdigest()
+        try:
+            with open(self.path, "rb") as f:
+                return hashlib.sha256(f.read(n)).hexdigest()
+        except OSError:
+            return None
+
+    def _record_prefix(self) -> None:
+        """Extend the stable-prefix fingerprint to min(4096, consumed bytes).
+
+        Only ever covers bytes we have already consumed, so normal appends
+        (which grow the file past the recorded prefix) cannot invalidate it;
+        an in-place rewrite of the consumed region changes it and forces a
+        full re-read.
+        """
+        if self._offset <= self._prefix_len or self._prefix_len >= 4096:
+            return
+        new_len = min(4096, self._offset)
+        sig = self._prefix_signature(new_len)
+        if sig is not None:
+            self._prefix_len, self._prefix_sig = new_len, sig
+
+    def _sync(self) -> list[dict]:
+        """Read and absorb only the file tail appended since the last call."""
+        if not self.path.exists():
+            if self._events or self._offset or self._file_id is not None:
+                self._reset()
+            return self._events
+        try:
+            st = self.path.stat()
+        except OSError:
+            return self._events
+        ident = (st.st_dev, st.st_ino)
+        reset = False
+        if self._file_id is not None and ident != self._file_id:
+            reset = True            # replaced (atomic rename / new inode)
+        elif st.st_size < self._offset:
+            reset = True            # truncated
+        elif self._prefix_len and self._prefix_sig is not None:
+            if self._prefix_signature(self._prefix_len) != self._prefix_sig:
+                reset = True        # consumed region rewritten in place
+        if reset:
+            self._file_id = None
+            self._prefix_len = 0
+            self._prefix_sig = None
+            self._reset()
+        if self._file_id is None:
+            self._file_id = ident
+        if st.st_size <= self._offset:
+            self._record_prefix()
+            return self._events
+        with open(self.path, "rb") as f:
+            f.seek(self._offset)
+            chunk = f.read()
+        pos = 0
+        consumed = 0
+        n = len(chunk)
+        while pos < n:
+            nl = chunk.find(b"\n", pos)
+            has_nl = nl != -1
+            end = (nl + 1) if has_nl else n
+            raw = chunk[pos:nl] if has_nl else chunk[pos:]
+            text = raw.decode("utf-8", errors="replace").strip()
+            if not text:
+                consumed = end
+                pos = end
+                continue
+            try:
+                ev = json.loads(text)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                consumed = end
+                pos = end
+                if not has_nl:
+                    # Incomplete final line (crash mid-write): skip it but do
+                    # NOT consume it, so a later completed write is still read.
+                    consumed = chunk.rfind(b"\n", 0, n) + 1 if b"\n" in chunk else 0
+                    break
+                continue
+            if isinstance(ev, dict):
+                self._absorb(ev)
+            consumed = end
+            pos = end
+        self._offset += consumed
+        self._record_prefix()
+        return self._events
+
+    # ---- public API ----
     def emit(self, phase: str, kind: str, payload: dict | None = None) -> dict:
+        self._sync()  # another instance may have appended since our last look
         self._seq += 1
         ev = {"seq": self._seq, "ts": time.time(), "phase": phase, "kind": kind,
               "payload": payload or {}}
-        with open(self.path, "a") as f:
-            f.write(json.dumps(ev, ensure_ascii=False) + "\n")
+        if not self._legacy:
+            ev["prev_hash"] = self._head_hash
+            ev["hash"] = event_hash(ev)
+        # A crashed writer may have left an unterminated fragment; terminate it
+        # so this event starts on its own (invalid) line instead of being
+        # concatenated into it. The fragment is skipped by replay either way.
+        sep = ""
+        try:
+            if self.path.exists() and self.path.stat().st_size > 0:
+                with open(self.path, "rb") as f:
+                    f.seek(-1, os.SEEK_END)
+                    if f.read(1) != b"\n":
+                        sep = "\n"
+        except OSError:
+            sep = ""
+        line = sep + json.dumps(ev, ensure_ascii=False) + "\n"
+        with open(self.path, "a", encoding="utf-8") as f:
+            f.write(line)
+        try:
+            self._offset = self.path.stat().st_size
+        except OSError:
+            self._offset += len(line.encode("utf-8"))
+        self._record_prefix()
+        self._absorb(ev)
         return ev
 
-    def replay(self):
-        if not self.path.exists():
-            return []
-        out = []
-        with open(self.path) as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    try:
-                        out.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        continue  # torn write during crash; skip, keep replaying
-        return out
+    def replay(self, strict: bool = False):
+        """All events (full list contract preserved); reads only the new tail.
+
+        strict=True raises EventChainError instead of returning events from a
+        chained log that failed verification.
+        """
+        self._sync()
+        if strict and not self._chain_ok:
+            raise EventChainError(self.integrity())
+        return list(self._events)
+
+    def integrity(self) -> dict:
+        """Cached chain state (updated by the incremental sync)."""
+        self._sync()
+        return {"ok": self._chain_ok, "legacy": self._legacy,
+                "total": len(self._events), "broken_at": self._broken_at,
+                "broken_seq": self._broken_seq, "reason": self._break_reason,
+                "head_hash": self._head_hash}
+
+    def verify_chain(self) -> dict:
+        """Authoritative fresh scan of the file on disk (not the cache)."""
+        try:
+            raw = self.path.read_bytes()
+        except OSError:
+            raw = b""
+        return _verify_events(_parse_event_lines(raw))
 
 
 class RunState:
@@ -528,7 +813,8 @@ def _claim_or_owned(ws: Path) -> bool:
 
 
 def recover(log: EventLog, rs: RunState, ws: Path) -> str:
-    """Startup recovery protocol. Returns: fresh | resume | completed | wait.
+    """Startup recovery protocol. Returns: fresh | resume | completed | wait |
+    integrity_broken.
 
     Process death mid-run => stale lock => `running` status is stale, replay
     decides the resume point (dangling boundaries are redone). The lock is now
@@ -536,10 +822,25 @@ def recover(log: EventLog, rs: RunState, ws: Path) -> str:
     on the same crashed workspace cannot both return "resume" (the second gets
     "wait"). Mirrors SciDis: `interrupted` runs recover after process failure;
     DeepScientist: events are replayable, so the log outranks any snapshot.
+
+    v1.7.4: the hash chain is verified BEFORE any state is rebuilt. A chained
+    log with a missing/mismatched link (a forged or edited event) is never
+    trusted: the run is marked paused_blocked with
+    reason_code=event_log_integrity_broken and "integrity_broken" is returned.
+    Legacy chainless logs (pre-v1.7.4) verify as `legacy` and proceed.
     """
     ws = Path(ws)
     if not rs.data:
         return "fresh" if _claim_or_owned(ws) else "wait"
+    integrity = log.verify_chain()
+    if not integrity.get("ok", True):
+        rs.status = "paused_blocked"
+        rs.update(reason_code="event_log_integrity_broken")
+        try:
+            rs.write()
+        except Exception:
+            pass
+        return "integrity_broken"
     if rs.status in ("completed", "killed"):
         return "completed"
 
@@ -589,7 +890,9 @@ def open_checkpoint_requests(ws: Path) -> dict[str, dict]:
     PENDING_APPROVAL file therefore cannot clear a real request."""
     out: dict[str, dict] = {}
     try:
-        events = EventLog(ws).replay()
+        log = EventLog(ws)
+        events = log.replay()
+        trust_clears = log.verify_chain().get("ok", True)
     except Exception:
         return out
     for ev in events:
@@ -602,6 +905,11 @@ def open_checkpoint_requests(ws: Path) -> dict[str, dict]:
         if kind == "checkpoint_requested":
             out[ck] = ev
         elif kind in ("checkpoint_cleared", "checkpoint_skipped"):
+            # v1.7.4 fail-closed: on a broken hash chain the clear/skip
+            # evidence itself is untrustworthy, so every issued request stays
+            # open (a forged clear cannot close a real epoch).
+            if not trust_clears:
+                continue
             cur = out.get(ck)
             if cur is None:
                 continue

@@ -17,7 +17,7 @@ from . import skills_pack
 from .approvals import Approvals
 from .execution import dispatch, group_status, plan_device, sandbox_cmd, worker_pool
 from .gates import run_py
-from .pipeline import Kernel
+from .pipeline import DispatchError, Kernel
 from .state import EventLog, LockHeldError, RunState, recover
 
 
@@ -91,6 +91,10 @@ def main(argv=None) -> int:
 
     p_sub = sub.add_parser("submit", help="accept an evolved skill patch into skill-extensions")
     p_sub.add_argument("--workspace", type=Path, required=True)
+    p_sub.add_argument("--direct", action="store_true",
+                       help="commit onto the current branch instead of an "
+                            "evolve/<run_id> review branch (unattended CI; "
+                            "SCIFORGE_EVOLVE_DIRECT=1 is equivalent)")
     p_sub.add_argument("run_id")
 
     p_dr = sub.add_parser("daily", help="evolution/progress daily digest -> text (S17)")
@@ -272,6 +276,20 @@ def cmd_run(a) -> int:
     except LockHeldError as e:
         print(json.dumps({"status": "blocked", "reason": "workspace_locked",
                           "error": str(e)}, indent=2))
+        return 2
+    except DispatchError as e:
+        # start() raises DispatchError for the three non-resumable conditions
+        # (workspace held, broken event chain, already-terminal run). Without
+        # this the kernel's JSON contract degraded into a raw traceback — worst
+        # for the integrity case, which is exactly the one a caller must be
+        # able to read mechanically.
+        msg = str(e)
+        reason = ("event_log_integrity_broken" if "hash chain is broken" in msg
+                  else "workspace_locked" if "holds this workspace" in msg
+                  else "run_not_resumable" if "run already" in msg
+                  else "dispatch_error")
+        print(json.dumps({"status": "blocked", "reason": reason,
+                          "error": msg}, indent=2, ensure_ascii=False))
         return 2
     if a.loop:
         r = k.run(max_steps=a.max_steps)

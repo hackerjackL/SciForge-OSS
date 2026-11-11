@@ -1,7 +1,7 @@
 # SciForge-OSS — Claude Code Project Memory
 
 ## What this is
-Skill-driven research runtime (v1.7.3): Skill Library (pure Markdown, `skills/`) + Runtime Kernel (`kernel/`, Python ≥3.10 stdlib-only) + RSI evolution. Two modes:
+Skill-driven research runtime (v1.7.4): Skill Library (pure Markdown, `skills/`) + Runtime Kernel (`kernel/`, Python ≥3.10 stdlib-only) + RSI evolution. Two modes:
 - **Skill mode**: `/auto-pipeline "Q: ..."` — read `skills/orchestrator/auto-pipeline/SKILL.md`, execute the 26-node DAG in-conversation (pointer-load: load only declared references).
 - **Kernel mode**: `node bin/sciforge.js run --workspace ./runs/Q001 --problem "..." --host claude` — the kernel dispatches phase bundles to you and expects a final JSON verdict `{"verdict": "PASS|WARN|FAIL|BLOCKED|NOT_APPLICABLE|ERROR", "artifacts": [...], "notes": "..."}`.
 
@@ -13,7 +13,7 @@ Skill-driven research runtime (v1.7.3): Skill Library (pure Markdown, `skills/`)
    - Run `python3 scripts/gate_all.py <workspace>` at every Mode A boundary for one aggregated report with an explicit `UNPROTECTED` list; full matrix: `skills/orchestrator/auto-pipeline/SKILL.md` §"Mode A vs Mode B: Guarantee Matrix".
 3. Negative-result discipline: only `polarity: positive` claims enter contributions/abstract; failures go to Limitations or trigger KILL-or-PIVOT. Never package a failure as a contribution.
 4. SCI body voice (writing-principles §0.6): zero apologies, zero defensive framing in body text; hedges only as bounded regime statements; Limitations = regime ledger, not confession. `leakage_scan.py` class K enforces this.
-5. Every citation passes 3-layer verification (arXiv + CrossRef + Semantic Scholar) — zero fabricated references.
+5. Every citation passes multi-layer verification: arXiv existence + CrossRef DOI/metadata are mandatory; Semantic Scholar fuzzy match is Layer 3 and runs whenever reachable (send `SEMANTIC_SCHOLAR_API_KEY`/`S2_API_KEY` as `x-api-key` when configured). When Layer 3 is unavailable (429/quota, network, no credentials), the audit MUST degrade to two layers and disclose it in `CITATION_AUDIT.json` (`verification_depth: "2-layer-degraded"` + `layers_verified` + `layer3_status` + `layer3_detail`; full vocabulary in `skills/shared-references/schemas/CITATION_AUDIT.schema.json`) — claiming 3 layers that did not run is a fabricated audit record. Zero fabricated references.
 6. Figures only via `scripts/plotting/render_figure.py` (15 engines incl. declarative recipes, Nature A1–A11 audit).
 7. 3-round fallback cap per failure type; then BLOCKED + surface to the human.
 
@@ -27,6 +27,10 @@ Skill-driven research runtime (v1.7.3): Skill Library (pure Markdown, `skills/`)
 
 ## Gotchas
 - Workspace `.sciforge/` dirs are gitignored (exception: `fixtures/e2e_minimal/.sciforge/`).
-- Version 1.7.3 is pinned across package.json + CITATION.cff + both READMEs + all 29 SKILL.md frontmatters (ci_check enforces the first four).
-- Kernel needs Python ≥3.10 (use `.venv/bin/python`); the system python3.9 cannot run it.
+- Version 1.7.4 is pinned across package.json + CITATION.cff + both READMEs + all 29 SKILL.md frontmatters (ci_check enforces the first four).
+- Kernel needs Python ≥3.10 (use `.venv/bin/python`); the system python3.9 cannot run it. If `.venv/bin/python` is a broken symlink (e.g. after removing the interpreter it pointed at), `scripts/ci_check.py`'s environment leg reports it with a fix command.
 - When the kernel dispatches to you (`claude -p`), respond with ONLY the JSON verdict object as your final message.
+- **`events.ndjson` is hash-chained (v1.7.4)**: every event carries `prev_hash` + `hash`. Editing or appending to it by hand breaks the chain, and `recover()` then refuses to rebuild the run (`paused_blocked`, `reason_code=event_log_integrity_broken`). Never hand-edit an event log, and never regenerate `fixtures/e2e_minimal/.sciforge/events.ndjson` by hand — drive the real `Kernel` with `host="mock"` and copy the output. Pre-v1.7.4 chainless logs are accepted as `legacy`.
+- Run flags (`human_skip`, `test_mode`) are read from the append-only `run_started` event, **not** from RUNSTATE.json — editing the snapshot cannot self-approve a human checkpoint.
+- **Never run `scripts/gate_all.py` (or `s2_audit`/`integrity_monitor`) directly against `fixtures/e2e_minimal`**: they write side-effect artifacts (`AUDIT_TRAIL.json`, `INTEGRITY_MONITOR.json`) into the checked-in fixture. `tests/test_e2e_smoke.py` asserts the fixture stays clean, and `.gitignore` excludes those two names. Copy the fixture to a tmp dir first.
+- The review panel's independence is disclosed, not enforced: with the shipped `providers.json` (review/adjudication/grading all on one model) `REVIEW_PANEL.json.panel_independence.status` is `homogeneous_degraded`. Point those roles at different backends to get `heterogeneous`.

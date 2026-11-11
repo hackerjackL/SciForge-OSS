@@ -84,7 +84,7 @@ Every OSS paper draft with numerical or experimental verification follows this c
 | **5. Results** | Verification outcomes (from `/logic-verification`), numerical sanity checks (from `/dynamic-sandbox`), figures (from `/unified-plotting`) | 2-4 pages |
 | **6. Discussion** | What the result means, limitations, open questions | 0.5-1 page |
 | **7. Conclusion** | One-paragraph restatement of contribution + forward look | 0.25 page |
-| **References** | `.bib` only from `literature/references.bib` (3-layer-verified) | n/a |
+| **References** | `.bib` only from `literature/references.bib` (multi-layer-verified) | n/a |
 | **Appendix** (optional) | Long proofs, extended numerical tables, code listings | varies |
 
 ### 1b. Theory-Only Structure (theory_only)
@@ -101,7 +101,7 @@ For pure theory problems (no experiments, no numerical verification), use this s
 | **4. Proofs** | Full derivations (short proofs inline, long proofs in Appendix) | 2-6 pages |
 | **5. Discussion** | Implications, limitations, open problems, connections to related work | 0.5-1 page |
 | **6. Conclusion** | One-paragraph restatement of contribution + forward look | 0.25 page |
-| **References** | `.bib` only from `literature/references.bib` (3-layer-verified) | n/a |
+| **References** | `.bib` only from `literature/references.bib` (multi-layer-verified) | n/a |
 | **Appendix** (optional) | Long proofs, lemmas, extended derivations | varies |
 
 **Key differences from standard structure:**
@@ -158,7 +158,7 @@ For pure theory problems (no experiments, no numerical verification), use this s
 ### 2.6 Citation standards
 
 - **Only** `\cite{key}` (numeric default) or `\citep{}`/`\citet{}` (author-year, if user requests) — never both in one paper
-- Every `key` must exist in `literature/references.bib` (3-layer-verified per `citation-discipline.md`)
+- Every `key` must exist in `literature/references.bib` (multi-layer-verified per `citation-discipline.md`: arXiv existence + CrossRef DOI/metadata mandatory, Semantic Scholar Layer 3 when reachable)
 - **Never** `\cite{forthcoming}`, `\cite{TODO}` — no unverified references
 - Reference list is auto-generated from `.bib` via `\bibliography{references}` — never hand-edit the references section
 
@@ -209,5 +209,5 @@ The agent applies these conventions at runtime based on the problem's domain —
 
 - [`venue-profiles.md`](venue-profiles.md) — the single elsarticle template spec (no venue families)
 - [`writing-principles.md`](writing-principles.md) — general academic writing style (universal, copied from main SciForge)
-- [`citation-discipline.md`](citation-discipline.md) — 3-layer anti-hallucination citation verification
+- [`citation-discipline.md`](citation-discipline.md) — multi-layer anti-hallucination citation verification
 - [`color-themes.md`](color-themes.md) — dopamine palette + Layer 2 data-encoding colormaps

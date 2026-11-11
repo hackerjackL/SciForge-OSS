@@ -10,7 +10,10 @@ smoke). prose said MANDATORY; here the kernel checks it at the 6c boundary.
 v1.7.3 upgrade — a JSON file claiming PASS is no longer sufficient:
   1. record checks (unchanged): every experiments/full/**/DISPATCH.json /
      STATUS.json group must have a sibling {experiment_id}.SMOKE.json with
-     smoke_result=PASS and status_row_written=true.
+     smoke_result=PASS and status_row_written=true. A smoke record belongs to
+     at most one group; a root-level record with an un-related name is only a
+     catch-all for single-group runs (v1.7.4), so one shared file cannot
+     launder several groups.
   2. freshness cross-validation: the smoke record should carry the tested
      script's content hash (`script` + `script_sha256`) and execution time.
      A script whose current bytes differ from the recorded hash is a STALE
@@ -141,24 +144,50 @@ def _dispatch_records(ws: Path) -> list[dict]:
 
 
 def _find_smoke(group: str, group_dir: Path, full: Path,
-                smokes: list[dict], n_groups: int = 1) -> tuple[dict | None, list[str]]:
+                smokes: list[dict], n_groups: int = 1,
+                consumed: set[Path] | None = None) -> tuple[dict | None, list[str]]:
     """Prefer a smoke living beside its group. A single global smoke may cover
     a single-group run (disclosed); with several dispatched groups every group
-    needs its own sibling smoke — one file must not launder the others."""
+    needs its own sibling smoke — one file must not launder the others.
+
+    A record belongs to at most one group. `consumed` carries the records
+    already assigned in this gate run (defence in depth), and the un-named
+    root-level catch-all is restricted to single-group runs: in a multi-group
+    run a root-level file is only admitted when its name binds it to this
+    group (`<group>.SMOKE.json`), so one shared record cannot satisfy two
+    groups. The `_ungrouped` shape (results directly under experiments/full/)
+    stays legal because there the group dir IS the root and the sibling rules
+    apply first.
+    """
+    taken = consumed if consumed is not None else set()
+
+    def take(rec: dict, notes: list[str]) -> tuple[dict, list[str]]:
+        taken.add(rec["path"])
+        return rec, notes
+
     for rec in smokes:
+        if rec["path"] in taken:
+            continue
         if rec["path"].parent == group_dir and rec["path"].name == f"{group}.SMOKE.json":
-            return rec, []
+            return take(rec, [])
     for rec in smokes:
+        if rec["path"] in taken:
+            continue
         if rec["path"].parent == group_dir:
-            return rec, []
+            return take(rec, [])
     for rec in smokes:
+        if rec["path"] in taken:
+            continue
         if rec["path"].parent == full and rec["path"].name == f"{group}.SMOKE.json":
-            return rec, []
-    for rec in smokes:
-        if rec["path"].parent == full:
-            return rec, []
-    if len(smokes) == 1 and n_groups <= 1:
-        return smokes[0], ["smoke_matched_by_fallback"]
+            return take(rec, [])
+    if n_groups <= 1:
+        for rec in smokes:
+            if rec["path"] in taken:
+                continue
+            if rec["path"].parent == full:
+                return take(rec, [])
+    if len(smokes) == 1 and n_groups <= 1 and smokes[0]["path"] not in taken:
+        return take(smokes[0], ["smoke_matched_by_fallback"])
     return None, []
 
 
@@ -465,6 +494,7 @@ def check(ws: Path, *, execute: bool = True, timeout: float = 90.0,
     executions = 0
     started = time.monotonic()
     group_docs: list[dict] = []
+    consumed_smokes: set[Path] = set()  # one smoke record -> at most one group
 
     for g in groups or ["_ungrouped"]:
         group_dir = full / g if g != "_ungrouped" else full
@@ -473,7 +503,8 @@ def check(ws: Path, *, execute: bool = True, timeout: float = 90.0,
                "freshness": None, "execution": None, "problems": [],
                "notes": []}
         smoke, match_notes = _find_smoke(label, group_dir, full, smokes,
-                                        n_groups=len(groups))
+                                        n_groups=len(groups),
+                                        consumed=consumed_smokes)
         doc["notes"] += match_notes
         doc["problems"] += match_notes
         if smoke is None:
