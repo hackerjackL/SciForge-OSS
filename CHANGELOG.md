@@ -92,6 +92,19 @@
 - **补齐两个真实 run 缺口，全门首次零 FAIL**：用 kernel 自己的 `ladder.decide`/`relative_gain` 与 `ablation.ablcritic` 从**真实数据**生成 `S2_LADDER.json`/`ABLATION_LEDGER.json`（不手算增益、不手判 critic）。阶梯：污染数据 n=100 上 trim 相对 mean-percentile incumbent，subset 与 full 同向 GOOD，gain +2.29%；**高斯臂另行评估判 BAD**（percentile 0.9482 < t 区间 0.9538），作为负结果保留不晋级。消融重跑取真数据（84 单元）后 5 个计划：studentized/BCa/nested 三个"高阶修正"全部 REFINE（0.8673/0.8447/0.8720 均差于 incumbent 0.9087），median/trim 两个稳健目标 GOOD。**`gate_all` 终态：PASS 10 / WARN 2 / SKIP 16 / UNPROTECTED 2 / INFO 1，零 FAIL**；剩余 2 个 UNPROTECTED 是 Mode A 结构性限制（REP/NODES 由内核产出），如实披露而非假装通过。
 - **785 passed，ci_check PASS**。
 
+### 追加三：评审面板真异构（版本仍 1.7.4）——三个真实阻塞逐一打通
+
+上一轮把"同模型三次采样"如实披露为 `homogeneous_degraded`，但披露不等于解决：分歧度仍只反映采样噪声，而 `reviewloop` 的阈值 8 与 `adjudicate` 的 `spread>=4` 都建立在它之上。本轮真接了第二个 provider 并跑通真实双模型评审，过程中撞出**三个此前无人发现的阻塞**——每一个都足以让异构接线静默失败。
+
+- **阻塞一：reasoning 模型的 thinking 块污染 JSON**（`providers.py`）。原提取逻辑对**所有非 text 块**一律 `json.dumps(b.get("input", {}))`；thinking 块没有 `input` 键，于是被序列化成字面量 `{}` 拼进正文——评审的 `{"scores":…}` 变成 `{}{"scores":…}`，`json.loads` 直接 `Extra data` 失败。这是实测网关响应发现的（`content[0]` 是 thinking，我最初只取 `[0]` 拿到空串）。新增 `_anthropic_text()`：只收 `text`，`tool_use` 保留其 `input`（结构化输出走这条），thinking/redacted_thinking/未知类型一律忽略。**不修它，接第二个 provider 只会让所有评审解析失败。**
+- **阻塞二：协议由 backend 名字决定**（`providers.py`）。`_raw_call` 里 `if name == "anthropic"` 是唯一判据，任何别名 backend 都被按 OpenAI schema 发到 `/chat/completions`。而按 provider id 路由的网关需要**多个 Anthropic 协议 backend 各用不同名字**——它们全部 404。新增 `backend.protocol` 显式声明（`anthropic`/`openai`），缺省仍按名字推断，既有配置零改动。
+- **阻塞三：`SCIFORGE_MODEL` 抹平所有角色**（`providers.py`）。宿主上报的模型原先无条件覆盖每个 role，把刻意配置的异构面板重新压回同一模型——正是面板要逃离的状态。改为跳过 `pinned: true` 的角色；未 pin 的仍享受该便利默认。
+- **默认 personas 自动分散**（`review.py`）：`_default_personas` 三个 lens 原先全用 `role="review"`，所以**光配 backend 不够**——三个 persona 仍解析到同一模型。现在当配置确实把 `review`/`reasoning`/`grading` 映射到不同 `(backend, model)` 时自动分散；全部同目标时三者仍留在 `review`（shipped 单 backend 默认的行为与成本零变化，有测试锁定）。`adjudication` **永不**作为 reviewer lens——否则 chair 审自己的案子。
+- **可选启用，默认不变**：新增 `SCIFORGE_PROVIDERS` 环境变量选择替代配置文件 + `kernel/config/providers.heterogeneous.example.json` 示例（端点为占位符，**不硬编码任何本机 provider id**）。示例的 comment 写清四条要求：persona 必须用不同 role、adjudication 必须区别于所有 reviewer、非 `anthropic` 名的 Anthropic 协议 backend 必须显式声明 protocol、pinned 豁免宿主覆盖。
+- **真实端到端验证（非仅配置检测）**：用两个实测可用的 provider 跑真实评审——`reviews_n=2 accepted_n=2`，usage_log 证实两次调用落在不同 backend/model，`spread` 触发 `ADJUDICATE_REQUIRED`。两个模型独立给出的 fatal 相当专业：**"0.9254 vs 0.9466 在 400 次重复下可能落在 Monte Carlo 噪声内，未报 CI"**、**"均值 CI 与截尾均值 CI 在污染下针对不同估计量"**（后者是先前的分析都没点透的估计量歧义）。另经 `SCIFORGE_PROVIDERS` 走完整路径复验：自动分配 role → 两模型各出分 → spread 19.75 → 仲裁。
+- `tests/test_provider_heterogeneity.py`（17 项，全部离线 stub，CI 无需网关与凭据）：thinking 不污染/tool_use 保留/未知块忽略、protocol 显式与缺省与非法值回退、pinned 豁免与未 pin 仍覆盖、双 backend 面板 heterogeneous 且 chair 独立、单 backend 仍如实 degraded、默认 personas 两种配置下的行为、chair 永不兼任 reviewer、chair 撞模型时如实披露、`SCIFORGE_PROVIDERS` 选路。**803 passed，ci_check PASS**。
+- **过程中的自我纠错（记档）**：第一版 stub 把 `adjudication` 当作 reviewer persona，于是 `adjudicator_distinct=False` ——那是**代码判对了、测试写错了**；读 `panel_independence` 确认 chair 是独立角色后改为真实拓扑（2 reviewer 各一 backend + 独立 chair）。
+
 ### 记档未做（诚实清单）
 - **EventLog.emit 未加跨进程 flock**：单进程内已用 sync-before-emit 保证链接正确；若未来 daemon 允许两个进程写同一 workspace 日志，会因 prev_hash 分叉被判断裂（**会显式报错而非静默通过**），需要时再加锁。
 - **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。

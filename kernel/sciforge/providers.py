@@ -35,7 +35,11 @@ class ProviderError(RuntimeError):
 
 
 def load_config(path: str | None = None) -> dict:
-    p = path or DEFAULT_CONFIG_PATH
+    """Provider config. SCIFORGE_PROVIDERS selects an alternate file so a
+    heterogeneous panel (several backends, pinned roles) can be opted into
+    without editing the shipped single-backend default — the default must keep
+    working on a box that only has one credential."""
+    p = path or os.environ.get("SCIFORGE_PROVIDERS") or DEFAULT_CONFIG_PATH
     if not os.path.exists(p):
         return {}
     with open(p) as f:
@@ -54,6 +58,30 @@ class CallRecord:
         return {k: getattr(self, k) for k in self.__slots__}
 
 
+def _anthropic_text(blocks: list) -> str:
+    """Concatenate the assistant's text, ignoring non-text blocks.
+
+    Reasoning models return a `thinking` block before the `text` block. The
+    old extraction serialised every non-text block as `json.dumps(b["input"])`,
+    which for a thinking block (no `input` key) emitted a literal `{}` into the
+    payload — so a reviewer's `{"scores": ...}` arrived as `{}{"scores": ...}`
+    and json.loads failed with "Extra data". Measured against a live gateway
+    while wiring a second reviewer backend: every review would have failed to
+    parse. Only `tool_use` carries a structured `input` worth keeping.
+    """
+    out = []
+    for b in blocks:
+        if not isinstance(b, dict):
+            continue
+        kind = b.get("type")
+        if kind == "text":
+            out.append(b.get("text", ""))
+        elif kind == "tool_use":
+            out.append(json.dumps(b.get("input", {})))
+        # thinking / redacted_thinking / anything else: not part of the answer
+    return "".join(out)
+
+
 class Providers:
     """Routes a role -> backend/model, executes chat completion, returns (text, usage)."""
 
@@ -69,10 +97,17 @@ class Providers:
         base = os.environ.get("ANTHROPIC_BASE_URL")
         if base:
             self.backends.setdefault("anthropic", {})["base_url"] = base.rstrip("/")
-        # model override: SCIFORGE_MODEL (host-reported current model) applies to all roles
-        for r in self.roles.values():
-            if isinstance(r, dict) and os.environ.get("SCIFORGE_MODEL"):
-                r["model"] = os.environ["SCIFORGE_MODEL"]
+        # model override: SCIFORGE_MODEL (host-reported current model) is a
+        # convenience default, not a mandate. A role that pins its own backend
+        # is an explicit routing decision — flattening it would silently undo a
+        # deliberately heterogeneous review panel (three personas plus the
+        # chair all collapsing onto the host's model, which is exactly the
+        # homogeneous_degraded state the panel is supposed to escape).
+        override = os.environ.get("SCIFORGE_MODEL")
+        if override:
+            for r in self.roles.values():
+                if isinstance(r, dict) and not r.get("pinned"):
+                    r["model"] = override
         # host mode (BUG-7 fix): no providers configured, OR the configured
         # backends are declared-but-unusable (no key env, no gateway) -> the host
         # agent (claude/codex/manual) does the LLM work. A shipped providers.json
@@ -131,7 +166,8 @@ class Providers:
                     lim.acquire(key_limited, timeout_s=120)
                 except TimeoutError as te:
                     raise ProviderError(f"rate-limit queue: {te}") from te
-                text, usage = self._raw_call(backend_name, base, key, model, system, prompt,
+                text, usage = self._raw_call(self._protocol(backend_name), base, key,
+                                              model, system, prompt,
                                               max_tokens, temperature, schema)
                 rec = CallRecord(role=role, backend=backend_name, model=model,
                                  input_tokens=usage.get("input_tokens", 0),
@@ -170,6 +206,23 @@ class Providers:
         self.usage_log.append(rec.as_dict())
         raise ProviderError(f"role={role} backend={backend_name} failed after {retries} retries: {last_err}")
 
+    def _protocol(self, backend_name: str) -> str:
+        """Wire protocol for a backend: explicit `protocol`, else by name.
+
+        The name used to be the only signal, so any backend not literally
+        called "anthropic" was driven with the OpenAI schema. A heterogeneous
+        panel needs several Anthropic-protocol backends under distinct names
+        (one per gateway provider id); those silently POSTed /chat/completions
+        and 404'd. Declaring `protocol` keeps the routing explicit while
+        existing configs keep working unchanged.
+        """
+        be = self.backends.get(backend_name)
+        if isinstance(be, dict):
+            proto = str(be.get("protocol") or "").lower()
+            if proto in ("anthropic", "openai"):
+                return proto
+        return "anthropic" if backend_name == "anthropic" else "openai"
+
     def _raw_call(self, name, base, key, model, system, prompt, max_tokens, temperature, json_schema):
         t0 = time.time()
         if name == "anthropic":
@@ -185,8 +238,7 @@ class Providers:
             req = urllib.request.Request(f"{base}/v1/messages", data=json.dumps(body).encode(), headers=headers)
             with urllib.request.urlopen(req, timeout=600) as r:
                 data = json.loads(r.read())
-            text = "".join(b.get("text", "") if b["type"] == "text" else
-                           json.dumps(b.get("input", {})) for b in data["content"])
+            text = _anthropic_text(data.get("content") or [])
             u = data.get("usage", {})
             usage = {"input_tokens": u.get("input_tokens", 0),
                      "output_tokens": u.get("output_tokens", 0),

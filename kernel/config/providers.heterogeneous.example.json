@@ -1,0 +1,36 @@
+{
+  "comment": "Opt-in heterogeneous review panel. Activate with SCIFORGE_PROVIDERS=kernel/config/providers.heterogeneous.example.json (copy it first and fill in real endpoints). The shipped providers.json stays single-backend so a box with one credential keeps working; this file exists because a panel whose three personas and chair all resolve to one model reports homogeneous_degraded, and its spread then measures sampling noise rather than reviewer disagreement. Requirements: (1) each reviewer persona must use a DIFFERENT role, and those roles must map to different backend/model pairs - giving two personas the same role gives them the same model no matter how many personas you declare; (2) adjudication must differ from every reviewer role, otherwise the chair adjudicates its own disagreement (adjudicator_distinct=false); (3) set protocol explicitly when a backend speaks Anthropic but is not named 'anthropic' - name-only inference sends it to /chat/completions and it 404s; (4) pinned:true exempts a role from the SCIFORGE_MODEL host override, which would otherwise flatten the panel back onto one model. Verify with: python -c \"from sciforge.providers import Providers; from sciforge.review import panel_independence, _default_personas; p=Providers(); print(panel_independence(p, _default_personas(p)))\" - expect status=heterogeneous, distinct_models>=2, adjudicator_distinct=true. Endpoints below are placeholders: a gateway that routes by provider id needs one backend entry per provider, each with its own base_url.",
+  "backends": {
+    "reviewer_a": {
+      "base_url": "https://api.anthropic.com",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "protocol": "anthropic"
+    },
+    "reviewer_b": {
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "protocol": "openai"
+    },
+    "chair": {
+      "base_url": "http://127.0.0.1:11434/v1",
+      "api_key_env": "",
+      "protocol": "openai"
+    }
+  },
+  "roles": {
+    "default": {"backend": "reviewer_a", "model": "claude-opus-4-8", "pinned": true},
+    "ideation": {"backend": "reviewer_a", "model": "claude-opus-4-8", "pinned": true},
+    "reasoning": {"backend": "reviewer_b", "model": "gpt-5.5", "pinned": true},
+    "grading": {"backend": "reviewer_b", "model": "gpt-5.5", "pinned": true},
+    "review": {"backend": "reviewer_a", "model": "claude-opus-4-8", "pinned": true},
+    "adjudication": {"backend": "chair", "model": "qwen3.8-max", "pinned": true},
+    "retrieval": {"backend": "reviewer_a", "model": "claude-sonnet-4-6", "pinned": true},
+    "coding": {"backend": "reviewer_a", "model": "claude-sonnet-4-6", "pinned": true},
+    "writing": {"backend": "reviewer_a", "model": "claude-sonnet-4-6", "pinned": true}
+  },
+  "personas_note": "review._default_personas assigns role='review' to all three lenses. To spread them across backends, pass explicit personas to review_paper, e.g. [{'id':'methods','role':'review',...},{'id':'novelty','role':'reasoning',...},{'id':'repro','role':'grading',...}]. Declaring more personas without varying the role does not create model independence.",
+  "pricing_usd_per_mtok": {
+    "claude-opus-4-8": {"input": 15.0, "output": 75.0, "cache_read": 1.5},
+    "claude-sonnet-4-6": {"input": 3.0, "output": 15.0, "cache_read": 0.3}
+  }
+}

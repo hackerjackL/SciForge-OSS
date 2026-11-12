@@ -275,12 +275,38 @@ def review_paper(providers, paper_text: str, *, personas: list[dict] | None = No
 
 
 def _default_personas(providers) -> list[dict]:
-    # three lenses: methods hawk, novelty hawk, reproducibility hawk (bias-forced diversity)
-    return [
-        {"id": "methods", "role": "review", "bias": "Attacked methods, statistics, confounds above all."},
-        {"id": "novelty", "role": "review", "bias": "Attacked novelty, delta vs closest prior work, overclaiming."},
-        {"id": "repro", "role": "review", "bias": "Attacked reproducibility, missing details, citation integrity."},
+    """Three lenses: methods hawk, novelty hawk, reproducibility hawk.
+
+    Bias-forced diversity alone only varies the prompt. If the config actually
+    maps other review-capable roles to different (backend, model) pairs, spread
+    the lenses across them so the panel gains real model independence without
+    the caller hand-writing personas. When every candidate role resolves to the
+    same target — the shipped single-backend default — all three stay on
+    `review`, so existing behaviour and costs are unchanged.
+    """
+    lenses = [
+        ("methods", "Attacked methods, statistics, confounds above all."),
+        ("novelty", "Attacked novelty, delta vs closest prior work, overclaiming."),
+        ("repro", "Attacked reproducibility, missing details, citation integrity."),
     ]
+    # `adjudication` is deliberately excluded: the chair must stay distinct
+    # from every reviewer, so it can never double as a reviewer lens.
+    candidates = ["review", "reasoning", "grading"]
+    seen: dict[tuple, str] = {}
+    roles: list[str] = []
+    for role in candidates:
+        t = _target_for(providers, role)
+        if not t["resolved"]:
+            continue
+        key = (t["backend"], t["model"])
+        if key in seen:
+            continue
+        seen[key] = role
+        roles.append(role)
+    if len(roles) < 2:
+        roles = ["review"]
+    return [{"id": lid, "role": roles[i % len(roles)], "bias": bias}
+            for i, (lid, bias) in enumerate(lenses)]
 
 
 def adjudicate(reviews: list[dict], *, independence: dict | None = None) -> dict:
