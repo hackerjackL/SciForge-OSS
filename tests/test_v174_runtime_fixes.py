@@ -202,3 +202,72 @@ def test_gate_all_keeps_skip_semantics_without_evidence(tmp_path):
     assert gate_all._evidence_rank(tmp_path) is None
     assert gate_all._current_rank(tmp_path) is None
     assert not gate_all._cursor_stale(tmp_path)
+
+# ---------------------------------------------------------------------------
+# 5. smoke re-execution must not mutate the evidence it audits
+# ---------------------------------------------------------------------------
+def _clobbering_smoke_ws(tmp_path: Path) -> Path:
+    """A workspace whose smoke_cmd writes RESULT.json into the group dir —
+    exactly the S01 layout that destroyed a 60-cell R=1000 result."""
+    import hashlib
+
+    g = tmp_path / "experiments" / "full" / "g1"
+    g.mkdir(parents=True)
+    real = {"stage": "full",
+            "aggregate": {f"m{i}": {"coverage": 0.95} for i in range(60)}}
+    (g / "RESULT.json").write_text(json.dumps(real))
+    src = ('import json,sys,pathlib\n'
+           'out=pathlib.Path(sys.argv[sys.argv.index("--out")+1])\n'
+           'out.mkdir(parents=True, exist_ok=True)\n'
+           '(out/"RESULT.json").write_text(json.dumps({"stage":"smoke","aggregate":{"m0":1}}))\n'
+           'print("slice ok")\n')
+    (g / "run.py").write_text(src)
+    (g / "DISPATCH.json").write_text(json.dumps({"script": "experiments/full/g1/run.py"}))
+    (g / "STATUS.json").write_text('{"state": "done"}')
+    (g / "g1.SMOKE.json").write_text(json.dumps({
+        "smoke_result": "PASS", "status_row_written": True,
+        "script": "experiments/full/g1/run.py",
+        "script_sha256": hashlib.sha256(src.encode()).hexdigest(),
+        "smoke_cmd": f"{sys.executable} experiments/full/g1/run.py "
+                     "--out experiments/full/g1",
+        "executed_at": "2026-01-01T00:00:00Z"}))
+    return tmp_path
+
+
+def test_smoke_reexec_restores_clobbered_evidence_and_fails(tmp_path):
+    """The audit must leave evidence byte-identical AND report the violation.
+
+    Silently restoring would hide a broken smoke_cmd; silently keeping the
+    slice would downgrade every downstream claim. Do both: restore, then FAIL.
+    """
+    import smoke_gate as sg
+
+    ws = _clobbering_smoke_ws(tmp_path)
+    doc = sg.check(ws, sandbox_wrap=lambda w: ["/usr/bin/env"])
+    ex = doc["groups"][0]["execution"]
+    assert doc["verdict"] == "FAIL", doc
+    assert "smoke_reexec_mutated_evidence" in ex["reason_codes"]
+    assert "experiments/full/g1/RESULT.json" in ex["mutated_evidence"]
+    after = json.loads((ws / "experiments" / "full" / "g1" / "RESULT.json").read_text())
+    assert after["stage"] == "full"
+    assert len(after["aggregate"]) == 60
+
+
+def test_smoke_reexec_with_isolated_output_passes(tmp_path):
+    """The same script pointed at a scratch dir is a legitimate smoke: no
+    evidence touched, so the gate must not invent a violation."""
+    import hashlib
+    import smoke_gate as sg
+
+    ws = _clobbering_smoke_ws(tmp_path)
+    g = ws / "experiments" / "full" / "g1"
+    rec = json.loads((g / "g1.SMOKE.json").read_text())
+    rec["smoke_cmd"] = (f"{sys.executable} experiments/full/g1/run.py "
+                        "--out .smoke-out/g1")
+    (g / "g1.SMOKE.json").write_text(json.dumps(rec))
+    before = (g / "RESULT.json").read_bytes()
+    doc = sg.check(ws, sandbox_wrap=lambda w: ["/usr/bin/env"])
+    ex = doc["groups"][0]["execution"]
+    assert "smoke_reexec_mutated_evidence" not in (ex.get("reason_codes") or [])
+    assert (g / "RESULT.json").read_bytes() == before
+    assert doc["verdict"] in ("PASS", "WARN"), doc

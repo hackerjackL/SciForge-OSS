@@ -372,6 +372,40 @@ def _sandbox_prefix(ws: Path, sandbox_wrap=None):
     return prefix
 
 
+def _evidence_files(ws: Path) -> list[Path]:
+    """Experiment evidence an audit must leave byte-identical."""
+    root = ws / "experiments"
+    if not root.is_dir():
+        return []
+    return sorted(p for p in root.rglob("*.json") if p.is_file())
+
+
+def _evidence_snapshot(ws: Path) -> dict[Path, bytes | None]:
+    return {p: p.read_bytes() for p in _evidence_files(ws)}
+
+
+def _restore_evidence(ws: Path, before: dict[Path, bytes | None]) -> list[str]:
+    """Undo any write the re-execution made under experiments/, return the list
+    of relative paths it touched (changed or newly created)."""
+    touched: list[str] = []
+    for p, blob in before.items():
+        try:
+            if not p.exists() or p.read_bytes() != blob:
+                touched.append(str(p.relative_to(ws)))
+                if blob is not None:
+                    p.write_bytes(blob)
+        except OSError:
+            continue
+    for p in _evidence_files(ws):
+        if p not in before:
+            touched.append(str(p.relative_to(ws)))
+            try:
+                p.unlink()
+            except OSError:
+                pass
+    return sorted(set(touched))
+
+
 def _invoke(ws: Path, prefix: list[str], argv: list[str], timeout: float) -> dict:
     env = dict(os.environ)
     env.setdefault("MPLBACKEND", "Agg")
@@ -608,7 +642,20 @@ def check(ws: Path, *, execute: bool = True, timeout: float = 90.0,
                 group_docs.append(doc)
                 continue
         per_timeout = max(1.0, min(float(timeout), 600.0))
+        before = _evidence_snapshot(ws)
         res = _execute(ws, argv, per_timeout, sandbox_wrap, allow_unsandboxed)
+        mutated = _restore_evidence(ws, before)
+        if mutated:
+            # An audit must never mutate the evidence it audits. A smoke_cmd
+            # whose --out points at the group directory rewrites RESULT.json
+            # with the 1-replicate slice: on the S01 real run this replaced a
+            # 60-cell R=1000 result with a 5-key R=2 smoke aggregate, silently
+            # downgrading every downstream claim. Restore, then FAIL loudly so
+            # the host isolates its smoke output instead of us hiding it.
+            res["status"] = "FAIL"
+            res["reason_codes"] = sorted(set(res.get("reason_codes", [])
+                                             + ["smoke_reexec_mutated_evidence"]))
+            res["mutated_evidence"] = mutated[:12]
         if res.get("executed"):
             executions += 1
         # command-resolution notes (e.g. no_step_cap_flag) are disclosures,

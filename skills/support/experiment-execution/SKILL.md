@@ -470,6 +470,8 @@ python3 scripts/security_scan.py src/experiments/full/{script}.py   # add --json
 
 `smoke_cmd` and `smoke_args` may also be declared in the sibling `DISPATCH.json` as a fallback; the `.SMOKE.json` value wins.
 
+**The smoke slice must write to an isolated output directory — never to the group's evidence directory.** The gate re-executes `smoke_cmd` with the workspace as cwd, so an `--out experiments/full/<group>` (or any flag that makes the script emit `RESULT.json` / `STATUS.json` / `raw/*.json` there) overwrites the real full-set result with the 1-replicate slice. Point the smoke at a scratch path instead, e.g. `--out experiments/smoke/<group>` or `--out .smoke-out/<group>`. The gate now snapshots `experiments/**/*.json` around each re-execution, restores anything the slice touched, and fails with `smoke_reexec_mutated_evidence` naming the files — an audit must not mutate the evidence it audits, and a restored-but-clobbered run is still a contract violation, not a pass.
+
 `timeout_seconds` in this file is **not read**. The re-execution timeout is the gate's own `--timeout` (default 90 s per group, capped at 600 s), the total budget is `--total-timeout` (default 300 s), and at most `--max-executions` (default 8) slices run. Keep the smoke itself inside the 60 s foreground budget; the gate timeout only bounds the kernel's verification re-run.
 
 **Compute the hash after the script is final and before the smoke runs**, then run the smoke on exactly those bytes:
