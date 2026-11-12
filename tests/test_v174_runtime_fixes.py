@@ -271,3 +271,190 @@ def test_smoke_reexec_with_isolated_output_passes(tmp_path):
     assert "smoke_reexec_mutated_evidence" not in (ex.get("reason_codes") or [])
     assert (g / "RESULT.json").read_bytes() == before
     assert doc["verdict"] in ("PASS", "WARN"), doc
+
+
+# ---------------------------------------------------------------------------
+# 6. gate_all enforces the evidence invariant for EVERY gate, not just smoke
+# ---------------------------------------------------------------------------
+def test_gate_all_names_and_restores_a_gate_that_mutates_evidence(tmp_path):
+    """Any gate that runs code can clobber evidence. The battery must catch it
+    centrally, restore the bytes, and name the offending gate — otherwise each
+    gate has to police itself and one oversight destroys the run's evidence."""
+    import gate_all
+
+    g = tmp_path / "experiments" / "full" / "g1"
+    g.mkdir(parents=True)
+    real = {"stage": "full", "aggregate": {f"m{i}": 1 for i in range(60)}}
+    (g / "RESULT.json").write_text(json.dumps(real))
+
+    def bad_gate(ws, opts):
+        (ws / "experiments" / "full" / "g1" / "RESULT.json").write_text(
+            '{"stage": "smoke"}')
+        return gate_all._result("bad", "6c", "PASS", "ok")
+
+    original = gate_all.GATES
+    gate_all.GATES = [("bad", "6c", bad_gate)]
+    try:
+        opts = gate_all.argparse.Namespace(only=[], skip=[], offline=True,
+                                           integrity_llm=False, timeout=60)
+        doc = gate_all.run_all(tmp_path, opts)
+    finally:
+        gate_all.GATES = original
+    row = doc["gates"][0]
+    assert row["status"] == "FAIL"
+    assert row["reason_code"] == "gate_mutated_evidence"
+    assert "experiments/full/g1/RESULT.json" in row["detail"]
+    after = json.loads((g / "RESULT.json").read_text())
+    assert after["stage"] == "full" and len(after["aggregate"]) == 60
+    assert doc["exit_code"] == 1
+
+
+def test_gate_all_leaves_clean_gates_alone(tmp_path):
+    """A gate that only reads must not be flagged, and its own verdict writes
+    outside experiments/ are legitimate."""
+    import gate_all
+
+    g = tmp_path / "experiments" / "full" / "g1"
+    g.mkdir(parents=True)
+    (g / "RESULT.json").write_text('{"stage": "full"}')
+    before = (g / "RESULT.json").read_bytes()
+
+    def good_gate(ws, opts):
+        (ws / ".sciforge").mkdir(exist_ok=True)
+        (ws / ".sciforge" / "OWN_VERDICT.json").write_text("{}")
+        return gate_all._result("good", "6c", "PASS", "ok")
+
+    original = gate_all.GATES
+    gate_all.GATES = [("good", "6c", good_gate)]
+    try:
+        opts = gate_all.argparse.Namespace(only=[], skip=[], offline=True,
+                                           integrity_llm=False, timeout=60)
+        doc = gate_all.run_all(tmp_path, opts)
+    finally:
+        gate_all.GATES = original
+    assert doc["gates"][0]["status"] == "PASS"
+    assert (g / "RESULT.json").read_bytes() == before
+
+
+def test_gate_all_protects_results_json_not_just_experiments(tmp_path):
+    """results.json carries the hypothesis verdicts and metrics (an ARC-Bench
+    must_pass artifact). A gate rewriting it is as destructive as the smoke
+    slice that clobbered RESULT.json, so it must be inside the guard."""
+    import gate_all
+
+    (tmp_path / "results.json").write_text('{"hypotheses": {"h1": true}}')
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "metrics.json").write_text('{"coverage": 0.95}')
+
+    def bad(ws, opts):
+        (ws / "results.json").write_text('{"hypotheses": {"h1": false}}')
+        return gate_all._result("bad", "10", "PASS", "ok")
+
+    original = gate_all.GATES
+    gate_all.GATES = [("bad", "10", bad)]
+    try:
+        opts = gate_all.argparse.Namespace(only=[], skip=[], offline=True,
+                                           integrity_llm=False, timeout=60)
+        doc = gate_all.run_all(tmp_path, opts)
+    finally:
+        gate_all.GATES = original
+    row = next(r for r in doc["gates"] if r["gate"] == "bad")
+    assert row["reason_code"] == "gate_mutated_evidence"
+    assert json.loads((tmp_path / "results.json").read_text())["hypotheses"]["h1"] is True
+
+
+def test_gate_own_products_are_not_evidence(tmp_path):
+    """Gates legitimately write their own telemetry next to the evidence
+    (results/TDAL.json, results/FANTASY_GATE.json, ...). Flagging those would
+    make the guard fire on every normal run."""
+    import gate_all
+
+    (tmp_path / "results").mkdir()
+    def writes_own(ws, opts):
+        (ws / "results" / "TDAL.json").write_text('{"score": 0.8}')
+        (ws / "results" / "FANTASY_GATE.json").write_text('{"status": "PASS"}')
+        return gate_all._result("own", "10", "PASS", "ok")
+
+    original = gate_all.GATES
+    gate_all.GATES = [("own", "10", writes_own)]
+    try:
+        opts = gate_all.argparse.Namespace(only=[], skip=[], offline=True,
+                                           integrity_llm=False, timeout=60)
+        doc = gate_all.run_all(tmp_path, opts)
+    finally:
+        gate_all.GATES = original
+    assert doc["gates"][0]["status"] == "PASS"
+
+
+# ---------------------------------------------------------------------------
+# 7. approvals: the primitive itself must fail closed on a broken chain
+# ---------------------------------------------------------------------------
+def test_verified_marks_reads_real_approval_then_fails_closed(tmp_path):
+    """_verified_marks is the primitive every approval decision reads. The
+    pipeline guard already refuses a broken ledger, but relying on each caller
+    to check first is not defence in depth. Prove both directions: a genuine
+    approval IS read on a valid chain, and tampering makes it disappear."""
+    from sciforge.pipeline import Kernel
+    from sciforge import state, approvals
+
+    k = Kernel(tmp_path)
+    k.start("T", "p", "lite", host="manual")
+    state.release_lock(tmp_path)
+    k.log.emit("3", "checkpoint_cleared",
+               {"checkpoint": "idea-pick", "decision": "APPROVE"})
+    cleared, _ = approvals._verified_marks(tmp_path)
+    assert cleared.get("idea-pick") == "APPROVE"
+
+    p = tmp_path / ".sciforge" / "events.ndjson"
+    lines = [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+    lines[-1]["payload"]["decision"] = "FORGED"
+    p.write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+    cleared2, skipped2 = approvals._verified_marks(tmp_path)
+    assert not cleared2 and not skipped2
+
+
+def test_verified_marks_still_reads_legacy_chainless_logs(tmp_path):
+    """Backward compatibility: pre-chain workspaces must remain resumable."""
+    from sciforge import approvals
+
+    d = tmp_path / ".sciforge"
+    d.mkdir(parents=True)
+    (d / "events.ndjson").write_text("\n".join(json.dumps(e) for e in [
+        {"seq": 1, "ts": 0, "phase": "0", "kind": "run_started", "payload": {}},
+        {"seq": 2, "ts": 1, "phase": "3", "kind": "checkpoint_cleared",
+         "payload": {"checkpoint": "idea-pick", "decision": "APPROVE"}},
+    ]) + "\n")
+    cleared, _ = approvals._verified_marks(tmp_path)
+    assert cleared.get("idea-pick") == "APPROVE"
+
+
+def test_smoke_offers_isolated_out_dir_via_env(tmp_path):
+    """Scripts that hard-code their output beside their own evidence take no
+    --out flag, so the command line cannot redirect them. The gate must offer
+    SCIFORGE_OUT (and SCIFORGE_SMOKE) so such a script can comply unchanged."""
+    import hashlib
+    import smoke_gate as sg
+
+    g = tmp_path / "experiments" / "full" / "g1"
+    g.mkdir(parents=True)
+    (g / "RESULT.json").write_text('{"stage": "full", "cells": 60}')
+    src = ('import json, os, pathlib\n'
+           'here = pathlib.Path(__file__).resolve().parent\n'
+           'out = pathlib.Path(os.environ.get("SCIFORGE_OUT") or here)\n'
+           'out.mkdir(parents=True, exist_ok=True)\n'
+           '(out / "RESULT.json").write_text(json.dumps({"stage": "smoke"}))\n'
+           'print("ok")\n')
+    (g / "run.py").write_text(src)
+    (g / "DISPATCH.json").write_text(json.dumps({"script": "experiments/full/g1/run.py"}))
+    (g / "STATUS.json").write_text('{"state": "done"}')
+    (g / "g1.SMOKE.json").write_text(json.dumps({
+        "smoke_result": "PASS", "status_row_written": True,
+        "script": "experiments/full/g1/run.py",
+        "script_sha256": hashlib.sha256(src.encode()).hexdigest(),
+        "executed_at": "2026-01-01T00:00:00Z"}))
+    before = (g / "RESULT.json").read_bytes()
+    doc = sg.check(tmp_path, sandbox_wrap=lambda w: ["/usr/bin/env"])
+    ex = doc["groups"][0]["execution"]
+    assert "smoke_reexec_mutated_evidence" not in (ex.get("reason_codes") or [])
+    assert (g / "RESULT.json").read_bytes() == before
+    assert (tmp_path / ".smoke-out" / "reexec" / "RESULT.json").is_file()

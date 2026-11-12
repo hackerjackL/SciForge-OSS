@@ -81,8 +81,18 @@
 - **最严重的一个：smoke 重执行会覆盖它要审计的真实结果**（`smoke_gate.py` + `experiment-execution` 契约）。`smoke_cmd` 写的是 `--out experiments/full/group_main`，而 `_invoke` 以真实工作区为 cwd 执行——脚本把 `RESULT.json` 写进该目录，于是**一次审计把 60 cell / R=1000 的真实全矩阵结果替换成了 5 键 / R=2 的 smoke 聚合**。这不是理论风险：本轮实测发生后 `group_main` 与 `group_ablation` 的 RESULT 都变成 `stage: smoke`，下游每个 claim 的证据被静默降级（我是随后读 n100 键报 KeyError 才发现）。修法遵循"审计对被审计证据零副作用"：重执行前快照 `experiments/**/*.json`，执行后逐字节比对，**恢复被改动/新建的文件并判 FAIL**（`smoke_reexec_mutated_evidence`，附被改文件清单）——只恢复不报错会掩盖坏掉的 `smoke_cmd`，只报错不恢复会留下被污染的证据，两者都做。契约同步要求 smoke 输出落在隔离目录（如 `.smoke-out/<group>`），并说明 `--out experiments/full/<group>` 为何违约。负向测试构造真实"覆盖 60 cell"场景断言恢复+FAIL；正向测试证明指向 scratch 的同一脚本不误报。被覆盖的 run 数据已用同组权威的 `experiments/full/RESULT.json`（60 cell 完好）恢复；`smoke_cmd` 改隔离后重跑：**smoke PASS 且 RESULT.json 字节未变**。**779 passed，ci_check PASS**。
 - **两个 FAIL 经查是真实 run 缺口而非代码缺陷**：`s2_ladder`/`s2_ablation` 要求的 `S2_LADDER.json`/`ABLATION_LEDGER.json` 全仓**没有任何生产代码写**——设计如此：门在 kernel（模型无关），产物由宿主按 `/experiment-ladder`、`/ablation-planner` 手写（skill 原文 "tells the HOST how to produce the artifact the gate demands"），编排 SKILL.md 第 378/383 行在两者缺失时也明确指向这两个 skill。本轮是续跑时跳过了这两步，门判 FAIL 是对的。记此一笔以免后来者误判为"工具缺失"。
 
+### 追加二：把"审计零副作用"从单点自觉提升为全局不变量（版本仍 1.7.4）
+
+上一条只在 `smoke_gate` 内部加了护栏。但**任何会执行代码的门都可能犯同样的错**，靠每个门自己记得检查不是纵深防御。本轮把它提升为批量入口的强制不变量，并顺带清掉两个遗留项。
+
+- **`gate_all` 逐门证据护栏**：每个门执行前快照、执行后逐字节比对，谁改了证据就**点名谁**（`gate_mutated_evidence` + 文件清单）并恢复——比整批比对更能定位责任门。实测注入一个会覆盖 60 cell 结果的假门：判 FAIL、点名、证据完整恢复；只读门与只写自己 verdict 的门零误报。
+- **护栏范围扩到 `results.json` 与 `results/*.json`**：ARC-Bench 的 must_pass 把 `results.json` 定为假设判定与指标的权威载体，改它和改 `RESULT.json` 一样具破坏性，而原护栏只覆盖 `experiments/`。同时用白名单排除门自己的产物（`TDAL.json`/`FANTASY_GATE.json`/`LEAKAGE_SCRUB.json` 等 12 个），否则每次正常运行都会误报。真实 run 上受保护证据文件 **223 个**，`results.json` 字节未变。
+- **`approvals._verified_marks` 自身 fail-closed**（清掉 G 的移交项）：它是所有审批决定读取的底层原语，此前直接 `replay()` 而不验链——上层 `pipeline` 的守卫虽能兜住，但那让防御依赖"每个调用方都记得先检查"。现在断链直接返回空。用**有区分力**的测试锁定：先造一个真实批准事件断言能读到 `APPROVE`，再篡改该事件断言读不到（先前一版测试两边都返回空，等于没验证）；另加 legacy 无链日志仍可读的兼容测试。
+- **`SCIFORGE_OUT` 环境契约**（真实运行逼出来的）：护栏上线后立刻在真实 run 上抓到**另外两个组**（`group_hyperparam_trim`/`group_robustness`）同类违规——它们的脚本把输出路径硬编码在模块级常量里，**根本没有 `--out` 参数**，命令行无法redirect。所以"要求宿主改 smoke_cmd"这条路对它们不成立。门现在主动注入 `SCIFORGE_OUT=.smoke-out/reexec`（与既有的 `SCIFORGE_SMOKE=1` 并列），脚本读该变量即可零命令行改动地合规。契约补上代码范式，并写明两条真实踩坑规则：① **输出目标必须与路径解析分离**——我第一版直接重赋 `HERE`，结果 `HERE.parents[2]` 越界、`sys.path` 插入全断（`IndexError`），因为同一个常量既定位工作区又定位输出；② 每一处写入都要走 `OUT`，不能只改第一处。
+- **补齐两个真实 run 缺口，全门首次零 FAIL**：用 kernel 自己的 `ladder.decide`/`relative_gain` 与 `ablation.ablcritic` 从**真实数据**生成 `S2_LADDER.json`/`ABLATION_LEDGER.json`（不手算增益、不手判 critic）。阶梯：污染数据 n=100 上 trim 相对 mean-percentile incumbent，subset 与 full 同向 GOOD，gain +2.29%；**高斯臂另行评估判 BAD**（percentile 0.9482 < t 区间 0.9538），作为负结果保留不晋级。消融重跑取真数据（84 单元）后 5 个计划：studentized/BCa/nested 三个"高阶修正"全部 REFINE（0.8673/0.8447/0.8720 均差于 incumbent 0.9087），median/trim 两个稳健目标 GOOD。**`gate_all` 终态：PASS 10 / WARN 2 / SKIP 16 / UNPROTECTED 2 / INFO 1，零 FAIL**；剩余 2 个 UNPROTECTED 是 Mode A 结构性限制（REP/NODES 由内核产出），如实披露而非假装通过。
+- **785 passed，ci_check PASS**。
+
 ### 记档未做（诚实清单）
-- **`approvals.py::_verified_marks` 仍直接信任断链日志里的 clear/skip 行**：当前被 `_checkpoint_satisfied` 的链守卫与 `state.open_checkpoint_requests` 的 fail-closed 兜住（统筹已实测伪造攻击无效），但建议其 owner 直接用 `verify_chain()` 结果过滤，去掉这层间接依赖。
 - **EventLog.emit 未加跨进程 flock**：单进程内已用 sync-before-emit 保证链接正确；若未来 daemon 允许两个进程写同一 workspace 日志，会因 prev_hash 分叉被判断裂（**会显式报错而非静默通过**），需要时再加锁。
 - **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。
 - **`gate_all.py`/`fairness_gate.py` 读 events.ndjson 时不报告完整性**：建议把 `event_log_integrity_broken` 暴露为门判定。

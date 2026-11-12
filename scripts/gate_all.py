@@ -574,6 +574,67 @@ def gate_doi_gate(ws: Path, opts) -> dict:
     return row
 
 
+# Gate-produced telemetry that legitimately lives beside the evidence. Writing
+# these is the gate's job, not evidence tampering.
+_GATE_OWN_PRODUCTS = frozenset({
+    "FANTASY_GATE.json", "TDAL.json", "CITATION_SUPPORT.json",
+    "LEAKAGE_SCRUB.json", "DOI_GATE.json", "SUBMISSION_READY.json",
+    "CITATION_RELEVANCE.json", "FAIRNESS.json", "S2_LADDER.json",
+    "ABLATION_LEDGER.json", "AUDIT_TRAIL.json", "INTEGRITY_MONITOR.json",
+})
+
+
+def _evidence_files(ws: Path) -> list[Path]:
+    """Result evidence no gate may alter while auditing it.
+
+    Covers experiments/ plus the canonical results.json and results/*.json:
+    the ARC-Bench requirements make results.json the authoritative carrier of
+    the hypothesis verdicts and metrics, so a gate that rewrote it would be
+    just as destructive as the smoke slice that clobbered RESULT.json.
+    """
+    out: list[Path] = []
+    root = ws / "experiments"
+    if root.is_dir():
+        out.extend(p for p in root.rglob("*.json") if p.is_file())
+    top = ws / "results.json"
+    if top.is_file():
+        out.append(top)
+    res = ws / "results"
+    if res.is_dir():
+        out.extend(p for p in res.rglob("*.json") if p.is_file())
+    return sorted(p for p in set(out) if p.name not in _GATE_OWN_PRODUCTS)
+
+
+def _evidence_snapshot(ws: Path) -> dict[Path, bytes]:
+    out = {}
+    for p in _evidence_files(ws):
+        try:
+            out[p] = p.read_bytes()
+        except OSError:
+            continue
+    return out
+
+
+def _restore_evidence(ws: Path, before: dict[Path, bytes]) -> list[str]:
+    """Undo evidence writes and report what was touched (changed or created)."""
+    touched: list[str] = []
+    for p, blob in before.items():
+        try:
+            if not p.exists() or p.read_bytes() != blob:
+                touched.append(str(p.relative_to(ws)))
+                p.write_bytes(blob)
+        except OSError:
+            continue
+    for p in _evidence_files(ws):
+        if p not in before:
+            touched.append(str(p.relative_to(ws)))
+            try:
+                p.unlink()
+            except OSError:
+                pass
+    return sorted(set(touched))
+
+
 def _fairness_scope(out: str) -> str | None:
     """Read `evidence_crossvalidation.scope` out of fairness_gate's stdout JSON.
     Returns None when the payload cannot be parsed, so a malformed run is never
@@ -753,11 +814,23 @@ def run_all(ws: Path, opts) -> dict:
             rows.append(_result(name, phase, "SKIP", "phase_not_reached",
                                 f"workspace cursor is below phase {phase}"))
             continue
+        # Per-gate evidence guard. smoke_gate learned this the hard way: its
+        # re-execution overwrote a 60-cell result with a 1-replicate slice.
+        # Any gate that runs code can do the same, so the battery enforces the
+        # invariant centrally and names the offending gate rather than
+        # trusting each one to police itself.
+        before = _evidence_snapshot(ws)
         try:
-            rows.append(fn(ws, opts))
+            row = fn(ws, opts)
         except Exception as exc:  # a broken gate must not abort the battery
-            rows.append(_result(name, phase, "ERROR", "gate_crashed",
-                                f"{type(exc).__name__}: {exc}"))
+            row = _result(name, phase, "ERROR", "gate_crashed",
+                          f"{type(exc).__name__}: {exc}")
+        touched = _restore_evidence(ws, before)
+        if touched:
+            row = _result(name, phase, "FAIL", "gate_mutated_evidence",
+                          "this gate changed experiment evidence while auditing "
+                          "it; the files were restored: " + ", ".join(touched[:8]))
+        rows.append(row)
 
     counts = {s: 0 for s in STATUSES}
     for r in rows:

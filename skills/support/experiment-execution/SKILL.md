@@ -470,7 +470,28 @@ python3 scripts/security_scan.py src/experiments/full/{script}.py   # add --json
 
 `smoke_cmd` and `smoke_args` may also be declared in the sibling `DISPATCH.json` as a fallback; the `.SMOKE.json` value wins.
 
-**The smoke slice must write to an isolated output directory — never to the group's evidence directory.** The gate re-executes `smoke_cmd` with the workspace as cwd, so an `--out experiments/full/<group>` (or any flag that makes the script emit `RESULT.json` / `STATUS.json` / `raw/*.json` there) overwrites the real full-set result with the 1-replicate slice. Point the smoke at a scratch path instead, e.g. `--out experiments/smoke/<group>` or `--out .smoke-out/<group>`. The gate now snapshots `experiments/**/*.json` around each re-execution, restores anything the slice touched, and fails with `smoke_reexec_mutated_evidence` naming the files — an audit must not mutate the evidence it audits, and a restored-but-clobbered run is still a contract violation, not a pass.
+**The smoke slice must write to an isolated output directory — never to the group's evidence directory.** The gate re-executes `smoke_cmd` with the workspace as cwd, so an `--out experiments/full/<group>` (or any flag that makes the script emit `RESULT.json` / `STATUS.json` / `raw/*.json` there) overwrites the real full-set result with the 1-replicate slice. The gate snapshots `experiments/**/*.json` around each re-execution, restores anything the slice touched, and fails with `smoke_reexec_mutated_evidence` naming the files — an audit must not mutate the evidence it audits, and a restored-but-clobbered run is still a contract violation, not a pass.
+
+Two ways to comply, in order of preference:
+
+1. **Redirect via the command** when the script takes an output flag: `--out .smoke-out/<group>` (or `experiments/smoke/<group>`).
+2. **Honour `SCIFORGE_OUT` in the script** when the output path is hard-coded (a module-level `OUT = .../experiments/full/<group>` cannot be redirected from the command line at all). The gate sets `SCIFORGE_OUT=.smoke-out/reexec` and `SCIFORGE_SMOKE=1` for every re-execution, so a script that reads the variable complies with no command-line change:
+
+   ```python
+   HERE = Path(__file__).resolve().parent          # keeps locating the workspace
+   OUT = HERE
+   if os.environ.get("SCIFORGE_OUT"):
+       OUT = Path(os.environ["SCIFORGE_OUT"])
+   elif os.environ.get("SCIFORGE_SMOKE") == "1":
+       OUT = Path(".smoke-out") / HERE.name
+   OUT.mkdir(parents=True, exist_ok=True)
+   ```
+
+   Two rules that a real run proved the hard way:
+   - **Separate the output target from path resolution.** Do not reassign the constant the script also uses to find the workspace (`HERE`, `WS`): redirecting it breaks `HERE.parents[2]` and every `sys.path` insertion derived from it. Introduce a distinct `OUT`.
+   - **Route every write through `OUT`** (`RESULT.json`, `STATUS.json`, `raw/*.json`), not just the first one.
+
+   A script that ignores both variables and writes beside its own evidence fails the gate on every audit run.
 
 `timeout_seconds` in this file is **not read**. The re-execution timeout is the gate's own `--timeout` (default 90 s per group, capped at 600 s), the total budget is `--total-timeout` (default 300 s), and at most `--max-executions` (default 8) slices run. Keep the smoke itself inside the 60 s foreground budget; the gate timeout only bounds the kernel's verification re-run.
 

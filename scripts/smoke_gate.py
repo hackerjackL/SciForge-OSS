@@ -410,6 +410,11 @@ def _invoke(ws: Path, prefix: list[str], argv: list[str], timeout: float) -> dic
     env = dict(os.environ)
     env.setdefault("MPLBACKEND", "Agg")
     env["SCIFORGE_SMOKE"] = "1"
+    # Offer an isolated output directory to scripts that honour SCIFORGE_OUT.
+    # Many experiment scripts hard-code their output beside their own evidence
+    # and take no --out flag, so the command line cannot redirect them; this
+    # env contract lets them comply without the host rewriting the script.
+    env.setdefault("SCIFORGE_OUT", str(Path(".smoke-out") / "reexec"))
     py_path = env.get("PYTHONPATH", "")
     parts = [str(KERNEL)]
     # macOS sandbox-exec resolves the venv shim before exec, so a sandboxed

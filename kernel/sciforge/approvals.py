@@ -25,11 +25,21 @@ _CK_LINE = re.compile(r"checkpoint=(\S+)")
 
 def _verified_marks(ws: Path) -> tuple[dict[str, str | None], set[tuple[str, str]]]:
     """Decision facts from the event ledger: {checkpoint: decision} for
-    checkpoint_cleared epochs, and {(checkpoint, kind)} for skips."""
+    checkpoint_cleared epochs, and {(checkpoint, kind)} for skips.
+
+    Fail-closed on a broken hash chain. The pipeline's checkpoint guard already
+    refuses to advance on a broken ledger, but this function is the primitive
+    every approval decision reads — trusting forged `checkpoint_cleared` events
+    here would leave the defence depending on each caller remembering to check
+    first. Legacy chainless logs stay readable (verify_chain reports ok=True).
+    """
     cleared: dict[str, str | None] = {}
     skipped: set[tuple[str, str]] = set()
     try:
-        events = EventLog(ws).replay()
+        log = EventLog(ws)
+        if not log.verify_chain().get("ok", True):
+            return cleared, skipped
+        events = log.replay()
     except Exception:
         return cleared, skipped
     for ev in events:
