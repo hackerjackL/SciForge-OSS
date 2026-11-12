@@ -94,3 +94,11 @@ bench/s2demo/results/
 # stray top-level eval logs (agents leak cwd-relative logs here)
 logs/
 runs/LESSONS_INDEX.jsonl
+# Derived cross-run indexes: rebuildable from the runs themselves, so they stay
+# local like the runs do. PRODUCTION_LEDGER is the durable production record —
+# keep it OUT of the repo by default (it names local workspaces and costs), but
+# preserve it deliberately: `sciforge ledger build --archive <dir>` writes it
+# next to the runs, and pointing --archive at a backed-up directory keeps the
+# history across machines. It survives workspace deletion by design.
+runs/PRODUCTION_LEDGER.jsonl
+runs/MEMORY_FACTS.jsonl

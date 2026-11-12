@@ -113,6 +113,18 @@
 - **`.gitignore` 补 `*.ndjson.lock`**：fixture 的 `.sciforge/` 是 ignore 例外，锁文件否则会被当作 fixture 内容入库（实测确认会）。规则精确命中锁文件，`events.ndjson` 本身不受影响。
 - `tests/test_eventlog_concurrency.py`（6 项，含**真实多进程**而非线程）：三进程并发链完整+seq 唯一连续、空日志上并发只建立一次 genesis、单进程行为不变、同进程双实例交错正确、锁是旁路文件且日志仍是纯 NDJSON、legacy 日志兼容。**809 passed，ci_check PASS**。
 
+### 追加五：PRODUCTION_LEDGER——让"稳定产出"第一次可核验（版本仍 1.7.4）
+
+- **问题**：`runs/` 是 gitignore 的，每个 run 的证据跑完即散。跑了 S01 全链与多次并发实验之后，**"能否持续产出论文"仍无法被自己或外界核验**——没有任何跨 run 的累积记录，RSI 也缺少宏观选择压力信号。
+- **`kernel/sciforge/ledger.py` + `sciforge ledger build|show`**：扫描 archive 下所有 run，生成 `PRODUCTION_LEDGER.jsonl`（每 run 一行，幂等重建）。两条设计纪律直接沿用本项目付过学费的经验：
+  - **全部从磁盘证据推导，不采信自报**（fairness_gate 的教训）。`produced_paper` 要求 RUNSTATE completed **且** PDF 真实存在并 `%PDF` 开头——completed 但无 PDF **不算产出**（completion_gate 的假完成类）；名为 `.pdf` 但字节不是 PDF 的记 `reason=not_a_pdf`；页数从 `/Count` 读，附 sha256。
+  - **缺失必须显式**（gate_all 的 UNPROTECTED 纪律）。Mode A 无内核事件日志 → `events.present=false` 并列入 `unverified`；链断裂、无预算、无 verdict 同样列入。`unverified` 的语义是"这些保证在本 run 根本没运行"，绝不能读成通过。
+- **真实数据下的第一次运行就暴露一个统计失真**：`verdicts` 分类原先对所有 JSON 取 `verdict`/`status`，把 **EXPERIMENT_MATRIX / EVALUATION_PROTOCOL / VERIFICATION_ROUTING / RUN_BUDGET / FIGURE_AUDITS / BLINDSPOT_CHECK 六个声明型产物**误记为 `UNKNOWN`（fixture 上实测 7 条），会让失败率统计说谎。改为单列 `declarative`；另修正 `INVARIANT_CHECK` 的字段名（它用 `overall_verdict`）。修正后 fixture 为 `PASS 13 / REVISE 1 / SUBMISSION_READY 1 / COMPLETED 1 / declarative 6`，`UNKNOWN` 归零。
+- **汇总视图（RSI 的宏观信号）**：`production_rate`、`cost_per_paper_usd`、`gate_interception_rate`（gate 拒绝 / 边界提交比）、`submission_tiers` 分布、`unverified_counts`。这些是单 run 门看不到的东西——一个提高全局 FAIL 率的 skill patch 会在这里显形。
+- **保持历史**：workspace 被删除后行仍保留并记 `workspace_missing=true`（账本是长期记录）；磁盘证据存在时**覆盖**旧行，所以撤回的论文会被如实扣掉 `produced_paper`。
+- **真实 run 上首次建账（如实）**：`runs/` 只有 S01，`papers_produced=0`、`no_kernel_event_log` 标为未核验——**没有把"跑了实验"美化成"产出了论文"**。fixture（内核驱动、168 事件、27 边界、链完整）则被正确识别为 completed + 全证据。
+- `tests/test_production_ledger.py`（14 项）：completed 无 PDF 不算产出、非 PDF 字节不算、blocked 不算、Mode A 无事件日志记为 unverified、链断裂浮出、声明型产物不冒充 UNKNOWN、幂等重建、删除 workspace 保留历史、磁盘证据覆盖陈旧行、汇总的吞吐/成本/拦截率算术、空 archive 安全、非 run 目录被忽略。`REPRODUCE.md` 增 §6.5 完整用法与字段来源表。**823 passed，ci_check PASS**。
+
 ### 记档未做（诚实清单）
 - **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。
 - **`gate_all.py`/`fairness_gate.py` 读 events.ndjson 时不报告完整性**：建议把 `event_log_integrity_broken` 暴露为门判定。

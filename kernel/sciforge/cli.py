@@ -133,6 +133,15 @@ def main(argv=None) -> int:
                        help="build/query the cross-run VERIFIED-FACT layer "
                             "(claims + ladder outcomes), not the lesson layer")
 
+    # v1.7.4: production ledger — the durable, disk-derived record of what
+    # this installation actually produced (runs/ is gitignored, so without it
+    # every run's evidence evaporated and throughput was unverifiable).
+    p_led = sub.add_parser("ledger", help="cross-run production ledger (build/show)")
+    p_led.add_argument("what", choices=["build", "show"])
+    p_led.add_argument("--archive", type=Path, default=None,
+                       help="runs archive root (default: <repo>/runs)")
+    p_led.add_argument("--json", action="store_true", help="machine-readable output")
+
     # v1.7.2: node-level fork (XScientist-ARA adapted): resume from any
     # experiment node instead of cold-starting a run
     p_fk = sub.add_parser("fork", help="seed a new workspace from one experiment node")
@@ -211,6 +220,38 @@ def main(argv=None) -> int:
     if a.cmd == "proxy":
         from .proxy import discover
         print(json.dumps(discover(write_to=a.write), indent=2))
+        return 0
+    if a.cmd == "ledger":
+        from . import ledger as led
+        archive = a.archive or (Path(__file__).resolve().parents[2] / "runs")
+        if a.what == "build":
+            res = led.build_ledger(archive)
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+            return 0
+        rows = led.load_ledger(archive / led.LEDGER_NAME)
+        if a.json:
+            print(json.dumps({"runs": rows, "summary": led.summarize(rows)},
+                             indent=2, ensure_ascii=False))
+            return 0
+        s = led.summarize(rows)
+        print(f"PRODUCTION_LEDGER — {archive / led.LEDGER_NAME}")
+        print(f"  runs {s['runs']} | papers {s['papers_produced']} "
+              f"| production_rate {s['production_rate']}")
+        print(f"  cost ${s['api_cost_usd_total']} "
+              f"(per paper: {s['cost_per_paper_usd']})")
+        print(f"  boundaries {s['boundaries_committed']} "
+              f"| gate rejections {s['gates_rejected']} "
+              f"| interception {s['gate_interception_rate']}")
+        if s["submission_tiers"]:
+            print(f"  submission tiers: {s['submission_tiers']}")
+        if s["unverified_counts"]:
+            print(f"  UNVERIFIED (guarantees that did not run): "
+                  f"{s['unverified_counts']}")
+        for r in rows:
+            pdf = r.get("pdf") or {}
+            mark = "PDF" if pdf.get("present") else "—"
+            print(f"  {r['run_id']:<22} {r['status']:<10} {mark:<4} "
+                  f"phase={r.get('current_phase')}")
         return 0
     if a.cmd == "memory":
         from . import memory as mem

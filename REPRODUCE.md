@@ -122,6 +122,35 @@ curl -H "Authorization: Bearer $TOKEN" -X POST localhost:4510/runs/Q001/cancel
 
 GPU/NPU：镜像内 `detect_device.py` 自动 cuda/rocm/npu/mps/cpu；NPU allow-list 作业模式见 `scripts/` 与 AGENTS.md。
 
+## 6.5 生产账本（跨 run，v1.7.4）
+
+`runs/` 是 gitignore 的，所以每个 run 的证据跑完即散——"能否稳定产出"无法被自己或外界核验。`PRODUCTION_LEDGER` 把这件事变成可累积记录。
+
+```bash
+# 扫描 archive 下所有 run，重建账本（幂等：每个 run_id 一行，重复重建不重复计数）
+PYTHONPATH=kernel .venv/bin/python -m sciforge.cli ledger build --archive runs
+# 人可读摘要 + 逐 run 一行
+PYTHONPATH=kernel .venv/bin/python -m sciforge.cli ledger show --archive runs
+# 机器可读（汇总 + 全部行）
+PYTHONPATH=kernel .venv/bin/python -m sciforge.cli ledger show --archive runs --json
+```
+
+**每行的字段全部从磁盘证据推导，不采信任何自报**：
+
+| 字段 | 来源 | 严格性 |
+|---|---|---|
+| `produced_paper` | RUNSTATE completed **且** `paper/main.pdf` 真实存在且以 `%PDF` 开头 | completed 但无 PDF **不算产出**（completion_gate 的假完成类） |
+| `pdf` | 文件字节：页数（`/Count`）+ sha256 | 名为 .pdf 但不是 PDF 的记 `reason=not_a_pdf` |
+| `events` | `events.ndjson` 条数、`boundary_committed`/`gate_rejected`/`loopback` 计数、链完整性 | Mode A 无内核事件日志 → 记 `present=false` 并列入 `unverified` |
+| `verdicts` | `verdicts/*.json` 的 verdict 计数 + submission tier | 声明型产物（EXPERIMENT_MATRIX/EVALUATION_PROTOCOL/VERIFICATION_ROUTING/RUN_BUDGET/FIGURE_AUDITS/BLINDSPOT_CHECK）单列 `declarative`，**不冒充 UNKNOWN** |
+| `budget` | RUN_BUDGET.json | 缺失列入 `unverified` |
+
+`unverified` 列表是**声明"哪些保证在本 run 根本没运行"**（无事件日志 / 链断裂 / 无预算 / 无 verdict），与 `gate_all` 的 `UNPROTECTED` 同一纪律：缺失必须显式，不能读成通过。
+
+汇总视图给出 RSI 需要的宏观信号：`production_rate`、`cost_per_paper_usd`、`gate_interception_rate`（gate 拒绝 / 边界提交比）、`submission_tiers` 分布、`unverified_counts`。
+
+**持久化**：账本默认落在 `<archive>/PRODUCTION_LEDGER.jsonl`，已随 runs 一起忽略（含本机工作区路径与成本）。它**刻意在 workspace 被删除后保留行**（记 `workspace_missing=true`），因为账本是长期记录；要跨机器保留就把 `--archive` 指向一个备份目录。
+
 ## 7. 单元测试（全部机制）
 
 ```bash
