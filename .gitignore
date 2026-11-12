@@ -50,6 +50,8 @@ build/
 # out. The fixture's own declared artifacts stay tracked.
 fixtures/e2e_minimal/.sciforge/audits/AUDIT_TRAIL.json
 fixtures/e2e_minimal/.sciforge/audits/INTEGRITY_MONITOR.json
+# EventLog's cross-process write lock is runtime state, never fixture content.
+*.ndjson.lock
 # daemon runtime state: SQLite queue + per-start auth token + derived queue mirror
 .sciforge-daemon/
 queue.json

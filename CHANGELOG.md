@@ -105,8 +105,15 @@
 - `tests/test_provider_heterogeneity.py`（17 项，全部离线 stub，CI 无需网关与凭据）：thinking 不污染/tool_use 保留/未知块忽略、protocol 显式与缺省与非法值回退、pinned 豁免与未 pin 仍覆盖、双 backend 面板 heterogeneous 且 chair 独立、单 backend 仍如实 degraded、默认 personas 两种配置下的行为、chair 永不兼任 reviewer、chair 撞模型时如实披露、`SCIFORGE_PROVIDERS` 选路。**803 passed，ci_check PASS**。
 - **过程中的自我纠错（记档）**：第一版 stub 把 `adjudication` 当作 reviewer persona，于是 `adjudicator_distinct=False` ——那是**代码判对了、测试写错了**；读 `panel_independence` 确认 chair 是独立角色后改为真实拓扑（2 reviewer 各一 backend + 独立 chair）。
 
+### 追加四：事件日志跨进程串行化（版本仍 1.7.4）
+
+- **`EventLog.emit` 加 flock**（`state.py`）。此前 `_sync()` 与 append 之间没有互斥：两个进程可同时读到同一 head，各自据此算 `prev_hash` → **链分叉**。实测三进程并发写同一 workspace：121 条事件全部落盘，但链在 **seq=2 断裂、78 个 seq 重复**，`recover()` 随即把正常并发误判为"日志被篡改"并拒绝重建 run。现在整个"读-算-写"序列在**旁路锁文件**（`events.ndjson.lock`）的排他 flock 下执行——不锁 `events.ndjson` 本身，否则会与 `_sync` 的 offset/inode 追踪纠缠。同一场景复测：**链完整、121 条 seq 唯一且连续**。
+- **适用边界（诚实）**：daemon 的 `ws = archive / rid` 给每个 run 独立 workspace，所以**常规多 worker 并不共享日志**，本修复不是"多 worker 的必要前提"。它真正防的是**同一 run 被两个进程驱动**：人工 `resume` 与 daemon 接管重叠、崩溃接管与残留驱动者并存。已按该形状实测（两个驱动者各 emit 15 次边界事件）：链完整，`recover()` 返回 `resume` 而非 `integrity_broken`。
+- **降级与兼容**：无 `fcntl`（Windows）时退化为不串行化而非抛错——那里的 `O_EXCL` workspace 锁已串行化内核驱动者，且**丢事件比不串行更糟**；锁获取失败同样降级。单进程路径行为零变化（seq 连续、hash 相连），legacy 无链日志继续以无链形状追加（不产生混合后缀）。
+- **`.gitignore` 补 `*.ndjson.lock`**：fixture 的 `.sciforge/` 是 ignore 例外，锁文件否则会被当作 fixture 内容入库（实测确认会）。规则精确命中锁文件，`events.ndjson` 本身不受影响。
+- `tests/test_eventlog_concurrency.py`（6 项，含**真实多进程**而非线程）：三进程并发链完整+seq 唯一连续、空日志上并发只建立一次 genesis、单进程行为不变、同进程双实例交错正确、锁是旁路文件且日志仍是纯 NDJSON、legacy 日志兼容。**809 passed，ci_check PASS**。
+
 ### 记档未做（诚实清单）
-- **EventLog.emit 未加跨进程 flock**：单进程内已用 sync-before-emit 保证链接正确；若未来 daemon 允许两个进程写同一 workspace 日志，会因 prev_hash 分叉被判断裂（**会显式报错而非静默通过**），需要时再加锁。
 - **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。
 - **`gate_all.py`/`fairness_gate.py` 读 events.ndjson 时不报告完整性**：建议把 `event_log_integrity_broken` 暴露为门判定。
 - **A10 上轮新抓到的 panel-grid legend 与旋转刻度重叠**：属 `figure_recipes` bottom band 布局债，仍未修。

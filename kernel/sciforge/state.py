@@ -28,6 +28,7 @@ v1.7.4 integrity + performance:
 from __future__ import annotations
 
 import atexit
+import contextlib
 import hashlib
 import json
 import os
@@ -304,6 +305,53 @@ class EventLog:
 
     # ---- public API ----
     def emit(self, phase: str, kind: str, payload: dict | None = None) -> dict:
+        """Append one event, serialised across processes.
+
+        The read-compute-append sequence must be atomic: two writers that both
+        sync to the same head each compute prev_hash from it and fork the chain.
+        Measured with three concurrent writers: 121 events landed but the chain
+        broke at seq 2 and 78 seq values were duplicated — which recover() then
+        reports as a tampered log, blocking the run. daemon --workers N makes
+        this reachable, so the whole sequence runs under an exclusive flock on
+        a sidecar lock file (never on events.ndjson itself: appending through a
+        locked handle would complicate the offset/inode tracking in _sync).
+        """
+        with self._write_lock():
+            return self._emit_locked(phase, kind, payload)
+
+    @contextlib.contextmanager
+    def _write_lock(self):
+        """Exclusive cross-process write lock; a no-op where flock is absent.
+
+        Windows has no fcntl; the O_EXCL workspace lock already serialises
+        kernel drivers there, and a failed lock must not silently drop events,
+        so we degrade to unserialised appends rather than raising.
+        """
+        if _fcntl is None:
+            yield
+            return
+        lock_path = self.path.with_suffix(".ndjson.lock")
+        fd = None
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+            _fcntl.flock(fd, _fcntl.LOCK_EX)
+        except OSError:
+            if fd is not None:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+            fd = None
+        try:
+            yield
+        finally:
+            if fd is not None:
+                try:
+                    _fcntl.flock(fd, _fcntl.LOCK_UN)
+                finally:
+                    os.close(fd)
+
+    def _emit_locked(self, phase: str, kind: str, payload: dict | None) -> dict:
         self._sync()  # another instance may have appended since our last look
         self._seq += 1
         ev = {"seq": self._seq, "ts": time.time(), "phase": phase, "kind": kind,
