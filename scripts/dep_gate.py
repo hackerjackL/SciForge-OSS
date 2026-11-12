@@ -68,9 +68,31 @@ def _import_roots(path: Path) -> list[tuple[int, str]]:
     return out
 
 
+def _local_roots(ws: Path) -> set[str]:
+    """Module names the workspace itself provides.
+
+    Experiment code routinely factors helpers into sibling modules
+    (`src/bootstrap_ci.py` imported by `src/run_experiment.py`). Those are not
+    third-party dependencies and must not need a dependencies.json entry — the
+    S01 real run produced three violations of exactly this kind, which would
+    have blocked the 6b/6c boundary on an entirely normal layout.
+    """
+    roots: set[str] = set()
+    for base in ("src", "figures", "experiments"):
+        d = ws / base
+        if not d.is_dir():
+            continue
+        for p in d.rglob("*.py"):
+            roots.add(p.stem)
+        for p in d.rglob("__init__.py"):
+            roots.add(p.parent.name)
+    return roots
+
+
 def check(ws: Path, manifest: dict) -> dict:
     allowed = _allowed_roots(manifest)
     forbidden = set((manifest.get("always_forbidden") or {}).get("roots", []))
+    local = _local_roots(ws)
     targets = sorted({p for pat in ("src", "figures")
                       for p in (ws / pat).rglob("*.py")} if (ws / "src").is_dir()
                      or (ws / "figures").is_dir() else [])
@@ -82,7 +104,7 @@ def check(ws: Path, manifest: dict) -> dict:
             if root in forbidden:
                 violations.append({"file": str(f.relative_to(ws)), "line": lineno,
                                    "import": root, "why": "always-forbidden root"})
-            elif root in _STDLIB:
+            elif root in _STDLIB or root in local:
                 continue
             elif root not in allowed:
                 violations.append({"file": str(f.relative_to(ws)), "line": lineno,

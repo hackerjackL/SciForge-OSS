@@ -23,6 +23,7 @@ import re
 import shutil
 import subprocess
 import xml.dom.minidom
+from pathlib import Path
 
 import pytest
 
@@ -300,3 +301,62 @@ def test_html_tex_colors_stay_6digit_only():
     assert rf.extract_colors(r"\definecolor{x}{HTML}{F00}") == set()
     assert rf.extract_colors(r"\definecolor{x}{HTML}{FF000066}") == set()
     assert rf.extract_colors(r"\definecolor{x}{HTML}{FF0000}") == {"FF0000"}
+
+
+def test_corner_tick_collision_is_fitted(tmp_path):
+    """S01 real-run defect: an x-tick label collided with a y-tick label near
+    the axes origin on a narrow numeric range (coverage 0.88-0.96). The two
+    per-axis fitters compare labels within one axis only, so neither saw it;
+    A10 reported '0.3' vs '0.88' (scatter-fit) and '0.075' vs '0.925'
+    (line-comparison). The corner fitter must clear it, and A10 must then pass.
+
+    Rendered through render_figure.py — the only legal figure channel, and the
+    layer that writes figure_audit.json (figure_recipes.render alone does not).
+    """
+    import json
+    import subprocess
+    import sys
+
+    spec = {
+        "recipe": "line-comparison",
+        "x_label": "Trim fraction",
+        "y_label": "Trimmed-mean coverage (n=100)",
+        "series": [{"name": "trimmed mean",
+                    "x": [0.0, 0.05, 0.1, 0.2, 0.3],
+                    "y": [0.9012, 0.9180, 0.9331, 0.9482, 0.9401],
+                    "err": [0.004] * 5, "stat": "sem"}],
+    }
+    p = tmp_path / "spec.recipe.json"
+    p.write_text(json.dumps(spec))
+    renderer = Path(__file__).resolve().parents[1] / "scripts" / "plotting" / "render_figure.py"
+    subprocess.run([sys.executable, str(renderer), str(p), "--out", str(tmp_path)],
+                   capture_output=True, text=True, timeout=180)
+    audit = json.loads((tmp_path / "figure_audit.json").read_text())
+    a10 = next(c for c in audit["checks"] if c["layer"] == "A10")
+    assert a10["status"] == "PASS", a10
+
+
+def test_corner_fitter_is_noop_when_ticks_are_well_spaced():
+    """The fitter must not thin ticks on a figure that has no collision —
+    otherwise every recipe figure would silently lose tick resolution.
+
+    rc_context isolates this from rcParams left behind by earlier tests: the
+    corner test is a geometry assertion, so it must not depend on whatever
+    font/DPI another test happened to set globally.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from scripts.plotting import figure_recipes as fr
+
+    with plt.rc_context(matplotlib.rcdefaults()):
+        fig, ax = plt.subplots(figsize=(6.4, 3.6))
+        ax.plot([0, 1, 2, 3], [0, 10, 20, 30])
+        fig.canvas.draw()
+        before = [t.get_text() for t in ax.get_xticklabels()]
+        assert not fr._corner_ticks_overlap(fig, ax)
+        fr._fit_corner_ticklabels(fig, ax)
+        fig.canvas.draw()
+        after = [t.get_text() for t in ax.get_xticklabels()]
+        assert before == after
+        plt.close(fig)

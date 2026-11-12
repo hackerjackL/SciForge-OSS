@@ -377,7 +377,23 @@ def _invoke(ws: Path, prefix: list[str], argv: list[str], timeout: float) -> dic
     env.setdefault("MPLBACKEND", "Agg")
     env["SCIFORGE_SMOKE"] = "1"
     py_path = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = str(KERNEL) + (os.pathsep + py_path if py_path else "")
+    parts = [str(KERNEL)]
+    # macOS sandbox-exec resolves the venv shim before exec, so a sandboxed
+    # .venv/bin/python behaves as the system interpreter and cannot import the
+    # venv's packages (S01 real run: every re-execution died on "No module
+    # named numpy" while the same command passed unsandboxed). Carry the venv
+    # site-packages across explicitly.
+    if prefix:
+        try:
+            if str(KERNEL) not in sys.path:
+                sys.path.insert(0, str(KERNEL))
+            from sciforge.execution import venv_site_packages
+            parts = venv_site_packages(argv[0]) + parts
+        except Exception:
+            pass
+    if py_path:
+        parts.append(py_path)
+    env["PYTHONPATH"] = os.pathsep.join(parts)
     t0 = time.monotonic()
     try:
         p = subprocess.run(prefix + argv, cwd=str(ws), capture_output=True,
@@ -483,7 +499,15 @@ def check(ws: Path, *, execute: bool = True, timeout: float = 90.0,
     markers = sorted(list(full.rglob("DISPATCH.json")) +
                      list(full.rglob("FULL_EXPERIMENT_DISPATCH.json")) +
                      list(full.rglob("STATUS.json")))
-    groups = sorted({m.parent.name for m in markers})
+    # A marker sitting directly in experiments/full/ is the stage-level
+    # aggregate, not a group, whenever at least one subdirectory is itself a
+    # group. Counting the aggregate as a group made the S01 run demand a
+    # `full.SMOKE.json` next to per-group smokes that were all present — a
+    # false positive on a normal layout. With no subdirectory groups the root
+    # marker IS the only group, which the single-group path below handles.
+    sub_markers = [m for m in markers if m.parent != full]
+    chosen = sub_markers if sub_markers else markers
+    groups = sorted({m.parent.name for m in chosen})
     if not groups and not any(full.rglob("*.py")):
         return {"verdict": "SKIP", "reason_codes": ["nothing_dispatched"],
                 "groups": [], "executed": 0}

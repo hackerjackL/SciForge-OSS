@@ -1,0 +1,151 @@
+[
+ {
+  "key": "efron1984better",
+  "title": "Better Bootstrap Confidence Intervals",
+  "year": 1984,
+  "doi": "10.21236/ada150798",
+  "container": ""
+ },
+ {
+  "key": "hall1988theoretical",
+  "title": "Theoretical Comparison of Bootstrap Confidence Intervals",
+  "year": 1988,
+  "doi": "10.1214/aos/1176350933",
+  "container": "The Annals of Statistics"
+ },
+ {
+  "key": "efron1982the",
+  "title": "The Jackknife, the Bootstrap and Other Resampling Plans",
+  "year": 1982,
+  "doi": "10.1137/1.9781611970319",
+  "container": ""
+ },
+ {
+  "key": "xu2026analytical",
+  "title": "Analytical and Bootstrap Confidence Intervals for Double Machine Learning: Simulation Studies and an Application to Rural-Urban Differences in Obesity Prevalence",
+  "abstract": "Double Machine Learning (DML) is a popular approach for treatment effect estimation in various settings, which allows a wide range of flexible machine learning methods to be used for nuisance parameter estimation while preserving valid inference. In practice, however, applied researchers must choose among many machine learning algorithms for nuisance models, and the impact of this choice on the variance estimation of DML is not well characterized. We conduct a comprehensive simulation study to compare the coverage probability of DML confidence intervals across different machine learning algorithms. In this study, we compare (1) analytical confidence intervals derived by DML theory versus (2) bootstrap confidence interval. We use a set of learners including ordinary least squares, LASSO, Random Forest, LightGBM, and Neural Networks under different data generation settings. We evaluate the performance across difference settings by bias, confidence interval width, and most importantly, coverage probability. Our results show substantial variability in coverage performance across analytical and bootstrap confidence intervals, highlighting that learner choice plays a critical role in reliable DML inference. Surprisingly, we find that in many settings, when sample size increases, the coverage probability of both DML analytical and bootstrap confidence interval decreases. We further investigate coverage probabilities using a real dataset on rural urban differences among U.S. counties. The real data analysis discovers that (1) the model performance still varies by the learner choices and (2) greater rurality has a statistically significant increasing effect on county level obesity prevalence.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2607.29456"
+ },
+ {
+  "key": "patra2026parametric",
+  "title": "Parametric bootstrap simultaneous confidence interval based on doubly type-II censoring",
+  "abstract": "Parametric bootstrap and fiducial generalized methods are proposed to construct simultaneous confidence intervals (SCIs) for all pairwise mean differences of several two-parameter exponential distributions, based on doubly censored samples. Both methods have been shown to have correct asymptotic coverage probabilities. Simulation studies are conducted to compare the performance of the two proposed methods. The usefulness of our proposed procedure is illustrated with two examples.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2609.10038"
+ },
+ {
+  "key": "he2026studentized",
+  "title": "Studentized Cheap Bootstrap: Achieving Higher-Order Coverage Accuracy with Low Computation",
+  "abstract": "The bootstrap is a versatile method for quantifying statistical uncertainty. Among its variants, a popular approach, the studentized bootstrap, provably achieves higher-order coverage error reduction compared to other benchmarks. However, its implementation typically requires an analytical form of the standard error, or otherwise an additional layer of resampling effort which can be computationally expensive. In this paper, we introduce what we call the studentized cheap bootstrap that achieves the same higher-order coverage accuracy as the conventional studentization, but substantially thinning the computational effort in the additional resampling layer to only very few Monte Carlo replications. Intriguingly, while conventional wisdom views \"studentization\" as an informal link between the bootstrap and t-distribution, we provide a first recognition that this link is in fact formal, notably with a distinct insight that the degree of freedom in the t-distribution corresponds to the Monte Carlo computation effort in the additional resampling layer, rather than the data size as in traditional thinking. Moreover, our desirable higher-order coverage accuracy builds crucially on this insight, as well as explicit calculations and geometric analyses of higher-order terms in the Edgeworth and Cornish-Fisher expansions tailored to limiting t-distributions.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2606.25968"
+ },
+ {
+  "key": "schemet2026modelbased",
+  "title": "Model-based bootstrap inference for Cox models after Lasso selection",
+  "abstract": "Inference after variable selection in Cox regression is difficult because simple Wald-type intervals after selection can have poor finite-sample conditional coverage. We study a model-based bootstrap for inference after Cox-Lasso variable selection. The Cox-Lasso is fitted once to the original data to select a set of variables, after which an unpenalized Cox model is fitted using only those variables. Bootstrap samples are generated from a semiparametric plug-in Cox model specified by the coefficient estimate from this unpenalized Cox refit, the Breslow baseline cumulative hazard estimator, and a plug-in censoring distribution. In every bootstrap sample, the selected variable set is kept fixed and only the unpenalized Cox model is refitted. Under oracle-type sparse-model assumptions and standard Cox model regularity conditions, we prove first-order bootstrap validity for this procedure. In the simulation scenarios considered, percentile and studentized bootstrap intervals showed improved conditional coverage relative to the bootstrap-Wald interval in several small- and moderate-sample settings. Their performance was broadly competitive with debiased intervals, although the comparison depended on signal strength, tuning, and selection stability. A SEER breast cancer example illustrates that the procedure can be implemented in a realistic survival analysis and provides interpretable uncertainty quantification for effects reported after variable selection.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2608.18893"
+ },
+ {
+  "key": "coelho2026comparing",
+  "title": "Comparing tail forecasts: the number of exceedances is the sample size",
+  "abstract": "When two forecasts of a tail, such as prediction intervals at high coverage, extreme quantiles or expected shortfall (ES), are compared by a consistent score, the score difference is known in advance except on the days on which the outcome falls beyond a forecast. The number of these exceedances, not the number of observations, is the effective sample size. For intervals at miscoverage level $α$, the number of observations a comparison needs grows like $1/α$ while the number of exceedances it needs does not, and for some pairs of forecasts no test can do better. A confidence sequence that is valid at all times and needs no distributional assumption attains this rate; Hoeffding-type procedures, calibrated by the range of the score difference, need $1/α$ times more. When exceedances are scarce, the Diebold-Mariano test declares the less conservative forecaster better with at least, asymptotically, the probability of observing no exceedance, whichever forecaster is actually better; the usual small-sample corrections do not remove this, while a bootstrap-t version largely does. For (value-at-risk, ES) forecasts, a less conservative ES can be shown without assumptions to be worse on the days on which it is less conservative, but never to be better without an assumption on the loss tail. In 250-day windows of 97.5% forecasts for seven stock indices, 18.4% of significant Diebold-Mariano results favouring the less conservative model contradict the ranking on the remaining days, against 6.9% of those favouring the more conservative one.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2610.40366"
+ },
+ {
+  "key": "jggi2026limitations",
+  "title": "Limitations of Using BCA Codes for Modeling the Sputtering Behavior of Planetary Surfaces",
+  "abstract": "Binary collision approximation (BCA) codes are potentially powerful tools to simulate ion irradiation ejecta properties, such as the composition and the angular and energy distributions of the sputter yield. However, recent advances in the sputtering of minerals have highlighted the low predictive fidelity of BCA codes such as SDTrimSP when compared to experimental measurements. We demonstrate how a sputtering model that underestimates the forward sputtering on a flat surface at large ion incidence angles from surface normal will lead to an erroneous result for rough and porous surfaces, where most ejected particles are directed along the surface normal. We demonstrate how this is the case for an existing model, which reliably predicts sputtering mass yields from a flat enstatite surface but fails to accurately reproduce the angular distribution of sputtered particles. We then compare this to a BCA model incorporating higher surface-binding energies$-$based on a molecular dynamics description of plagioclase$-$which underestimates mass yields but significantly reduces back-sputtering and better reproduces laboratory sputter angle distributions measured at large ion incidence angles. We conclude that the BCA model cannot simultaneously reproduce both the sputter yield and the sputter angle distribution arising from He irradiation of mineral targets, either due to the inherent geometric simplicity of the BCA or because the model neglects yield-enhancing processes such as molecule and cluster sputtering. This demonstrates a structural limitation of current BCA-based models when realistic surface morphologies are considered, rather than a problem that can be resolved by parameter tuning alone.",
+  "year": 2026,
+  "doi": "10.1016/j.icarus.2026.117231",
+  "container": "Icarus"
+ },
+ {
+  "key": "takeshita2026bootstrapbased",
+  "title": "Bootstrap-based estimation and inference for measurement precision under ISO 5725",
+  "abstract": "The ISO 5725 series frames interlaboratory precision through repeatability, between-laboratory, and reproducibility variances, yet practical guidance on deploying bootstrap methods within this one-way random-effects setting remains limited. We study resampling strategies tailored to ISO 5725 data and extend a bias-correction idea to obtain simple adjusted point estimators and confidence intervals for the variance components. Using extensive simulations that mirror realistic study sizes and variance ratios, we evaluate accuracy, stability, and coverage, and we contrast the resampling-based procedures with ANOVA-based estimators and common approximate intervals. The results yield a clear division of labor: adjusted within-laboratory resampling provides accurate and stable point estimation in small-to-moderate designs, whereas a two-stage strategy-resampling laboratories and then resampling within each-paired with bias-corrected and accelerated intervals offers the most reliable (near-nominal or conservative) confidence intervals. Performance degrades under extreme designs, such as very small samples or dominant between-laboratory variation, clarifying when additional caution is warranted. A case study from an ISO 5725-4 dataset illustrates how the recommended procedures behave in practice and how they compare with ANOVA and approximate methods. We conclude with concrete guidance for implementing resampling-based precision analysis in interlaboratory studies: use adjusted within-laboratory resampling for point estimation, and adopt the two-stage strategy with bias-corrected and accelerated intervals for interval estimation.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2602.01931"
+ },
+ {
+  "key": "senne2026nonintrusive",
+  "title": "Non-intrusive Body Composition Assessment from Full-body mmWave Scans",
+  "abstract": "Body composition assessment (BCA) provides detailed information about the distribution of different tissue types in the body, enabling more precise characterization of individuals than BMI or weight alone. Consistent and frequent BCA would be valuable for personalized medicine, but the gold standard methods for BCA, such as CT and MRI, are only practical for opportunistic monitoring of patients with clinical indications for imaging and are not suitable for routine use in the general population. Here, we consider an imaging modality which is not currently used in medical applications: millimeter wave (mmWave) radar. Commonly used in security settings, mmWave scans enable fast, non-intrusive, and privacy-preserving reconstruction of full body shape without the need to remove clothing. To demonstrate the feasibility of fast and convenient BCA from mmWave scans, we present a method for BCA value regression using a multi-task learning strategy that leverages synthetic mmWave-like point clouds derived from clinical imaging and parametric human models. We evaluate the model on a pilot cohort of real mmWave scans with bioimpedance-derived body fat measurements, supporting the feasibility of estimating VAT and body fat percentage (BFP) from mmWave data acquired through clothing in a standing posture. We find that the model can predict VAT and BFP with a mean absolute error of 1.0 L and 3.2%, respectively, demonstrating the potential of mmWave scanning for routine BCA in a wide range of settings.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2605.08306"
+ },
+ {
+  "key": "cavaliere2026bootstrapping",
+  "title": "Bootstrapping autoregressive duration models",
+  "abstract": "This paper develops bootstrap methods for likelihood-based inference in autoregressive conditional duration (ACD) models, where the sample size is endogenously determined by durations observed over a fixed time span. This feature fundamentally shapes the asymptotic framework, particularly so when the durations do not have finite expectation. Building on recent limit theory for heavy-tailed and integrated ACD processes, we analyze recursive bootstrap schemes that either fix the time span (yielding a random sample size) or fix the number of durations (yielding a random time span). We establish a bootstrap theory for ACD models that links naturally to renewal theory with random sample sizes. For the fixedcount bootstrap, we prove first-order validity in the finite-mean and boundary cases and characterize the random limiting bootstrap distribution in the infinite-mean case. Although classical bootstrap consistency can fail when the durations have infinite expectation, we argue that the bootstrap remains valid and yields asymptotically normal t-statistics. Monte Carlo evidence shows that the proposed methods have good finite-sample properties in both finite- and infinite-mean settings, and are robust to distributional misspecification relative to the exponential likelihood. We conclude with an empirical application to cryptocurrency ETFs.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2607.28294"
+ },
+ {
+  "key": "egger2026ppml",
+  "title": "PPML and Heavy-Tailed Trade and Factor Flows: Why Standard Inference Fails and How to Fix It",
+  "abstract": "The Poisson pseudo-maximum likelihood (PPML) estimator is widely used for estimating bilateral gravity equations. Its consistency requires only a correctly specified conditional mean. Conventional inference, however, also requires finite-variance scores and Gaussian limits. We show that these conditions fail: bilateral flows are Pareto-tailed, PPML scores have a stable limit under a structural gravity data-generating process, and sandwich confidence intervals are too narrow. We retain PPML for point estimation but replace sandwich inference with an m-out-of-n bootstrap robust to heavy tails. Across three bilateral data settings, the correction is large and overturns conventionally significant gravity coefficients.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2609.18750"
+ },
+ {
+  "key": "tanaka2026a",
+  "title": "A Theory of Bootstrap Coverage Calibration for Generalized Posterior Credible Sets",
+  "abstract": "Generalized posteriors replace the likelihood by an exponentiated empirical criterion, but their credible sets generally lack asymptotic justification for frequentist coverage. General posterior calibration selects a scalar learning rate by estimating coverage with the bootstrap. Using Edgeworth expansions under regular fixed-dimensional asymptotics, we derive higher-order coverage expansions and analyze the stochastic approximation step used in the implemented algorithm. For a fixed nominal level, the root of the bootstrap coverage equation is consistent under a uniform coverage approximation and local identification. The higher-order expansions separate two sources of coverage error: the sampling Edgeworth correction for the estimator and the posterior Edgeworth correction for credible set boundaries, centres, and shapes. A scalar learning rate can calibrate all nominal levels in the Gaussian limit only when the posterior covariance and the sampling covariance are proportional. Hence, bootstrap calibration is a level-specific scale correction, not a remedy for general shape misspecification.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2606.25729"
+ },
+ {
+  "key": "schemet2026wild",
+  "title": "Wild Bootstrap and Efron's Bootstrap for Debiased Cox Regression",
+  "abstract": "Cox regression with Lasso penalization is widely used for variable selection in time-to-event data, but reliable coefficient inference after selection remains difficult. We investigate bootstrap inference for the debiased Cox estimator after Cox Lasso selection. Two score-based procedures are considered: a wild bootstrap using independent multipliers and an Efron bootstrap using centered multinomial resampling weights. Both procedures keep the original Cox Lasso fit and debiasing matrix fixed and apply bootstrap weights to the score contributions that determine the first-order distribution of the debiased estimator. We establish asymptotic validity for both bootstrap schemes and study their finite-sample behavior in extensive simulations. The bootstrap intervals improve coverage accuracy over first-order debiased Wald intervals in many small- and moderate-sample settings, with the size of the improvement depending on the simulation setting and tuning rule. A SUPPORT2 application illustrates the procedures in practice.",
+  "year": 2026,
+  "doi": "10.48550/arXiv.2608.24230"
+ },
+ {
+  "key": "ferrando2020parametric",
+  "title": "Parametric Bootstrap for Differentially Private Confidence Intervals",
+  "abstract": "The goal of this paper is to develop a practical and general-purpose approach to construct confidence intervals for differentially private parametric estimation. We find that the parametric bootstrap is a simple and effective solution. It cleanly reasons about variability of both the data sample and the randomized privacy mechanism and applies \"out of the box\" to a wide class of private estimation routines. It can also help correct bias caused by clipping data to limit sensitivity. We prove that the parametric bootstrap gives consistent confidence intervals in two broadly relevant settings, including a novel adaptation to linear regression that avoids accessing the covariate data multiple times. We demonstrate its effectiveness for a variety of estimators, and find that it provides confidence intervals with good coverage even at modest sample sizes and performs better than alternative approaches.",
+  "year": 2020,
+  "doi": "10.48550/arXiv.2006.07749"
+ },
+ {
+  "key": "ditzhaus2023inference",
+  "title": "Inference for all variants of the multivariate coefficient of variation in factorial designs",
+  "abstract": "The multivariate coefficient of variation (MCV) is an attractive and easy-to-interpret effect size for the dispersion in multivariate data. Recently, the first inference methods for the MCV were proposed by Ditzhaus and Smaga (2022) for general factorial designs covering k-sample settings but also complex higher-way layouts. However, two questions are still pending: (1) The theory on inference methods for MCV is primarily derived for one special MCV variant while there are several reasonable proposals. (2) When rejecting a global null hypothesis in factorial designs, a more in-depth analysis is typically of high interest to find the specific contrasts of MCV leading to the aforementioned rejection. In this paper, we tackle both by, first, extending the aforementioned nonparametric permutation procedure to the other MCV variants and, second, by proposing a max-type test for post hoc analysis. To improve the small sample performance of the latter, we suggest a novel studentized bootstrap strategy and prove its asymptotic validity. The actual performance of all proposed tests and post hoc procedures are compared in an extensive simulation study and illustrated by a real data analysis.",
+  "year": 2023,
+  "doi": "10.48550/arXiv.2301.12009"
+ },
+ {
+  "key": "palma2022new",
+  "title": "New confidence interval methods for Shannon index",
+  "abstract": "Several factors affect the structure of communities, including biological, physical and chemical phenomena, impacting the quantification of biodiversity, measured by diversity indexes such as Shannon's entropy. Then, once a point estimate is obtained, confidence intervals methods such as the bootstrap ones are often used. These methods, however, can have different performances, which many authors have revealed in the last decade. Furthermore, problems such as the asymmetry of the distribution of estimates and the possibility of Shannon's diversity index estimator bias can lead to incorrect recommendations to the research community. Thus, we propose two methods and compare them with seven others using their performances to face these problems. The first idea uses the credible interval (CI) method to build a bootstrap confidence interval. The second one starts by correcting the bias and then uses an asymptotic approach. We considered 27 community structures representing scenarios with high dominance, high codominance or moderate dominance, the number of species equal to 4, 20 or 80 and 10, 50 or 500 individuals to compare their performances. Then, we generated 1000 samples, built 95% confidence intervals, and calculated the percentage of times they included the community diversity index (coverage percentage) for each community structure. Our results showed the feasibility of both proposed methods to estimate Shannon's diversity. The simulation study revealed the bootstrap-t technique had the best performance, i.e., best coverage percentage, compared with the other methods. Finally, we illustrate the methodology by applying it to an original aphid and parasitoid species dataset. We recommend the bootstrap-t when the community structure analysed is similar to the simulated ones. Also, the methods provided high performance for the high dominance scenarios.",
+  "year": 2022,
+  "doi": "10.48550/arXiv.2204.10073"
+ },
+ {
+  "key": "tai2023cancernet",
+  "title": "Cancer-Net BCa-S: Breast Cancer Grade Prediction using Volumetric Deep Radiomic Features from Synthetic Correlated Diffusion Imaging",
+  "abstract": "The prevalence of breast cancer continues to grow, affecting about 300,000 females in the United States in 2023. However, there are different levels of severity of breast cancer requiring different treatment strategies, and hence, grading breast cancer has become a vital component of breast cancer diagnosis and treatment planning. Specifically, the gold-standard Scarff-Bloom-Richardson (SBR) grade has been shown to consistently indicate a patient's response to chemotherapy. Unfortunately, the current method to determine the SBR grade requires removal of some cancer cells from the patient which can lead to stress and discomfort along with costly expenses. In this paper, we study the efficacy of deep learning for breast cancer grading based on synthetic correlated diffusion (CDI$^s$) imaging, a new magnetic resonance imaging (MRI) modality and found that it achieves better performance on SBR grade prediction compared to those learnt using gold-standard imaging modalities. Hence, we introduce Cancer-Net BCa-S, a volumetric deep radiomics approach for predicting SBR grade based on volumetric CDI$^s$ data. Given the promising results, this proposed method to identify the severity of the cancer would allow for better treatment decisions without the need for a biopsy. Cancer-Net BCa-S has been made publicly available as part of a global open-source initiative for advancing machine learning for cancer care.",
+  "year": 2023,
+  "doi": "10.48550/arXiv.2304.05899"
+ },
+ {
+  "key": "tramontina2022radiation",
+  "title": "Radiation resistance in simulated metallic core-shell nanoparticles",
+  "abstract": "We present molecular dynamics (MD) simulations of radiation damage in pure Fe nanoparticles (NP) and bimetallic FeCu core-shell nanoparticles (CSNP). The CSNP includes a perfect body centered cubic (bcc) Fe core coated with a face-centered cubic (fcc) Cu shell. Irradiation with Fe Primary Knock-on Atoms (PKA) with energies between 1 and 7 keV leads to point defects, without clustering beyond divacancies and very few slightly larger vacancy clusters, and without interstitial clusters, unlike what happens in bulk at the same PKA energies. The Fe-Cu interface and shell can act as a defect sink, absorbing radiation-induced damage and, therefore, the final number of defects in the Fe core is significantly lower than in the Fe NP. In addition, the Cu shell substantially diminishes the number of sputtered Fe atoms, acting as a barrier for recoil ejection. Structurally, the Cu shell responds to the stress generated by the collision cascade by creating and destroying stacking faults across the shell width, which could also accommodate further irradiation defects. Sputtering yield (Y) is underestimated by BCA, which is also expected since the simulation is for a thin film at normal incidence. We also compare MD defect production to bulk predictions of the analytic Athermal Recombination Corrected Displacements Per Atom (arc-dpa) model. The number of vacancies in the Fe core is only slightly lower than arc-dpa predictions, but the number of interstitials is reduced by about one order of magnitude compared to vacancies, at 5 keV. According to the radiation resistance found for FeCu CSNP in our simulations, this class of nanomaterial could be suitable for developing new radiation resistant coatings, nanostructured components, and shields for use in extreme environments, for instance, in nuclear energy and astrophysical applications.",
+  "year": 2022,
+  "doi": "10.48550/arXiv.2206.09063"
+ },
+ {
+  "key": "palm2022prediction",
+  "title": "Prediction Intervals in the Beta Autoregressive Moving Average Model",
+  "abstract": "In this paper, we propose five prediction intervals for the beta autoregressive moving average model. This model is suitable for modeling and forecasting variables that assume values in the interval $(0,1)$. Two of the proposed prediction intervals are based on approximations considering the normal distribution and the quantile function of the beta distribution. We also consider bootstrap-based prediction intervals, namely: (i) bootstrap prediction errors (BPE) interval; (ii) bias-corrected and acceleration (BCa) prediction interval; and (iii) percentile prediction interval based on the quantiles of the bootstrap-predicted values for two different bootstrapping schemes. The proposed prediction intervals were evaluated according to Monte Carlo simulations. The BCa prediction interval offered the best performance among the evaluated intervals, showing lower coverage rate distortion and small average length. We applied our methodology for predicting the water level of the Cantareira water supply system in São Paulo, Brazil.",
+  "year": 2022,
+  "doi": "10.1080/03610918.2021.1943440",
+  "container": "Communications in Statistics - Simulation and Computation"
+ }
+]

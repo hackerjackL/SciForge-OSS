@@ -1,0 +1,41 @@
+{
+  "learner_version": "2.0",
+  "learning_method": "literature_search + seed_analysis",
+  "problem_id": "S01",
+  "sources_consulted": [
+    "arXiv stat.ME bootstrap-coverage retrieval wave (see literature/VERIFICATION_LOG.md)",
+    "Efron (1979) Bootstrap Methods: Another Look at the Jackknife (seed)",
+    "Efron (1987) Better Bootstrap Confidence Intervals (seed)",
+    "Hall (1988) Theoretical Comparison of Bootstrap Confidence Intervals (seed)"
+  ],
+  "learning_confidence": 0.86,
+  "domain_profile": {
+    "primary_domain": "statistics_resampling",
+    "evidence_type": "simulational",
+    "reasoning_paradigm": "empirical",
+    "verification_type": "theory+experiment"
+  },
+  "methodology_profile": {
+    "standard_methods": ["monte_carlo_coverage_study", "percentile_bootstrap", "studentized_bootstrap", "bca_bootstrap", "robust_location_estimators"],
+    "verification_approach": "known-estimand simulation with analytic anchors",
+    "learning_basis": "bootstrap CI literature: coverage studies compare interval methods against known population targets over repeated samples"
+  },
+  "failure_mode_profile": {
+    "common_failures": ["undercoverage_heavy_tails", "skewness_asymmetry", "estimand_mismatch", "width_coverage_conflation", "monte_carlo_noise_misread"],
+    "learning_basis": "Hall (1988) Edgeworth analysis; Efron (1987) BCa motivation; robust-statistics literature"
+  },
+  "writing_profile": {
+    "style": "empirical_statistics",
+    "citation_format": "numeric",
+    "section_structure": "introduction → related work → methods → experimental setup → results → discussion → conclusion",
+    "learning_basis": "statistics simulation-study conventions (JCGS / Computational Statistics & Data Analysis)"
+  },
+  "evidence_norm_profile": {
+    "sample_size_norm": "coverage studies report >=500 Monte Carlo replications per cell with >=1000 bootstrap resamples; multiple sample sizes to separate finite-sample from asymptotic behavior",
+    "control_design_norm": "a known-answer control (Gaussian t-interval exact coverage) plus a nominal-level reference line is standard",
+    "effect_reporting_norm": "coverage with Monte Carlo standard error; interval width reported jointly with coverage; per-seed variability disclosed",
+    "negative_result_norm": "undercoverage findings are publishable attribution results when the deficit exceeds Monte Carlo error and the estimand is correctly matched",
+    "exemplar_venues": ["Journal of Computational and Graphical Statistics", "Computational Statistics & Data Analysis", "Annals of Statistics"],
+    "learning_basis": "evidence standards in the retrieved bootstrap-coverage corpus"
+  }
+}

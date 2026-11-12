@@ -86,6 +86,7 @@ scripts/eval/
 runs/ARC-BENCH/
 runs/ARC-BENCH2/
 runs/EVAL-T1/
+runs/S01/
 bench/s2demo/results/
 
 # stray top-level eval logs (agents leak cwd-relative logs here)

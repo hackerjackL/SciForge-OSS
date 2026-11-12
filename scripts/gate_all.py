@@ -113,13 +113,37 @@ def _detect_mode(ws: Path) -> str:
     return "A-skills-only"
 
 
-def _current_rank(ws: Path) -> int | None:
-    """Highest phase the workspace has demonstrably reached, or None.
+# Artifacts that can only exist once a phase has actually run. Used to
+# cross-check the declared RUNSTATE cursor: in Mode A the orchestrator is a
+# host agent writing RUNSTATE by hand, so the cursor can lag the real work.
+_EVIDENCE_PROBES = (
+    ("6",    (".sciforge/verdicts/VERIFICATION_ROUTING.json",)),
+    ("6b",   ("experiments/toy/RESULT.json",)),
+    ("6c",   ("experiments/full/group_*/RESULT.json", "experiments/full/RESULT.json")),
+    ("10",   ("results.json", "results/metrics.json")),
+    ("11",   ("figures/*/output.pdf",)),
+    ("12",   ("paper/main.tex",)),
+    ("13",   ("paper/main.pdf",)),
+    ("14",   (".sciforge/verdicts/REVIEW_STATE.json",)),
+    ("15",   (".sciforge/verdicts/CITATION_AUDIT.json",)),
+    ("15.5", (".sciforge/verdicts/PUBLISHABILITY_SCORE.json",)),
+)
 
-    RUNSTATE is the declared cursor (Mode A must rewrite it at every boundary
-    per the orchestrator contract); when it is absent, the caller runs all
-    gates and lets each gate's own SKIP semantics decide.
-    """
+
+def _evidence_rank(ws: Path) -> int | None:
+    """Highest phase with on-disk proof that it ran, or None."""
+    best = None
+    for pid, probes in _EVIDENCE_PROBES:
+        if pid not in PHASE_RANK:
+            continue
+        if any(ws.glob(p) and next(iter(ws.glob(p)), None) is not None
+               for p in probes):
+            r = PHASE_RANK[pid]
+            best = r if best is None else max(best, r)
+    return best
+
+
+def _declared_rank(ws: Path) -> int | None:
     rs = _runstate(ws)
     if not rs:
         return None
@@ -129,6 +153,29 @@ def _current_rank(ws: Path) -> int | None:
              for key in ("last_completed_boundary", "current_phase")
              if str(rs.get(key) or "") in PHASE_RANK]
     return max(ranks) if ranks else None
+
+
+def _current_rank(ws: Path) -> int | None:
+    """Highest phase the workspace has demonstrably reached, or None.
+
+    Takes the max of the declared RUNSTATE cursor and the on-disk artifact
+    evidence. RUNSTATE alone is not enough: Mode A rewrites it by hand, so a
+    stale cursor made every gate report `phase_not_reached` on a workspace that
+    already held experiments, figures and a manuscript — the whole battery
+    silently skipped, which is exactly what this script exists to prevent.
+    Absent both signals, return None so each gate's own SKIP semantics decide.
+    """
+    declared = _declared_rank(ws)
+    evidenced = _evidence_rank(ws)
+    if declared is None and evidenced is None:
+        return None
+    return max(x for x in (declared, evidenced) if x is not None)
+
+
+def _cursor_stale(ws: Path) -> bool:
+    """True when artifacts prove more progress than RUNSTATE declares."""
+    d, e = _declared_rank(ws), _evidence_rank(ws)
+    return e is not None and (d is None or e > d)
 
 
 def _rank(pid: str) -> int:
@@ -270,6 +317,31 @@ def gate_gap_gate(ws: Path, opts) -> dict:
     rc, out, dur = _run("gap_gate.py", [str(ws)], opts.timeout)
     return _result("gap_gate", "4broad", "PASS" if rc == 0 else "FAIL",
                    "ok" if rc == 0 else "gap_report_missing_or_invalid", out, dur)
+
+
+def gate_citation_relevance(ws: Path, opts) -> dict:
+    """Topic-relevance of the reference corpus against the Phase-1b domain
+    signature. Runs at 4broad — the moment references.bib is finalized — so an
+    off-domain entry (the BCa/BCA sputtering collision) is caught before it
+    anchors a gap or reaches the manuscript. WARN (uncertain / cross-domain
+    disclosure) is not a failure: interdisciplinary citations are legal.
+    SKIP when no domain-signature exists (pre-Phase-1b runs)."""
+    rc, out, dur = _run("citation_relevance_gate.py", [str(ws), "--json"], opts.timeout)
+    if rc == -9 or rc == -1:
+        return _result("citation_relevance", "4broad", "ERROR", "gate_unavailable", out, dur)
+    doc = _parse_json_tail(out) or {}
+    status = doc.get("status")
+    if status == "SKIP":
+        return _result("citation_relevance", "4broad", "SKIP", "no_domain_signature",
+                       doc.get("note", out), dur)
+    if status == "WARN":
+        return _result("citation_relevance", "4broad", "WARN", "citation_relevance_uncertain",
+                       out, dur)
+    if status == "FAIL" or rc == 2:
+        return _result("citation_relevance", "4broad", "FAIL", "citation_off_domain", out, dur)
+    if status == "PASS" or rc == 0:
+        return _result("citation_relevance", "4broad", "PASS", "ok", out, dur)
+    return _result("citation_relevance", "4broad", "ERROR", "gate_unavailable", out, dur)
 
 
 def gate_registry_hash(ws: Path, opts) -> dict:
@@ -609,6 +681,7 @@ GATES = [
     ("validate_verdicts", "0", gate_validate_verdicts),
     ("rep_plan_present", "2", gate_rep_plan_present),
     ("gap_gate", "4broad", gate_gap_gate),
+    ("citation_relevance", "4broad", gate_citation_relevance),
     ("registry_hash", "5", gate_registry_hash),
     ("security_scan", "6b/6c", gate_security_scan),
     ("dep_gate", "6b/6c", gate_dep_gate),
@@ -653,6 +726,7 @@ def _gate_phase_rank(phase: str) -> int:
 def run_all(ws: Path, opts) -> dict:
     ws = Path(ws)
     rank = _current_rank(ws)
+    stale = _cursor_stale(ws)
     only = set(opts.only or [])
     skip = set(opts.skip or [])
     unknown = sorted((only | skip) - set(GATE_NAMES))
@@ -661,6 +735,15 @@ def run_all(ws: Path, opts) -> dict:
                          f"known: {GATE_NAMES}")
 
     rows = []
+    if stale:
+        d, e = _declared_rank(ws), _evidence_rank(ws)
+        rows.append(_result(
+            "runstate_cursor", "0", "WARN", "runstate_cursor_stale",
+            "RUNSTATE declares phase "
+            f"{PHASE_ORDER[d] if d is not None else '(none)'} but on-disk "
+            f"artifacts prove {PHASE_ORDER[e]}; the cursor is not trustworthy "
+            "in this workspace, so gates run on artifact evidence instead. "
+            "Rewrite RUNSTATE at every boundary to restore a real cursor."))
     for name, phase, fn in GATES:
         if only and name not in only:
             continue

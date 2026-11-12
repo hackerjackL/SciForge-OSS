@@ -20,7 +20,7 @@
         "properties": {
           "name": {
             "type": "string",
-            "pattern": "^(main|baseline_[A-Za-z0-9_-]+|ablation_[A-Za-z0-9_-]+|hyperparam|robustness)$",
+            "pattern": "^(main|baseline_[A-Za-z0-9_-]+|ablation_[A-Za-z0-9_-]+|hyperparam(_[A-Za-z0-9_-]+)?|robustness(_[A-Za-z0-9_-]+)?)$",
             "description": "Group name maps to experiments/full/group_<name>/."
           },
           "hypothesis": {

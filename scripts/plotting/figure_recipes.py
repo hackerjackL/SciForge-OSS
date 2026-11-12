@@ -93,6 +93,11 @@ def _finish(fig, ax, spec: Path | dict, outdir: Path):
     # categorical x-tick collision fix, run LAST (legend placed, figure laid
     # out). No-op for numeric axes — the gap test never trips on them.
     _fit_xticklabels(fig, ax)
+    # cross-axis corner fix (S01 real run): the per-axis fitters above compare
+    # labels within one axis only, so an x tick colliding with a y tick near
+    # the origin survived them. Runs before the manifest so A10 measures the
+    # repaired layout.
+    _fit_corner_ticklabels(fig, ax)
     # v1.7.3: measured text boxes for A10 (matplotlib/pdftocairo path-ize
     # text, so the SVG <text> audit never saw recipe figures).
     figure_audit.write_text_layout(fig, outdir)
@@ -175,6 +180,77 @@ def _fit_xticklabels(fig, ax):
             return
     # even 90° reported overlap (only possible with absurdly long labels);
     # keep it vertical — that is the minimum-collision layout.
+
+
+def _corner_ticks_overlap(fig, ax):
+    """True when a tick label box intersects another axis's tick label or title.
+
+    The two existing fitters only compare labels *within* one axis, so they
+    never see the axes-corner cases. Two were measured in the S01 real run:
+      * tick vs tick — on a narrow numeric range (coverage lives in 0.88-0.96)
+        the auto-locator puts a y tick near the origin whose label reaches left
+        into the first x tick's label: A10 reported `'0.3' vs '0.88'`
+        (scatter-fit) and `'0.075' vs '0.925'` (line-comparison).
+      * tick vs axis title — an out-of-range tick (the auto-locator emitted
+        `-0.1` for data spanning 0..0.3) sits under the rotated y-axis title:
+        A10 reported `'-0.1' vs 'Trimmed-mean coverage (n'`.
+    Neither `aspect` nor the per-axis fitters can clear either case, because the
+    collision is across axes / against the title rather than between neighbours.
+    """
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    xs = [t.get_window_extent(renderer=r) for t in ax.get_xticklabels()
+          if t.get_text()]
+    ys = [t.get_window_extent(renderer=r) for t in ax.get_yticklabels()
+          if t.get_text()]
+    titles = [lab.get_window_extent(renderer=r)
+              for lab in (ax.xaxis.label, ax.yaxis.label) if lab.get_text()]
+
+    def hit(a, b):
+        return a.x0 < b.x1 and b.x0 < a.x1 and a.y0 < b.y1 and b.y0 < a.y1
+
+    return (any(hit(a, b) for a in xs for b in ys)
+            or any(hit(a, t) for a in xs + ys for t in titles))
+
+
+def _fit_corner_ticklabels(fig, ax):
+    """Clear axes-corner label collisions without touching well-spaced figures.
+
+    Two levers, in order of preference:
+      1. Clip each numeric axis to its data range. The auto-locator pads the
+         limits and can emit a tick outside the data (the `-0.1` above); such a
+         tick carries no information and is what reaches under the axis title.
+      2. Thin ticks via MaxNLocator (keeps round numbers) when the remaining
+         collision is tick-vs-tick crowding near the origin.
+    Both are no-ops when nothing overlaps, so a well-spaced figure keeps its
+    original ticks and padding. Bounded attempts; if nothing clears it we leave
+    the sparsest locator rather than restoring the one that demonstrably failed.
+    """
+    from matplotlib.ticker import MaxNLocator
+    if not _corner_ticks_overlap(fig, ax):
+        return
+    for axis, getter in ((ax.xaxis, ax.get_xlim), (ax.yaxis, ax.get_ylim)):
+        if axis.get_scale() != "linear":
+            continue
+        locs = [v for v in axis.get_majorticklocs()]
+        if not locs:
+            continue
+        lo, hi = getter()
+        span = hi - lo
+        if span <= 0:
+            continue
+        # drop ticks that sit outside the current limits' inner 99%: they are
+        # padding artifacts, and they are the ones that collide with the title
+        keep = [v for v in locs if lo + 0.005 * span <= v <= hi - 0.005 * span]
+        if keep and len(keep) < len(locs):
+            axis.set_major_locator(plt.FixedLocator(keep))
+    for n in (6, 5, 4, 3):
+        if not _corner_ticks_overlap(fig, ax):
+            return
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=n, prune="lower"))
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=n, prune="lower"))
+    # nothing cleared it: leave the sparsest locator in place rather than
+    # restoring the dense one that demonstrably overlapped.
 
 
 # ---------------- recipes ----------------

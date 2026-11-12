@@ -39,11 +39,16 @@ def sandbox_cmd(workspace: Path, net: bool = False) -> list[str] | None:
         # `(allow signal *)` is rejected outright on macOS 27 (Seatbelt parses
         # the wildcard as an invalid subpath and exits `illegal argument`), and
         # without `process-exec` the sandboxed interpreter cannot even be
-        # exec'd. Both were measured on Darwin 27.0.1; the profile below runs
-        # the interpreter and its subprocesses while keeping the write scope.
+        # exec'd. Both were measured on Darwin 27.0.1.
+        # `sysctl-read` is required for `os.uname()`, which numpy calls at
+        # import time: without it any script that imports the scientific stack
+        # dies with PermissionError before running a line of its own code
+        # (measured on the S01 real run). It is read-only host metadata, so it
+        # widens the sandbox far less than either executing unsandboxed or
+        # denying every numpy-importing experiment.
         prof = (
             "(version 1)(allow file-read*)(allow process-fork)"
-            "(allow process-exec)(allow signal)"
+            "(allow process-exec)(allow signal)(allow sysctl-read)"
             f"(allow file-write* (subpath \"{ws}\")(subpath \"/tmp\"))"
             + ("(allow network*)" if net else "(deny network*)")
         )
@@ -63,6 +68,38 @@ def sandbox_cmd(workspace: Path, net: bool = False) -> list[str] | None:
 
 class SandboxWarning(RuntimeError):
     pass
+
+
+def venv_site_packages(interpreter: str | Path) -> list[str]:
+    """site-packages dirs of the virtualenv that `interpreter` belongs to.
+
+    Needed because macOS `sandbox-exec` resolves symlinks before exec: a venv
+    shim (.venv/bin/python -> /opt/homebrew/bin/pythonX.Y) loses its
+    pyvenv.cfg context, CPython then behaves as the *system* interpreter and
+    the child cannot import anything installed in the venv ("No module named
+    numpy"). Measured on the S01 real run: every smoke re-execution failed
+    inside the sandbox for exactly this reason while the same command passed
+    outside it.
+
+    Inspects the path as given (the symlink), not the resolved target, since
+    that is where pyvenv.cfg lives. Returns [] for a non-venv interpreter, so
+    callers can splice the result into PYTHONPATH unconditionally.
+    """
+    raw = Path(interpreter)
+    roots = {raw.parent.parent, Path(os.path.abspath(raw)).parent.parent}
+    try:
+        roots.add(Path(raw).resolve().parent.parent)
+    except OSError:
+        pass
+    out: list[str] = []
+    for root in roots:
+        if not (root / "pyvenv.cfg").is_file():
+            continue
+        for pattern in ("lib/python*/site-packages", "Lib/site-packages"):
+            for p in sorted(root.glob(pattern)):
+                if p.is_dir() and str(p) not in out:
+                    out.append(str(p))
+    return out
 
 
 # ---------------- device planner (S10) ----------------
@@ -103,6 +140,13 @@ def dispatch(ws: Path, script: Path, args: list[str] | None = None, *,
     e = dict(os.environ)
     e.update(env or {})
     e.setdefault("MPLBACKEND", "Agg")  # headless default
+    # The sandbox resolves the venv shim away; hand the venv's own
+    # site-packages to the child or it silently falls back to system packages.
+    if sb:
+        sp = venv_site_packages(sys.executable)
+        if sp:
+            prior = e.get("PYTHONPATH", "")
+            e["PYTHONPATH"] = os.pathsep.join(sp + ([prior] if prior else []))
     run_id = f"{group or 'exp'}_{'s' + str(seed) if seed is not None else 'r0'}_{int(time.time())}"
     logdir = ws / "logs"
     logdir.mkdir(exist_ok=True)
