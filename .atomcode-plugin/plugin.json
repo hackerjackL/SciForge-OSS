@@ -1,6 +1,6 @@
 {
   "name": "sciforge-oss",
-  "version": "1.7.4",
+  "version": "1.8.0",
   "description": "SciForge-OSS: autonomous 26-node research pipeline (any-domain idea → submission-ready paper). 28 skills: 1 auto-pipeline orchestrator + 27 meta/support skills (domain learning, idea discovery, novelty, retrieval, theory, experiments, audits, writing, compile, review, citation, rebuttal, etc.). v1.7.2 research-OS layer: content-addressed experiment nodes + fork, claim anchors, REP, semantic memory, batch active search, multi-source daemon. Kernel-enforced gates, event-sourced resume, HITL approvals, RSI skill-library evolution.",
   "skills": ".atomcode/skills"
 }

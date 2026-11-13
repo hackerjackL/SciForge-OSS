@@ -2,6 +2,81 @@
 
 > **Historical naming note**: entries before v1.7.2 may say “21-phase”. The current executable topology is the 26-node DAG in `kernel/config/phasegraph.json`; entries below are preserved as written.
 
+## [1.8.0] - 2026-11-13 定版：真实运行驱动的加固 + 评审真异构 + 生产账本
+
+> 版本主题：**用一道真实 benchmark 题（ARC-Bench S01）把流水线跑穿，让真实数据/真实布局/真实执行顺序暴露纸面分析发现不了的缺陷，逐一修到根因；把"审计零副作用"提升为全局不变量；把评审面板从"同模型三次采样"接成真异构；并让"稳定产出"第一次可核验**。按 VERSIONING §2.3，新增引用切题性门 / `ledger` CLI / 评审异构 opt-in / 全局证据护栏属新链路 + 行为改变，故从 1.7.4 补丁号收为次版本 1.8.0。**基线 744 → 823 测试全绿，ci_check PASS，security_scan --self-test 26/26**；每阶段均在干净 clone 复验。承接 [1.7.4] 的信任根加固，本轮全部改动带回归测试与真实运行实测背书。
+
+### A. ARC-Bench S01 真实端到端运行驱动的修复
+
+用真实 benchmark 题（ARC-Bench S01：bootstrap 区间在轻尾/偏斜/重尾数据下的覆盖率；55 题题库在 HuggingFace `AIMING-Lab-UNC/ARC-Bench`，MIT，此前记录的 GitHub 仓库已 404）跑了一遍 Mode A 全链。**论文本身只是测试载体，但它把五个纸面分析发现不了的缺陷打了出来**——全部是真实布局/真实数据才触发的。
+
+- **新增引用切题性门 `scripts/citation_relevance_gate.py`**（真实运行的头号发现）：检索查询 `all:"BCa"` 在 arXiv 上撞了缩写 **BCA = Binary Collision Approximation**，导致 4 条离题文献（行星表面溅射、毫米波体成分、乳腺癌放射组学 BCa-S、金属核壳纳米粒子抗辐射）通过全部验证并**进入 `references.bib`（21 条占 19%）**，而 `gap_gate`/`doi_gate`/`citation_support` 三个引用门**没有一个检查切题性**，`FILTER_CHAIN_AUDIT` 还判 `PASS 21/0`。当时是 agent 凭判断在写 GAP_REPORT 时绕开了它们——靠自觉，不靠门，违反第一硬规则。新门以 `domain-signature.json` 的 `primary_domain` + `standard_methods` 为判据，用"home 领域证据 vs foreign 领域加权术语"分级：实测 21 条中 17 relevant / 4 off_topic（4/4 命中我手工核出的全部离题条目，且多抓到我先前漏看的 2 条），而 6 条合法跨学科引用（双重机器学习 / Cox+Lasso / 久期模型 / PPML 重尾贸易 / 广义后验 / wild bootstrap）**零误报**。清理后门转 PASS，`FILTER_CHAIN_AUDIT` 记 `relevance_filter` 如实留痕。
+- **图引擎跨轴刻度碰撞修复**（`figure_recipes.py`）：A10（v1.7.3 刚"复明"的碰撞审计）在真实图上抓到两类此前无人覆盖的碰撞——**刻度 vs 刻度**（值域窄到 0.88–0.96 时 auto-locator 把 y 刻度贴着原点，其标签伸进第一个 x 刻度：`'0.3' vs '0.88'`）与**刻度 vs 轴标题**（auto-locator 生成越界刻度 `−0.1`，压在旋转的 y 轴标题下）。既有的 `_fit_xticklabels`/`_fit_yticklabels` 只比较**同一轴内**相邻标签，永远看不见这两类。新增 `_corner_ticks_overlap` + `_fit_corner_ticklabels`：先裁掉数据范围外的刻度，再按需用 `MaxNLocator` 稀疏化，**无碰撞时为 no-op**（有负向测试证明不误伤）。7 张真实图从 2 张 FAIL 变 **7/7 A10 PASS**；图相关 196 项测试零回归。
+- **macOS 沙箱两处致命缺陷**（`execution.py`，**影响每一次沙箱执行**）：① `sandbox-exec` 会**先解析符号链接再 exec**，于是 `.venv/bin/python` 丢掉 venv 身份、CPython 退回系统 site-packages，任何实验脚本在沙箱内 `import numpy` 直接 `ModuleNotFoundError`——而同一命令在沙箱外正常，所以从未被发现；新增 `venv_site_packages()` 从 shim 路径找回 venv 的 site-packages 并注入 `PYTHONPATH`（`dispatch` 与 `smoke_gate` 共用）。② profile 缺 `sysctl-read`，`os.uname()` 被拒（`PermissionError`），而 **numpy 在 import 阶段就调用它**——即任何导入科学栈的沙箱实验必然在跑第一行自己的代码前就死。两处修完后 `smoke_gate` 首次真实通过：**4 个实验切片在沙箱内真实重执行成功**。
+- **`dep_gate` 本地模块误报**：`src/bootstrap_ci.py` 被三个同目录脚本 import，被判"未在 dependencies.json 声明"——本地模块不是第三方依赖，这会让 6b/6c 边界在完全正常的目录布局上被拦。新增 `_local_roots()`（src/figures/experiments 下的 `.py` stem 与包名），并保留负向测试：真正未声明的 `import torch` 仍 FAIL。
+- **`smoke_gate` 阶段聚合被误当成分组**：`experiments/full/STATUS.json` 是整阶段聚合状态，但只要有子分组，它就额外生成一个名为 `full` 的幽灵组并索要 `full.SMOKE.json`——四个分组 smoke 全在却判 FAIL。改为：存在子目录分组时，根级 marker 视为聚合而非分组；无子分组时根级 marker 仍是唯一分组（单组路径不变，有测试锁定）。
+- **`gate_all` 游标陈旧导致整批门静默跳过**（最影响 Mode A 可用性）：`_current_rank()` 的 docstring 写 "demonstrably reached"，实现却只读 RUNSTATE 声明。真实 run 里工作区已有实验、图、17 条文献，而 RUNSTATE 停在 phase 0 → **28 个门全部 `phase_not_reached` SKIP**，报告看起来像"没什么可检查"，恰是该脚本要消灭的失败模式。改为取「声明游标」与「磁盘证据」的较大者（证据探针覆盖 6/6b/6c/10/11/12/13/14/15/15.5），并把不一致显式报成 `runstate_cursor_stale` WARN 行而非静默修正。
+- **`EXPERIMENT_MATRIX.schema.json` 组名过窄**：pattern 只允许 `hyperparam|robustness` 裸名，而流水线自己生成了 `hyperparam_trim`/`robustness_seeds`，导致 `validate_verdicts --strict` 把这两组判 FAIL（边界会因此被自己拦死）。放宽为允许后缀变体。
+- `tests/test_v174_runtime_fixes.py`（9 项）+ `tests/test_plotting_robustness.py`（+2）覆盖上述全部修复，含沙箱内真实 `import numpy`、本地模块正/负向、幽灵分组正/负向、游标证据优先与无证据时仍可 SKIP。**777 passed，ci_check PASS，security_scan --self-test 26/26**。
+- **真实运行的科学产出（旁证管线可用）**：4 DGP × 3 n × 5 种子 × R=1000 完成（60/60 cell，零错误）；H1/H2/H3 均 supported，且抓到一条反教科书预期的结果——**污染数据下 studentized bootstrap-t 覆盖 0.886、BCa 0.845，双双差于简单 percentile 的 0.925**，而稳健目标（中位数/20% 截尾）同时赢覆盖与宽度（0.9466 / 宽度 0.444 vs percentile 0.899）。这正是"bootstrap 高阶修正更好"叙事在重尾下的反例。
+- **本轮未做（因用户判定论文仅为测试载体）**：未写论文正文、未编译 PDF，故 `submission_ready`/`figure_embedding` 等终局门 SKIP；run 已清掉半成品 `paper/` 骨架以免误导门。`s2_ladder`/`s2_ablation` 判 FAIL 是**真实的 run 缺口**（未产出 `S2_LADDER.json`/`ABLATION_LEDGER.json`），门判得对，不是误报。`runs/S01` 已加 `.gitignore`，评测产物不入库。
+
+- **最严重的一个：smoke 重执行会覆盖它要审计的真实结果**（`smoke_gate.py` + `experiment-execution` 契约）。`smoke_cmd` 写的是 `--out experiments/full/group_main`，而 `_invoke` 以真实工作区为 cwd 执行——脚本把 `RESULT.json` 写进该目录，于是**一次审计把 60 cell / R=1000 的真实全矩阵结果替换成了 5 键 / R=2 的 smoke 聚合**。这不是理论风险：本轮实测发生后 `group_main` 与 `group_ablation` 的 RESULT 都变成 `stage: smoke`，下游每个 claim 的证据被静默降级（我是随后读 n100 键报 KeyError 才发现）。修法遵循"审计对被审计证据零副作用"：重执行前快照 `experiments/**/*.json`，执行后逐字节比对，**恢复被改动/新建的文件并判 FAIL**（`smoke_reexec_mutated_evidence`，附被改文件清单）——只恢复不报错会掩盖坏掉的 `smoke_cmd`，只报错不恢复会留下被污染的证据，两者都做。契约同步要求 smoke 输出落在隔离目录（如 `.smoke-out/<group>`），并说明 `--out experiments/full/<group>` 为何违约。负向测试构造真实"覆盖 60 cell"场景断言恢复+FAIL；正向测试证明指向 scratch 的同一脚本不误报。被覆盖的 run 数据已用同组权威的 `experiments/full/RESULT.json`（60 cell 完好）恢复；`smoke_cmd` 改隔离后重跑：**smoke PASS 且 RESULT.json 字节未变**。**779 passed，ci_check PASS**。
+- **两个 FAIL 经查是真实 run 缺口而非代码缺陷**：`s2_ladder`/`s2_ablation` 要求的 `S2_LADDER.json`/`ABLATION_LEDGER.json` 全仓**没有任何生产代码写**——设计如此：门在 kernel（模型无关），产物由宿主按 `/experiment-ladder`、`/ablation-planner` 手写（skill 原文 "tells the HOST how to produce the artifact the gate demands"），编排 SKILL.md 第 378/383 行在两者缺失时也明确指向这两个 skill。本轮是续跑时跳过了这两步，门判 FAIL 是对的。记此一笔以免后来者误判为"工具缺失"。
+
+### B. 把"审计零副作用"从单点自觉提升为全局不变量
+
+上一条只在 `smoke_gate` 内部加了护栏。但**任何会执行代码的门都可能犯同样的错**，靠每个门自己记得检查不是纵深防御。本轮把它提升为批量入口的强制不变量，并顺带清掉两个遗留项。
+
+- **`gate_all` 逐门证据护栏**：每个门执行前快照、执行后逐字节比对，谁改了证据就**点名谁**（`gate_mutated_evidence` + 文件清单）并恢复——比整批比对更能定位责任门。实测注入一个会覆盖 60 cell 结果的假门：判 FAIL、点名、证据完整恢复；只读门与只写自己 verdict 的门零误报。
+- **护栏范围扩到 `results.json` 与 `results/*.json`**：ARC-Bench 的 must_pass 把 `results.json` 定为假设判定与指标的权威载体，改它和改 `RESULT.json` 一样具破坏性，而原护栏只覆盖 `experiments/`。同时用白名单排除门自己的产物（`TDAL.json`/`FANTASY_GATE.json`/`LEAKAGE_SCRUB.json` 等 12 个），否则每次正常运行都会误报。真实 run 上受保护证据文件 **223 个**，`results.json` 字节未变。
+- **`approvals._verified_marks` 自身 fail-closed**（清掉 G 的移交项）：它是所有审批决定读取的底层原语，此前直接 `replay()` 而不验链——上层 `pipeline` 的守卫虽能兜住，但那让防御依赖"每个调用方都记得先检查"。现在断链直接返回空。用**有区分力**的测试锁定：先造一个真实批准事件断言能读到 `APPROVE`，再篡改该事件断言读不到（先前一版测试两边都返回空，等于没验证）；另加 legacy 无链日志仍可读的兼容测试。
+- **`SCIFORGE_OUT` 环境契约**（真实运行逼出来的）：护栏上线后立刻在真实 run 上抓到**另外两个组**（`group_hyperparam_trim`/`group_robustness`）同类违规——它们的脚本把输出路径硬编码在模块级常量里，**根本没有 `--out` 参数**，命令行无法redirect。所以"要求宿主改 smoke_cmd"这条路对它们不成立。门现在主动注入 `SCIFORGE_OUT=.smoke-out/reexec`（与既有的 `SCIFORGE_SMOKE=1` 并列），脚本读该变量即可零命令行改动地合规。契约补上代码范式，并写明两条真实踩坑规则：① **输出目标必须与路径解析分离**——我第一版直接重赋 `HERE`，结果 `HERE.parents[2]` 越界、`sys.path` 插入全断（`IndexError`），因为同一个常量既定位工作区又定位输出；② 每一处写入都要走 `OUT`，不能只改第一处。
+- **补齐两个真实 run 缺口，全门首次零 FAIL**：用 kernel 自己的 `ladder.decide`/`relative_gain` 与 `ablation.ablcritic` 从**真实数据**生成 `S2_LADDER.json`/`ABLATION_LEDGER.json`（不手算增益、不手判 critic）。阶梯：污染数据 n=100 上 trim 相对 mean-percentile incumbent，subset 与 full 同向 GOOD，gain +2.29%；**高斯臂另行评估判 BAD**（percentile 0.9482 < t 区间 0.9538），作为负结果保留不晋级。消融重跑取真数据（84 单元）后 5 个计划：studentized/BCa/nested 三个"高阶修正"全部 REFINE（0.8673/0.8447/0.8720 均差于 incumbent 0.9087），median/trim 两个稳健目标 GOOD。**`gate_all` 终态：PASS 10 / WARN 2 / SKIP 16 / UNPROTECTED 2 / INFO 1，零 FAIL**；剩余 2 个 UNPROTECTED 是 Mode A 结构性限制（REP/NODES 由内核产出），如实披露而非假装通过。
+- **785 passed，ci_check PASS**。
+
+### C. 评审面板真异构——三个真实阻塞逐一打通
+
+上一轮把"同模型三次采样"如实披露为 `homogeneous_degraded`，但披露不等于解决：分歧度仍只反映采样噪声，而 `reviewloop` 的阈值 8 与 `adjudicate` 的 `spread>=4` 都建立在它之上。本轮真接了第二个 provider 并跑通真实双模型评审，过程中撞出**三个此前无人发现的阻塞**——每一个都足以让异构接线静默失败。
+
+- **阻塞一：reasoning 模型的 thinking 块污染 JSON**（`providers.py`）。原提取逻辑对**所有非 text 块**一律 `json.dumps(b.get("input", {}))`；thinking 块没有 `input` 键，于是被序列化成字面量 `{}` 拼进正文——评审的 `{"scores":…}` 变成 `{}{"scores":…}`，`json.loads` 直接 `Extra data` 失败。这是实测网关响应发现的（`content[0]` 是 thinking，我最初只取 `[0]` 拿到空串）。新增 `_anthropic_text()`：只收 `text`，`tool_use` 保留其 `input`（结构化输出走这条），thinking/redacted_thinking/未知类型一律忽略。**不修它，接第二个 provider 只会让所有评审解析失败。**
+- **阻塞二：协议由 backend 名字决定**（`providers.py`）。`_raw_call` 里 `if name == "anthropic"` 是唯一判据，任何别名 backend 都被按 OpenAI schema 发到 `/chat/completions`。而按 provider id 路由的网关需要**多个 Anthropic 协议 backend 各用不同名字**——它们全部 404。新增 `backend.protocol` 显式声明（`anthropic`/`openai`），缺省仍按名字推断，既有配置零改动。
+- **阻塞三：`SCIFORGE_MODEL` 抹平所有角色**（`providers.py`）。宿主上报的模型原先无条件覆盖每个 role，把刻意配置的异构面板重新压回同一模型——正是面板要逃离的状态。改为跳过 `pinned: true` 的角色；未 pin 的仍享受该便利默认。
+- **默认 personas 自动分散**（`review.py`）：`_default_personas` 三个 lens 原先全用 `role="review"`，所以**光配 backend 不够**——三个 persona 仍解析到同一模型。现在当配置确实把 `review`/`reasoning`/`grading` 映射到不同 `(backend, model)` 时自动分散；全部同目标时三者仍留在 `review`（shipped 单 backend 默认的行为与成本零变化，有测试锁定）。`adjudication` **永不**作为 reviewer lens——否则 chair 审自己的案子。
+- **可选启用，默认不变**：新增 `SCIFORGE_PROVIDERS` 环境变量选择替代配置文件 + `kernel/config/providers.heterogeneous.example.json` 示例（端点为占位符，**不硬编码任何本机 provider id**）。示例的 comment 写清四条要求：persona 必须用不同 role、adjudication 必须区别于所有 reviewer、非 `anthropic` 名的 Anthropic 协议 backend 必须显式声明 protocol、pinned 豁免宿主覆盖。
+- **真实端到端验证（非仅配置检测）**：用两个实测可用的 provider 跑真实评审——`reviews_n=2 accepted_n=2`，usage_log 证实两次调用落在不同 backend/model，`spread` 触发 `ADJUDICATE_REQUIRED`。两个模型独立给出的 fatal 相当专业：**"0.9254 vs 0.9466 在 400 次重复下可能落在 Monte Carlo 噪声内，未报 CI"**、**"均值 CI 与截尾均值 CI 在污染下针对不同估计量"**（后者是先前的分析都没点透的估计量歧义）。另经 `SCIFORGE_PROVIDERS` 走完整路径复验：自动分配 role → 两模型各出分 → spread 19.75 → 仲裁。
+- `tests/test_provider_heterogeneity.py`（17 项，全部离线 stub，CI 无需网关与凭据）：thinking 不污染/tool_use 保留/未知块忽略、protocol 显式与缺省与非法值回退、pinned 豁免与未 pin 仍覆盖、双 backend 面板 heterogeneous 且 chair 独立、单 backend 仍如实 degraded、默认 personas 两种配置下的行为、chair 永不兼任 reviewer、chair 撞模型时如实披露、`SCIFORGE_PROVIDERS` 选路。**803 passed，ci_check PASS**。
+- **过程中的自我纠错（记档）**：第一版 stub 把 `adjudication` 当作 reviewer persona，于是 `adjudicator_distinct=False` ——那是**代码判对了、测试写错了**；读 `panel_independence` 确认 chair 是独立角色后改为真实拓扑（2 reviewer 各一 backend + 独立 chair）。
+
+### D. 事件日志跨进程串行化
+
+- **`EventLog.emit` 加 flock**（`state.py`）。此前 `_sync()` 与 append 之间没有互斥：两个进程可同时读到同一 head，各自据此算 `prev_hash` → **链分叉**。实测三进程并发写同一 workspace：121 条事件全部落盘，但链在 **seq=2 断裂、78 个 seq 重复**，`recover()` 随即把正常并发误判为"日志被篡改"并拒绝重建 run。现在整个"读-算-写"序列在**旁路锁文件**（`events.ndjson.lock`）的排他 flock 下执行——不锁 `events.ndjson` 本身，否则会与 `_sync` 的 offset/inode 追踪纠缠。同一场景复测：**链完整、121 条 seq 唯一且连续**。
+- **适用边界（诚实）**：daemon 的 `ws = archive / rid` 给每个 run 独立 workspace，所以**常规多 worker 并不共享日志**，本修复不是"多 worker 的必要前提"。它真正防的是**同一 run 被两个进程驱动**：人工 `resume` 与 daemon 接管重叠、崩溃接管与残留驱动者并存。已按该形状实测（两个驱动者各 emit 15 次边界事件）：链完整，`recover()` 返回 `resume` 而非 `integrity_broken`。
+- **降级与兼容**：无 `fcntl`（Windows）时退化为不串行化而非抛错——那里的 `O_EXCL` workspace 锁已串行化内核驱动者，且**丢事件比不串行更糟**；锁获取失败同样降级。单进程路径行为零变化（seq 连续、hash 相连），legacy 无链日志继续以无链形状追加（不产生混合后缀）。
+- **`.gitignore` 补 `*.ndjson.lock`**：fixture 的 `.sciforge/` 是 ignore 例外，锁文件否则会被当作 fixture 内容入库（实测确认会）。规则精确命中锁文件，`events.ndjson` 本身不受影响。
+- `tests/test_eventlog_concurrency.py`（6 项，含**真实多进程**而非线程）：三进程并发链完整+seq 唯一连续、空日志上并发只建立一次 genesis、单进程行为不变、同进程双实例交错正确、锁是旁路文件且日志仍是纯 NDJSON、legacy 日志兼容。**809 passed，ci_check PASS**。
+
+### E. PRODUCTION_LEDGER——让"稳定产出"第一次可核验
+
+- **问题**：`runs/` 是 gitignore 的，每个 run 的证据跑完即散。跑了 S01 全链与多次并发实验之后，**"能否持续产出论文"仍无法被自己或外界核验**——没有任何跨 run 的累积记录，RSI 也缺少宏观选择压力信号。
+- **`kernel/sciforge/ledger.py` + `sciforge ledger build|show`**：扫描 archive 下所有 run，生成 `PRODUCTION_LEDGER.jsonl`（每 run 一行，幂等重建）。两条设计纪律直接沿用本项目付过学费的经验：
+  - **全部从磁盘证据推导，不采信自报**（fairness_gate 的教训）。`produced_paper` 要求 RUNSTATE completed **且** PDF 真实存在并 `%PDF` 开头——completed 但无 PDF **不算产出**（completion_gate 的假完成类）；名为 `.pdf` 但字节不是 PDF 的记 `reason=not_a_pdf`；页数从 `/Count` 读，附 sha256。
+  - **缺失必须显式**（gate_all 的 UNPROTECTED 纪律）。Mode A 无内核事件日志 → `events.present=false` 并列入 `unverified`；链断裂、无预算、无 verdict 同样列入。`unverified` 的语义是"这些保证在本 run 根本没运行"，绝不能读成通过。
+- **真实数据下的第一次运行就暴露一个统计失真**：`verdicts` 分类原先对所有 JSON 取 `verdict`/`status`，把 **EXPERIMENT_MATRIX / EVALUATION_PROTOCOL / VERIFICATION_ROUTING / RUN_BUDGET / FIGURE_AUDITS / BLINDSPOT_CHECK 六个声明型产物**误记为 `UNKNOWN`（fixture 上实测 7 条），会让失败率统计说谎。改为单列 `declarative`；另修正 `INVARIANT_CHECK` 的字段名（它用 `overall_verdict`）。修正后 fixture 为 `PASS 13 / REVISE 1 / SUBMISSION_READY 1 / COMPLETED 1 / declarative 6`，`UNKNOWN` 归零。
+- **汇总视图（RSI 的宏观信号）**：`production_rate`、`cost_per_paper_usd`、`gate_interception_rate`（gate 拒绝 / 边界提交比）、`submission_tiers` 分布、`unverified_counts`。这些是单 run 门看不到的东西——一个提高全局 FAIL 率的 skill patch 会在这里显形。
+- **保持历史**：workspace 被删除后行仍保留并记 `workspace_missing=true`（账本是长期记录）；磁盘证据存在时**覆盖**旧行，所以撤回的论文会被如实扣掉 `produced_paper`。
+- **真实 run 上首次建账（如实）**：`runs/` 只有 S01，`papers_produced=0`、`no_kernel_event_log` 标为未核验——**没有把"跑了实验"美化成"产出了论文"**。fixture（内核驱动、168 事件、27 边界、链完整）则被正确识别为 completed + 全证据。
+- `tests/test_production_ledger.py`（14 项）：completed 无 PDF 不算产出、非 PDF 字节不算、blocked 不算、Mode A 无事件日志记为 unverified、链断裂浮出、声明型产物不冒充 UNKNOWN、幂等重建、删除 workspace 保留历史、磁盘证据覆盖陈旧行、汇总的吞吐/成本/拦截率算术、空 archive 安全、非 run 目录被忽略。`REPRODUCE.md` 增 §6.5 完整用法与字段来源表。**823 passed，ci_check PASS**。
+
+### 记档未做（诚实清单）
+- **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。
+- **`gate_all.py`/`fairness_gate.py` 读 events.ndjson 时不报告完整性**：建议把 `event_log_integrity_broken` 暴露为门判定。
+- **A10 上轮新抓到的 panel-grid legend 与旋转刻度重叠**：属 `figure_recipes` bottom band 布局债，仍未修。
+- `nodes.py` 只记 `ts` 无每节点耗时，fairness 预算对账仍用 STATUS/RESULT 耗时。
+- `--workers` 默认仍为 1（预算隔离优先）；`propose.py` 的信号尚未压缩成结构化 digest；`golden.py` 仍 4 题且未加"mutator 不触碰冻结路径"用例。
+- **第三方评审通道**（ScholarPeer / Stanford Agentic Reviewer）仍是 seam，未接入——它同时能天然满足评审异构性。
+- 后续候选池剩余项（program 模式链式选题、dispatch_backend colab seam、校准实测批、句级蕴含半、S2 滚雪球召回、golden 扩容）未启动；事件重放增量化（1.7.4）与 PRODUCTION_LEDGER（1.8.0）已完成。
+
 ## [1.7.4] - 2026-11-11 定版：信任根加固 + 进化引擎接真 + 引用验证如实降级
 
 > 版本主题：**v1.7.3 让门与磁盘证据对账，v1.7.4 让"信任根本身"不可伪造，并把两处仍是脚手架的卖点接成真货**。本轮清掉 v1.7.3 记档在案的全部高优先级债 + 一处实测发现的运行时阻塞。**基线 568 → 744 测试全绿，ci_check PASS，security_scan --self-test 26/26，fixture 严格校验 24/24**。方法：四个并行 agent（G–J）按零重叠文件所有权分工 + 统筹收口跨 agent 移交项。
@@ -63,76 +138,11 @@
 - **fixture 补齐引用披露字段，让新 post-check 真被演练**：`fixtures/e2e_minimal/.sciforge/verdicts/CITATION_AUDIT.json` 原先没有 `verification_depth`/`layers_verified`/`layer3_status`/`layer3_detail`——四个字段都是可选的（为兼容旧产物），于是 J 新加的伪造检测 post-check 在入库 fixture 上**一次也没被执行过**。现补为如实的降级形状（`2-layer-degraded` + `unavailable_rate_limited`，两层已验证全部条目），并订正 summary 里"3 verification layers (context, metadata, existence)"的**轴/层混用**——那三个是审计轴，不是 arXiv/CrossRef/S2 检索层。实测：fixture 严格校验仍 24/24；把 depth 改成 `3-layer` 而保留 `unavailable_*` 时，post-check 三条规则同时命中并判 FAIL。
 - **移交项逐条复核（多数已由 owner 自行闭环）**：G/H/I/J 的移交清单写在各自中途快照上，统筹逐条实测后确认 `--direct` flag、`cmd_run` 的 `DispatchError` 捕获、`_native_review` 转发、`daemon` 验链优先、`validate_verdicts` post-check、以及 13 处文档"3 层强制"漂移**均已在最终交付中修好**；精确扫描后剩余的 "3-layer" 命中全部是反伪造警告（正确保留）、多保真度阶梯（Low/Mid/High，与引用无关）或历史条目。四债对抗实测：篡改 RUNSTATE 的 `human_skip` 后检查点仍 False（flags 来自 `run_started` 事件）；追加伪造 `checkpoint_cleared` → `verify_chain` 报 `broken_seq=99` 且检查点 False；默认配置面板如实报 `homogeneous_degraded`/`distinct_models=1`/`adjudicator_distinct=False`；`validate_patch` 对 `tests/`、`kernel/`、`../../etc/passwd` 三类越界分别判 `frozen_path`/`frozen_path`/`unsafe_path`。
 
-### 追加：ARC-Bench S01 真实端到端运行驱动的修复（版本仍 1.7.4）
+> 本轮之后由真实 ARC-Bench S01 运行驱动的加固（引用切题性门、图引擎跨轴碰撞、macOS 沙箱 venv/sysctl、全局证据护栏、评审面板真异构、事件日志跨进程锁、PRODUCTION_LEDGER）见 **[1.8.0]**。
 
-用真实 benchmark 题（ARC-Bench S01：bootstrap 区间在轻尾/偏斜/重尾数据下的覆盖率；55 题题库在 HuggingFace `AIMING-Lab-UNC/ARC-Bench`，MIT，此前记录的 GitHub 仓库已 404）跑了一遍 Mode A 全链。**论文本身只是测试载体，但它把五个纸面分析发现不了的缺陷打了出来**——全部是真实布局/真实数据才触发的。
-
-- **新增引用切题性门 `scripts/citation_relevance_gate.py`**（真实运行的头号发现）：检索查询 `all:"BCa"` 在 arXiv 上撞了缩写 **BCA = Binary Collision Approximation**，导致 4 条离题文献（行星表面溅射、毫米波体成分、乳腺癌放射组学 BCa-S、金属核壳纳米粒子抗辐射）通过全部验证并**进入 `references.bib`（21 条占 19%）**，而 `gap_gate`/`doi_gate`/`citation_support` 三个引用门**没有一个检查切题性**，`FILTER_CHAIN_AUDIT` 还判 `PASS 21/0`。当时是 agent 凭判断在写 GAP_REPORT 时绕开了它们——靠自觉，不靠门，违反第一硬规则。新门以 `domain-signature.json` 的 `primary_domain` + `standard_methods` 为判据，用"home 领域证据 vs foreign 领域加权术语"分级：实测 21 条中 17 relevant / 4 off_topic（4/4 命中我手工核出的全部离题条目，且多抓到我先前漏看的 2 条），而 6 条合法跨学科引用（双重机器学习 / Cox+Lasso / 久期模型 / PPML 重尾贸易 / 广义后验 / wild bootstrap）**零误报**。清理后门转 PASS，`FILTER_CHAIN_AUDIT` 记 `relevance_filter` 如实留痕。
-- **图引擎跨轴刻度碰撞修复**（`figure_recipes.py`）：A10（v1.7.3 刚"复明"的碰撞审计）在真实图上抓到两类此前无人覆盖的碰撞——**刻度 vs 刻度**（值域窄到 0.88–0.96 时 auto-locator 把 y 刻度贴着原点，其标签伸进第一个 x 刻度：`'0.3' vs '0.88'`）与**刻度 vs 轴标题**（auto-locator 生成越界刻度 `−0.1`，压在旋转的 y 轴标题下）。既有的 `_fit_xticklabels`/`_fit_yticklabels` 只比较**同一轴内**相邻标签，永远看不见这两类。新增 `_corner_ticks_overlap` + `_fit_corner_ticklabels`：先裁掉数据范围外的刻度，再按需用 `MaxNLocator` 稀疏化，**无碰撞时为 no-op**（有负向测试证明不误伤）。7 张真实图从 2 张 FAIL 变 **7/7 A10 PASS**；图相关 196 项测试零回归。
-- **macOS 沙箱两处致命缺陷**（`execution.py`，**影响每一次沙箱执行**）：① `sandbox-exec` 会**先解析符号链接再 exec**，于是 `.venv/bin/python` 丢掉 venv 身份、CPython 退回系统 site-packages，任何实验脚本在沙箱内 `import numpy` 直接 `ModuleNotFoundError`——而同一命令在沙箱外正常，所以从未被发现；新增 `venv_site_packages()` 从 shim 路径找回 venv 的 site-packages 并注入 `PYTHONPATH`（`dispatch` 与 `smoke_gate` 共用）。② profile 缺 `sysctl-read`，`os.uname()` 被拒（`PermissionError`），而 **numpy 在 import 阶段就调用它**——即任何导入科学栈的沙箱实验必然在跑第一行自己的代码前就死。两处修完后 `smoke_gate` 首次真实通过：**4 个实验切片在沙箱内真实重执行成功**。
-- **`dep_gate` 本地模块误报**：`src/bootstrap_ci.py` 被三个同目录脚本 import，被判"未在 dependencies.json 声明"——本地模块不是第三方依赖，这会让 6b/6c 边界在完全正常的目录布局上被拦。新增 `_local_roots()`（src/figures/experiments 下的 `.py` stem 与包名），并保留负向测试：真正未声明的 `import torch` 仍 FAIL。
-- **`smoke_gate` 阶段聚合被误当成分组**：`experiments/full/STATUS.json` 是整阶段聚合状态，但只要有子分组，它就额外生成一个名为 `full` 的幽灵组并索要 `full.SMOKE.json`——四个分组 smoke 全在却判 FAIL。改为：存在子目录分组时，根级 marker 视为聚合而非分组；无子分组时根级 marker 仍是唯一分组（单组路径不变，有测试锁定）。
-- **`gate_all` 游标陈旧导致整批门静默跳过**（最影响 Mode A 可用性）：`_current_rank()` 的 docstring 写 "demonstrably reached"，实现却只读 RUNSTATE 声明。真实 run 里工作区已有实验、图、17 条文献，而 RUNSTATE 停在 phase 0 → **28 个门全部 `phase_not_reached` SKIP**，报告看起来像"没什么可检查"，恰是该脚本要消灭的失败模式。改为取「声明游标」与「磁盘证据」的较大者（证据探针覆盖 6/6b/6c/10/11/12/13/14/15/15.5），并把不一致显式报成 `runstate_cursor_stale` WARN 行而非静默修正。
-- **`EXPERIMENT_MATRIX.schema.json` 组名过窄**：pattern 只允许 `hyperparam|robustness` 裸名，而流水线自己生成了 `hyperparam_trim`/`robustness_seeds`，导致 `validate_verdicts --strict` 把这两组判 FAIL（边界会因此被自己拦死）。放宽为允许后缀变体。
-- `tests/test_v174_runtime_fixes.py`（9 项）+ `tests/test_plotting_robustness.py`（+2）覆盖上述全部修复，含沙箱内真实 `import numpy`、本地模块正/负向、幽灵分组正/负向、游标证据优先与无证据时仍可 SKIP。**777 passed，ci_check PASS，security_scan --self-test 26/26**。
-- **真实运行的科学产出（旁证管线可用）**：4 DGP × 3 n × 5 种子 × R=1000 完成（60/60 cell，零错误）；H1/H2/H3 均 supported，且抓到一条反教科书预期的结果——**污染数据下 studentized bootstrap-t 覆盖 0.886、BCa 0.845，双双差于简单 percentile 的 0.925**，而稳健目标（中位数/20% 截尾）同时赢覆盖与宽度（0.9466 / 宽度 0.444 vs percentile 0.899）。这正是"bootstrap 高阶修正更好"叙事在重尾下的反例。
-- **本轮未做（因用户判定论文仅为测试载体）**：未写论文正文、未编译 PDF，故 `submission_ready`/`figure_embedding` 等终局门 SKIP；run 已清掉半成品 `paper/` 骨架以免误导门。`s2_ladder`/`s2_ablation` 判 FAIL 是**真实的 run 缺口**（未产出 `S2_LADDER.json`/`ABLATION_LEDGER.json`），门判得对，不是误报。`runs/S01` 已加 `.gitignore`，评测产物不入库。
-
-- **最严重的一个：smoke 重执行会覆盖它要审计的真实结果**（`smoke_gate.py` + `experiment-execution` 契约）。`smoke_cmd` 写的是 `--out experiments/full/group_main`，而 `_invoke` 以真实工作区为 cwd 执行——脚本把 `RESULT.json` 写进该目录，于是**一次审计把 60 cell / R=1000 的真实全矩阵结果替换成了 5 键 / R=2 的 smoke 聚合**。这不是理论风险：本轮实测发生后 `group_main` 与 `group_ablation` 的 RESULT 都变成 `stage: smoke`，下游每个 claim 的证据被静默降级（我是随后读 n100 键报 KeyError 才发现）。修法遵循"审计对被审计证据零副作用"：重执行前快照 `experiments/**/*.json`，执行后逐字节比对，**恢复被改动/新建的文件并判 FAIL**（`smoke_reexec_mutated_evidence`，附被改文件清单）——只恢复不报错会掩盖坏掉的 `smoke_cmd`，只报错不恢复会留下被污染的证据，两者都做。契约同步要求 smoke 输出落在隔离目录（如 `.smoke-out/<group>`），并说明 `--out experiments/full/<group>` 为何违约。负向测试构造真实"覆盖 60 cell"场景断言恢复+FAIL；正向测试证明指向 scratch 的同一脚本不误报。被覆盖的 run 数据已用同组权威的 `experiments/full/RESULT.json`（60 cell 完好）恢复；`smoke_cmd` 改隔离后重跑：**smoke PASS 且 RESULT.json 字节未变**。**779 passed，ci_check PASS**。
-- **两个 FAIL 经查是真实 run 缺口而非代码缺陷**：`s2_ladder`/`s2_ablation` 要求的 `S2_LADDER.json`/`ABLATION_LEDGER.json` 全仓**没有任何生产代码写**——设计如此：门在 kernel（模型无关），产物由宿主按 `/experiment-ladder`、`/ablation-planner` 手写（skill 原文 "tells the HOST how to produce the artifact the gate demands"），编排 SKILL.md 第 378/383 行在两者缺失时也明确指向这两个 skill。本轮是续跑时跳过了这两步，门判 FAIL 是对的。记此一笔以免后来者误判为"工具缺失"。
-
-### 追加二：把"审计零副作用"从单点自觉提升为全局不变量（版本仍 1.7.4）
-
-上一条只在 `smoke_gate` 内部加了护栏。但**任何会执行代码的门都可能犯同样的错**，靠每个门自己记得检查不是纵深防御。本轮把它提升为批量入口的强制不变量，并顺带清掉两个遗留项。
-
-- **`gate_all` 逐门证据护栏**：每个门执行前快照、执行后逐字节比对，谁改了证据就**点名谁**（`gate_mutated_evidence` + 文件清单）并恢复——比整批比对更能定位责任门。实测注入一个会覆盖 60 cell 结果的假门：判 FAIL、点名、证据完整恢复；只读门与只写自己 verdict 的门零误报。
-- **护栏范围扩到 `results.json` 与 `results/*.json`**：ARC-Bench 的 must_pass 把 `results.json` 定为假设判定与指标的权威载体，改它和改 `RESULT.json` 一样具破坏性，而原护栏只覆盖 `experiments/`。同时用白名单排除门自己的产物（`TDAL.json`/`FANTASY_GATE.json`/`LEAKAGE_SCRUB.json` 等 12 个），否则每次正常运行都会误报。真实 run 上受保护证据文件 **223 个**，`results.json` 字节未变。
-- **`approvals._verified_marks` 自身 fail-closed**（清掉 G 的移交项）：它是所有审批决定读取的底层原语，此前直接 `replay()` 而不验链——上层 `pipeline` 的守卫虽能兜住，但那让防御依赖"每个调用方都记得先检查"。现在断链直接返回空。用**有区分力**的测试锁定：先造一个真实批准事件断言能读到 `APPROVE`，再篡改该事件断言读不到（先前一版测试两边都返回空，等于没验证）；另加 legacy 无链日志仍可读的兼容测试。
-- **`SCIFORGE_OUT` 环境契约**（真实运行逼出来的）：护栏上线后立刻在真实 run 上抓到**另外两个组**（`group_hyperparam_trim`/`group_robustness`）同类违规——它们的脚本把输出路径硬编码在模块级常量里，**根本没有 `--out` 参数**，命令行无法redirect。所以"要求宿主改 smoke_cmd"这条路对它们不成立。门现在主动注入 `SCIFORGE_OUT=.smoke-out/reexec`（与既有的 `SCIFORGE_SMOKE=1` 并列），脚本读该变量即可零命令行改动地合规。契约补上代码范式，并写明两条真实踩坑规则：① **输出目标必须与路径解析分离**——我第一版直接重赋 `HERE`，结果 `HERE.parents[2]` 越界、`sys.path` 插入全断（`IndexError`），因为同一个常量既定位工作区又定位输出；② 每一处写入都要走 `OUT`，不能只改第一处。
-- **补齐两个真实 run 缺口，全门首次零 FAIL**：用 kernel 自己的 `ladder.decide`/`relative_gain` 与 `ablation.ablcritic` 从**真实数据**生成 `S2_LADDER.json`/`ABLATION_LEDGER.json`（不手算增益、不手判 critic）。阶梯：污染数据 n=100 上 trim 相对 mean-percentile incumbent，subset 与 full 同向 GOOD，gain +2.29%；**高斯臂另行评估判 BAD**（percentile 0.9482 < t 区间 0.9538），作为负结果保留不晋级。消融重跑取真数据（84 单元）后 5 个计划：studentized/BCa/nested 三个"高阶修正"全部 REFINE（0.8673/0.8447/0.8720 均差于 incumbent 0.9087），median/trim 两个稳健目标 GOOD。**`gate_all` 终态：PASS 10 / WARN 2 / SKIP 16 / UNPROTECTED 2 / INFO 1，零 FAIL**；剩余 2 个 UNPROTECTED 是 Mode A 结构性限制（REP/NODES 由内核产出），如实披露而非假装通过。
-- **785 passed，ci_check PASS**。
-
-### 追加三：评审面板真异构（版本仍 1.7.4）——三个真实阻塞逐一打通
-
-上一轮把"同模型三次采样"如实披露为 `homogeneous_degraded`，但披露不等于解决：分歧度仍只反映采样噪声，而 `reviewloop` 的阈值 8 与 `adjudicate` 的 `spread>=4` 都建立在它之上。本轮真接了第二个 provider 并跑通真实双模型评审，过程中撞出**三个此前无人发现的阻塞**——每一个都足以让异构接线静默失败。
-
-- **阻塞一：reasoning 模型的 thinking 块污染 JSON**（`providers.py`）。原提取逻辑对**所有非 text 块**一律 `json.dumps(b.get("input", {}))`；thinking 块没有 `input` 键，于是被序列化成字面量 `{}` 拼进正文——评审的 `{"scores":…}` 变成 `{}{"scores":…}`，`json.loads` 直接 `Extra data` 失败。这是实测网关响应发现的（`content[0]` 是 thinking，我最初只取 `[0]` 拿到空串）。新增 `_anthropic_text()`：只收 `text`，`tool_use` 保留其 `input`（结构化输出走这条），thinking/redacted_thinking/未知类型一律忽略。**不修它，接第二个 provider 只会让所有评审解析失败。**
-- **阻塞二：协议由 backend 名字决定**（`providers.py`）。`_raw_call` 里 `if name == "anthropic"` 是唯一判据，任何别名 backend 都被按 OpenAI schema 发到 `/chat/completions`。而按 provider id 路由的网关需要**多个 Anthropic 协议 backend 各用不同名字**——它们全部 404。新增 `backend.protocol` 显式声明（`anthropic`/`openai`），缺省仍按名字推断，既有配置零改动。
-- **阻塞三：`SCIFORGE_MODEL` 抹平所有角色**（`providers.py`）。宿主上报的模型原先无条件覆盖每个 role，把刻意配置的异构面板重新压回同一模型——正是面板要逃离的状态。改为跳过 `pinned: true` 的角色；未 pin 的仍享受该便利默认。
-- **默认 personas 自动分散**（`review.py`）：`_default_personas` 三个 lens 原先全用 `role="review"`，所以**光配 backend 不够**——三个 persona 仍解析到同一模型。现在当配置确实把 `review`/`reasoning`/`grading` 映射到不同 `(backend, model)` 时自动分散；全部同目标时三者仍留在 `review`（shipped 单 backend 默认的行为与成本零变化，有测试锁定）。`adjudication` **永不**作为 reviewer lens——否则 chair 审自己的案子。
-- **可选启用，默认不变**：新增 `SCIFORGE_PROVIDERS` 环境变量选择替代配置文件 + `kernel/config/providers.heterogeneous.example.json` 示例（端点为占位符，**不硬编码任何本机 provider id**）。示例的 comment 写清四条要求：persona 必须用不同 role、adjudication 必须区别于所有 reviewer、非 `anthropic` 名的 Anthropic 协议 backend 必须显式声明 protocol、pinned 豁免宿主覆盖。
-- **真实端到端验证（非仅配置检测）**：用两个实测可用的 provider 跑真实评审——`reviews_n=2 accepted_n=2`，usage_log 证实两次调用落在不同 backend/model，`spread` 触发 `ADJUDICATE_REQUIRED`。两个模型独立给出的 fatal 相当专业：**"0.9254 vs 0.9466 在 400 次重复下可能落在 Monte Carlo 噪声内，未报 CI"**、**"均值 CI 与截尾均值 CI 在污染下针对不同估计量"**（后者是先前的分析都没点透的估计量歧义）。另经 `SCIFORGE_PROVIDERS` 走完整路径复验：自动分配 role → 两模型各出分 → spread 19.75 → 仲裁。
-- `tests/test_provider_heterogeneity.py`（17 项，全部离线 stub，CI 无需网关与凭据）：thinking 不污染/tool_use 保留/未知块忽略、protocol 显式与缺省与非法值回退、pinned 豁免与未 pin 仍覆盖、双 backend 面板 heterogeneous 且 chair 独立、单 backend 仍如实 degraded、默认 personas 两种配置下的行为、chair 永不兼任 reviewer、chair 撞模型时如实披露、`SCIFORGE_PROVIDERS` 选路。**803 passed，ci_check PASS**。
-- **过程中的自我纠错（记档）**：第一版 stub 把 `adjudication` 当作 reviewer persona，于是 `adjudicator_distinct=False` ——那是**代码判对了、测试写错了**；读 `panel_independence` 确认 chair 是独立角色后改为真实拓扑（2 reviewer 各一 backend + 独立 chair）。
-
-### 追加四：事件日志跨进程串行化（版本仍 1.7.4）
-
-- **`EventLog.emit` 加 flock**（`state.py`）。此前 `_sync()` 与 append 之间没有互斥：两个进程可同时读到同一 head，各自据此算 `prev_hash` → **链分叉**。实测三进程并发写同一 workspace：121 条事件全部落盘，但链在 **seq=2 断裂、78 个 seq 重复**，`recover()` 随即把正常并发误判为"日志被篡改"并拒绝重建 run。现在整个"读-算-写"序列在**旁路锁文件**（`events.ndjson.lock`）的排他 flock 下执行——不锁 `events.ndjson` 本身，否则会与 `_sync` 的 offset/inode 追踪纠缠。同一场景复测：**链完整、121 条 seq 唯一且连续**。
-- **适用边界（诚实）**：daemon 的 `ws = archive / rid` 给每个 run 独立 workspace，所以**常规多 worker 并不共享日志**，本修复不是"多 worker 的必要前提"。它真正防的是**同一 run 被两个进程驱动**：人工 `resume` 与 daemon 接管重叠、崩溃接管与残留驱动者并存。已按该形状实测（两个驱动者各 emit 15 次边界事件）：链完整，`recover()` 返回 `resume` 而非 `integrity_broken`。
-- **降级与兼容**：无 `fcntl`（Windows）时退化为不串行化而非抛错——那里的 `O_EXCL` workspace 锁已串行化内核驱动者，且**丢事件比不串行更糟**；锁获取失败同样降级。单进程路径行为零变化（seq 连续、hash 相连），legacy 无链日志继续以无链形状追加（不产生混合后缀）。
-- **`.gitignore` 补 `*.ndjson.lock`**：fixture 的 `.sciforge/` 是 ignore 例外，锁文件否则会被当作 fixture 内容入库（实测确认会）。规则精确命中锁文件，`events.ndjson` 本身不受影响。
-- `tests/test_eventlog_concurrency.py`（6 项，含**真实多进程**而非线程）：三进程并发链完整+seq 唯一连续、空日志上并发只建立一次 genesis、单进程行为不变、同进程双实例交错正确、锁是旁路文件且日志仍是纯 NDJSON、legacy 日志兼容。**809 passed，ci_check PASS**。
-
-### 追加五：PRODUCTION_LEDGER——让"稳定产出"第一次可核验（版本仍 1.7.4）
-
-- **问题**：`runs/` 是 gitignore 的，每个 run 的证据跑完即散。跑了 S01 全链与多次并发实验之后，**"能否持续产出论文"仍无法被自己或外界核验**——没有任何跨 run 的累积记录，RSI 也缺少宏观选择压力信号。
-- **`kernel/sciforge/ledger.py` + `sciforge ledger build|show`**：扫描 archive 下所有 run，生成 `PRODUCTION_LEDGER.jsonl`（每 run 一行，幂等重建）。两条设计纪律直接沿用本项目付过学费的经验：
-  - **全部从磁盘证据推导，不采信自报**（fairness_gate 的教训）。`produced_paper` 要求 RUNSTATE completed **且** PDF 真实存在并 `%PDF` 开头——completed 但无 PDF **不算产出**（completion_gate 的假完成类）；名为 `.pdf` 但字节不是 PDF 的记 `reason=not_a_pdf`；页数从 `/Count` 读，附 sha256。
-  - **缺失必须显式**（gate_all 的 UNPROTECTED 纪律）。Mode A 无内核事件日志 → `events.present=false` 并列入 `unverified`；链断裂、无预算、无 verdict 同样列入。`unverified` 的语义是"这些保证在本 run 根本没运行"，绝不能读成通过。
-- **真实数据下的第一次运行就暴露一个统计失真**：`verdicts` 分类原先对所有 JSON 取 `verdict`/`status`，把 **EXPERIMENT_MATRIX / EVALUATION_PROTOCOL / VERIFICATION_ROUTING / RUN_BUDGET / FIGURE_AUDITS / BLINDSPOT_CHECK 六个声明型产物**误记为 `UNKNOWN`（fixture 上实测 7 条），会让失败率统计说谎。改为单列 `declarative`；另修正 `INVARIANT_CHECK` 的字段名（它用 `overall_verdict`）。修正后 fixture 为 `PASS 13 / REVISE 1 / SUBMISSION_READY 1 / COMPLETED 1 / declarative 6`，`UNKNOWN` 归零。
-- **汇总视图（RSI 的宏观信号）**：`production_rate`、`cost_per_paper_usd`、`gate_interception_rate`（gate 拒绝 / 边界提交比）、`submission_tiers` 分布、`unverified_counts`。这些是单 run 门看不到的东西——一个提高全局 FAIL 率的 skill patch 会在这里显形。
-- **保持历史**：workspace 被删除后行仍保留并记 `workspace_missing=true`（账本是长期记录）；磁盘证据存在时**覆盖**旧行，所以撤回的论文会被如实扣掉 `produced_paper`。
-- **真实 run 上首次建账（如实）**：`runs/` 只有 S01，`papers_produced=0`、`no_kernel_event_log` 标为未核验——**没有把"跑了实验"美化成"产出了论文"**。fixture（内核驱动、168 事件、27 边界、链完整）则被正确识别为 completed + 全证据。
-- `tests/test_production_ledger.py`（14 项）：completed 无 PDF 不算产出、非 PDF 字节不算、blocked 不算、Mode A 无事件日志记为 unverified、链断裂浮出、声明型产物不冒充 UNKNOWN、幂等重建、删除 workspace 保留历史、磁盘证据覆盖陈旧行、汇总的吞吐/成本/拦截率算术、空 archive 安全、非 run 目录被忽略。`REPRODUCE.md` 增 §6.5 完整用法与字段来源表。**823 passed，ci_check PASS**。
-
-### 记档未做（诚实清单）
-- **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。
-- **`gate_all.py`/`fairness_gate.py` 读 events.ndjson 时不报告完整性**：建议把 `event_log_integrity_broken` 暴露为门判定。
-- **A10 上轮新抓到的 panel-grid legend 与旋转刻度重叠**：属 `figure_recipes` bottom band 布局债，仍未修。
-- `nodes.py` 只记 `ts` 无每节点耗时，fairness 预算对账仍用 STATUS/RESULT 耗时。
-- `--workers` 默认仍为 1（预算隔离优先）；`propose.py` 的信号尚未压缩成结构化 digest；`golden.py` 仍 4 题且未加"mutator 不触碰冻结路径"用例。
-- **第三方评审通道**（ScholarPeer / Stanford Agentic Reviewer）仍是 seam，未接入——它同时能天然满足评审异构性。
-- v1.8 候选池剩余项（事件重放增量化已完成；PRODUCTION_LEDGER 生产账本、program 模式链式选题、dispatch_backend colab seam、校准实测批、句级蕴含半、S2 滚雪球召回）本轮未启动。
+### 记档未做（1.7.4 核心，诚实清单）
+- **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防；当前防护目标是"低成本追加伪造"与"篡改可检测"。
+- 第三方评审通道（ScholarPeer / Stanford Agentic Reviewer）仍是 seam，未接入。
 
 ## [1.7.3] - 2026-11-11 定版：门从自报变互证 + 工厂化运行时 + 端到端 harness（五 agent 并行还债）
 

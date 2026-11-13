@@ -1,6 +1,6 @@
 ---
 name: universal-retrieval
-version: 1.7.4
+version: 1.8.0
 description: "Literature search + multi-layer anti-hallucination citation verification (arXiv + CrossRef mandatory; Semantic Scholar Layer 3 when reachable, 2-layer degraded mode explicitly disclosed) + v3.2 proxy auto-mount + filter-chain integrity audit + v6.0 wave protocol (broad wave mines GAP_REPORT.md, targeted waves per surviving idea). Phase 4 (MANDATORY, never skipped). Invoke for any literature/citation work."
 type: reference-skill
 role: academic-retriever

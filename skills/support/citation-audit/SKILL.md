@@ -1,6 +1,6 @@
 ---
 name: citation-audit
-version: 1.7.4
+version: 1.8.0
 description: "Final multi-layer citation verification across existence, metadata and context axes (arXiv + CrossRef lookups; Semantic Scholar Layer 3 when reachable, with explicit degraded-mode disclosure) catching hallucinated refs, wrong-context citations, title/venue/year drift. Phase 15. Invoke before submission."
 type: reference-skill
 role: bibliographic-integrity-auditor

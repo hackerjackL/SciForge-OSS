@@ -1,7 +1,7 @@
 # SciForge-OSS — Claude Code Project Memory
 
 ## What this is
-Skill-driven research runtime (v1.7.4): Skill Library (pure Markdown, `skills/`) + Runtime Kernel (`kernel/`, Python ≥3.10 stdlib-only) + RSI evolution. Two modes:
+Skill-driven research runtime (v1.8.0): Skill Library (pure Markdown, `skills/`) + Runtime Kernel (`kernel/`, Python ≥3.10 stdlib-only) + RSI evolution. Two modes:
 - **Skill mode**: `/auto-pipeline "Q: ..."` — read `skills/orchestrator/auto-pipeline/SKILL.md`, execute the 26-node DAG in-conversation (pointer-load: load only declared references).
 - **Kernel mode**: `node bin/sciforge.js run --workspace ./runs/Q001 --problem "..." --host claude` — the kernel dispatches phase bundles to you and expects a final JSON verdict `{"verdict": "PASS|WARN|FAIL|BLOCKED|NOT_APPLICABLE|ERROR", "artifacts": [...], "notes": "..."}`.
 
@@ -27,7 +27,7 @@ Skill-driven research runtime (v1.7.4): Skill Library (pure Markdown, `skills/`)
 
 ## Gotchas
 - Workspace `.sciforge/` dirs are gitignored (exception: `fixtures/e2e_minimal/.sciforge/`).
-- Version 1.7.4 is pinned across package.json + CITATION.cff + both READMEs + all 29 SKILL.md frontmatters (ci_check enforces the first four).
+- Version 1.8.0 is pinned across package.json + CITATION.cff + both READMEs + all 29 SKILL.md frontmatters (ci_check enforces the first four).
 - Kernel needs Python ≥3.10 (use `.venv/bin/python`); the system python3.9 cannot run it. If `.venv/bin/python` is a broken symlink (e.g. after removing the interpreter it pointed at), `scripts/ci_check.py`'s environment leg reports it with a fix command.
 - When the kernel dispatches to you (`claude -p`), respond with ONLY the JSON verdict object as your final message.
 - **`events.ndjson` is hash-chained (v1.7.4)**: every event carries `prev_hash` + `hash`. Editing or appending to it by hand breaks the chain, and `recover()` then refuses to rebuild the run (`paused_blocked`, `reason_code=event_log_integrity_broken`). Never hand-edit an event log, and never regenerate `fixtures/e2e_minimal/.sciforge/events.ndjson` by hand — drive the real `Kernel` with `host="mock"` and copy the output. Pre-v1.7.4 chainless logs are accepted as `legacy`.
