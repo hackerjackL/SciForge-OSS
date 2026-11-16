@@ -32,11 +32,50 @@ from pathlib import Path
 
 
 def _tex_files(paper: Path) -> list[Path]:
-    files = [paper / "main.tex"]
+    """main.tex, its sections, and every .tex they \\input (transitively).
+
+    The renderer emits each figure as figures/<id>/latex_include.tex holding the
+    figure environment, and the manuscript pulls it in with \\input from a
+    section. Stopping at sections/*.tex therefore counted zero figure
+    environments and zero \\includegraphics for a paper that demonstrably
+    embedded seven figures — the gate contradicted the project's own figure
+    channel. Follow the \\input graph instead, bounded and cycle-safe.
+    """
+    roots = [paper / "main.tex"]
     sec = paper / "sections"
     if sec.is_dir():
-        files += sorted(sec.glob("*.tex"))
-    return [f for f in files if f.is_file()]
+        roots += sorted(sec.glob("*.tex"))
+    seen: set[Path] = set()
+    out: list[Path] = []
+    queue = [f for f in roots if f.is_file()]
+    while queue:
+        f = queue.pop(0).resolve()
+        if f in seen or not f.is_file():
+            continue
+        seen.add(f)
+        out.append(f)
+        if len(seen) > 500:      # pathological manuscript; stop rather than hang
+            break
+        text = f.read_text(encoding="utf-8", errors="replace")
+        for m in re.findall(r"\\(?:input|include)\{([^}]+)\}", text):
+            ref = m.strip()
+            if not ref:
+                continue
+            # LaTeX resolves \input against the compile directory (paper/),
+            # while authors also write paths relative to the section file.
+            # The canonical layout keeps figures at the workspace root, i.e.
+            # paper/../figures, so try both bases rather than assuming one.
+            bases = [f.parent, paper.resolve()]
+            for base in bases:
+                cand = base / ref
+                for p in (cand, cand.with_suffix(".tex")):
+                    if p.is_file():
+                        queue.append(p)
+                        break
+                else:
+                    continue
+                break
+    return out
 
 
 def _read(f: Path) -> str:

@@ -42,6 +42,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.error
@@ -347,9 +348,32 @@ def check(ws: Path, *, offline: bool = False, doi_db=None,
 
     # --- hard: verdicts complete
     import subprocess
-    v = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "validate_verdicts.py"),
-                        str(ws / ".sciforge" / "verdicts"), "--strict", "--require-complete"],
-                       capture_output=True, text=True)
+    # DOI_GATE.json and SUBMISSION_READY.json are gate telemetry, not registered
+    # verdicts. validate_verdicts --strict reports them as WARN, so this gate
+    # would fail its own completeness check on the artifacts it just wrote —
+    # the same self-rejection the kernel fixed in v1.7.3 with
+    # Kernel._quarantine_gate_side_verdicts. Move them aside for the check and
+    # put them back, so the audit trail keeps them either way.
+    vd = ws / ".sciforge" / "verdicts"
+    moved: list[tuple[Path, bytes]] = []
+    for name in ("DOI_GATE.json", "SUBMISSION_READY.json"):
+        p = vd / name
+        if p.is_file():
+            try:
+                moved.append((p, p.read_bytes()))
+                p.unlink()
+            except OSError:
+                moved = [(q, b) for q, b in moved if q != p]
+    try:
+        v = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "validate_verdicts.py"),
+                            str(vd), "--strict", "--require-complete"],
+                           capture_output=True, text=True)
+    finally:
+        for p, blob in moved:
+            try:
+                p.write_bytes(blob)
+            except OSError:
+                pass
     if v.returncode != 0:
         hard.append("registered verdicts incomplete")
     # --- hard: s2 gate battery
@@ -372,13 +396,29 @@ def check(ws: Path, *, offline: bool = False, doi_db=None,
     pdf = ws / "paper" / "main.pdf"
     pages = 0
     if pdf.exists():
+        # Object streams (/ObjStm, PDF 1.5+) compress the page tree, so neither
+        # /Count nor /Type /Page appears in the raw bytes. That is the normal
+        # output of a modern pdflatex run, not a damaged file — the S01 paper
+        # reported "page count unverifiable" while pdfinfo read 15 pages. Ask
+        # pdfinfo first (poppler is already a project dependency for figures)
+        # and keep the byte scan as the no-tool fallback.
         try:
-            raw = pdf.read_bytes()
-            counts = [int(c) for c in re.findall(rb"/Count\s+(\d+)", raw)]
-            pages = max(counts) if counts else \
-                len(re.findall(rb"/Type\s*/Page[^s]", raw))
-        except OSError:
-            pages = 0
+            info = subprocess.run(["pdfinfo", str(pdf)], capture_output=True,
+                                  text=True, timeout=60)
+            if info.returncode == 0:
+                m = re.search(r"^Pages:\s+(\d+)", info.stdout, re.M)
+                if m:
+                    pages = int(m.group(1))
+        except (OSError, subprocess.SubprocessError):
+            pass
+        if pages == 0:
+            try:
+                raw = pdf.read_bytes()
+                counts = [int(c) for c in re.findall(rb"/Count\s+(\d+)", raw)]
+                pages = max(counts) if counts else \
+                    len(re.findall(rb"/Type\s*/Page[^s]", raw))
+            except OSError:
+                pages = 0
     if not pdf.exists():
         hard.append("paper/main.pdf missing — no manuscript was produced")
     elif pages == 0:

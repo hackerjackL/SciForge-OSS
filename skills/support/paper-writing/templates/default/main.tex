@@ -1,7 +1,6 @@
-% Unified elsarticle template — SciForge-OSS (Discipline-Agnostic)
-% ALL 125 science problems (any domain) use this single document class.
-% Venue differences are deferred to submission time — see shared-references/venue-profiles.md.
-% OSS uses elsarticle [preprint,12pt] for all drafts.
+% Unified elsarticle template (discipline-agnostic).
+% Every problem uses this single document class; elsarticle [preprint,12pt] for drafts.
+% Venue-specific adaptation happens at submission time, not during drafting.
 
 \documentclass[preprint,12pt]{elsarticle}
 
@@ -11,6 +10,14 @@
 % Typography
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+% Latin Modern supplies the small math sizes that Computer Modern lacks. With
+% the default CM fonts elsarticle emits ten "Font shape ... in size <0.5>/<0.7>/
+% <> not available" substitutions plus a size-substitution summary on EVERY
+% compile — measured on a minimal frontmatter with no math at all — which makes
+% the zero-warning compile requirement unreachable for any paper. lmodern is
+% vector Type 1 throughout, so the substitutions disappear and the PDF stays
+% fully embedded/searchable.
+\usepackage{lmodern}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
@@ -36,6 +43,17 @@
 
 % cleveref must be loaded AFTER hyperref
 \usepackage[capitalize,noabbrev]{cleveref}
+
+% elsarticle's \corref/\cnotenum are typesetting-only marks, but hyperref tries
+% to flatten the author block into PDF metadata and warns "Token not allowed in
+% a PDF string" for each of them on every compile. Strip them from the PDF-string
+% context only; the printed corresponding-author mark is unaffected.
+\pdfstringdefDisableCommands{%
+  \def\corref#1{}%
+  \def\cnotenum{}%
+  \def\fnref#1{}%
+  \def\ead#1{}%
+}
 
 % Theorems
 \theoremstyle{plain}

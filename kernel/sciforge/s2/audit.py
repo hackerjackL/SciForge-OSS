@@ -127,13 +127,34 @@ def _code_corpus(ws: Path) -> str:
     return "\n".join(chunks)
 
 
+# Experiment-matrix row identifiers and budget/configuration keys are labels,
+# not claims that a piece of machinery exists. The S01 real run had
+# `group_baseline_t`, `group_ablation_bca`, `budget_scale` counted as method
+# tokens, dragging parity to 0.70 and failing the audit for a registry whose
+# every actual operation was implemented. Same class as the v1.7.1 fix that
+# stopped LaTeX macro names being read as method tokens.
+_NON_OPERATION_PREFIXES = ("group_", "baseline_", "ablation_", "hyperparam_",
+                           "robustness_", "tab_", "fig_", "eq_", "sec_")
+_NON_OPERATION_TOKENS = {
+    "budget_scale", "problem_id", "run_id", "schema_version", "generated_at",
+    "estimated_minutes", "metric_key", "metric_direction", "primary_metric",
+    "seed_count", "table_id", "current_best", "relative_gain_pct",
+    "engineer_rounds", "num_hypotheses", "gpu_required", "wall_clock_seconds",
+}
+
+
 def claimed_tokens(text: str) -> list[str]:
     """Machine-checkable operation names the method section asserts exist."""
     seen: list[str] = []
     for m in _TOKEN_RE.finditer(text):
         tok = next((g for g in m.groups() if g), "")
-        if tok and tok not in _STOP and tok not in seen:
-            seen.append(tok)
+        if not tok or tok in _STOP or tok in seen:
+            continue
+        if tok in _NON_OPERATION_TOKENS:
+            continue
+        if tok.startswith(_NON_OPERATION_PREFIXES):
+            continue
+        seen.append(tok)
     return seen
 
 

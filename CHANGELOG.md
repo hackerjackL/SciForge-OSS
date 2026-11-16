@@ -4,7 +4,7 @@
 
 ## [1.8.0] - 2026-11-13 定版：真实运行驱动的加固 + 评审真异构 + 生产账本
 
-> 版本主题：**用一道真实 benchmark 题（ARC-Bench S01）把流水线跑穿，让真实数据/真实布局/真实执行顺序暴露纸面分析发现不了的缺陷，逐一修到根因；把"审计零副作用"提升为全局不变量；把评审面板从"同模型三次采样"接成真异构；并让"稳定产出"第一次可核验**。按 VERSIONING §2.3，新增引用切题性门 / `ledger` CLI / 评审异构 opt-in / 全局证据护栏属新链路 + 行为改变，故从 1.7.4 补丁号收为次版本 1.8.0。**基线 744 → 823 测试全绿，ci_check PASS，security_scan --self-test 26/26**；每阶段均在干净 clone 复验。承接 [1.7.4] 的信任根加固，本轮全部改动带回归测试与真实运行实测背书。
+> 版本主题：**用一道真实 benchmark 题（ARC-Bench S01）把流水线跑穿，让真实数据/真实布局/真实执行顺序暴露纸面分析发现不了的缺陷，逐一修到根因；把"审计零副作用"提升为全局不变量；把评审面板从"同模型三次采样"接成真异构；并让"稳定产出"第一次可核验**。按 VERSIONING §2.3，新增引用切题性门 / `ledger` CLI / 评审异构 opt-in / 全局证据护栏属新链路 + 行为改变，故从 1.7.4 补丁号收为次版本 1.8.0。**基线 744 → 835 测试全绿，ci_check PASS，security_scan --self-test 26/26**；每阶段均在干净 clone 复验。承接 [1.7.4] 的信任根加固，本轮全部改动带回归测试与真实运行实测背书。
 
 ### A. ARC-Bench S01 真实端到端运行驱动的修复
 
@@ -67,6 +67,24 @@
 - **保持历史**：workspace 被删除后行仍保留并记 `workspace_missing=true`（账本是长期记录）；磁盘证据存在时**覆盖**旧行，所以撤回的论文会被如实扣掉 `produced_paper`。
 - **真实 run 上首次建账（如实）**：`runs/` 只有 S01，`papers_produced=0`、`no_kernel_event_log` 标为未核验——**没有把"跑了实验"美化成"产出了论文"**。fixture（内核驱动、168 事件、27 边界、链完整）则被正确识别为 completed + 全证据。
 - `tests/test_production_ledger.py`（14 项）：completed 无 PDF 不算产出、非 PDF 字节不算、blocked 不算、Mode A 无事件日志记为 unverified、链断裂浮出、声明型产物不冒充 UNKNOWN、幂等重建、删除 workspace 保留历史、磁盘证据覆盖陈旧行、汇总的吞吐/成本/拦截率算术、空 archive 安全、非 run 目录被忽略。`REPRODUCE.md` 增 §6.5 完整用法与字段来源表。**823 passed，ci_check PASS**。
+
+### F. 闭环 MVP：第一次真正产出一篇论文（Phase 12–16 首次跑在真实数据上）
+
+**为什么必须做**：S01 此前停在实验层，`paper-writing`/`paper-compile`/`citation_audit`/`fantasy_gate`/`submission_ready` 这些终局门**从未见过真实数据**，只跑过 fixture；账本 `papers_produced=0`——项目宣称产出论文，却一次都没真正产出过。本轮把 S01 从已有真实素材（60 cell/R=1000 实验、7 图、17 条已验证文献、H1–H3 supported、S2 阶梯与消融账本）写成论文并跑到 Phase 16。
+
+- **产物**：`runs/S01/paper/main.pdf`，**15 页、零 error、零 warning、零 undefined**，7 张图全部嵌入。`submission_ready` 判 **READY（hard=[] soft=[]）**；`validate_verdicts --strict --require-complete` **24 pass / 0 fail / 0 pending**；账本首条 `papers_produced=1 / production_rate=1.0 / submission_tiers={READY:1}`，并如实标 `no_kernel_event_log`（Mode A 手工 run，不伪造审计链）。
+- **模板级缺陷（影响每一篇未来论文，非本篇写作问题）**：
+  - **品牌泄漏**：`templates/default/{main,math_commands}.tex` 的注释里写着框架名，被 `leakage_scan` class I 命中——**任何用该模板的论文在作者动笔前就已违规**。已清除。
+  - **零警告编译此前不可达**：elsarticle + 默认 Computer Modern 在**每次**编译都吐 10 条 `Font shape ... in size <0.5>/<0.7>/<> not available` 加一条尺寸替换汇总——最小复现证明**与摘要里有无数学无关**（去掉 math 仍是 10 条）。加 `\usepackage{lmodern}`（矢量 Type 1，全尺寸可用）归零。另加 `\pdfstringdefDisableCommands` 屏蔽 `\corref/\cnotenum` 进 PDF 元数据产生的 4 条 hyperref token 警告。**14 → 0**。
+  - 过程中两次假设失败（`DeclareMathSizes`、abstract 内 `\normalsize`）均无效并已撤回；最终靠最小复现 + 二分定位，不靠猜。
+- **`check_figure_embedding` 与项目自己的出图通道不兼容**（真 bug）：渲染器把 figure 环境写进 `figures/<id>/latex_include.tex`，由 section `\input` 引入；而门的 `_tex_files` 只收 `main.tex` + `sections/*.tex`，于是**对一篇确实嵌了 7 张图的论文数出 0 个 figure 环境**。改为递归跟随 `\input`/`\include`（去环、上限 500）。第一版只按 section 目录解析相对路径，漏了"图在 workspace 根"的规范布局——**真实 S01 当时靠我手建的符号链接才碰巧通过**；改为同时以 section 目录与 paper 目录为基准解析，删掉符号链接后真实 run 仍 PASS。
+- **`submission_ready` 被自己写出的产物判成 incomplete**（真 bug）：`DOI_GATE.json`/`SUBMISSION_READY.json` 是未注册遥测，`validate_verdicts --strict` 报 WARN → 该门把"自己刚写的文件"当成缺失的注册 verdict。内核在 v1.7.3 已用 `_quarantine_gate_side_verdicts` 解决同一问题，但这个门没有。改为校验前移开、校验后放回（审计痕迹保留）。
+- **`s2_audit.method_code_parity` 把配置标识符当方法 token**（误报）：`group_baseline_t`/`group_ablation_bca`/`budget_scale` 是实验矩阵行名与预算键，不是"方法段声称存在的机器"，却把 parity 压到 0.70 < 0.80 而判 FAIL——与 v1.7.1 修过的"LaTeX 宏名被当方法 token"同类。加入非操作类前缀/键名过滤后 **parity 0.905 PASS**。
+- **页数读取对现代 PDF 失效**（我引入 lmodern 的副作用）：pdflatex 启用 `/ObjStm` 压缩对象流后，`/Count` 与 `/Type /Page` 都不在原始字节里，门报 "page count unverifiable" 而 `pdfinfo` 能读出 15 页。改为优先 `pdfinfo`（poppler 本就是项目依赖），字节扫描保留为无工具时的 fallback。
+- **`citation_support.py` docstring 的 `\cite` 触发 `SyntaxWarning`**（Python 未来版本将报错）：改 raw docstring；并加全仓扫描测试，`scripts/` + `kernel/` 现零同类告警。
+- **写作侧自查（记档，非流水线缺陷）**：正文初稿用了 `\citet/\citep`（author–year），而模板是 `elsarticle-num`（numeric），产生 13 条 author-undefined；改用 `\cite` 并重写句式。7 张图的渲染器占位 caption 全部替换为真实描述。
+- `tests/test_paper_template_gates.py`（12 项）：模板无品牌泄漏/lmodern/pdfstring 三项契约、`\input` 递归跟随与**未被引用的图仍 FAIL**（防修松）、`\input` 成环不死循环、全仓无 SyntaxWarning、遥测隔离后必须放回、矩阵/配置标签不计入 parity、压缩 xref 的 PDF 页数可读。**835 passed，ci_check PASS**。
+- **诚实边界**：本篇是 Mode A 手工编排，无内核事件日志，故账本记 `no_kernel_event_log`、`boundaries_committed=0`；14 个审计类 verdict 由我依据**真实门结果与真实数据**撰写（DOI 17/17 真联网、fairness `scope=run` 交叉验证真跑、A10 7/7 PASS、编译统计取自 `main.log`），不是内核自动产出。审稿为单轮 host-agent，非异构面板。
 
 ### 记档未做（诚实清单）
 - **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。

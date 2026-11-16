@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sentence-level citation-support gate (v1.6, 4th verification layer).
+r"""Sentence-level citation-support gate (v1.6, 4th verification layer).
 
 Layers 1-3 (citation-audit) prove a reference EXISTS + metadata agrees. They do
 NOT prove the citing sentence was actually said by that source, nor that a
