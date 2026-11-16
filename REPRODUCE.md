@@ -151,6 +151,47 @@ PYTHONPATH=kernel .venv/bin/python -m sciforge.cli ledger show --archive runs --
 
 **持久化**：账本默认落在 `<archive>/PRODUCTION_LEDGER.jsonl`，已随 runs 一起忽略（含本机工作区路径与成本）。它**刻意在 workspace 被删除后保留行**（记 `workspace_missing=true`），因为账本是长期记录；要跨机器保留就把 `--archive` 指向一个备份目录。
 
+## 6.6 Benchmark 评测（ARC-Bench，v1.8.0）
+
+题目来自 HuggingFace **`AIMING-Lab-UNC/ARC-Bench`**（MIT，55 题 × 5 域：ml 25 / physics 10 / quantum 10 / biology 7 / statistics 3；全部 `gpu_required=false`）。它是**开放式科研** benchmark：每题给研究问题 + 结构化 briefing + 假设 + 实验设计 + **加权 rubric**，要求从问题走到完整研究，而不是固定输入输出的函数题。
+
+```bash
+# 取题库（免注册、免 token）
+curl -L -o /tmp/arc.jsonl \
+  https://huggingface.co/datasets/AIMING-Lab-UNC/ARC-Bench/resolve/main/data/arc_bench.jsonl
+
+# 把某题的题面与 rubric 放进 run 工作区
+python - <<'PY'
+import json, pathlib
+rows={json.loads(l)['id']: json.loads(l) for l in open('/tmp/arc.jsonl') if l.strip()}
+r=rows['ML04']; ws=pathlib.Path('runs/ML04/results/benchmark'); ws.mkdir(parents=True,exist_ok=True)
+(ws/'ARC_TASK.json').write_text(json.dumps(r,ensure_ascii=False,indent=2))
+rb=r['rubric']; rb=json.loads(rb) if isinstance(rb,str) else rb
+(ws/'ARC_RUBRIC.json').write_text(json.dumps(rb,ensure_ascii=False,indent=2))
+PY
+
+# 跑完后：列出该题的 rubric 叶子与权重
+.venv/bin/python scripts/bench_score.py runs/ML04
+# 生成待填的自评模板
+.venv/bin/python scripts/bench_score.py runs/ML04 --template > /tmp/a.json
+# 按官方权重机械算分（填好 verdict/evidence 后）
+.venv/bin/python scripts/bench_score.py runs/ML04 --assessment /tmp/a.json
+```
+
+**评分器的三条纪律**（都由测试锁定）：
+
+| 纪律 | 为什么 |
+|---|---|
+| 权重只从官方 rubric 读 | 自评者不能靠改权重抬分；`assessment` 里写 `weight` 会被忽略 |
+| `partial` 记半分，不上取整 | rubric 原文承认"部分但论证充分的模拟应得部分分"，把它算成 met 就是虚高 |
+| `must_pass` 单独报告 | rubric 可以 100% 而某条硬产物要求仍 unmet——两个事实不能平均成一个数 |
+
+**权重和不必是 100**：实测 Q05 合计 82、B01 合计 105，评分器按实际总和归一化。
+
+`must_pass` 里能从磁盘机械核验的（`results.json` 字段完整性、三个假设的 `supported` 布尔 + `details` ≥40 字符且含数字）由评分器直接判；需要判断的（如"是否讨论了 coverage-width 权衡"）标 `unchecked` 交自评者，**绝不静默算通过**。
+
+**评测环境限制要如实披露**：rubric 可能点名特定库（Q05 建议 qiskit `EfficientSU2`，B01 建议 cobra 加载 iAF1260）。本机 cobra 0.32.1 已装、qiskit 未装。**不要为凑 rubric 而 pip install 或自建 venv**——那会让"SciForge 能跑这道题"的结论失真，且外部解释器会绕过项目的 smoke/沙箱/dep_gate。正确做法是用项目 `.venv` 内的等价实现，在论文 Methods/Limitations 显式披露替代与等价性依据，并在该条 rubric 自评给 `partial`。
+
 ## 7. 单元测试（全部机制）
 
 ```bash
