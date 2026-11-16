@@ -208,7 +208,6 @@ def test_strict_warning_failure_takes_precedence(tmp_path):
 
 
 def test_only_compile_audit_reports_the_reason(tmp_path, capsys):
-    """End-to-end through main(): the reason must survive into the report."""
     ws = _ws(tmp_path)
     _pdf(ws, "20261116121521+00'00'")
     _compile_verdict(ws)
@@ -224,3 +223,80 @@ def test_only_compile_audit_reports_the_reason(tmp_path, capsys):
     assert row["status"] == "FAIL"
     assert row["reason_code"] == "compiled_pdf_stale"
     assert rc == report["exit_code"] != 0
+
+
+# ---------------------------------------------------------------------------
+# rendered figures must postdate the experiments they plot
+# ---------------------------------------------------------------------------
+
+def _touch(p: Path, when: float) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("{}", encoding="utf-8")
+    os.utime(p, (when, when))
+
+
+BASE = 1_800_000_000.0
+
+
+def test_figure_older_than_experiments_is_stale(tmp_path):
+    """The measured ML04 shape: figures rendered at 20:08, experiments re-run
+    at 20:23. The figure is older than the PDF too, so comparing figure-vs-PDF
+    misses it completely -- the invariant is figure-vs-experiment."""
+    ws = _ws(tmp_path)
+    _pdf(ws, "20990101000000+00'00'")          # PDF newer than everything
+    _compile_verdict(ws)
+    _touch(ws / "experiments" / "full" / "group_main" / "RESULT.json", BASE + 900)
+    _touch(ws / "figures" / "fig1_main" / "output.pdf", BASE)
+    _touch(ws / "figures" / "fig1_main" / "figure_audit.json", BASE + 950)
+
+    stale, newest = gate_all._stale_figures(ws)
+    assert newest is not None
+    assert [p.name for p in stale] == ["output.pdf"]
+    r = _run(ws)
+    assert r["status"] == "FAIL"
+    assert r["reason_code"] == "compiled_pdf_stale"
+    assert "superseded numbers" in r["detail"]
+    assert "figures/fig1_main/output.pdf" in r["detail"]
+
+
+def test_figure_newer_than_experiments_is_fresh(tmp_path):
+    ws = _ws(tmp_path)
+    _pdf(ws, "20990101000000+00'00'")
+    _compile_verdict(ws)
+    _touch(ws / "experiments" / "full" / "group_main" / "RESULT.json", BASE)
+    _touch(ws / "figures" / "fig1_main" / "output.pdf", BASE + 900)
+    stale, _ = gate_all._stale_figures(ws)
+    assert stale == []
+    r = _run(ws)
+    assert r["status"] == "PASS", r
+
+
+def test_figure_audit_side_effects_do_not_count(tmp_path):
+    """figure_audit.py rewrites figure_audit.json / text_layout.json in place,
+    so re-running an audit standalone would make them newer than the manuscript
+    without the rendered figure changing. Only the rendered output compares."""
+    ws = _ws(tmp_path)
+    _pdf(ws, "20990101000000+00'00'")
+    _compile_verdict(ws)
+    _touch(ws / "experiments" / "full" / "group_main" / "RESULT.json", BASE)
+    _touch(ws / "figures" / "fig1_main" / "output.pdf", BASE + 900)
+    for side in ("figure_audit.json", "text_layout.json", "render.log",
+                 "caption.txt", "spec.recipe.json"):
+        _touch(ws / "figures" / "fig1_main" / side, BASE + 5000)
+    stale, _ = gate_all._stale_figures(ws)
+    assert stale == []
+    r = _run(ws)
+    assert r["status"] == "PASS", r
+
+
+def test_no_experiments_means_no_figure_staleness(tmp_path):
+    """A theory-only workspace has no RESULT.json, so there is nothing for a
+    figure to be stale against -- must not invent a comparison."""
+    ws = _ws(tmp_path)
+    _pdf(ws, "20990101000000+00'00'")
+    _compile_verdict(ws)
+    _touch(ws / "figures" / "fig1_main" / "output.pdf", BASE)
+    stale, newest = gate_all._stale_figures(ws)
+    assert stale == [] and newest is None
+    r = _run(ws)
+    assert r["status"] == "PASS", r

@@ -539,6 +539,13 @@ def _pdf_creation_ts(pdf: Path) -> float | None:
 _MANUSCRIPT_INPUT_DIRS = ("results", "experiments", "paper")
 _MANUSCRIPT_INPUT_SKIP_DIRS = ("__pycache__", ".smoke-out", "benchmark")
 
+# Figures are manuscript inputs too -- the manuscript embeds figures/<id>/
+# output.pdf. But a figure directory also holds audit side-effects
+# (figure_audit.json, text_layout.json) that figure_audit.py rewrites in place,
+# so re-running an audit standalone would make them newer than the manuscript
+# without the rendered figure changing. Only the rendered output is compared.
+_MANUSCRIPT_FIGURE_FILES = ("output.pdf", "latex_include.tex")
+
 
 def _manuscript_inputs(ws: Path) -> list[Path]:
     out: list[Path] = []
@@ -554,6 +561,11 @@ def _manuscript_inputs(ws: Path) -> list[Path]:
             if p.suffix not in (".json", ".tex", ".bib"):
                 continue
             out.append(p)
+    fig = ws / "figures"
+    if fig.is_dir():
+        for p in fig.rglob("*"):
+            if p.is_file() and p.name in _MANUSCRIPT_FIGURE_FILES:
+                out.append(p)
     return out
 
 
@@ -575,6 +587,47 @@ def _stale_pdf_sources(ws: Path, created: float, grace: float = 2.0) -> list[Pat
         except OSError:
             continue
     return sorted(stale, key=lambda p: str(p))
+
+
+def _figure_outputs(ws: Path) -> list[Path]:
+    fig = ws / "figures"
+    if not fig.is_dir():
+        return []
+    return sorted(p for p in fig.rglob("output.pdf") if p.is_file())
+
+
+def _experiment_result_mtime(ws: Path) -> float | None:
+    """Newest experiments/**/RESULT.json mtime, or None when there are none."""
+    best = None
+    for base in (ws / "experiments", ws / "src" / "experiments"):
+        if not base.is_dir():
+            continue
+        for p in base.rglob("RESULT.json"):
+            try:
+                m = p.stat().st_mtime
+            except OSError:
+                continue
+            best = m if best is None else max(best, m)
+    return best
+
+
+def _stale_figures(ws: Path, grace: float = 2.0) -> tuple[list[Path], float | None]:
+    """Rendered figures that predate the experiment results they visualise.
+
+    A figure older than the experiments it plots shows superseded numbers even
+    when the figure is older than the manuscript too -- which is the common
+    case, because figures are rendered before the paper is written. Comparing
+    the figure against the PDF therefore misses it entirely; the invariant that
+    actually holds is "a rendered figure postdates the results it was rendered
+    from". Measured on a real ARC-Bench run whose ten figures were all rendered
+    before its experiment re-run.
+    """
+    newest = _experiment_result_mtime(ws)
+    if newest is None:
+        return [], None
+    stale = [p for p in _figure_outputs(ws)
+             if p.stat().st_mtime < newest - grace]
+    return sorted(stale, key=lambda p: str(p)), newest
 
 
 def gate_quality_gate(ws: Path, opts) -> dict:
@@ -643,14 +696,23 @@ def gate_compile_audit(ws: Path, opts) -> dict:
                        f"no parseable /CreationDate in {pdf.name}; cannot check "
                        f"that the PDF postdates its sources")
     stale = _stale_pdf_sources(ws, created)
-    if stale:
-        rel = [str(p.relative_to(ws)) for p in stale[:6]]
-        more = f" (+{len(stale) - 6} more)" if len(stale) > 6 else ""
+    stale_figs, newest_exp = _stale_figures(ws)
+    if stale or stale_figs:
+        rel = [str(p.relative_to(ws)) for p in (stale + stale_figs)[:6]]
+        more = f" (+{len(stale) + len(stale_figs) - 6} more)" \
+            if len(stale) + len(stale_figs) > 6 else ""
+        if stale:
+            head = (f"main.pdf (created "
+                    f"{datetime.datetime.fromtimestamp(created, datetime.timezone.utc):%Y-%m-%d %H:%M:%S}Z) "
+                    f"predates {len(stale)} manuscript input(s)")
+        else:
+            head = (f"{len(stale_figs)} rendered figure(s) predate the newest "
+                    f"experiment result "
+                    f"({datetime.datetime.fromtimestamp(newest_exp, datetime.timezone.utc):%Y-%m-%d %H:%M:%S}Z), "
+                    f"so they plot superseded numbers")
         return _result("compile_audit", "13", "FAIL", "compiled_pdf_stale",
-                       f"main.pdf (created "
-                       f"{datetime.datetime.fromtimestamp(created, datetime.timezone.utc):%Y-%m-%d %H:%M:%S}Z) "
-                       f"predates {len(stale)} manuscript input(s): {', '.join(rel)}{more} "
-                       f"-- recompile after regenerating results/tables")
+                       f"{head}: {', '.join(rel)}{more} "
+                       f"-- recompile after regenerating results/tables/figures")
     return _result("compile_audit", "13", "PASS", "ok",
                    f"PAPER_COMPILE.json present, warnings={warnings}, "
                    f"discipline={discipline}, PDF postdates all "
