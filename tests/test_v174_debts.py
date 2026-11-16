@@ -113,6 +113,19 @@ def _citation_doc(**overrides) -> dict:
 def _validate(tmp_path: Path, doc: dict) -> tuple[str, list[str]]:
     path = tmp_path / "CITATION_AUDIT.json"
     path.write_text(json.dumps(doc), encoding="utf-8")
+    # The fixture declares it audited references.bib, so the file has to exist
+    # with the bytes it claims -- otherwise audited_input_hashes cannot be
+    # re-verified and the artifact degrades to WARN. These tests are about the
+    # citation verification-depth vocabulary, so keep the hash side of the
+    # fixture honest rather than asserting on an unrelated WARN.
+    bib = tmp_path / "references.bib"
+    if not bib.is_file():
+        bib.write_bytes(b"@misc{placeholder, title={t}}\n")
+    hashes = doc.get("audited_input_hashes")
+    if isinstance(hashes, dict):
+        import hashlib
+        hashes["references.bib"] = hashlib.sha256(bib.read_bytes()).hexdigest()
+        path.write_text(json.dumps(doc), encoding="utf-8")
     return validate_verdicts.validate_json_file("CITATION_AUDIT.json", path)
 
 

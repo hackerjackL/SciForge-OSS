@@ -41,7 +41,11 @@ Cross-field invariants (post-checks)
 2. Audit input hashes. PROOF_AUDIT, CITATION_AUDIT, KILL_ARGUMENT,
    LEAKAGE_AUDIT and PAPER_CLAIM_AUDIT must contain ``audited_input_hashes``
    (object mapping filename -> sha256); encoded in the schemas as required +
-   value pattern (artifact-registry.md schema invariant 2).
+   value pattern (artifact-registry.md schema invariant 2). The recorded
+   hashes are also compared against the files on disk: a hash that no longer
+   matches is a FAIL, because the audit certifies bytes that have since
+   changed. Paths that are absent are not reported -- a trimmed workspace or a
+   verdicts-only copy would warn on every run.
 3. Budget floor hard rules (experiment-execution SKILL.md): budget_floor
    ``satisfied == false`` forbids ``verdict: PASS`` (only IN_PROGRESS or
    BLOCKED allowed), and ``verdict: PASS`` requires ``completion_justification``.
@@ -84,6 +88,7 @@ Exit codes
 """
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -319,9 +324,70 @@ def json_type_name(instance):
 # Cross-field post-checks
 # ---------------------------------------------------------------------------
 
-def post_checks(filename, data):
-    """Documented cross-field invariants that go beyond per-field schema checks."""
-    errors = []
+def _norm_audit_hash(value) -> str:
+    """Recorded audit hashes may carry a `sha256:` prefix; disk hashes do not."""
+    s = str(value).strip().lower()
+    return s[7:] if s.startswith("sha256:") else s
+
+
+def _workspace_root(filepath) -> "Path | None":
+    """The workspace root that a verdict's audited_input_hashes are relative to.
+
+    Derived from the file's own location rather than a fixed parents[N]: the
+    canonical <ws>/.sciforge/verdicts/X.json needs three levels up, a host that
+    writes verdicts/ at the workspace root needs two, and a caller that drops
+    the verdict straight into a scratch directory needs one. Taking a fixed
+    parents[2] silently resolves to an arbitrary ancestor in the other layouts,
+    which is how this check very nearly reported healthy workspaces as
+    unverifiable.
+    """
+    try:
+        p = Path(filepath).resolve()
+    except OSError:
+        return None
+    parent = p.parent
+    if parent.name == "verdicts":
+        if parent.parent.name == ".sciforge":
+            return parent.parent.parent
+        return parent.parent
+    return parent
+
+
+def _audit_inputs_changed(ws_root, hashes: dict) -> list[str]:
+    """Relative paths whose recorded audit hash no longer matches the file.
+
+    A verdict that records the hashes of what it audited is only meaningful if
+    those files still hold those bytes. S01 verifies 10/10 against disk, so the
+    mechanism can be self-consistent; ML04 verifies 8 of 43, because it re-ran
+    its experiments and regenerated its tables without refreshing any audit.
+
+    Absent paths are deliberately NOT reported: a trimmed workspace (the shipped
+    e2e fixture audits two files its layout does not carry) or a verdicts-only
+    copy would warn on every run, which trains people to ignore warnings. Only a
+    hash that contradicts the bytes on disk is a violation.
+    """
+    changed: list[str] = []
+    for rel, recorded in sorted(hashes.items()):
+        want = _norm_audit_hash(recorded)
+        if not want:
+            continue
+        target = (Path(ws_root) / str(rel)) if ws_root else None
+        try:
+            if target is None or not target.is_file():
+                continue
+            actual = hashlib.sha256(target.read_bytes()).hexdigest()
+        except OSError:
+            continue
+        if actual != want:
+            changed.append(str(rel))
+    return changed
+
+
+def post_checks(filename, data, ws_root=None):
+    """Documented cross-field invariants beyond per-field schema checks.
+
+    Returns a list of errors (each makes the artifact FAIL)."""
+    errors: list[str] = []
     meta = REGISTRY[filename]
 
     if meta.get("audit_family") and isinstance(data, dict):
@@ -423,6 +489,27 @@ def post_checks(filename, data):
                         "two mandatory layers (arxiv, crossref) in "
                         "layers_verified, got %r" % (layers,)
                     )
+
+    # post-check 2 was documented as "must carry audited_input_hashes" and the
+    # REGISTRY carries an audit_hashes flag, but nothing ever compared the
+    # recorded hashes against disk -- the field was schema-enforced and inert.
+    # A verdict that certifies bytes which have since changed certifies nothing,
+    # and the run keeps its PASS. Measured: S01 verifies 10/10, the e2e fixture
+    # 6/6, but ML04 verifies 8 of 43 because it re-ran its experiments and
+    # regenerated its tables at 20:23/20:25 without refreshing any of the five
+    # audits it had written at 20:18.
+    if meta.get("audit_hashes") and isinstance(data, dict) and ws_root is not None:
+        hashes = data.get("audited_input_hashes")
+        if isinstance(hashes, dict) and hashes:
+            changed = _audit_inputs_changed(ws_root, hashes)
+            if changed:
+                errors.append(
+                    "audited_input_hashes no longer match disk for %d of %d "
+                    "input(s): %s -- the audit certified bytes that have since "
+                    "changed, so its verdict cannot be trusted until the audit "
+                    "is re-run" % (len(changed), len(hashes),
+                                   ", ".join(changed[:6]))
+                )
 
     return errors
 
@@ -534,7 +621,8 @@ def validate_json_file(filename, filepath):
 
     errors = lint_schema(schema)
     errors.extend(validate_against(data, schema))
-    errors.extend(post_checks(filename, data))
+    ws_root = _workspace_root(filepath)
+    errors.extend(post_checks(filename, data, ws_root=ws_root))
 
     if errors:
         return "FAIL", errors

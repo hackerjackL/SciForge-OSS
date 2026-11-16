@@ -109,6 +109,19 @@
   - **`security_scan` BLOCKED**：`src/lit_search.py` 两次 `urllib.request.urlopen` → SEC-003。这不是误报，是**架构缝**：硬规则 5 强制引用要联网验 arXiv+CrossRef，于是文献检索脚本的**全部功能**就是网络出口，而 6b/6c 的安全门无条件拦网络出口，唯一被认可的 allowlist 位置（`security_allowlist.txt` 放在脚本旁）被明确设计为不自动加载、放在 agent 可写区内的又被 SEC-012 拒。**门是对的（未审的网络出口危险），但流水线没有任何合法路径批准它必须的功能**。记档待人类决策，**没有为了让它过而把门改松**（第一硬规则）。两个候选修法各自带代价：把门限定到"6b/6c 真正 dispatch 的脚本"（改窄范围本身就是放松，且 `src/` 下哪些脚本会被 dispatch 并无带内判据）；或让操作员在 agent 写不到的目录放 allowlist（结构性正确，但要求部署侧动作）。
 - `.gitignore` 补 `runs/ML04/`、`runs/Q05/`、`runs/B01/`；评测产物与评分表一律不入库。
 
+### H. `audited_input_hashes` 从"schema 强制但惰性"变成真正承重
+
+查 ML04 那 4 个 FAIL 时发现一个更根本的东西：**这五个 audit verdict 全都写了 `verdict: PASS`，而它们审计的 13 个输入里有 11 个字节已经变了**。`PAPER_CLAIM_AUDIT.json` 的 summary 写着"Every numeric macro in the manuscript is generated from results/metrics.json by src/make_tables.py; 11 load-bearing values were independently recomputed"——而它审计的 `paper/main.tex` 和 `results/metrics.json` 哈希都已变。
+
+根因：`REGISTRY` 里有 `audit_hashes: True` 标记，docstring 把"必须带 `audited_input_hashes`"写成 post-check 2，schema 也把它设为 required——**但没有任何代码把它和磁盘比对**。字段存在、被填充、被 schema 承认，实际上完全装饰性。
+
+- **这不是通病，是单个 run 违约**（此处自纠上一轮的错误判断：我最初比对时忘了记录值带 `sha256:` 前缀，于是算出"6/6、10/10、43/43 全变"的假系统性结论）。归一化前缀后重算：**S01 10/10 匹配、e2e fixture 6/6 匹配**——机制本身能自洽；**只有 ML04 是 8 匹配 / 35 已变**。ML04 时间线：20:18 五个审计跑完 → 20:23 实验重跑 → 20:25 表格重生成 → **一个审计都没刷新**。
+- **新增核对**（`validate_verdicts.py::post_checks`，与既有 citation `verification_depth` 交叉字段校验同一处）：`sha256:` 前缀归一化后逐个比磁盘，不匹配 → **FAIL**，detail 点名列出并说明"审计证明的字节已变，重跑审计前不能信它的 verdict"。
+- **只判 CHANGED，不判 MISSING**。第一版把"审计输入的路径不存在"也报成 WARN，结果**出货的 e2e fixture 有 6 个这样的路径**（`METHOD_REGISTRY_SNIPPET.md`、`run_toy.py`——trimmed fixture 布局本来就不携带），每个 CI run 都响 4 条 WARN，而且内核 `--strict` 下 WARN 直接升级成 BLOCKED，把 mock host 的 happy path 堵死。按"误报同样是缺陷"把这条整个去掉：缺失路径可能是打包裁剪或只拷 verdicts 目录，**只有哈希与盘上字节矛盾才是违约**。去掉后 fixture 回到 24 pass / 0 warn 的原状。
+- **工作区根目录推导改成按文件位置判断**，不再固定 `parents[2]`。固定退三级只对 `<ws>/.sciforge/verdicts/X.json` 成立；写到 workspace 根的要退两级，测试里直接丢进临时目录的要退一级——用固定值在后两种布局下会静默解析到任意祖先（这个 bug 差点让健康工作区被判成"无法复验"）。
+- **两个测试替身因此而变得更真实**（记档，因为是它们先不诚实）：`test_mock_host_e2e.py` 的 `_verdict()` 从 fixture **逐字抄** verdict，连同它的 `audited_input_hashes`——于是把 fixture 的 `PROBLEM.md` 哈希写进一个 `PROBLEM.md` 内容完全不同的工作区。新增 `_recompute_audit_hashes()` 后处理：按 scenario 自己写下的字符串内容重算（内核对字符串内容就是 `str(content)` 原样写盘，所以 `_H(content)` 就是文件 sha256），兼容"同一 phase 映射到响应列表"的形状。`test_v174_debts.py` 的 fixture 声称审计了 `references.bib` 却没创建它，补上真实文件与哈希。
+- `tests/test_validate_verdicts.py`（+8 项）：匹配 → PASS（S01 形状）、字节已变 → FAIL 且点名、**`sha256:` 前缀归一化**（不归一化就会把每个健康 run 判成陈旧——这个检查差点就这么出了货）、缺失路径 → PASS 不罚、变了的不被缺失的掩盖、非 audit 族 verdict 不受影响、端到端 exit code。**870 passed，ci_check PASS，e2e fixture 24 pass / 0 fail / 0 warn，security_scan 26/26**。
+
 ### 记档未做（诚实清单）
 - **整文件重算哈希不在威胁模型内**：同 uid 攻击者可重算全链，需 HMAC + 密钥管理才能防。当前防护目标是"低成本追加伪造"与"篡改可检测"。
 - **`gate_all.py`/`fairness_gate.py` 读 events.ndjson 时不报告完整性**：建议把 `event_log_integrity_broken` 暴露为门判定。

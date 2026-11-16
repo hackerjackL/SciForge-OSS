@@ -243,3 +243,145 @@ def test_genuine_three_layer_passes():
 def test_pre_v174_artifact_without_depth_fields_is_untouched():
     """Backward compat: the check only fires when a depth is declared."""
     assert _citation_errors() == []
+
+
+# ---------------------------------------------------------------------------
+# audited_input_hashes must match disk (post-check 2 was inert)
+# ---------------------------------------------------------------------------
+# The REGISTRY carries an `audit_hashes` flag and the docstring documents the
+# field as required, but nothing ever compared the recorded hashes against the
+# files. S01 verifies 10/10 and the e2e fixture 6/6, so the mechanism can be
+# self-consistent; ML04 verifies 8 of 43 because it re-ran its experiments and
+# regenerated its tables without refreshing any audit, and kept five PASSes.
+
+_AUDIT_BASE = {
+    "PAPER_CLAIM_AUDIT.json": {
+        "verdict": "PASS", "reason_code": "all_numbers_recomputed",
+        "summary": "test fixture", "generated_at": "2026-11-16T12:00:00Z"},
+    "LEAKAGE_AUDIT.json": {
+        "verdict": "PASS", "discipline_context": "general",
+        "type_i": {"n_leaky": 0, "n_total": 6, "items": []},
+        "type_ii": "NOT_APPLICABLE", "type_iii": "NOT_APPLICABLE",
+        "type_iv": {"n_escape": 0, "n_total": 6, "items": []},
+        "blockers": [], "recommendations": []},
+    "PROOF_AUDIT.json": {
+        "audit_skill": "proof-audit", "verdict": "PASS",
+        "reason_code": "ok", "summary": "test fixture",
+        "trace_path": ".sciforge/audits/x.md", "reviewer_model": "test",
+        "reviewer_reasoning": "test", "generated_at": "2026-11-16T12:00:00Z",
+        "details": {}},
+}
+
+
+def _sha(b: bytes) -> str:
+    import hashlib
+    return hashlib.sha256(b).hexdigest()
+
+
+def _ws_with_audit(tmp_path, name, inputs, recorded):
+    """A workspace whose verdicts/ holds one audit verdict plus its inputs."""
+    ws = tmp_path
+    vd = ws / ".sciforge" / "verdicts"
+    vd.mkdir(parents=True, exist_ok=True)
+    for rel, content in inputs.items():
+        p = ws / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(content)
+    data = _AUDIT_BASE[name].copy()
+    data["audited_input_hashes"] = recorded
+    write_json(vd, name, data)
+    return vd / name
+
+
+def test_matching_audit_hashes_pass(tmp_path):
+    """S01's shape: every recorded hash matches the file on disk."""
+    inputs = {"results/metrics.json": b'{"a":1}\n',
+              "paper/main.tex": b"\\documentclass{article}\n"}
+    recorded = {rel: _sha(c) for rel, c in inputs.items()}
+    path = _ws_with_audit(tmp_path, "PAPER_CLAIM_AUDIT.json", inputs, recorded)
+    status, notes = vv.validate_json_file("PAPER_CLAIM_AUDIT.json", path)
+    assert status == "PASS", notes
+
+
+def test_changed_audit_input_fails(tmp_path):
+    """ML04's shape: the file was rewritten after the audit certified it."""
+    inputs = {"results/metrics.json": b'{"a":1}\n',
+              "paper/main.tex": b"\\documentclass{article}\n"}
+    recorded = {rel: _sha(c) for rel, c in inputs.items()}
+    path = _ws_with_audit(tmp_path, "PAPER_CLAIM_AUDIT.json", inputs, recorded)
+    # rewrite one input, exactly as a table regeneration would
+    (tmp_path / "results" / "metrics.json").write_bytes(b'{"a":2}\n')
+    status, notes = vv.validate_json_file("PAPER_CLAIM_AUDIT.json", path)
+    assert status == "FAIL"
+    assert any("no longer match disk" in n for n in notes)
+    assert any("results/metrics.json" in n for n in notes)
+    assert any("cannot be trusted" in n for n in notes)
+
+
+def test_sha256_prefix_is_normalised(tmp_path):
+    """Recorded hashes may carry a `sha256:` prefix; disk hashes do not.
+
+    Comparing them unnormalised reports every healthy run as stale -- which is
+    how this check was very nearly shipped.
+    """
+    inputs = {"results/metrics.json": b'{"a":1}\n'}
+    recorded = {"results/metrics.json": "sha256:" + _sha(inputs["results/metrics.json"])}
+    path = _ws_with_audit(tmp_path, "PAPER_CLAIM_AUDIT.json", inputs, recorded)
+    status, notes = vv.validate_json_file("PAPER_CLAIM_AUDIT.json", path)
+    assert status == "PASS", notes
+    assert vv._norm_audit_hash("sha256:" + "ab" * 32) == "ab" * 32
+    assert vv._norm_audit_hash("AB" * 32) == "ab" * 32
+
+
+def test_absent_audited_input_is_not_a_violation(tmp_path):
+    """The e2e fixture audits two files its trimmed layout does not carry.
+
+    Reporting absence would warn on every run against a healthy, shipped
+    workspace (and against any verdicts-only copy), which trains people to
+    ignore warnings -- a false positive by the same standard as a wrong FAIL.
+    Only a hash that contradicts the bytes on disk is a violation.
+    """
+    inputs = {"results/metrics.json": b'{"a":1}\n'}
+    recorded = {rel: _sha(c) for rel, c in inputs.items()}
+    recorded["METHOD_REGISTRY_SNIPPET.md"] = _sha(b"absent\n")
+    path = _ws_with_audit(tmp_path, "LEAKAGE_AUDIT.json", inputs, recorded)
+    status, notes = vv.validate_json_file("LEAKAGE_AUDIT.json", path)
+    assert status == "PASS", notes
+
+
+def test_changed_input_fails_even_when_another_is_absent(tmp_path):
+    """An absent path must not mask a genuinely changed one."""
+    inputs = {"results/metrics.json": b'{"a":1}\n'}
+    recorded = {rel: _sha(c) for rel, c in inputs.items()}
+    recorded["absent.md"] = _sha(b"absent\n")
+    path = _ws_with_audit(tmp_path, "PROOF_AUDIT.json", inputs, recorded)
+    (tmp_path / "results" / "metrics.json").write_bytes(b'{"a":2}\n')
+    status, notes = vv.validate_json_file("PROOF_AUDIT.json", path)
+    assert status == "FAIL"
+    assert any("no longer match disk" in n for n in notes)
+    assert any("results/metrics.json" in n for n in notes)
+
+
+def test_non_audit_verdicts_are_unaffected(tmp_path):
+    """Only the five audit-family artifacts carry audited_input_hashes; a
+    verdict without the REGISTRY flag must not gain a hash check.
+
+    Asserted on the helpers directly rather than through validate_json_file,
+    because FAIRNESS.json has its own large required-field set that would only
+    add noise to what this test is about.
+    """
+    fair = {"verdict": "PASS", "audited_input_hashes": {"x": "y"}}
+    assert vv.post_checks("FAIRNESS.json", fair, ws_root=tmp_path) == []
+
+
+def test_end_to_end_exit_code_reflects_stale_audit(tmp_path, capsys):
+    """Through main(): a stale audit must make the process exit non-zero."""
+    inputs = {"results/metrics.json": b'{"a":1}\n'}
+    recorded = {rel: _sha(c) for rel, c in inputs.items()}
+    _ws_with_audit(tmp_path, "PAPER_CLAIM_AUDIT.json", inputs, recorded)
+    (tmp_path / "results" / "metrics.json").write_bytes(b'{"a":2}\n')
+    rc = vv.main([str(tmp_path / ".sciforge" / "verdicts")])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "PAPER_CLAIM_AUDIT.json" in out
+    assert "no longer match disk" in out

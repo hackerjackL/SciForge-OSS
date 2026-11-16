@@ -98,6 +98,11 @@ SPLIT_HASH = _H("mock-data-split-v1")
 SMOKE_SCRIPT = 'import sys\nprint("smoke slice ok", sys.argv[1:])\n'
 SMOKE_SCRIPT_SHA = _H(SMOKE_SCRIPT)
 
+DERIVATION_MD = """# Derivation
+
+Var(mean) = sigma^2/n; Var(median) ~ (pi/2) sigma^2/n.
+"""
+
 METHOD_MD = """# Method registry — MOCK-Q001
 
 ## Section 3 — Method Selection (locked)
@@ -304,12 +309,41 @@ def _figure_files() -> dict:
     return out
 
 
+def _recompute_audit_hashes(script: dict) -> dict:
+    """Make every audit verdict certify files this scenario really writes.
+
+    `_verdict` copies the fixture verdict verbatim, audited_input_hashes
+    included -- and those point at the fixture's PROBLEM.md and
+    METHOD_REGISTRY_SNIPPET.md, not at this workspace. validate_verdicts now
+    compares the recorded hashes against disk, so a copied verdict certifies
+    bytes that do not exist here and the boundary fails. Recompute them from
+    the scenario's own string contents (the kernel writes str(content) as-is,
+    so _H(content) is the file's sha256).
+    """
+    written: dict[str, str] = {}
+    # a phase may map to a LIST of responses (the host is called more than once
+    # for that phase), so flatten before walking.
+    responses = [r for v in script.values() for r in (v if isinstance(v, list) else [v])]
+    for resp in responses:
+        if not isinstance(resp, dict):
+            continue
+        for rel, content in (resp.get("files") or {}).items():
+            if isinstance(content, str):
+                written[rel] = content
+            elif isinstance(content, dict) and isinstance(
+                    content.get("audited_input_hashes"), dict):
+                content["audited_input_hashes"] = {
+                    r: _H(c) for r, c in sorted(written.items())}
+    return script
+
+
 def scenario() -> dict:
     """Phase -> fake-host response (verdict + artifacts the phase produces).
 
     Files are written BEFORE the boundary gates run, so every gate sees the
     real artifact shape it would see from a host agent.
     """
+
     return {
         "1a": {"verdict": "PASS", "files": {
             ".sciforge/refine-logs/domain-signature.json": {
@@ -340,10 +374,9 @@ def scenario() -> dict:
             "methods/METHOD_REGISTRY.md": METHOD_MD,
             ".sciforge/verdicts/REGISTRY_HASH.txt": _H(METHOD_MD) + "\n"}},
         "6a": {"verdict": "PASS", "files": {
-            ".sciforge/verdicts/PROOF_AUDIT.json": _verdict("PROOF_AUDIT.json"),
-            "derivations/derivation_output.md":
-                "# Derivation\n\n"
-                "Var(mean) = sigma^2/n; Var(median) ~ (pi/2) sigma^2/n.\n"}},
+            "derivations/derivation_output.md": DERIVATION_MD,
+            ".sciforge/verdicts/PROOF_AUDIT.json":
+                _verdict("PROOF_AUDIT.json")}},
         "6b": {"verdict": "PASS", "files": {
             "experiments/toy/main/RESULT.json": _result("toy"),
             "src/run_toy.py": TOY_SRC,
@@ -428,7 +461,7 @@ def _install_script(ws: Path, script: dict) -> Path:
     hostdir = ws / ".sciforge" / "host"
     hostdir.mkdir(parents=True, exist_ok=True)
     path = hostdir / "mock_script.json"
-    path.write_text(json.dumps(script, indent=1))
+    path.write_text(json.dumps(_recompute_audit_hashes(script), indent=1))
     return path
 
 
