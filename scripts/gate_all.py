@@ -46,6 +46,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import re
 import subprocess
 import sys
 import time
@@ -502,6 +503,80 @@ def _find_verdict(ws: Path, name: str) -> Path | None:
     return None
 
 
+# PDF /CreationDate (D:YYYYMMDDHHmmSS±HH'mm'). Read from the raw bytes rather
+# than through pdfinfo: the PDF date string is locale-independent, whereas
+# pdfinfo renders it as "Mon Nov 16 20:15:21 2026 CST" whose %Z is ambiguous.
+# The embedded date also survives a file copy, which a filesystem mtime does not.
+_PDF_CREATION = re.compile(
+    rb"/CreationDate\s*\(\s*D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})"
+    rb"([+-])(\d{2})'(\d{2})'?")
+
+
+def _pdf_creation_ts(pdf: Path) -> float | None:
+    """CreationDate as a POSIX timestamp, or None when absent/unparseable."""
+    try:
+        raw = pdf.read_bytes()
+    except OSError:
+        return None
+    m = _PDF_CREATION.search(raw)
+    if not m:
+        return None
+    y, mo, d, h, mi, s, sign, oh, om = m.groups()
+    y, mo, d, h, mi, s, oh, om = (int(x) for x in (y, mo, d, h, mi, s, oh, om))
+    try:
+        dt = datetime.datetime(y, mo, d, h, mi, s, tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return None
+    offset = (abs(oh) * 3600 + om * 60) * (1 if sign == b"+" else -1)
+    return dt.timestamp() - offset
+
+
+# Manuscript inputs whose freshness the compiled PDF must reflect. Deliberately
+# excludes .sciforge/ (gate verdicts), logs/, .smoke-out/ (smoke re-execution),
+# results/benchmark/ (ARC-Bench task/rubric/assessment metadata, written by the
+# evaluator long after the manuscript) and __pycache__: all of those are written
+# after phase 13 by design.
+_MANUSCRIPT_INPUT_DIRS = ("results", "experiments", "paper")
+_MANUSCRIPT_INPUT_SKIP_DIRS = ("__pycache__", ".smoke-out", "benchmark")
+
+
+def _manuscript_inputs(ws: Path) -> list[Path]:
+    out: list[Path] = []
+    for name in _MANUSCRIPT_INPUT_DIRS:
+        base = ws / name
+        if not base.is_dir():
+            continue
+        for p in base.rglob("*"):
+            if not p.is_file() or p.name == "main.pdf":
+                continue
+            if any(part in _MANUSCRIPT_INPUT_SKIP_DIRS for part in p.parts):
+                continue
+            if p.suffix not in (".json", ".tex", ".bib"):
+                continue
+            out.append(p)
+    return out
+
+
+def _stale_pdf_sources(ws: Path, created: float, grace: float = 2.0) -> list[Path]:
+    """Manuscript inputs modified after the PDF was created.
+
+    A grace window absorbs filesystem timestamp granularity. The comparison is
+    one-sided in strength: the PDF side is content-embedded (copy-robust), the
+    source side is a filesystem mtime. A workspace copied with a non-preserving
+    copy (`cp -r`, not `cp -a`) resets every mtime and can therefore report
+    every source as newer; the returned paths make that immediately diagnosable,
+    and recompiling clears it.
+    """
+    stale = []
+    for p in _manuscript_inputs(ws):
+        try:
+            if p.stat().st_mtime > created + grace:
+                stale.append(p)
+        except OSError:
+            continue
+    return sorted(stale, key=lambda p: str(p))
+
+
 def gate_quality_gate(ws: Path, opts) -> dict:
     """Phase 12 marker gate: the host must run /quality-gate and write the
     verdict; a missing marker FAILs the boundary in the kernel."""
@@ -539,9 +614,47 @@ def gate_compile_audit(ws: Path, opts) -> dict:
     if warnings and discipline == "strict":
         return _result("compile_audit", "13", "FAIL", "compile_warnings_strict",
                        f"{warnings} compile warning(s) under discipline=strict")
+    # The self-reported warning count certifies the compile that PAPER_COMPILE
+    # describes, not the manuscript currently on disk. A run that regenerates
+    # results/tables after compiling ships a PDF whose numbers contradict
+    # results.json -- measured on a real ARC-Bench run whose PDF reported an
+    # H1 gap of 0.0273 while results.json said 0.031833, with the PDF nine
+    # minutes older than both. PAPER_COMPILE.json still read warnings=0 PASS.
+    pdf = ws / "paper" / "main.pdf"
+    if not pdf.is_file():
+        alt = doc.get("pdf_path")
+        if alt:
+            cand = Path(str(alt))
+            pdf = cand if cand.is_absolute() else (ws / cand)
+    if not pdf.is_file():
+        # Absence is already a hard failure in submission_ready at 15.5, which
+        # is the phase-appropriate place for it (it also reports the abstract,
+        # figures and back-matter that a missing manuscript implies). Failing
+        # it here too only duplicates that verdict -- and it did: the shipped
+        # e2e fixture carries a PASS PAPER_COMPILE.json with no PDF, so this
+        # leg added a second FAIL where one already existed. Nothing to compare
+        # freshness against, so SKIP.
+        return _result("compile_audit", "13", "SKIP", "compiled_pdf_absent",
+                       f"no main.pdf at {pdf}; absence is a hard failure in "
+                       f"submission_ready (15.5), not duplicated here")
+    created = _pdf_creation_ts(pdf)
+    if created is None:
+        return _result("compile_audit", "13", "WARN", "pdf_creation_date_unreadable",
+                       f"no parseable /CreationDate in {pdf.name}; cannot check "
+                       f"that the PDF postdates its sources")
+    stale = _stale_pdf_sources(ws, created)
+    if stale:
+        rel = [str(p.relative_to(ws)) for p in stale[:6]]
+        more = f" (+{len(stale) - 6} more)" if len(stale) > 6 else ""
+        return _result("compile_audit", "13", "FAIL", "compiled_pdf_stale",
+                       f"main.pdf (created "
+                       f"{datetime.datetime.fromtimestamp(created, datetime.timezone.utc):%Y-%m-%d %H:%M:%S}Z) "
+                       f"predates {len(stale)} manuscript input(s): {', '.join(rel)}{more} "
+                       f"-- recompile after regenerating results/tables")
     return _result("compile_audit", "13", "PASS", "ok",
                    f"PAPER_COMPILE.json present, warnings={warnings}, "
-                   f"discipline={discipline}")
+                   f"discipline={discipline}, PDF postdates all "
+                   f"{len(_manuscript_inputs(ws))} manuscript input(s)")
 
 
 def gate_citation_audit(ws: Path, opts) -> dict:

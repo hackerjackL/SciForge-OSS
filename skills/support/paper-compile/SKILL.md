@@ -112,6 +112,14 @@ If compilation fails, read `compile.log` and fix common errors:
 **BibTeX errors** (`I was expecting a ',' or a '}'---line 15 of references.bib`)
 - Fix BibTeX syntax (missing comma, unmatched braces, special characters in title).
 
+**`Token not allowed in a PDF string (Unicode): removing 'math shift'`**
+- **Cause**: a `$...$` (or `\(...\)`) in a `\section`/`\subsection` heading, `\caption`, or short title. hyperref flattens those into PDF bookmark strings, where the math shift is an illegal token. One occurrence can emit two warning lines.
+- **MUST FIX (zero warnings policy)**. Wrap the math at the authoring site:
+  `\subsection{... at \texorpdfstring{$L=10$}{L=10}}`
+  The first argument typesets normally; the second is the clean bookmark text. Verified fix: 0 warnings, 0 errors.
+- **Do NOT attempt a preamble fix.** Neutralising `$` inside `\pdfstringdefDisableCommands` was measured and fails both ways: adding `\def\(\)...`/`\def\ensuremath#1{#1}` leaves the 2 warnings unchanged, and `\expandafter\def\csname $\endcsname#1\csname $\endcsname{#1}` produces ~30 errors that break the document. The template's preamble comment records this. Fix the heading, not the preamble.
+- Body-text math does NOT trigger this — only headings/captions that hyperref flattens. A paper with heavy body math and zero heading math compiles clean.
+
 **`\crefname` undefined for custom theorem types**
 - Ensure `\crefname{assumption}{Assumption}{Assumptions}` and similar are in the preamble after `\newtheorem{assumption}`.
 

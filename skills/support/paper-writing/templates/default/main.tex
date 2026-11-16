@@ -55,6 +55,27 @@
   \def\ead#1{}%
 }
 
+% Math in a section heading is NOT fixable from the preamble.
+%
+% hyperref flattens every heading into a PDF bookmark string, where the math
+% shift `$` is an illegal token. It strips it and emits
+%   "Token not allowed in a PDF string (Unicode): removing `math shift'"
+% once per occurrence, which breaks the zero-warning compile policy.
+%
+% Do NOT try to neutralise `$` here. Two candidates were measured against a
+% minimal repro (one heading, `$L=10$`):
+%   - \def\({}\def\){}\def\ensuremath#1{#1}\def\text#1{#1}...  -> 2 warnings, unchanged
+%   - \expandafter\def\csname $\endcsname#1\csname $\endcsname{#1}
+%     -> 2 warnings AND 30 errors: redefining the math shift breaks the document
+% `$` cannot be redefined inside \pdfstringdefDisableCommands at all.
+%
+% The working remedy is at the authoring site, one heading at a time:
+%   \subsection{... at \texorpdfstring{$L=10$}{L=10}}
+% \texorpdfstring{typeset}{pdfstring} keeps the typeset heading untouched and
+% gives hyperref a clean bookmark. Verified: 0 warnings, 0 errors.
+% Body-text math is unaffected -- only headings (and anything else hyperref
+% flattens: \caption, short titles) reach this code path.
+
 % Theorems
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[section]
