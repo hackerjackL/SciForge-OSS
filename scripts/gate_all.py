@@ -729,6 +729,36 @@ def gate_citation_audit(ws: Path, opts) -> dict:
     return _result("citation_audit", "15", "PASS", "ok", str(p.relative_to(ws)))
 
 
+def gate_claim_witness(ws: Path, opts) -> dict:
+    """Phase 12/13: the manuscript's universal claims must be witnessed and the
+    witnesses must survive mechanical re-derivation.
+
+    Distinct from leakage_scan: that one greps for forbidden patterns, this one
+    re-derives a declared relation from the artifacts. A refuted witness FAILs;
+    an unregistered candidate only WARNs, because the gate's recall is
+    deliberately broad and a claim nobody registered is unverifiable, not false.
+    The row is built from the gate's own JSON verdict rather than its exit code,
+    because _exit_status has no WARN path and would report a disclosure as a
+    pass.
+    """
+    rc, out, dur = _run("claim_witness.py", [str(ws), "--json"], opts.timeout)
+    verdict = None
+    try:
+        verdict = json.loads(out).get("verdict")
+    except ValueError:
+        pass
+    if verdict is None:
+        return _result("claim_witness", "13", "ERROR", "claim_witness_unparseable",
+                       out, dur)
+    if verdict == "FAIL":
+        return _result("claim_witness", "13", "FAIL", "claim_refuted_by_evidence",
+                       out, dur)
+    if verdict == "WARN":
+        return _result("claim_witness", "13", "WARN",
+                       "claim_candidates_unregistered", out, dur)
+    return _result("claim_witness", "13", "PASS", "ok", out, dur)
+
+
 def gate_leakage_scan(ws: Path, opts) -> dict:
     rc, out, dur = _run("leakage_scan.py", [str(ws)], opts.timeout)
     return _std_result("leakage_scan", "13", rc, out, dur, "leakage_hits_remaining")
@@ -933,6 +963,7 @@ GATES = [
     ("figure_style", "11", gate_figure_style),
     ("quality_gate", "12", gate_quality_gate),
     ("fantasy_gate", "12", gate_fantasy_gate),
+    ("claim_witness", "13", gate_claim_witness),
     ("leakage_scan", "13", gate_leakage_scan),
     ("compile_audit", "13", gate_compile_audit),
     ("citation_audit", "15", gate_citation_audit),
