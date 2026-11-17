@@ -15,6 +15,7 @@
     "compute_backends": ["torch", "torch_npu", "tensorflow", "jax", "diffrax", "optuna"],
     "reproducibility": ["pytest", "codecarbon", "psutil", "dvc"],
     "causal": ["dowhy", "linearmodels", "causallearn", "diff_diff", "mlsynth"],
+    "metabolic_modelling": ["cobra", "optlang"],
     "viz_optional": ["seaborn", "plotly", "kaleido", "adjustText", "networkx", "igraph"]
   },
   "always_forbidden": {

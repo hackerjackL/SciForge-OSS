@@ -410,6 +410,11 @@ def _invoke(ws: Path, prefix: list[str], argv: list[str], timeout: float) -> dic
     env = dict(os.environ)
     env.setdefault("MPLBACKEND", "Agg")
     env["SCIFORGE_SMOKE"] = "1"
+    # An audit must leave the workspace exactly as it found it (v1.8.0 made this
+    # a global invariant). Importing the host's modules otherwise writes
+    # src/__pycache__/*.pyc, which workspace_hygiene then flags -- so the gate
+    # itself would be the reason the run fails hygiene.
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     # Offer an isolated output directory to scripts that honour SCIFORGE_OUT.
     # Many experiment scripts hard-code their output beside their own evidence
     # and take no --out flag, so the command line cannot redirect them; this
@@ -530,7 +535,16 @@ def check(ws: Path, *, execute: bool = True, timeout: float = 90.0,
           total_timeout: float = 300.0, max_executions: int = 8,
           allow_unsandboxed: bool = False, sandbox_wrap=None,
           security_scan: bool = True) -> dict:
-    ws = Path(ws)
+    # Absolute, always. _invoke runs the re-execution with cwd=ws, so a
+    # workspace-relative script path gets resolved a SECOND time against that
+    # cwd: `runs/ML18/src/run_group.py` becomes
+    # `runs/ML18/runs/ML18/src/run_group.py` and every group dies with "can't
+    # open file" -- surfaced as smoke_nonzero_exit, which reads as though the
+    # experiment is broken rather than the gate's own path handling. A host
+    # that recorded an absolute smoke_cmd (as S02 did) never hits this, so
+    # whether the gate failed depended on how the host happened to write the
+    # command rather than on the evidence.
+    ws = Path(ws).resolve()
     full = ws / "experiments" / "full"
     if not full.is_dir():
         return {"verdict": "SKIP", "reason_codes": ["no_full_experiments"],

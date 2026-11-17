@@ -35,6 +35,22 @@ CANONICAL_TOP_DIRS = {
     "bench", "logs", "supplementary", "scratch", ".sciforge",
     # output-protocol.md canonical stage dirs (visible research trail)
     "refine-logs", "data", "data_analysis", "intake",
+    # Reproducibility bundle. Two independent ARC-Bench rubric leaves make these
+    # deliverables, so a run that satisfies the rubric cannot also keep the
+    # workspace "clean" without them:
+    #   b01-repro-model      names the path literally: "the loaded GSMM is either
+    #                        persisted (models/iAF1260.json) or pinned by version
+    #                        + BIGG URL" -- the gate cannot accept the rubric's
+    #                        deliverable while rejecting its directory.
+    #   b01-repro-runcards   requires the medium bounds, objective, FVA
+    #                        fraction-of-optimum and KO gene list to be "saved to
+    #                        a config / params file (not only inline in code)".
+    #                        That names a FILE, not a directory, so `config` is
+    #                        an inference rather than a literal mandate -- kept
+    #                        because the alternative is the gate dictating where a
+    #                        run must write the artifact its own benchmark
+    #                        demands, which is the same false-positive class.
+    "config", "models",
 }
 JUNK_NAMES = {".DS_Store", ".pytest_cache", "texput.log"}
 

@@ -519,3 +519,50 @@ def test_heterogeneous_panel_adds_no_disclosure(tmp_path: Path, monkeypatch):
     doc = sr.check(ws, offline=True)
     assert not [d for d in doc["disclosures"] if "review_panel" in d]
     assert "adjudicator_not_distinct" not in doc["disclosures"]
+
+
+# ---------------------------------------------------------------------------
+# relative-workspace regression (ARC-Bench wave 1, ML18)
+# ---------------------------------------------------------------------------
+# Every gate in this battery is invoked from the repo root with a relative
+# workspace (`gate_all.py runs/ML18`), and _invoke runs the re-execution with
+# cwd=ws. A workspace-relative script path was therefore resolved a SECOND time
+# against that cwd: `runs/ML18/src/run_group.py` became
+# `runs/ML18/runs/ML18/src/run_group.py`, all five groups died with "can't open
+# file", and the gate reported smoke_nonzero_exit -- which reads as though the
+# experiment is broken rather than the gate's own path handling. A host that
+# recorded an absolute smoke_cmd never hit it, so the verdict depended on how
+# the host happened to write the command.
+
+def test_smoke_passes_when_workspace_is_a_relative_path(tmp_path, monkeypatch):
+    """The regression: a relative workspace must not double-resolve the script."""
+    ws = _smoke_ws(tmp_path, 'print("smoke ok")\n')
+    monkeypatch.chdir(tmp_path.parent)
+    doc = sg.check(Path(ws.name), sandbox_wrap=_FAKE_SANDBOX)
+    assert doc["verdict"] == "PASS", doc
+    assert "smoke_nonzero_exit" not in doc["reason_codes"]
+    assert doc["groups"][0]["execution"]["returncode"] == 0
+
+
+def test_smoke_rejects_a_real_nonzero_exit_even_when_relative(tmp_path, monkeypatch):
+    """The fix must not turn the genuine failure into a pass."""
+    ws = _smoke_ws(tmp_path, 'import sys\nsys.exit(3)\n')
+    monkeypatch.chdir(tmp_path.parent)
+    doc = sg.check(Path(ws.name), sandbox_wrap=_FAKE_SANDBOX)
+    assert doc["verdict"] == "FAIL"
+    assert "smoke_nonzero_exit" in doc["reason_codes"]
+
+
+def test_smoke_reexecution_writes_no_bytecode_into_the_workspace(tmp_path):
+    """An audit must leave the workspace as it found it (v1.8.0 global
+    invariant): importing the host's modules must not litter src/__pycache__,
+    which workspace_hygiene would then flag as the gate's own doing."""
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "helper.py").write_text("VALUE = 1\n")
+    ws = _smoke_ws(tmp_path, 'import sys\nsys.path.insert(0, "src")\n'
+                             'import helper\nprint(helper.VALUE)\n')
+    doc = sg.check(ws, sandbox_wrap=_FAKE_SANDBOX)
+    assert doc["verdict"] == "PASS", doc
+    assert not list(tmp_path.rglob("__pycache__")), \
+        "smoke re-execution wrote bytecode into the workspace"
