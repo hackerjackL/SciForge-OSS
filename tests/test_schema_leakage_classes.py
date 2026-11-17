@@ -117,3 +117,33 @@ def test_scanner_output_with_k_and_l_hits_passes_schema(tmp_path):
     status, notes = validate_verdicts.validate_json_file(
         "LEAKAGE_SCRUB.json", verdict_path)
     assert status == "PASS", notes
+
+# ---------------------------------------------------------------------------
+# class M — unfilled numeric template slot
+# ---------------------------------------------------------------------------
+# A number with an UPPERCASE subscript inside math mode ($1.1637_SD$) is read
+# by LaTeX as a subscript, so it renders and compiles with ZERO warnings. A real
+# ARC-Bench run shipped two of them in the appendix of a 34-page PDF whose
+# table-filling step substituted $1.1637$ but not $1.1637_SD$; its own
+# LEAKAGE_SCRUB.json read PASS with 0 hits because the class did not exist yet.
+
+def test_class_m_matches_unfilled_numeric_slot(tmp_path):
+    tex = tmp_path / "paper" / "sections"
+    tex.mkdir(parents=True)
+    (tex / "A_appendix.tex").write_text(
+        "samples: actual bias $1.1637$ (across-sample SD $1.1637_SD$), predicted\n")
+    hits = _load_scanner().scan_tex_files(tmp_path / "paper")
+    m = [h for h in hits if h["class"] == "M"]
+    assert len(m) == 1, hits
+    assert "1.1637_SD" in m[0]["match"]
+
+
+def test_class_m_does_not_match_intentional_math(tmp_path):
+    """Braced subscripts on a symbol are legitimate math, not a template slot."""
+    tex = tmp_path / "paper" / "sections"
+    tex.mkdir(parents=True)
+    (tex / "3_method.tex").write_text(
+        "the estimator is $x_{SD}$ and the ratio $\\sigma_{SD}/\\mu$ is stable, "
+        "with $n = 100$ samples and $p < 0.05$.\n")
+    hits = _load_scanner().scan_tex_files(tmp_path / "paper")
+    assert not [h for h in hits if h["class"] == "M"], hits

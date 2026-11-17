@@ -4,11 +4,22 @@
   "title": "LEAKAGE_SCRUB.json - pipeline-leakage scrub gate verdict",
   "description": "Produced by /paper-writing Step 3.5 and scripts/leakage_scan.py (12-class A-L regex scrub gate, v3.6-mech; class J = AIGC traces, class K = SCI body voice / apology-defensive register, class L = internal machinery jargon, I-frontmatter = fabricated author/affiliation block). /paper-compile refuses to compile when status != PASS (BLOCKED, reason_code: pipeline_leakage_not_scrubbed). Note: 'status' here uses the gate's own PASS|FAIL vocabulary, not the 6-state audit vocabulary.",
   "type": "object",
-  "required": ["gate", "version", "status", "hits_found", "hits_scrubbed", "hits_remaining", "classes_seen", "checked_files"],
+  "required": [
+    "gate",
+    "version",
+    "status",
+    "hits_found",
+    "hits_scrubbed",
+    "hits_remaining",
+    "classes_seen",
+    "checked_files"
+  ],
   "properties": {
     "gate": {
       "type": "string",
-      "enum": ["pipeline-leakage-scrub"]
+      "enum": [
+        "pipeline-leakage-scrub"
+      ]
     },
     "version": {
       "type": "string",
@@ -16,7 +27,10 @@
     },
     "status": {
       "type": "string",
-      "enum": ["PASS", "FAIL"],
+      "enum": [
+        "PASS",
+        "FAIL"
+      ],
       "description": "Zero remaining hits required to PASS; any remaining hit is FAIL."
     },
     "hits_found": {
@@ -33,10 +47,25 @@
     },
     "classes_seen": {
       "type": "array",
-      "description": "Leakage classes detected during the grep pass: A-L (the 12 classes implemented by scripts/leakage_scan.py CLASSES) plus I-frontmatter (the fabricated author/affiliation sub-check of class I).",
+      "description": "Leakage classes detected during the grep pass: A-M (the 13 classes implemented by scripts/leakage_scan.py CLASSES) plus I-frontmatter (the fabricated author/affiliation sub-check of class I).",
       "items": {
         "type": "string",
-        "enum": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "I-frontmatter"]
+        "enum": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "I-frontmatter"
+        ]
       }
     },
     "checked_files": {

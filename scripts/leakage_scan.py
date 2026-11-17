@@ -55,6 +55,17 @@ CLASSES = {
          r"\brebuttal loop\b|\bcalibrated panel\b|\bgate (?:exit|PASS|passed)\b|"
          r"\bs2 (?:ladder|ablation|audit)\b|\bverdict (?:file|json)\b|"
          r"\bthe (?:s2|ladder|ablation|smoke|security) gate\b",
+    # class M (v1.8.0): an unfilled numeric template slot. A number with an
+    # UPPERCASE subscript inside math mode -- `$1.1637_SD$`. LaTeX reads `_` as
+    # a subscript, so it renders as "1.1637 subscript SD" and compiles with
+    # ZERO warnings; the placeholder only shows up if someone reads the PDF.
+    # Observed in a real ARC-Bench run whose table-filling step substituted
+    # `$1.1637$` but not `$1.1637_SD$`, shipping the literal text in the
+    # appendix of a 34-page submission-grade PDF.
+    # Tight by construction: intentional math writes `$x_{SD}$` (braces, and a
+    # symbol rather than a decimal), and a \newcommand definition is
+    # `\newcommand{\Foo}{1.1637}` with no decimal-then-underscore-then-uppercase.
+    "M": r"\$\s*\d+\.\d+\s*_\s*[A-Z][A-Za-z]*\s*\$",
 }
 
 FABRICATED_AUTHOR = re.compile(

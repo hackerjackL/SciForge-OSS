@@ -362,7 +362,7 @@ def _paper_writing_class_labels() -> set[str]:
 def test_paper_writing_documents_every_scanner_class():
     labels = _paper_writing_class_labels()
     expected = _scanner_classes()
-    assert len(leak.CLASSES) == 12, sorted(leak.CLASSES)
+    assert len(leak.CLASSES) == 13, sorted(leak.CLASSES)
     assert {label for label in labels if label != "I-frontmatter"} == \
         set(leak.CLASSES), (labels, expected)
     assert "I-frontmatter" in labels
