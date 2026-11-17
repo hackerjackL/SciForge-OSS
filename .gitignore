@@ -92,6 +92,9 @@ runs/S01/
 runs/ML04/
 runs/Q05/
 runs/B01/
+runs/S02/
+runs/ML18/
+runs/Q07/
 bench/s2demo/results/
 
 # stray top-level eval logs (agents leak cwd-relative logs here)
