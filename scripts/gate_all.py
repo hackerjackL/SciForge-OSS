@@ -40,6 +40,21 @@ Usage:
 
 The workspace must be a run workspace (contains .sciforge/ or run artifacts).
 Stdlib only, no third-party imports.
+
+Reproducibility
+---------------
+Without --offline, doi_gate really resolves DOIs against CrossRef, so the same
+workspace can produce different verdicts on two consecutive runs. Measured on
+ARC-Bench wave 1: run 1 PASS (12/14 DOIs resolved, 2 classical records with no
+DOI, 34.5s), run 2 FAIL `doi_unresolvable_or_missing` — nothing in the workspace
+changed in between, only the network answers did. This has surfaced as a real
+confusion: a loop where gate_all reported one FAIL for a workspace and an
+immediately following single-gate run reported none.
+
+The gate is right to fail closed on an unresolvable DOI; relaxing that to WARN
+would be loosening a gate, not fixing reproducibility. The operational answer is
+to compare runs at a stable state (--offline) and record the networked gate's
+status separately. `tests/` runs --offline, so the suite is unaffected.
 """
 from __future__ import annotations
 
@@ -1095,7 +1110,10 @@ def main(argv=None) -> int:
     ap.add_argument("--only", default="", help="comma-separated gate names to run")
     ap.add_argument("--skip", default="", help="comma-separated gate names to skip")
     ap.add_argument("--offline", action="store_true",
-                    help="doi_gate: structure-only, no network resolution")
+                    help="doi_gate: structure-only, no network resolution. "
+                         "Use this for any run you intend to compare against "
+                         "another run — online DOIs make the verdict "
+                         "non-reproducible (see module docstring)")
     ap.add_argument("--integrity-llm", action="store_true",
                     help="integrity_monitor: also run the semantic D1 tier "
                          "(requires configured providers)")
